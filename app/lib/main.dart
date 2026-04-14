@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'features/wizard/views/wizard_screen.dart';
+import 'features/home/views/home_screen.dart';
 
 void main() {
   runApp(
@@ -53,35 +53,7 @@ class FixaLogApp extends StatelessWidget {
           contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         ),
       ),
-      home: const DummyHomeScreen(),
-    );
-  }
-}
-
-class DummyHomeScreen extends StatelessWidget {
-  const DummyHomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Protocolos FixaLog'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WizardScreen()));
-              },
-              child: const Text('NOVA MANUTENÇÃO'),
-            ),
-          ],
-        ),
-      ),
+      home: const HomeScreen(),
     );
   }
 }

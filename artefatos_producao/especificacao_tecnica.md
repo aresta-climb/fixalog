@@ -17,7 +17,7 @@ O FixaLog é um aplicativo mobile "offline-first" destinado à comunidade de esc
   * Numérico (ex. quantidade de proteções, torque)
   * Múltipla escolha / dropdown
   * Booleano (Sim/Não)
-  * Captura de mídia (foto/vídeo complementar obrigatória)
+  * Captura de mídia (foto obrigatória, vídeo complementar de até 30 segundos)
   * Data/Hora
   * Localização/GPS
 * **Offline-First Absoluto:** Todo o processo deve acontecer sem conexão com a internet. O histórico de PDF/YAML, assinatura em device e navegação não podem incorrer bloqueios de dependência de APIs em nuvem.
@@ -42,7 +42,44 @@ A stack tecnológica escolhida para solucionar a requisição com excelência e 
 * **Engine de PDF:** Pacote **pdf** oficial Dart (criação programática do documento) e **printing** (se exigido layout de impressão no celular).
 * **Segurança e Criptografia:** **flutter_secure_storage** guardará a private key contida na chave RSA/ECDSA e geração da assinatura (JWS) usando abstrações estritas da **pointycastle** com auxílio nativo nas hash functions.
 
-### Design de Componentes Arquiteturais (Draft)
+### 3.1 Definição dos Contratos (Protobuf)
+Como solicitado no design corporativo, os schemas de comunicação de formulário persistirão offline guiados pelos seguintes `.proto`:
+```proto
+syntax = "proto3";
+package fixalog;
+
+message Protocolo {
+  string id = 1;
+  string nome = 2;
+  repeated Campo campos = 3;
+}
+
+message Campo {
+  string id = 1;
+  string label = 2;
+  enum Tipo { TEXT = 0; NUMBER = 1; DROPDOWN = 2; IMAGE = 3; BOOLEAN = 4; GPS = 5; VIDEO = 6; }
+  Tipo tipo = 3;
+  bool obrigatorio = 4;
+  repeated string opcoes = 5; // Apenas populado se for DROPDOWN
+}
+
+message SubmissaoProtocolo {
+  string id_sessao = 1;
+  string id_protocolo = 2;
+  int64 utc_timestamp_gps = 3;
+  bytes assinatura_visual = 4; // PNG do canvas
+  repeated RespostaCampo respostas = 5;
+  bytes digital_assinatura_do_hash = 6;
+}
+
+message RespostaCampo {
+  string id_campo = 1;
+  string valor_texto = 2;
+  bytes valor_midia = 3; // Opcional, para upload base64 se binário
+}
+```
+
+### 3.2 Design de Componentes Arquiteturais (Draft)
 - `ProtocolRepository`: Gerencia o consumo e conversão de schemas (de `Asset/Remote` -> `Protobuf obj`).
 - `WizardStateController`: Mantém controle do formulário transiente rodando in-memory e provê revalidação ao pressionar o botão 'Next'.
 - `ReportGeneratorService`: Serviço que processa background isolates para (1) Buscar Localização, (2) Redimensionar imagens pesadas, (3) Assinar a payload e compilar o .pdf. 

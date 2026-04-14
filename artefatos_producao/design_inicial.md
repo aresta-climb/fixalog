@@ -79,7 +79,10 @@ Além do PDF, o app deve exportar os dados brutos estruturados (em formato YAML)
 ### 7.8 Histórico de preenchimento
 Todo preenchimento deve ser salvo em uma seção de histórico no app, permitindo que o usuário altere o formulário preenchido, duplicando o registro para uma nova edição, e, se desejar, gerar um novo PDF com as alterações embutidas. O PDF terá, porém, nova data e assinatura digital, não modificando o PDF ou registro anterior. Todo o histórico de PDFs e registros gerados deve também estar disponível.
 
-### 7.9 Estilo da UI
+### 7.9 Integração com o Google Drive
+Será possível especificar uma pasta no Google Drive para backup automático de todos os relatórios gerados, tanto em PDF quanto em YAML. O usuário poderá, a qualquer momento, clicar em um botão para fazer a sincronização com o Google Drive automaticamente. Isso não impede o usuário de compartilhar os documentos com as ferramentas tradicionais de compartilhamento do dispositivo em que está usando.
+
+### 7.10 Estilo da UI
 O app deve seguir o estilo visual de instruções e passos do aplicativo da Thermomix, através do uso de 'cards' para cada passo, com navegação entre passos por botões de 'próximo' e 'anterior', além de scroll para trás e para frente, e um botão de 'concluir' para finalizar o preenchimento.
 
 ## 8. Requisitos Não Funcionais

@@ -89,6 +89,7 @@ O app deve seguir o estilo visual de instruções e passos do aplicativo da Ther
 * **Serialização:** Uso de Protocol Buffers (Protobuf) para comunicação eficiente de schemas de protocolos.
 * **Performance:** A renderização dos formulários dinâmicos não pode ter atrasos (UI thread livre), mesmo com protocolos que exijam mais de 20 campos e múltiplas fotos.
 * **Armazenamento**: O app deve armazenar localmente todos os registros de preenchimento e PDFs gerados, permitindo o acesso offline a todo o histórico. Esse armazenamento deve ser seguro e persistente, salvo em uma pasta do disco do usuário, e não sendo apagado em caso de desinstalação do app.
+* **Linguagem**: todo o aplicativo deve estar em português, incluindo o código-fonte (comentários e documentação).
 
 ## 9. Estrutura de Dados (Exemplo Conceitual)
 ```yaml

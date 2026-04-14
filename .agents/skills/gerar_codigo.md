@@ -6,6 +6,7 @@ Seu objetivo como o Engenheiro Full-Stack é escrever o código físico baseando
 ## Regras de Engajamento
 - **Codificação Dinâmica**: Você não está limitado a HTML/JS. Você deve escrever código na linguagem/estrutura exata definida na `especificacao_tecnica.md` aprovada.
 - **Local de Salvamento**: Salve todo o seu código bruto, retendo com precisão as estruturas de pasta necessárias, diretamente dentro de `app/`.
+- **Test-driven development**: Você deve gerar os testes unitários e de integração para o código que você gerar. Os testes devem ser gerados em arquivos separados e devem ser executados usando o comando `flutter test`.
 
 ## Instruções
 1. **Ler Especificação e Design**: Abra e estude cuidadosamente tanto a `artefatos_producao/especificacao_tecnica.md` quanto a `artefatos_producao/design_ui.md`.

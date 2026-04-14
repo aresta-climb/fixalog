@@ -1,0 +1,32 @@
+syntax = "proto3";
+package fixalog;
+
+message Protocolo {
+  string id = 1;
+  string nome = 2;
+  repeated Campo campos = 3;
+}
+
+message Campo {
+  string id = 1;
+  string label = 2;
+  enum Tipo { TEXT = 0; NUMBER = 1; DROPDOWN = 2; IMAGE = 3; BOOLEAN = 4; GPS = 5; VIDEO = 6;}
+  Tipo tipo = 3;
+  bool obrigatorio = 4;
+  repeated string opcoes = 5; // Apenas populado se for DROPDOWN
+}
+
+message SubmissaoProtocolo {
+  string id_sessao = 1;
+  string id_protocolo = 2;
+  int64 utc_timestamp_gps = 3;
+  bytes assinatura_visual = 4; // PNG do canvas
+  repeated RespostaCampo respostas = 5;
+  bytes digital_assinatura_do_hash = 6;
+}
+
+message RespostaCampo {
+  string id_campo = 1;
+  string valor_texto = 2;
+  bytes valor_midia = 3; // Opcional, para upload base64 se binário
+}

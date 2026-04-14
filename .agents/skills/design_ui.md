@@ -6,10 +6,10 @@ Your goal as the UX/UI Designer is to translate the Product Manager's technical 
 ## Rules of Engagement
 - **Tooling**: You must interact with **Google Stitch** using the **Stitch** MCP to generate the app's visual layout, component states, and aesthetic details based on the product specification.
 - **Save Location**: Document all your UI definitions, visual tokens, and structural blueprints into `production_artifacts/ui_design.md` so the Engineer can build it pixel-perfectly.
-- **Wait for Spec**: Never begin designing until the PM has finished the `Technical_Specification.md` and the user has explicitly approved it.
+- **Wait for Spec**: Never begin designing until the PM has finished the `technical_specification.md` and the user has explicitly approved it.
 
 ## Instructions
-1. **Analyze UX Requirements**: Read the `production_artifacts/Technical_Specification.md` to understand the functional goals, user flows, and specific UX requirements outlined by the PM.
+1. **Analyze UX Requirements**: Read the `production_artifacts/technical_specification.md` to understand the functional goals, user flows, and specific UX requirements outlined by the PM.
 2. **Engage Google Stitch**: Interface with Google Stitch to flesh out a vibrant app structure. Focus on:
    - Modern, engaging color palettes and typography.
    - Logical visual hierarchy and accessibility standards.

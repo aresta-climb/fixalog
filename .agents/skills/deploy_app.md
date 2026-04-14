@@ -4,7 +4,7 @@
 Your goal as DevOps is to intelligently package the application and fire up a server based on the chosen stack.
 
 ## Instructions
-1. **Stack Detection**: Inspect the `Technical_Specification.md` and the files in `app/` to figure out what stack is being used.
+1. **Stack Detection**: Inspect the `technical_specification.md` and the files in `app/` to figure out what stack is being used.
 
 2. **Install Dependencies**: Use your native terminal to navigate into `app/` and run `npm install`, `pip install -r requirements.txt`, or whatever is appropriate!
 

@@ -6,7 +6,7 @@ O FixaLog é um aplicativo mobile "offline-first" destinado à comunidade de esc
 ## 2. Requisitos
 
 ### 2.1 Casos de Uso Principais
-1. **Configuração inicial do Perfil**: O usuário precisa, ao abrir o app pela primeira vez, informar seu nome, clube/associação, e autorizar a geração de chaves assimétricas no dispositivo.
+1. **Configuração inicial do Perfil**: O usuário precisa, ao abrir o app pela primeira vez, informar seu nome, clube/associação, e autorizar a geração de chaves assimétricas no dispositivo. Essa tela deve surgir caso o `Isar` acuse ausência da configuração salvada.
 2. **Seleção e Execução Guiada**: O usuário seleciona o protocolo de manutenção desejado a partir de uma lista local e o app apresenta uma sequência baseada no protocolo.
 3. **Validação de Preenchimento**: Impede o avanço ou a geração do relatório se campos obrigatórios não forem preenchidos.
 4. **Geração e Histórico**: Ao finalizar, compila os dados, gera PDF e YAML e salva no histórico, permitindo reabrir como nova versão.
@@ -83,7 +83,8 @@ message RespostaCampo {
 - `ProtocolRepository`: Gerencia o consumo e conversão de schemas (de `Asset/Remote` -> `Protobuf obj`).
 - `WizardStateController`: Mantém controle do formulário transiente rodando in-memory e provê revalidação ao pressionar o botão 'Next'.
 - `ReportGeneratorService`: Serviço que processa background isolates para (1) Buscar Localização, (2) Redimensionar imagens pesadas, (3) Assinar a payload e compilar o .pdf. 
-- `LocalStorageManager (Isar)`: Camadada persistente onde será salvo o metadado `Report` contendo apontamentos de data/path do final formatado.
+- `LocalStorageManager (Isar)`: Camada persistente onde será salvo o metadado `Report` contendo apontamentos de data/path do final formatado, bem como a `Identidade` do usuário.
+- **`IdentityFormController` (Novo):** Provider dedicado a gerir o formulário de setup inicial, captar Nome/Clube, invocar os geradores de RSA/ECDSA via `flutter_secure_storage` e finalizar gravando a presença do usuário no `Isar`. Evita re-exibição da página de Setup.
 
 ## 4. UX e Requisitos Visuais
 * **Sistema "Thermomix" de Navegação:** Operado quase 100% de base por "Cards modais expandidos/Steps em tela cheia". Esta quebra tira o cansaço do usuário na base da via e força-o mentalmente numa pergunta de cada vez de forma estrita. 
@@ -91,9 +92,10 @@ message RespostaCampo {
 * **Animações e Háptica (Haptic Feedback):** Essencial o uso de vibrações curtas para confimação de foto e transição de botões devido as interferências ou luvas utilizadas para manutenção de EPIs na parede.
 
 ## 5. Gerenciamento de Estado e Ciclo de Vida de Preenchimento
-1. Estado "Idle" mantido no banco Isar em modo lista contendo Formulários Concluídos e Protocolos Prontos.
-2. Início do registro instaura um escopo temporário no **Riverpod** `Formulário Em Andamento`. À medida que responde cada pergunta ou submeta as mídias, atualiza a cache. 
-3. Ao finalizar, botão submeter comanda ação para Service responsável rodar `compute` limitando uso de memória. Os artefatos PDF/YAML retornam salvos para diretório do app. Provider do andamento será destruído limpando lixo na memória. Base notifica que lista de "Hitóricos" tem integrante novo.
+1. **App Startup**: Checagem assíncrona no Isar se `Identidade` existe. Se não existir, roteia para a tela de `Setup/Identidade`. Somente após salvar `Identidade` e as chaves, o usuário cai na Home (Estado "Idle").
+2. Estado "Idle" mantido no banco Isar em modo lista contendo Formulários Concluídos e Protocolos Prontos.
+3. Início do registro instaura um escopo temporário no **Riverpod** `Formulário Em Andamento`. À medida que responde cada pergunta ou submeta as mídias, atualiza a cache. 
+4. Ao finalizar, botão submeter comanda ação para Service responsável rodar `compute` limitando uso de memória. Os artefatos PDF/YAML retornam salvos para diretório do app. Provider do andamento será destruído limpando lixo na memória. Base notifica que lista de "Históricos" tem integrante novo.
 
 ## 6. Estrutura de Dados (Exemplo Conceitual em YAML)
 Abaixo está o modelo abstrato base sobre como o Protobuf interpretará um modelo do formato YAML para criação de formulários (protocolos):

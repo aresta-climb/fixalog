@@ -1,11 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
+import 'features/identity/views/identity_setup_screen.dart';
+import 'features/identity/controllers/identity_form_controller.dart';
+import 'core/models/local/identity_record.dart';
+import 'core/models/local/submission_record.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final dir = await getApplicationDocumentsDirectory();
+  final isar = await Isar.open(
+    [IdentityRecordSchema, SubmissionRecordSchema],
+    directory: dir.path,
+  );
+
   runApp(
-    const ProviderScope(
-      child: FixaLogApp(),
+    ProviderScope(
+      overrides: [
+        isarProvider.overrideWithValue(isar),
+      ],
+      child: const FixaLogApp(),
     ),
   );
 }
@@ -53,7 +70,34 @@ class FixaLogApp extends StatelessWidget {
           contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         ),
       ),
-      home: const HomeScreen(),
+      home: _StartupRouter(),
+    );
+  }
+}
+
+class _StartupRouter extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasIdentityAsync = ref.watch(hasIdentityProvider);
+    
+    return hasIdentityAsync.when(
+      data: (hasIdentity) {
+        if (hasIdentity) {
+          return const HomeScreen();
+        } else {
+          return const IdentitySetupScreen();
+        }
+      },
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (e, st) => Scaffold(
+        body: Center(
+          child: Text('Erro fatal ao ler banco: \$e'),
+        ),
+      ),
     );
   }
 }

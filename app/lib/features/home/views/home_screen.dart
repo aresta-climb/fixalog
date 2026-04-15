@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../wizard/views/wizard_screen.dart';
+import '../../identity/controllers/identity_form_controller.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final identityAsync = ref.watch(currentIdentityProvider);
+    
+    // Obter o primeiro nome de forma síncrona se disponível (fallback para "Mantenedor")
+    String firstName = '';
+    identityAsync.whenData((identity) {
+      if (identity != null && identity.nome.isNotEmpty) {
+        firstName = identity.nome.split(' ').first;
+      }
+    });
     return Scaffold(
       backgroundColor: const Color(0xFF121416),
       body: Stack(
@@ -72,9 +83,9 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Greeting Section
-                  const Text(
-                    'Boa jornada, Alex.',
-                    style: TextStyle(
+                  Text(
+                    firstName.isNotEmpty ? 'Boa jornada, \$firstName.' : 'Boa jornada.',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontFamily: 'SpaceGrotesk',
                       fontSize: 28,

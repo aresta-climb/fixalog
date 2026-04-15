@@ -12,9 +12,15 @@ class HomeScreen extends ConsumerWidget {
     
     // Obter o primeiro nome de forma síncrona se disponível (fallback para "Mantenedor")
     String firstName = '';
+    String clubName = 'MANTENEDOR INDEPENDENTE';
     identityAsync.whenData((identity) {
-      if (identity != null && identity.nome.isNotEmpty) {
-        firstName = identity.nome.split(' ').first;
+      if (identity != null) {
+        if (identity.nome.isNotEmpty) {
+          firstName = identity.nome.split(' ').first;
+        }
+        if (identity.clubeAssociacao.isNotEmpty && identity.clubeAssociacao.trim().toUpperCase() != 'N/A') {
+          clubName = identity.clubeAssociacao.trim().toUpperCase();
+        }
       }
     });
     return Scaffold(
@@ -84,7 +90,7 @@ class HomeScreen extends ConsumerWidget {
 
                   // Greeting Section
                   Text(
-                    firstName.isNotEmpty ? 'Boa jornada, \$firstName.' : 'Boa jornada.',
+                    firstName.isNotEmpty ? 'Olá, $firstName.' : 'Olá.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontFamily: 'SpaceGrotesk',
@@ -105,9 +111,9 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'EQUIPAMENTO CLUB ALPINO SINCRONIZADO',
-                        style: TextStyle(
+                      Text(
+                        clubName,
+                        style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

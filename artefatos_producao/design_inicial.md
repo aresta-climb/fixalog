@@ -15,7 +15,7 @@ O **FixaLog** é uma ferramenta especializada para a recordação técnica e aud
 * Conquistadores e mantenedores locais de vias de escalada.
 * Diretorias técnicas de associações de escalada que necessitam de relatórios formais para arquivamento e prestação de contas.
 
-## 4. Casos de Uso Principais
+## 4. Paginas do aplicativo 
 1.  **Configuração inicial do Perfil**: O usuário precisa, ao abrir o app pela primeira vez, informar seu nome, clube/associação, e autorizar a geração de chaves assimétricas no dispositivo.
 2.  **Seleção de Protocolo:** O usuário chega à base da via, abre o app (mesmo sem internet) e seleciona o protocolo de manutenção desejado a partir de uma lista local.
 3.  **Execução Guiada:** O app apresenta uma sequência de telas (steps) baseadas no protocolo. O usuário insere textos, seleciona opções em menus suspensos (ex: "Tipo de Chapeleta: Inox 304, 316L, Titânio") e tira fotos das proteções recém-batidas ou do estado da cola/epóxi.

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../wizard/views/wizard_screen.dart';
@@ -23,26 +24,57 @@ class HomeScreen extends ConsumerWidget {
         }
       }
     });
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121416),
+      backgroundColor: const Color(0xFF060908),
       body: Stack(
         children: [
-          // Background Glow Effect
+          // 1. Camada de Gradiente de Base
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0A1F16),
+                  Color(0xFF060908),
+                ],
+              ),
+            ),
+          ),
+          
+          // 2. Blobs de Cor (Grandes e sólidos para o Blur processar)
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.4,
-            left: -100,
-            right: -100,
+            top: -150,
+            right: -150,
             child: Container(
-              height: 400,
+              width: 600,
+              height: 600,
               decoration: BoxDecoration(
+                color: const Color(0xFF1B3D2F).withOpacity(0.5),
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF4F6D44).withOpacity(0.15), // Moss Green glow
-                    Colors.transparent,
-                  ],
-                  stops: const [0.2, 1.0],
-                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 100,
+            left: -200,
+            child: Container(
+              width: 800,
+              height: 800,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B3D2F).withOpacity(0.4),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          
+          // 3. Efeito de Desfoque Atmosférico (Elimina bandas de cor e bordas)
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 150, sigmaY: 150),
+                child: Container(color: Colors.transparent),
               ),
             ),
           ),
@@ -51,7 +83,7 @@ class HomeScreen extends ConsumerWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // App Bar / Header
                   Row(
@@ -62,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1C1E),
+                              color: const Color(0xFF121416),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.shield_outlined, color: Colors.blueAccent, size: 20),
@@ -81,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.white70),
+                        icon: const Icon(Icons.settings, color: Colors.white),
                         onPressed: () {},
                       ),
                     ],
@@ -90,7 +122,7 @@ class HomeScreen extends ConsumerWidget {
 
                   // Greeting Section
                   Text(
-                    firstName.isNotEmpty ? 'Olá, $firstName.' : 'Olá.',
+                    firstName.isNotEmpty ? 'Boa jornada, $firstName.' : 'Boa jornada.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontFamily: 'SpaceGrotesk',
@@ -113,8 +145,8 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         clubName,
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.0,
@@ -125,10 +157,10 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 48),
 
                   // Section Title
-                  const Text(
+                  Text(
                     'NOVO REGISTRO DE MANUTENÇÃO',
                     style: TextStyle(
-                      color: Colors.white54,
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
@@ -141,9 +173,8 @@ class HomeScreen extends ConsumerWidget {
                     context: context,
                     tagText: 'PROTOCOLO TÉCNICO',
                     tagColor: const Color(0xFFFF6B00),
-                    title: 'Rebolting Químico',
-                    iconData: Icons.build,
-                    isPrimaryButton: true,
+                    title: 'Manutenção de\nProteções Fixas',
+                    iconData: Icons.handyman,
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WizardScreen()));
                     },
@@ -152,10 +183,18 @@ class HomeScreen extends ConsumerWidget {
                   _buildProtocolCard(
                     context: context,
                     tagText: 'PROTOCOLO PREVENTIVO',
-                    tagColor: Colors.white54,
-                    title: 'Inspeção Visual\nAnual',
+                    tagColor: const Color(0xFFFF6B00),
+                    title: 'Inspeção Visual de\nProteções Fixas',
                     iconData: Icons.remove_red_eye,
-                    isPrimaryButton: false,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildProtocolCard(
+                    context: context,
+                    tagText: 'PROTOCOLO TÉCNICO',
+                    tagColor: const Color(0xFFFF6B00),
+                    title: 'Abertura de Via',
+                    iconData: Icons.terrain,
                     onTap: () {},
                   ),
                   const SizedBox(height: 32),
@@ -168,24 +207,16 @@ class HomeScreen extends ConsumerWidget {
                       Expanded(child: _buildStatCard('VIA MAIS ATIVA', 'Via do Sol', Colors.white)),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildStatCard('TAXA SINCR.', '100%', const Color(0xFF00E676))),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildStatCard('ÚLTIMA SYNC', '2h atrás', Colors.white)),
-                    ],
-                  ),
                   const SizedBox(height: 48),
 
                   // History Section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'HISTÓRICO RECENTE',
                         style: TextStyle(
-                          color: Colors.white54,
+                          color: Colors.white.withOpacity(0.7),
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
@@ -204,6 +235,33 @@ class HomeScreen extends ConsumerWidget {
                       )
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _buildHistoryItem(
+                    title: 'Via do Sol',
+                    date: '12 OUT 2023',
+                    tag: 'QUÍMICO',
+                    tagColor: const Color(0xFFFF6B00).withOpacity(0.2),
+                    textColor: const Color(0xFFFF6B00),
+                    icon: Icons.cloud_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHistoryItem(
+                    title: 'Fenda do Pânico',
+                    date: '08 OUT 2023',
+                    tag: 'INSPEÇÃO',
+                    tagColor: Colors.white10,
+                    textColor: Colors.white70,
+                    icon: Icons.remove_red_eye_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHistoryItem(
+                    title: 'Cristal Rock',
+                    date: '25 SET 2023',
+                    tag: 'QUÍMICO',
+                    tagColor: const Color(0xFFFF6B00).withOpacity(0.2),
+                    textColor: const Color(0xFFFF6B00),
+                    icon: Icons.sync,
+                  ),
                 ],
               ),
             ),
@@ -213,43 +271,38 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Helper para o filtro de desfoque atmosférico
+  static final blurFilter = ui.ImageFilter.blur(sigmaX: 120, sigmaY: 120);
+
+  // Removido _buildGlowBlob original...
+
   Widget _buildProtocolCard({
     required BuildContext context,
     required String tagText,
     required Color tagColor,
     required String title,
     required IconData iconData,
-    required bool isPrimaryButton,
     required VoidCallback onTap,
   }) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2022), // Slightly lighter surface
+        color: const Color(0xFF121416).withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Stack(
         children: [
-          // Background Icon Watermark
           Positioned(
-            right: -10,
+            right: 0,
             top: 0,
             child: Icon(
               iconData,
-              size: 80,
-              color: Colors.black.withOpacity(0.3),
+              size: 54,
+              color: Colors.white.withOpacity(0.12), // Mais claro conforme pedido
             ),
           ),
-          
-          // Content
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -267,52 +320,35 @@ class HomeScreen extends ConsumerWidget {
                 title,
                 style: const TextStyle(
                   fontFamily: 'SpaceGrotesk',
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
+                  height: 1.1,
                 ),
               ),
-              const SizedBox(height: 32),
-              
+              const SizedBox(height: 24),
               Align(
-                alignment: Alignment.centerLeft,
-                child: isPrimaryButton
-                    ? ElevatedButton(
-                        onPressed: onTap,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF6B00),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          minimumSize: const Size(120, 40),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('INICIAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 16),
-                          ],
-                        ),
-                      )
-                    : OutlinedButton(
-                        onPressed: onTap,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white24),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          minimumSize: const Size(120, 40),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('INICIAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 16),
-                          ],
-                        ),
-                      ),
+                alignment: Alignment.centerLeft, // Mantém botão pequeno
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B00),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    elevation: 0,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('INICIAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, size: 14),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -325,7 +361,7 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2022),
+        color: const Color(0xFF121416),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -333,8 +369,8 @@ class HomeScreen extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white54,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7), // Mais claro
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
@@ -354,4 +390,79 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildHistoryItem({
+    required String title,
+    required String date,
+    required String tag,
+    required Color tagColor,
+    required Color textColor,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121416),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.history, color: Color(0xFFFF6B00), size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      date,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6), // Mais claro
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: tagColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(color: textColor, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.cloud_done_outlined, color: Color(0xFF4F6D44), size: 16),
+          const SizedBox(width: 12),
+          const Icon(Icons.chevron_right, color: Colors.white24),
+        ],
+      ),
+    );
+  }
 }
+
+

@@ -194,7 +194,16 @@ class HomeScreen extends ConsumerWidget {
                     tagColor: const Color(0xFFFF6B00),
                     title: 'Inspeção Visual de\nProteções Fixas',
                     iconData: Icons.remove_red_eye,
-                    onTap: () {},
+                    onTap: () async {
+                      final yamlContent = await rootBundle.loadString('assets/protocols/inspecao_visual.yaml');
+                      if (context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WizardScreen(initialYaml: yamlContent),
+                          ),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                   _buildProtocolCard(
@@ -203,7 +212,16 @@ class HomeScreen extends ConsumerWidget {
                     tagColor: const Color(0xFFFF6B00),
                     title: 'Abertura de Via',
                     iconData: Icons.terrain,
-                    onTap: () {},
+                    onTap: () async {
+                      final yamlContent = await rootBundle.loadString('assets/protocols/abertura_vias.yaml');
+                      if (context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WizardScreen(initialYaml: yamlContent),
+                          ),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: 32),
 

@@ -17,6 +17,8 @@ class WizardScreen extends ConsumerStatefulWidget {
 
 class _WizardScreenState extends ConsumerState<WizardScreen> {
   final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _cardKeys = [];
+  final GlobalKey _summaryKey = GlobalKey();
 
   @override
   void initState() {
@@ -47,14 +49,30 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   }
 
   void _scrollToIndex(int index) {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          index * 450.0, 
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-        );
-      }
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!_scrollController.hasClients) return;
+
+      final state = ref.read(wizardControllerProvider);
+      final isSummary = index >= state.protocol!.campos.length;
+      final key = isSummary ? _summaryKey : _cardKeys[index];
+      
+      final context = key.currentContext;
+      if (context == null) return;
+
+      final box = context.findRenderObject() as RenderBox;
+      final position = box.localToGlobal(Offset.zero, ancestor: _scrollController.position.context.storageContext.findRenderObject());
+      final widgetHeight = box.size.height;
+      final screenHeight = MediaQuery.of(this.context).size.height;
+      
+      // Posiciona o card com um offset fixo do topo para garantir que o card anterior
+      // fique quase todo fora da tela, sobrando apenas o botão de voltar.
+      final targetOffset = _scrollController.offset + position.dy - 90;
+
+      _scrollController.animateTo(
+        targetOffset.clamp(0, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.fastOutSlowIn,
+      );
     });
   }
 
@@ -134,7 +152,9 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _scrollController,
-                    padding: const EdgeInsets.only(bottom: 100),
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).size.height / 2,
+                    ),
                     child: Column(
                       children: [
                         ...state.protocol!.campos.asMap().entries.map((entry) {
@@ -143,7 +163,13 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                           final isLocked = index > state.currentStep;
                           final isCompleted = index < state.currentStep;
 
+                          // Garante que a lista de keys tenha o tamanho correto
+                          if (_cardKeys.length <= index) {
+                            _cardKeys.add(GlobalKey());
+                          }
+
                           return FieldInputCard(
+                            key: _cardKeys[index],
                             campo: campo,
                             stepIndex: index + 1,
                             isLastField: index == state.protocol!.campos.length - 1,
@@ -157,7 +183,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                           );
                         }),
                         if (state.currentStep == state.protocol!.campos.length)
-                          const SummaryConclusionCard(),
+                          SummaryConclusionCard(key: _summaryKey),
                       ],
                     ),
                   ),
@@ -203,16 +229,14 @@ class FieldInputCard extends ConsumerWidget {
 
     return Opacity(
       opacity: opacity,
-      child: IgnorePointer(
-        ignoring: isLocked,
-        child: Container(
+      child: Container(
           margin: const EdgeInsets.all(12.0),
           padding: const EdgeInsets.all(24.0),
           decoration: BoxDecoration(
             color: const Color(0xFF1A1C1E),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isCurrent ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.04),
+              color: isCurrent ? Colors.white.withOpacity(0.5) : Colors.white.withOpacity(0.08),
               width: isCurrent ? 1.2 : 1.0,
             ),
           ),
@@ -247,25 +271,32 @@ class FieldInputCard extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: 32),
-              _buildInputContent(context, ref, answer),
+              IgnorePointer(
+                ignoring: !isCurrent,
+                child: _buildInputContent(context, ref, answer, isCurrent),
+              ),
               if (isCompleted) ...[
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton(
+                  child: OutlinedButton(
                     onPressed: onBackToStep,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white38,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      backgroundColor: Colors.white.withOpacity(0.04),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.history, size: 14),
-                        SizedBox(width: 6),
-                        Text('VOLTAR A ESTE PASSO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+                        SizedBox(width: 8),
+                        Text(
+                          'VOLTAR A ESTE PASSO',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5),
+                        ),
                       ],
                     ),
                   ),
@@ -278,8 +309,12 @@ class FieldInputCard extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: onNext,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B00),
-                      foregroundColor: Colors.white,
+                      backgroundColor: (answer != null && answer.valorTexto.isNotEmpty) 
+                          ? const Color(0xFFFF6B00) 
+                          : Colors.white.withOpacity(0.08),
+                      foregroundColor: (answer != null && answer.valorTexto.isNotEmpty)
+                          ? Colors.white
+                          : Colors.white24,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -300,12 +335,136 @@ class FieldInputCard extends ConsumerWidget {
             ],
           ),
         ),
-      ),
     );
   }
 
-  Widget _buildInputContent(BuildContext context, WidgetRef ref, RespostaCampo? answer) {
+  Widget _buildInputContent(BuildContext context, WidgetRef ref, RespostaCampo? answer, bool isCurrent) {
     switch (campo.tipo) {
+      case Campo_Tipo.TEXT:
+        return TextFormField(
+          initialValue: answer?.valorTexto,
+          readOnly: !isCurrent,
+          style: TextStyle(
+            color: isCurrent ? Colors.white : Colors.white24, 
+            fontSize: 16,
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black26,
+            hintText: 'DIGITE AQUI...',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
+            contentPadding: const EdgeInsets.all(20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: const Color(0xFFFF6B00).withOpacity(0.5)),
+            ),
+          ),
+          onChanged: (val) {
+            ref.read(wizardControllerProvider.notifier).answerCurrentField(
+              RespostaCampo(valorTexto: val),
+            );
+          },
+        );
+
+      case Campo_Tipo.BOOLEAN:
+        return Row(
+          children: [
+            Expanded(
+              child: _SelectionTile(
+                title: 'SIM',
+                subtitle: '',
+                icon: Icons.check_circle_outline,
+                isSelected: answer?.valorTexto == 'true',
+                onTap: () {
+                  ref.read(wizardControllerProvider.notifier).answerCurrentField(
+                    RespostaCampo(valorTexto: 'true'),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _SelectionTile(
+                title: 'NÃO',
+                subtitle: '',
+                icon: Icons.cancel_outlined,
+                isSelected: answer?.valorTexto == 'false',
+                onTap: () {
+                  ref.read(wizardControllerProvider.notifier).answerCurrentField(
+                    RespostaCampo(valorTexto: 'false'),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+
+      case Campo_Tipo.GPS:
+        final hasCoord = answer != null && answer.valorTexto.isNotEmpty;
+        return GestureDetector(
+          onTap: () {
+            ref.read(wizardControllerProvider.notifier).answerCurrentField(
+              RespostaCampo(valorTexto: '-19.9218, -43.9366'), // Mock coordinate
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.black26, 
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1D1C),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    hasCoord ? Icons.location_on : Icons.gps_fixed, 
+                    color: hasCoord ? const Color(0xFFFF6B00) : Colors.white24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasCoord ? 'COORDENADAS CAPTURADAS' : 'CAPTURAR POSIÇÃO',
+                        style: TextStyle(
+                          color: hasCoord ? Colors.white : Colors.white38,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      if (hasCoord)
+                        Text(
+                          answer.valorTexto,
+                          style: TextStyle(color: const Color(0xFFFF6B00).withOpacity(0.7), fontSize: 10, fontFamily: 'monospace'),
+                        ),
+                    ],
+                  ),
+                ),
+                if (!hasCoord)
+                  const Icon(Icons.refresh, color: Colors.white10, size: 16),
+              ],
+            ),
+          ),
+        );
+
       case Campo_Tipo.DROPDOWN:
         if (campo.uiHint == Campo_UIHint.LARGE_TILES) {
           return Column(
@@ -326,7 +485,7 @@ class FieldInputCard extends ConsumerWidget {
           );
         }
         return const Text('Dropdown padrão não implementado', style: TextStyle(color: Colors.white24));
-        
+
       case Campo_Tipo.IMAGE:
         if (campo.uiHint == Campo_UIHint.CAMERA_ACTION) {
           return _PhotoActionBox(

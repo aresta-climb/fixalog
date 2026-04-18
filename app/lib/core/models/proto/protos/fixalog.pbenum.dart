@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from protos/fixalog.proto.
+// Generated from fixalog.proto.
 
 // @dart = 3.3
 
@@ -27,6 +27,8 @@ class Campo_Tipo extends $pb.ProtobufEnum {
   static const Campo_Tipo GPS = Campo_Tipo._(5, _omitEnumNames ? '' : 'GPS');
   static const Campo_Tipo VIDEO =
       Campo_Tipo._(6, _omitEnumNames ? '' : 'VIDEO');
+  static const Campo_Tipo SIGNATURE =
+      Campo_Tipo._(7, _omitEnumNames ? '' : 'SIGNATURE');
 
   static const $core.List<Campo_Tipo> values = <Campo_Tipo>[
     TEXT,
@@ -36,14 +38,37 @@ class Campo_Tipo extends $pb.ProtobufEnum {
     BOOLEAN,
     GPS,
     VIDEO,
+    SIGNATURE,
   ];
 
   static final $core.List<Campo_Tipo?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 6);
+      $pb.ProtobufEnum.$_initByValueList(values, 7);
   static Campo_Tipo? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const Campo_Tipo._(super.value, super.name);
+}
+
+class Campo_UIHint extends $pb.ProtobufEnum {
+  static const Campo_UIHint DEFAULT =
+      Campo_UIHint._(0, _omitEnumNames ? '' : 'DEFAULT');
+  static const Campo_UIHint LARGE_TILES =
+      Campo_UIHint._(1, _omitEnumNames ? '' : 'LARGE_TILES');
+  static const Campo_UIHint CAMERA_ACTION =
+      Campo_UIHint._(2, _omitEnumNames ? '' : 'CAMERA_ACTION');
+
+  static const $core.List<Campo_UIHint> values = <Campo_UIHint>[
+    DEFAULT,
+    LARGE_TILES,
+    CAMERA_ACTION,
+  ];
+
+  static final $core.List<Campo_UIHint?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static Campo_UIHint? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Campo_UIHint._(super.value, super.name);
 }
 
 const $core.bool _omitEnumNames =

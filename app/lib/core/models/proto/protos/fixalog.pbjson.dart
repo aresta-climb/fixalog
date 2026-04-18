@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from protos/fixalog.proto.
+// Generated from fixalog.proto.
 
 // @dart = 3.3
 
@@ -21,6 +21,7 @@ const Protocolo$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'nome', '3': 2, '4': 1, '5': 9, '10': 'nome'},
+    {'1': 'descricao', '3': 4, '4': 1, '5': 9, '10': 'descricao'},
     {
       '1': 'campos',
       '3': 3,
@@ -34,8 +35,25 @@ const Protocolo$json = {
 
 /// Descriptor for `Protocolo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List protocoloDescriptor = $convert.base64Decode(
-    'CglQcm90b2NvbG8SDgoCaWQYASABKAlSAmlkEhIKBG5vbWUYAiABKAlSBG5vbWUSJgoGY2FtcG'
-    '9zGAMgAygLMg4uZml4YWxvZy5DYW1wb1IGY2FtcG9z');
+    'CglQcm90b2NvbG8SDgoCaWQYASABKAlSAmlkEhIKBG5vbWUYAiABKAlSBG5vbWUSHAoJZGVzY3'
+    'JpY2FvGAQgASgJUglkZXNjcmljYW8SJgoGY2FtcG9zGAMgAygLMg4uZml4YWxvZy5DYW1wb1IG'
+    'Y2FtcG9z');
+
+@$core.Deprecated('Use opcaoDescriptor instead')
+const Opcao$json = {
+  '1': 'Opcao',
+  '2': [
+    {'1': 'valor', '3': 1, '4': 1, '5': 9, '10': 'valor'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'sublabel', '3': 3, '4': 1, '5': 9, '10': 'sublabel'},
+    {'1': 'icon_name', '3': 4, '4': 1, '5': 9, '10': 'iconName'},
+  ],
+};
+
+/// Descriptor for `Opcao`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List opcaoDescriptor = $convert.base64Decode(
+    'CgVPcGNhbxIUCgV2YWxvchgBIAEoCVIFdmFsb3ISFAoFbGFiZWwYAiABKAlSBWxhYmVsEhoKCH'
+    'N1YmxhYmVsGAMgASgJUghzdWJsYWJlbBIbCglpY29uX25hbWUYBCABKAlSCGljb25OYW1l');
 
 @$core.Deprecated('Use campoDescriptor instead')
 const Campo$json = {
@@ -43,18 +61,34 @@ const Campo$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'sublabel', '3': 3, '4': 1, '5': 9, '10': 'sublabel'},
     {
       '1': 'tipo',
-      '3': 3,
+      '3': 4,
       '4': 1,
       '5': 14,
       '6': '.fixalog.Campo.Tipo',
       '10': 'tipo'
     },
-    {'1': 'obrigatorio', '3': 4, '4': 1, '5': 8, '10': 'obrigatorio'},
-    {'1': 'opcoes', '3': 5, '4': 3, '5': 9, '10': 'opcoes'},
+    {
+      '1': 'ui_hint',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.fixalog.Campo.UIHint',
+      '10': 'uiHint'
+    },
+    {'1': 'obrigatorio', '3': 6, '4': 1, '5': 8, '10': 'obrigatorio'},
+    {
+      '1': 'opcoes',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.fixalog.Opcao',
+      '10': 'opcoes'
+    },
   ],
-  '4': [Campo_Tipo$json],
+  '4': [Campo_Tipo$json, Campo_UIHint$json],
 };
 
 @$core.Deprecated('Use campoDescriptor instead')
@@ -68,16 +102,30 @@ const Campo_Tipo$json = {
     {'1': 'BOOLEAN', '2': 4},
     {'1': 'GPS', '2': 5},
     {'1': 'VIDEO', '2': 6},
+    {'1': 'SIGNATURE', '2': 7},
+  ],
+};
+
+@$core.Deprecated('Use campoDescriptor instead')
+const Campo_UIHint$json = {
+  '1': 'UIHint',
+  '2': [
+    {'1': 'DEFAULT', '2': 0},
+    {'1': 'LARGE_TILES', '2': 1},
+    {'1': 'CAMERA_ACTION', '2': 2},
   ],
 };
 
 /// Descriptor for `Campo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List campoDescriptor = $convert.base64Decode(
-    'CgVDYW1wbxIOCgJpZBgBIAEoCVICaWQSFAoFbGFiZWwYAiABKAlSBWxhYmVsEicKBHRpcG8YAy'
-    'ABKA4yEy5maXhhbG9nLkNhbXBvLlRpcG9SBHRpcG8SIAoLb2JyaWdhdG9yaW8YBCABKAhSC29i'
-    'cmlnYXRvcmlvEhYKBm9wY29lcxgFIAMoCVIGb3Bjb2VzIlYKBFRpcG8SCAoEVEVYVBAAEgoKBk'
-    '5VTUJFUhABEgwKCERST1BET1dOEAISCQoFSU1BR0UQAxILCgdCT09MRUFOEAQSBwoDR1BTEAUS'
-    'CQoFVklERU8QBg==');
+    'CgVDYW1wbxIOCgJpZBgBIAEoCVICaWQSFAoFbGFiZWwYAiABKAlSBWxhYmVsEhoKCHN1YmxhYm'
+    'VsGAMgASgJUghzdWJsYWJlbBInCgR0aXBvGAQgASgOMhMuZml4YWxvZy5DYW1wby5UaXBvUgR0'
+    'aXBvEi4KB3VpX2hpbnQYBSABKA4yFS5maXhhbG9nLkNhbXBvLlVJSGludFIGdWlIaW50EiAKC2'
+    '9icmlnYXRvcmlvGAYgASgIUgtvYnJpZ2F0b3JpbxImCgZvcGNvZXMYByADKAsyDi5maXhhbG9n'
+    'Lk9wY2FvUgZvcGNvZXMiZQoEVGlwbxIICgRURVhUEAASCgoGTlVNQkVSEAESDAoIRFJPUERPV0'
+    '4QAhIJCgVJTUFHRRADEgsKB0JPT0xFQU4QBBIHCgNHUFMQBRIJCgVWSURFTxAGEg0KCVNJR05B'
+    'VFVSRRAHIjkKBlVJSGludBILCgdERUZBVUxUEAASDwoLTEFSR0VfVElMRVMQARIRCg1DQU1FUk'
+    'FfQUNUSU9OEAI=');
 
 @$core.Deprecated('Use submissaoProtocoloDescriptor instead')
 const SubmissaoProtocolo$json = {

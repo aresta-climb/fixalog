@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from protos/fixalog.proto.
+// Generated from fixalog.proto.
 
 // @dart = 3.3
 
@@ -26,11 +26,13 @@ class Protocolo extends $pb.GeneratedMessage {
     $core.String? id,
     $core.String? nome,
     $core.Iterable<Campo>? campos,
+    $core.String? descricao,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (nome != null) result.nome = nome;
     if (campos != null) result.campos.addAll(campos);
+    if (descricao != null) result.descricao = descricao;
     return result;
   }
 
@@ -50,6 +52,7 @@ class Protocolo extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'nome')
     ..pPM<Campo>(3, _omitFieldNames ? '' : 'campos', subBuilder: Campo.create)
+    ..aOS(4, _omitFieldNames ? '' : 'descricao')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -90,20 +93,122 @@ class Protocolo extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(3)
   $pb.PbList<Campo> get campos => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.String get descricao => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set descricao($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDescricao() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDescricao() => $_clearField(4);
+}
+
+class Opcao extends $pb.GeneratedMessage {
+  factory Opcao({
+    $core.String? valor,
+    $core.String? label,
+    $core.String? sublabel,
+    $core.String? iconName,
+  }) {
+    final result = create();
+    if (valor != null) result.valor = valor;
+    if (label != null) result.label = label;
+    if (sublabel != null) result.sublabel = sublabel;
+    if (iconName != null) result.iconName = iconName;
+    return result;
+  }
+
+  Opcao._();
+
+  factory Opcao.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Opcao.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Opcao',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'valor')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..aOS(3, _omitFieldNames ? '' : 'sublabel')
+    ..aOS(4, _omitFieldNames ? '' : 'iconName')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Opcao clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Opcao copyWith(void Function(Opcao) updates) =>
+      super.copyWith((message) => updates(message as Opcao)) as Opcao;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Opcao create() => Opcao._();
+  @$core.override
+  Opcao createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Opcao getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Opcao>(create);
+  static Opcao? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get valor => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set valor($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValor() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValor() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sublabel => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sublabel($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSublabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSublabel() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get iconName => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set iconName($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasIconName() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIconName() => $_clearField(4);
 }
 
 class Campo extends $pb.GeneratedMessage {
   factory Campo({
     $core.String? id,
     $core.String? label,
+    $core.String? sublabel,
     Campo_Tipo? tipo,
+    Campo_UIHint? uiHint,
     $core.bool? obrigatorio,
-    $core.Iterable<$core.String>? opcoes,
+    $core.Iterable<Opcao>? opcoes,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (label != null) result.label = label;
+    if (sublabel != null) result.sublabel = sublabel;
     if (tipo != null) result.tipo = tipo;
+    if (uiHint != null) result.uiHint = uiHint;
     if (obrigatorio != null) result.obrigatorio = obrigatorio;
     if (opcoes != null) result.opcoes.addAll(opcoes);
     return result;
@@ -124,10 +229,13 @@ class Campo extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'label')
-    ..aE<Campo_Tipo>(3, _omitFieldNames ? '' : 'tipo',
+    ..aOS(3, _omitFieldNames ? '' : 'sublabel')
+    ..aE<Campo_Tipo>(4, _omitFieldNames ? '' : 'tipo',
         enumValues: Campo_Tipo.values)
-    ..aOB(4, _omitFieldNames ? '' : 'obrigatorio')
-    ..pPS(5, _omitFieldNames ? '' : 'opcoes')
+    ..aE<Campo_UIHint>(5, _omitFieldNames ? '' : 'uiHint',
+        enumValues: Campo_UIHint.values)
+    ..aOB(6, _omitFieldNames ? '' : 'obrigatorio')
+    ..pPM<Opcao>(7, _omitFieldNames ? '' : 'opcoes', subBuilder: Opcao.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -167,25 +275,43 @@ class Campo extends $pb.GeneratedMessage {
   void clearLabel() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  Campo_Tipo get tipo => $_getN(2);
+  $core.String get sublabel => $_getSZ(2);
   @$pb.TagNumber(3)
-  set tipo(Campo_Tipo value) => $_setField(3, value);
+  set sublabel($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
-  $core.bool hasTipo() => $_has(2);
+  $core.bool hasSublabel() => $_has(2);
   @$pb.TagNumber(3)
-  void clearTipo() => $_clearField(3);
+  void clearSublabel() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $core.bool get obrigatorio => $_getBF(3);
+  Campo_Tipo get tipo => $_getN(3);
   @$pb.TagNumber(4)
-  set obrigatorio($core.bool value) => $_setBool(3, value);
+  set tipo(Campo_Tipo value) => $_setField(4, value);
   @$pb.TagNumber(4)
-  $core.bool hasObrigatorio() => $_has(3);
+  $core.bool hasTipo() => $_has(3);
   @$pb.TagNumber(4)
-  void clearObrigatorio() => $_clearField(4);
+  void clearTipo() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $pb.PbList<$core.String> get opcoes => $_getList(4);
+  Campo_UIHint get uiHint => $_getN(4);
+  @$pb.TagNumber(5)
+  set uiHint(Campo_UIHint value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasUiHint() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUiHint() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get obrigatorio => $_getBF(5);
+  @$pb.TagNumber(6)
+  set obrigatorio($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasObrigatorio() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearObrigatorio() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<Opcao> get opcoes => $_getList(6);
 }
 
 class SubmissaoProtocolo extends $pb.GeneratedMessage {

@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../wizard/views/wizard_screen.dart';
 import '../../identity/controllers/identity_form_controller.dart';
@@ -175,8 +176,15 @@ class HomeScreen extends ConsumerWidget {
                     tagColor: const Color(0xFFFF6B00),
                     title: 'Manutenção de\nProteções Fixas',
                     iconData: Icons.handyman,
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WizardScreen()));
+                    onTap: () async {
+                      final yamlContent = await rootBundle.loadString('assets/protocols/manutencao_ferragens.yaml');
+                      if (context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WizardScreen(initialYaml: yamlContent),
+                          ),
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: 16),

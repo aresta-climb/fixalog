@@ -1,0 +1,31 @@
+protocolo:
+  id: "acec_mg_protecoes_v1"
+  nome: "Manutenção de Ferragens"
+  descricao: "Inspeção e manutenção de proteções fixas (grampos e ancoragens)."
+  campos:
+    - id: "liga_metalica"
+      label: "Qual a liga metálica usada?"
+      sublabel: "Selecione o material principal dos grampos e ancoragens instalados."
+      tipo: DROPDOWN
+      ui_hint: LARGE_TILES
+      obrigatorio: true
+      opcoes:
+        - valor: "inox_304"
+          label: "Inox 304"
+          sublabel: "USO GERAL"
+          icon_name: "layers"
+        - valor: "inox_316l"
+          label: "Inox 316L"
+          sublabel: "ALTA RESISTÊNCIA"
+          icon_name: "verified"
+        - valor: "titanio"
+          label: "Titânio"
+          sublabel: "EXTREMO"
+          icon_name: "diamond"
+
+    - id: "foto_instalacao"
+      label: "Tirar Foto da Instalação"
+      sublabel: "Garanta que o código de identificação esteja visível."
+      tipo: IMAGE
+      ui_hint: CAMERA_ACTION
+      obrigatorio: true

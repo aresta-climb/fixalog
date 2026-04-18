@@ -55,6 +55,12 @@ class WizardStateController extends Notifier<WizardState> {
     }
   }
 
+  void goToStep(int index) {
+    if (state.protocol != null && index >= 0 && index <= state.protocol!.campos.length) {
+      state = state.copyWith(currentStep: index);
+    }
+  }
+
   void answerCurrentField(RespostaCampo response) {
     if (state.protocol == null) return;
     if (state.currentStep >= state.protocol!.campos.length) return;

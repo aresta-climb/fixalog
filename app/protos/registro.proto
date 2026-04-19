@@ -1,0 +1,193 @@
+// registro.proto
+//
+// Schema de SAÍDA — o registro gerado pelo mantenedor.
+//
+// Este schema define a estrutura dos dados coletados durante a execução
+// de um protocolo. É o que é armazenado no Isar, assinado criptograficamente
+// e exportado como PDF/YAML auditável.
+//
+// A ESTRUTURA DO FORMULÁRIO é descrita em wizard.proto.
+
+syntax = "proto3";
+package fixalog;
+
+// ══════════════════════════════════════════════════════════════
+// REGISTRO COMPLETO DE UMA MANUTENÇÃO
+// ══════════════════════════════════════════════════════════════
+
+message RegistroManutencao {
+  string id_sessao            = 1;  // UUID gerado no início da sessão
+  string id_protocolo         = 2;  // referencia DefinicaoProtocolo.id
+  string versao_protocolo     = 3;  // referencia DefinicaoProtocolo.versao
+  int64  utc_timestamp_inicio = 4;  // timestamp GPS de início (segundos)
+  int64  utc_timestamp_fim    = 5;  // timestamp GPS de conclusão
+
+  RegistroMateriais        materiais  = 6;  // Bloco 1
+  RegistroVia              via        = 7;  // Bloco 2
+  repeated AcaoManutencao  acoes      = 8;  // Bloco 3 (N ações)
+  AvaliacaoFinal           avaliacao  = 9;  // Bloco 4
+
+  bytes assinatura_visual   = 10; // PNG do canvas de assinatura
+  bytes assinatura_digital  = 11; // JWS do hash do registro completo
+  string id_mantenedor      = 12; // hash da chave pública do mantenedor
+}
+
+// ══════════════════════════════════════════════════════════════
+// BLOCO 1 — Materiais
+// ══════════════════════════════════════════════════════════════
+
+message RegistroMateriais {
+  repeated MaterialInstalado itens = 1;
+}
+
+// Representa uma entrada de material registrada no wizard.
+// O id_instancia é gerado automaticamente pelo wizard ao adicionar o item
+// e é usado para referência em AcaoManutencao.ids_materiais_usados.
+message MaterialInstalado {
+  string id_instancia = 1; // UUID auto-gerado — chave de referência cruzada
+  string tipo         = 2; // "parabolt", "chapeleta", "argola", etc.
+  string marca        = 3;
+  string lote         = 4;
+  string liga         = 5; // ex: "inox_316l"
+  string validade     = 6; // ISO 8601 (YYYY-MM-DD)
+  int32  quantidade   = 7;
+  bytes  foto         = 8; // foto da embalagem/lote (JPEG comprimido)
+}
+
+// ══════════════════════════════════════════════════════════════
+// BLOCO 2 — Identificação da Via
+// ══════════════════════════════════════════════════════════════
+
+message RegistroVia {
+  string nome_via               = 1;
+  string pico                   = 2;
+  string setor                  = 3;
+  double latitude               = 4;
+  double longitude              = 5;
+  double altitude_m             = 6;
+  bytes  permissao_conquistador = 7; // imagem digitalizada ou PDF
+  string nome_conquistador      = 8;
+}
+
+// ══════════════════════════════════════════════════════════════
+// BLOCO 3 — Ações de Manutenção
+// ══════════════════════════════════════════════════════════════
+
+// Cada instância de ação adicionada pelo mantenedor no wizard
+message AcaoManutencao {
+  string id_instancia  = 1; // UUID auto-gerado (mesmo esquema do MaterialInstalado)
+  string id_tipo_acao  = 2; // referencia TipoAcao.id no wizard schema
+  int64  utc_timestamp = 3; // quando essa ação foi concluída
+
+  oneof detalhes {
+    DetalheInspecao        inspecao      = 10;
+    DetalheNovoPonto       novo_ponto    = 11;
+    DetalheRemocaoBloco    remocao_bloco = 12;
+    DetalheLimpeza         limpeza       = 13;
+    DetalheAcaoCustomizada outro         = 14;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Ação 1: Inspeção de Ancoragem
+// ──────────────────────────────────────────────────────────────
+
+message DetalheInspecao {
+  string tipo_ancoragem_original = 1; // "grampo_p", "parabolt", "outro"
+  string material_original       = 2; // texto livre
+  bytes  foto_antes              = 3;
+  bytes  video_antes             = 4; // opcional
+
+  ResultadoInspecao resultado    = 5;
+
+  // Preenchido apenas quando resultado == SUBSTITUIR
+  DetalheSubstituicao substituicao = 6;
+
+  enum ResultadoInspecao {
+    APROVADO           = 0;
+    REAPERTO_REALIZADO = 1; // parabolt: desapertou, inspecionou, reapertou
+    SUBSTITUIR         = 2;
+  }
+}
+
+message DetalheSubstituicao {
+  // Qual estratégia foi usada: ramo escolhido pelo mantenedor
+  // Valores: "reusar_furo", "novo_local", "local_alternativo"
+  string estrategia               = 1;
+
+  bytes  foto_durante             = 2; // durante a instalação
+  bytes  foto_depois              = 3; // resultado final (obrigatória)
+
+  // Lista de id_instancia de MaterialInstalado usados nesta substituição.
+  // Gerados pelo wizard no Bloco 1 e selecionados via StepRefMateriais.
+  repeated string ids_materiais_usados = 4;
+
+  // Dados extras para substituição com reaperto (ramo reaperto_realizado)
+  float  torque_nm                = 5; // opcional
+
+  // Dados extras para novo local
+  bool   autorizacao_confirmada   = 6;
+  string justificativa_novo_local = 7;
+
+  string observacoes              = 8;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Ação 2: Novo Ponto de Ancoragem
+// ──────────────────────────────────────────────────────────────
+
+message DetalheNovoPonto {
+  bool   autorizacao_confirmada        = 1;
+  double latitude                      = 2;
+  double longitude                     = 3;
+  bytes  foto_local_escolhido          = 4;
+  bytes  foto_instalado                = 5;
+  repeated string ids_materiais_usados = 6; // refs para MaterialInstalado.id_instancia
+  string observacoes                   = 7;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Ação 3: Remoção de Bloco Solto
+// ──────────────────────────────────────────────────────────────
+
+message DetalheRemocaoBloco {
+  bytes  foto_antes  = 1;
+  bytes  foto_depois = 2;
+  string observacoes = 3;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Ação 4: Limpeza de Vegetação
+// ──────────────────────────────────────────────────────────────
+
+message DetalheLimpeza {
+  bytes  foto_antes  = 1;
+  bytes  foto_depois = 2;
+  string observacoes = 3;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Ação 5: Outro (ação customizada)
+// ──────────────────────────────────────────────────────────────
+
+message DetalheAcaoCustomizada {
+  string descricao   = 1;
+  bytes  foto        = 2;
+  bytes  video       = 3;
+  string observacoes = 4;
+}
+
+// ══════════════════════════════════════════════════════════════
+// BLOCO 4 — Avaliação Final
+// ══════════════════════════════════════════════════════════════
+
+message AvaliacaoFinal {
+  ResultadoGeral resultado  = 1;
+  string observacoes        = 2;
+
+  enum ResultadoGeral {
+    APROVADO               = 0;
+    APROVADO_COM_RESSALVAS = 1;
+    REQUER_NOVA_VISITA     = 2;
+  }
+}

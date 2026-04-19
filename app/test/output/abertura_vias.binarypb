@@ -1,0 +1,12 @@
+
+abertura_via_v1Abertura de ViaFRegistro técnico de conquista ou abertura de novas rotas de escalada."1.0.0*�
+identificacaoIdentificação da ViaDados técnicos da nova rota."I
+nome_via=
+Nome Sugerido*Nome dado à via pelo(s) conquistador(es).("<
+	graduacao/
+Graduação EstimadaEx: 6sup, IXa, 7a, etc."U
+	setor_gpsH
+Localização da Base+Capture as coordenadas geográficas exatas.("W
+
+foto_linhaI
+Foto do Setor2Tire uma foto que mostre a linha provável da via. (

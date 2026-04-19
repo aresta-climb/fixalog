@@ -1,0 +1,175 @@
+// wizard.proto
+//
+// Schema de DEFINIÇÃO DE PROTOCOLO — a DSL do Wizard.
+//
+// Este schema descreve como um protocolo de manutenção é estruturado e
+// apresentado ao mantenedor. Os arquivos YAML em assets/protocols/ são
+// validados contra este schema.
+//
+// O RESULTADO gerado pelo mantenedor é descrito em registro.proto.
+
+syntax = "proto3";
+package fixalog;
+
+// ══════════════════════════════════════════════════════════════
+// PONTO DE ENTRADA: Definição completa de um protocolo
+// ══════════════════════════════════════════════════════════════
+
+message DefinicaoProtocolo {
+  string id        = 1; // ex: "acec_mg_manutencao_v2"
+  string nome      = 2;
+  string descricao = 3;
+  string versao    = 4; // ex: "2.0.0" — permite evolução sem trocar o id
+  repeated Bloco blocos = 5;
+}
+
+// Um Bloco é uma seção nomeada do wizard (ex: "Materiais", "Ações")
+message Bloco {
+  string id        = 1;
+  string titulo    = 2;
+  string subtitulo = 3;
+  repeated Step steps = 4;
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP — unidade básica de interação (uma "tela" no wizard)
+// ══════════════════════════════════════════════════════════════
+
+message Step {
+  string id = 1;
+
+  oneof conteudo {
+    StepInstrucao    instrucao      = 2; // orientação pura, sem dado coletado
+    StepCampoSimples campo_simples  = 3; // campo de dado simples
+    StepSelecaoRamo  selecao_ramo   = 4; // escolha de caminho condicional
+    StepListaAcoes   lista_acoes    = 5; // seção repetível com N instâncias
+    StepRefMateriais ref_materiais  = 6; // seleção de materiais de outro step
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIPOS DE STEP
+// ══════════════════════════════════════════════════════════════
+
+// Orientação pura — exibe texto/instrução, não coleta dado algum
+message StepInstrucao {
+  string titulo      = 1;
+  string corpo       = 2; // suporta Markdown simples
+  string icon_name   = 3; // nome do ícone Material Icons
+  NivelAlerta nivel_alerta = 4;
+
+  enum NivelAlerta {
+    INFO    = 0; // azul — informação
+    ATENCAO = 1; // amarelo — cuidado
+    PERIGO  = 2; // vermelho — risco de vida
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Campo de dado simples (equivalente ao Campo original)
+// ──────────────────────────────────────────────────────────────
+
+message StepCampoSimples {
+  string label       = 1;
+  string sublabel    = 2;
+  TipoCampo tipo     = 3;
+  UiHint    ui_hint  = 4;
+  bool      obrigatorio = 5;
+  repeated OpcaoCampo opcoes = 6; // apenas para tipo DROPDOWN
+
+  enum TipoCampo {
+    TEXT      = 0;
+    NUMBER    = 1;
+    DROPDOWN  = 2;
+    IMAGE     = 3;
+    BOOLEAN   = 4;
+    GPS       = 5;
+    VIDEO     = 6;
+    SIGNATURE = 7;
+    DATE      = 8;
+  }
+
+  enum UiHint {
+    DEFAULT       = 0;
+    LARGE_TILES   = 1; // cards grandes com ícone — ideal para DROPDOWN visual
+    CAMERA_ACTION = 2; // abre câmera diretamente ao chegar no step
+    TEXT_AREA     = 3; // textarea de múltiplas linhas
+  }
+}
+
+message OpcaoCampo {
+  string valor     = 1;
+  string label     = 2;
+  string sublabel  = 3;
+  string icon_name = 4;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Seleção de ramo — o mantenedor escolhe um caminho
+//
+// O ID do ramo escolhido é coletado como dado.
+// Cada ramo abre um sub-fluxo de steps próprio (recursivo).
+// ──────────────────────────────────────────────────────────────
+
+message StepSelecaoRamo {
+  string label       = 1;
+  string sublabel    = 2;
+  bool   obrigatorio = 3;
+  repeated Ramo ramos = 4;
+}
+
+// Um Ramo tem seu próprio sub-fluxo de Steps (permite branching recursivo)
+message Ramo {
+  string id        = 1; // valor salvo no RegistroManutencao
+  string label     = 2;
+  string sublabel  = 3;
+  string icon_name = 4;
+  repeated Step steps = 5; // sub-fluxo — pode conter StepSelecaoRamo recursivamente
+}
+
+// ──────────────────────────────────────────────────────────────
+// Lista de ações repetível
+//
+// O mantenedor pode adicionar N instâncias de ações.
+// Cada instância recebe um id_instancia auto-gerado pelo wizard
+// (UUID ou sequencial) que pode ser referenciado por StepRefMateriais.
+// ──────────────────────────────────────────────────────────────
+
+message StepListaAcoes {
+  string label    = 1;
+  string sublabel = 2;
+  int32  minimo   = 3; // 0 = opcional
+  int32  maximo   = 4; // 0 = ilimitado
+  repeated TipoAcao tipos_disponiveis = 5;
+}
+
+// Um TipoAcao define o sub-fluxo de uma categoria de ação
+message TipoAcao {
+  string id        = 1;
+  string label     = 2;
+  string sublabel  = 3;
+  string icon_name = 4;
+  repeated Step steps = 5; // sub-fluxo de cada instância deste tipo
+}
+
+// ──────────────────────────────────────────────────────────────
+// Referência a materiais registrados em outro StepListaAcoes
+//
+// Em runtime, o wizard:
+//   1. Lê todas as instâncias adicionadas no step referenciado
+//      (identificado por id_step_materiais)
+//   2. Exibe uma lista de seleção múltipla ao mantenedor
+//   3. Salva os id_instancia das instâncias selecionadas no registro
+//
+// Os id_instancia são gerados automaticamente pelo wizard quando o
+// mantenedor adiciona cada item no StepListaAcoes de origem.
+// ──────────────────────────────────────────────────────────────
+
+message StepRefMateriais {
+  string label             = 1;
+  string sublabel          = 2;
+  // ID do Step (tipo StepListaAcoes) de onde os materiais devem ser lidos.
+  // Ex: "lista_materiais" — referencia o step do Bloco 1.
+  string id_step_materiais = 3;
+  bool   obrigatorio       = 4;
+}

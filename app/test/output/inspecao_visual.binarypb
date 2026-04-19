@@ -1,0 +1,16 @@
+
+inspecao_visual_v1&Inspeção Visual de Proteções FixasGRelatório de monitoramento periódico de proteções fixas existentes."1.0.0*�
+inspecao
+Inspeção&Avalie o estado atual das proteções."�
+estado_geral�
+Estado Geral da Proteção2Avalie visualmente a integridade física do metal. (2*
+bomBomSEM ALTERAÇÕES"check_circle2.
+
+desgastado
+DesgastadoOBSERVAR"
+visibility25
+criticoCríticoSUBSTITUIÇÃO IMEDIATA"warning"W
+corrosaoK
+Presença de Corrosão?,Verifique sinais de oxidação ou 'pitting'.("Y
+foto_evidenciaG
+Foto de Evidência-Foto macro do ponto mais crítico encontrado. 

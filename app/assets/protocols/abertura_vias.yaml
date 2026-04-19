@@ -1,29 +1,44 @@
+# abertura_vias.yaml
+#
+# Protocolo: Abertura de Via
+# Schema: wizard.proto > DefinicaoProtocolo
+
 protocolo:
   id: "abertura_via_v1"
   nome: "Abertura de Via"
-  descricao: "Registro técnico de conquista ou abertura de novas rotas."
-  campos:
-    - id: "nome_via"
-      label: "Nome Sugerido"
-      sublabel: "Nome dado à via pelo(s) conquistador(es)."
-      tipo: TEXT
-      obrigatorio: true
+  versao: "1.0.0"
+  descricao: "Registro técnico de conquista ou abertura de novas rotas de escalada."
 
-    - id: "graduacao"
-      label: "Graduação Estimada"
-      sublabel: "Ex: 6sup, IXa, 7a, etc."
-      tipo: TEXT
-      obrigatorio: false
+  blocos:
+    - id: "identificacao"
+      titulo: "Identificação da Via"
+      subtitulo: "Dados técnicos da nova rota."
+      steps:
+        - id: "nome_via"
+          campo_simples:
+            label: "Nome Sugerido"
+            sublabel: "Nome dado à via pelo(s) conquistador(es)."
+            tipo: TEXT
+            obrigatorio: true
 
-    - id: "setor_gps"
-      label: "Localização da Base"
-      sublabel: "Capture as coordenadas geográficas exatas."
-      tipo: GPS
-      obrigatorio: true
+        - id: "graduacao"
+          campo_simples:
+            label: "Graduação Estimada"
+            sublabel: "Ex: 6sup, IXa, 7a, etc."
+            tipo: TEXT
+            obrigatorio: false
 
-    - id: "foto_linha"
-      label: "Foto do Setor"
-      sublabel: "Tire uma foto que mostre a linha provável da via."
-      tipo: IMAGE
-      ui_hint: CAMERA_ACTION
-      obrigatorio: true
+        - id: "setor_gps"
+          campo_simples:
+            label: "Localização da Base"
+            sublabel: "Capture as coordenadas geográficas exatas."
+            tipo: GPS
+            obrigatorio: true
+
+        - id: "foto_linha"
+          campo_simples:
+            label: "Foto do Setor"
+            sublabel: "Tire uma foto que mostre a linha provável da via."
+            tipo: IMAGE
+            ui_hint: CAMERA_ACTION
+            obrigatorio: true

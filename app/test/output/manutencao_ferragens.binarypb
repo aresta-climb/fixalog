@@ -1,0 +1,222 @@
+
+acec_mg_manutencao_v2!Manutenção de Proteções FixasUProtocolo técnico completo de manutenção de proteções fixas em vias de escalada."2.0.0*�
+	materiais	Materiais@Liste e fotografe todos os itens que serão instalados na rocha."�
+lista_materiais*�
+Materiais utilizados=Adicione um item para cada tipo de material que você trouxe.*�
+paraboltParaboltAncoragem mecânica expansiva"bolt*
+pb_marca	
+Marca(*�
+pb_liga�
+Liga metálica (2'
+inox_304Inox 304	USO GERAL"layers2=
+	inox_316l	Inox 316LMARINHO / ALTA RESISTÊNCIA"verified21
+titanioTitânioPERFORMANCE EXTREMA"diamond*!
+pb_lote
+Lote / N° de série*+
+pb_validade
+Validade (se aplicável)*!
+pb_quantidade
+
+Quantidade(*c
+pb_fotoX
+Foto da embalagem / lote6Garanta que a identificação do lote esteja visível. (*�
+	chapeleta	ChapeletaPlaqueta de ancoragem"link*
+ch_marca	
+Marca(*�
+ch_liga�
+Liga metálica (2'
+inox_304Inox 304	USO GERAL"layers2)
+	inox_316l	Inox 316LMARINHO"verified2%
+titanioTitânioEXTREMO"diamond*!
+ch_quantidade
+
+Quantidade(*
+ch_foto
+Foto (*�
+argolaArgola / Maillon%Argola de reunião ou maillon rápido"radio_button_unchecked*
+ar_marca	
+Marca(*
+ar_ligat
+Liga metálica (2
+inox_304Inox 304"layers2 
+	inox_316l	Inox 316L"verified2
+titanioTitânio"diamond*!
+ar_quantidade
+
+Quantidade(*
+ar_foto
+Foto (*�
+ancoragem_quimicaAncoragem QuímicaBucha química / cápsula"science*
+aq_marca	
+Marca(*
+aq_lote
+Lote*N
+aq_validade?
+Validade/Ancoragem química vencida NÃO deve ser usada.(*!
+aq_quantidade
+
+Quantidade(*N
+aq_fotoC
+Foto da embalagem(Inclua validade e lote no enquadramento. (*�
+cola_quimicaCola Química!Resina injetável (tubo/cartucho)"opacity*
+cq_marca	
+Marca(*B
+cq_validade3
+Validade#Resina vencida NÃO deve ser usada.(*(
+cq_quantidade
+Cartuchos / tubos(*$
+cq_foto
+Foto da embalagem (*�
+viaIdentificação da Via)Dados da rota que está sendo manutenida."
+via_nome
+Nome da via("
+via_pico
+Pico / Maciço"
+	via_setor
+Setor"d
+via_localizacaoQ
+Localização GPS da base0Fique na base da via ao capturar as coordenadas.("y
+via_permissaoh
+Permissão do ConquistadorFFotografie ou digitalize o documento de autorização de manutenção. *�+
+acoesAções de Manutenção-Registre cada intervenção realizada na via."�*
+lista_acoes*�*
+Ações realizadas]Adicione uma ação para cada intervenção. Você pode adicionar quantas forem necessárias.*�
+inspecao_ancoragemInspeção de AncoragemInspecionar um ponto existente"search*�
+ia_tipo_original�
+Tipo de ancoragem inspecionada (23
+grampo_pGrampo PGrampo em P de aço"push_pin2/
+paraboltParaboltAncoragem expansiva"bolt2
+outroOutro"
+more_horiz*]
+ia_material_originalE
+Material original estimado'Ex: inox, aço galvanizado, titânio...*a
+ia_foto_antesP
+Foto da ancoragem (antes)-Enquadre toda a ancoragem e a rocha ao redor. (*K
+ia_video_antes9
+Vídeo (opcional)"Até 30s mostrando o estado atual.*�
+ia_instrucao�
+Inspecione a ancoragem�**Para Grampo P:**
+• Verifique se há palhetas de alumínio (alerta crítico — substituição imediata)
+• Avalie se o grampo está pouco inserido na rocha
+• Verifique se a ponta está pouco batida
+• Avalie o nível de corrosão
+
+**Para Parabolt:**
+• Desaperte a porta com a chave correta
+• Inspecione o interior do furo — presença de corrosão?
+• Se OK: reapertar com chave de torque
+• Se corrosão visível: substituição necessária
+manage_search*�
+ia_resultado"�
+Resultado da inspeção+O que precisa ser feito com esta ancoragem?"S
+aprovadoAprovado/Em bom estado — sem intervenção necessária"check_circle"�
+reapertoReaperto realizado%Parabolt reaperto com chave de torque"settings*.
+ia_re_foto_apos
+Foto após reaperto (*^
+ia_re_torqueN
+Torque aplicado (Nm)4Opcional — se utilizada chave de torque calibrada."�
+
+substituirSubstituição necessária+Ancoragem degradada — precisa ser trocada"warning*�
+ia_sub_instrucao�
+Estratégia de substituição�Tente primeiro remover a ancoragem antiga para reaproveitar o furo.
+Se não for possível, verifique se o local atual ainda faz sentido
+para a segurança da via. Se fizer, instale ao lado. Se não, busque
+um local alternativo e obtenha autorização do conquistador.
+
+swap_horiz *�
+ia_sub_estrategia"�
+"Como será feita a substituição?"�
+reusar_furoRemover e reusar o furo'Ancoragem removida + ancoragem química"	recycling*�
+ia_rf_instrucao�
+Instalação com reuso de furo�1. Remova a ancoragem antiga com cuidado
+2. Expanda o furo com a broca correta (se necessário)
+3. Limpe o furo com jato de ar — sem resíduos de pó
+4. Instale a cápsula ou injete a resina química
+5. Insira o parabolt e aguarde o tempo de cura antes de carregar
+construction*|
+ia_rf_materiais2i
+Materiais utilizados>Selecione os materiais do Bloco 1 usados nesta substituição.lista_materiais *5
+ia_rf_foto_durante
+Foto durante instalação *4
+ia_rf_foto_depois
+Foto após instalação ("�
+
+novo_localInstalar em novo local*Local inadequado ou ancoragem irremovível"add_location*�
+ia_nl_instrucao_auth�
+⚠️ Confirme a autorização�Instalar em novo local requer autorização do conquistador da via.
+Confirme antes de furar. Em caso de dúvida, este campo pode ser
+fotografado como evidência.
+	gpp_maybe *D
+ia_nl_autorizacao/
+)Autorização do conquistador confirmada?(*h
+ia_nl_foto_localT
+Foto do novo local escolhido.Antes de furar — mostrando o ponto na rocha. (*<
+ia_nl_materiais2)
+Materiais utilizadoslista_materiais *4
+ia_nl_foto_depois
+Foto após instalação (*p
+ia_nl_justificativaY
+Justificativa do novo local6Por que o local original não pôde ser reaproveitado? (*�
+
+novo_pontoNovo Ponto de Ancoragem#Instalar onde não havia proteção"
+add_circle*�
+np_instrucao_auth�
+⚠️ Confirme a autorização�A instalação de novos pontos requer concordância do conquistador da via.
+Certifique-se de ter essa autorização documentada antes de prosseguir.
+	gpp_maybe *A
+np_autorizacao/
+)Autorização do conquistador confirmada?(*e
+np_foto_localT
+Foto do local escolhido (antes)+Antes de furar — mostre o ponto na rocha. (*�
+np_instrucao_inst�
+Instalação do novo ponto�1. Confirme solidez da rocha no local escolhido (martelo)
+2. Faça o furo no ângulo correto
+3. Limpe com jato de ar
+4. Instale conforme o tipo de ancoragem
+5. Aguarde cura antes de testar carga
+construction*w
+np_materiais2g
+Materiais utilizados<Selecione os materiais do Bloco 1 usados nesta instalação.lista_materiais *1
+np_foto_depois
+Foto após instalação (*#
+np_observacoes
+Observações *�
+remocao_blocoRemoção de Bloco SoltoRetirar rocha instável da via"	landslide*�
+rb_instrucao_seg�
+⚠️ Protocolo de segurança�**Antes de remover:**
+• Posicione-se ACIMA da ancoragem mais próxima
+• Confirme que a área abaixo está completamente livre de pessoas
+• Use capacete
+• Avise companheiros verbalmente antes de soltar o bloco
+health_and_safety *X
+rb_foto_antesG
+Foto do bloco (antes)(Mostre o bloco em contexto com a parede. (*.
+rb_foto_depois
+Foto após remoção (*K
+rb_observacoes9
+Observações&Tamanho estimado, risco residual, etc. *�
+limpeza_vegetacaoLimpeza de Vegetação$Remoção de plantas da linha da via"forest*.
+lv_foto_antes
+Foto antes da limpeza (*,
+lv_foto_depois
+Foto após limpeza (*#
+lv_observacoes
+Observações *�
+outroOutro!Ação não prevista no protocolo"
+more_horiz*1
+ou_descricao!
+Descreva a ação realizada (* 
+ou_foto
+Foto (opcional) *!
+ou_video
+Vídeo (opcional)*�
+	avaliacaoAvaliação Final<Revisão do trabalho realizado e assinatura do responsável."�
+av_resultado�
+Resultado geral da manutenção (29
+aprovadoAprovadoVia liberada para uso"check_circle2E
+aprovado_ressalvasCom ressalvasRequer atenção futura"warning2U
+nova_visitaNova visita necessáriaTrabalho incompleto ou pendente"event_repeat"v
+av_observacoesd
+Observações finaisJNotas adicionais, pendências, recomendações para próxima manutenção. "X
+av_assinaturaG
+Assinatura do responsável%Assine para certificar este registro.(

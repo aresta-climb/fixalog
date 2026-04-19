@@ -1,37 +1,42 @@
+# inspecao_visual.yaml
+#
+# Protocolo: Inspeção Visual de Proteções Fixas
+# Schema: wizard.proto > DefinicaoProtocolo
+
 protocolo:
   id: "inspecao_visual_v1"
-  nome: "Inspeção Visual"
-  descricao: "Relatório de monitoramento periódico de proteções existentes."
-  campos:
-    - id: "estado_geral"
-      label: "Estado Geral da Proteção"
-      sublabel: "Avalie visualmente a integridade física do metal."
-      tipo: DROPDOWN
-      ui_hint: LARGE_TILES
-      obrigatorio: true
-      opcoes:
-        - valor: "bom"
-          label: "Bom"
-          sublabel: "SEM ALTERAÇÕES"
-          icon_name: "check_circle"
-        - valor: "desgastado"
-          label: "Desgastado"
-          sublabel: "OBSERVAR"
-          icon_name: "visibility"
-        - valor: "critico"
-          label: "Crítico"
-          sublabel: "SUBSTITUIÇÃO IMEDIATA"
-          icon_name: "warning"
+  nome: "Inspeção Visual de Proteções Fixas"
+  versao: "1.0.0"
+  descricao: "Relatório de monitoramento periódico de proteções fixas existentes."
 
-    - id: "corrosao"
-      label: "Presença de Corrosão?"
-      sublabel: "Verifique sinais de oxidação ou 'pitting'."
-      tipo: BOOLEAN
-      obrigatorio: true
+  blocos:
+    - id: "inspecao"
+      titulo: "Inspeção"
+      subtitulo: "Avalie o estado atual das proteções."
+      steps:
+        - id: "estado_geral"
+          campo_simples:
+            label: "Estado Geral da Proteção"
+            sublabel: "Avalie visualmente a integridade física do metal."
+            tipo: DROPDOWN
+            ui_hint: LARGE_TILES
+            obrigatorio: true
+            opcoes:
+              - { valor: "bom", label: "Bom", sublabel: "SEM ALTERAÇÕES", icon_name: "check_circle" }
+              - { valor: "desgastado", label: "Desgastado", sublabel: "OBSERVAR", icon_name: "visibility" }
+              - { valor: "critico", label: "Crítico", sublabel: "SUBSTITUIÇÃO IMEDIATA", icon_name: "warning" }
 
-    - id: "foto_evidencia"
-      label: "Foto de Evidência"
-      sublabel: "Foto macro do ponto mais crítico encontrado."
-      tipo: IMAGE
-      ui_hint: CAMERA_ACTION
-      obrigatorio: false
+        - id: "corrosao"
+          campo_simples:
+            label: "Presença de Corrosão?"
+            sublabel: "Verifique sinais de oxidação ou 'pitting'."
+            tipo: BOOLEAN
+            obrigatorio: true
+
+        - id: "foto_evidencia"
+          campo_simples:
+            label: "Foto de Evidência"
+            sublabel: "Foto macro do ponto mais crítico encontrado."
+            tipo: IMAGE
+            ui_hint: CAMERA_ACTION
+            obrigatorio: false

@@ -64,9 +64,9 @@ final $typed_data.Uint8List blocoDescriptor = $convert.base64Decode(
     'l0dWxvGAMgASgJUglzdWJ0aXR1bG8SIwoFc3RlcHMYBCADKAsyDS5maXhhbG9nLlN0ZXBSBXN0'
     'ZXBz');
 
-@$core.Deprecated('Use stepDescriptor instead')
-const Step$json = {
-  '1': 'Step',
+@$core.Deprecated('Use conteudoStepDescriptor instead')
+const ConteudoStep$json = {
+  '1': 'ConteudoStep',
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {
@@ -116,19 +116,40 @@ const Step$json = {
     },
   ],
   '8': [
-    {'1': 'conteudo'},
+    {'1': 'tipo'},
+  ],
+};
+
+/// Descriptor for `ConteudoStep`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List conteudoStepDescriptor = $convert.base64Decode(
+    'CgxDb250ZXVkb1N0ZXASDgoCaWQYASABKAlSAmlkEjYKCWluc3RydWNhbxgCIAEoCzIWLmZpeG'
+    'Fsb2cuU3RlcEluc3RydWNhb0gAUglpbnN0cnVjYW8SQAoNY2FtcG9fc2ltcGxlcxgDIAEoCzIZ'
+    'LmZpeGFsb2cuU3RlcENhbXBvU2ltcGxlc0gAUgxjYW1wb1NpbXBsZXMSPQoMc2VsZWNhb19yYW'
+    '1vGAQgASgLMhguZml4YWxvZy5TdGVwU2VsZWNhb1JhbW9IAFILc2VsZWNhb1JhbW8SOgoLbGlz'
+    'dGFfYWNvZXMYBSABKAsyFy5maXhhbG9nLlN0ZXBMaXN0YUFjb2VzSABSCmxpc3RhQWNvZXMSQA'
+    'oNcmVmX21hdGVyaWFpcxgGIAEoCzIZLmZpeGFsb2cuU3RlcFJlZk1hdGVyaWFpc0gAUgxyZWZN'
+    'YXRlcmlhaXNCBgoEdGlwbw==');
+
+@$core.Deprecated('Use stepDescriptor instead')
+const Step$json = {
+  '1': 'Step',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'conteudos',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.fixalog.ConteudoStep',
+      '10': 'conteudos'
+    },
   ],
 };
 
 /// Descriptor for `Step`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List stepDescriptor = $convert.base64Decode(
-    'CgRTdGVwEg4KAmlkGAEgASgJUgJpZBI2CglpbnN0cnVjYW8YAiABKAsyFi5maXhhbG9nLlN0ZX'
-    'BJbnN0cnVjYW9IAFIJaW5zdHJ1Y2FvEkAKDWNhbXBvX3NpbXBsZXMYAyABKAsyGS5maXhhbG9n'
-    'LlN0ZXBDYW1wb1NpbXBsZXNIAFIMY2FtcG9TaW1wbGVzEj0KDHNlbGVjYW9fcmFtbxgEIAEoCz'
-    'IYLmZpeGFsb2cuU3RlcFNlbGVjYW9SYW1vSABSC3NlbGVjYW9SYW1vEjoKC2xpc3RhX2Fjb2Vz'
-    'GAUgASgLMhcuZml4YWxvZy5TdGVwTGlzdGFBY29lc0gAUgpsaXN0YUFjb2VzEkAKDXJlZl9tYX'
-    'RlcmlhaXMYBiABKAsyGS5maXhhbG9nLlN0ZXBSZWZNYXRlcmlhaXNIAFIMcmVmTWF0ZXJpYWlz'
-    'QgoKCGNvbnRldWRv');
+    'CgRTdGVwEg4KAmlkGAEgASgJUgJpZBIzCgljb250ZXVkb3MYAiADKAsyFS5maXhhbG9nLkNvbn'
+    'RldWRvU3RlcFIJY29udGV1ZG9z');
 
 @$core.Deprecated('Use stepInstrucaoDescriptor instead')
 const StepInstrucao$json = {

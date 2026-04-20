@@ -1,292 +1,516 @@
-import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
-import 'package:app/core/models/proto/protos/wizard.pb.dart';
-import 'package:app/core/models/proto/protos/wizard.pbenum.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+// test/wizard_state_controller_test.dart
+//
+// Testa o WizardStateController com o novo schema (Step.conteudos).
+//
+// Uso: flutter test test/wizard_state_controller_test.dart
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:app/core/models/proto/protos/wizard.pb.dart';
+import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers de fixture
+// Builders para construir protos de teste sem YAML
 // ─────────────────────────────────────────────────────────────────────────────
 
-Step _textStep(String id, {bool obrigatorio = true}) => Step(
-      id: id,
-      campoSimples: StepCampoSimples(
-        label: id,
-        tipo: StepCampoSimples_TipoCampo.TEXT,
-        obrigatorio: obrigatorio,
-      ),
-    );
+/// Cria um ConteudoStep de CampoSimples.
+ConteudoStep campoConteudo({
+  required String id,
+  String label = 'Campo',
+  bool obrigatorio = false,
+  StepCampoSimples_TipoCampo tipo = StepCampoSimples_TipoCampo.TEXT,
+}) {
+  return ConteudoStep(
+    id: id,
+    campoSimples: StepCampoSimples(label: label, obrigatorio: obrigatorio, tipo: tipo),
+  );
+}
 
-Step _boolStep(String id) => Step(
-      id: id,
-      campoSimples: StepCampoSimples(
-        label: id,
-        tipo: StepCampoSimples_TipoCampo.BOOLEAN,
-        obrigatorio: false,
-      ),
-    );
+/// Cria um ConteudoStep de Instrucao.
+ConteudoStep instrucaoConteudo({required String id, String titulo = 'Info'}) {
+  return ConteudoStep(id: id, instrucao: StepInstrucao(titulo: titulo));
+}
 
-Step _ramoStep(String id, {required List<Ramo> ramos}) => Step(
-      id: id,
-      selecaoRamo: StepSelecaoRamo(
-        label: id,
-        obrigatorio: true,
-        ramos: ramos,
-      ),
-    );
+/// Cria um ConteudoStep de SelecaoRamo.
+ConteudoStep ramoConteudo({
+  required String id,
+  required List<Ramo> ramos,
+  bool obrigatorio = true,
+}) {
+  return ConteudoStep(
+    id: id,
+    selecaoRamo: StepSelecaoRamo(
+      label: 'Escolha',
+      obrigatorio: obrigatorio,
+      ramos: ramos,
+    ),
+  );
+}
 
-Step _instrucaoStep(String id) => Step(
-      id: id,
-      instrucao: StepInstrucao(titulo: id, corpo: 'Texto de instrução'),
-    );
+/// Cria um ConteudoStep de ListaAcoes.
+ConteudoStep listaConteudo({
+  required String id,
+  int minimo = 0,
+  List<TipoAcao> tipos = const [],
+}) {
+  return ConteudoStep(
+    id: id,
+    listaAcoes: StepListaAcoes(
+      label: 'Lista',
+      minimo: minimo,
+      tiposDisponiveis: tipos,
+    ),
+  );
+}
 
-Step _listaStep(String id, {int minimo = 1}) => Step(
-      id: id,
-      listaAcoes: StepListaAcoes(
-        label: id,
-        minimo: minimo,
-        tiposDisponiveis: [
-          TipoAcao(
-            id: 'tipo_a',
-            label: 'Tipo A',
-            steps: [_textStep('tipo_a_detalhe')],
-          ),
-        ],
-      ),
-    );
+/// Cria um Step (card) com uma lista de conteudos.
+Step makeStep(String id, List<ConteudoStep> conteudos) =>
+    Step(id: id, conteudos: conteudos);
 
-DefinicaoProtocolo _singleStepProtocol(Step step) => DefinicaoProtocolo(
-      id: 'test',
-      versao: '1.0.0',
-      blocos: [
-        Bloco(id: 'b1', titulo: 'Bloco', steps: [step]),
-      ],
-    );
-
-DefinicaoProtocolo _multiStepProtocol(List<Step> steps) => DefinicaoProtocolo(
-      id: 'test',
-      versao: '1.0.0',
-      blocos: [
-        Bloco(id: 'b1', titulo: 'Bloco', steps: steps),
-      ],
-    );
+/// Cria um protocolo mínimo de 1 bloco com os steps dados.
+DefinicaoProtocolo makeProtocol(List<Step> steps) {
+  return DefinicaoProtocolo(
+    id: 'test_proto',
+    nome: 'Test',
+    versao: '1.0.0',
+    blocos: [Bloco(id: 'bloco1', titulo: 'B1', steps: steps)],
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suíte de testes
+// Factories para WidgetRef (usando ProviderContainer)
+// ─────────────────────────────────────────────────────────────────────────────
+
+ProviderContainer makeContainer() => ProviderContainer();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Testes
 // ─────────────────────────────────────────────────────────────────────────────
 
 void main() {
-  group('WizardStateController', () {
-    late ProviderContainer container;
-    late WizardStateController controller;
+  // ── 1. Carregamento ──────────────────────────────────────────────────────────
 
-    setUp(() {
-      container = ProviderContainer();
-      controller = container.read(wizardControllerProvider.notifier);
-    });
-
-    tearDown(() => container.dispose());
-
-    // ── Estado inicial ──────────────────────────────────────────────────────
-
+  group('WizardStateController — carregamento', () {
     test('estado inicial está vazio', () {
+      final container = makeContainer();
       final state = container.read(wizardControllerProvider);
       expect(state.protocol, isNull);
+      expect(state.queue, isEmpty);
       expect(state.currentIndex, 0);
-      expect(state.answers.isEmpty, true);
-      expect(state.queue.isEmpty, true);
     });
 
-    // ── loadProtocol ────────────────────────────────────────────────────────
-
-    test('loadProtocol popula a fila com os steps dos blocos', () {
-      final proto = _multiStepProtocol([
-        _textStep('c1'),
-        _boolStep('c2'),
+    test('loadProtocol popula a fila com todos os steps de todos os blocos', () {
+      final container = makeContainer();
+      final protocol  = makeProtocol([
+        makeStep('s1', [campoConteudo(id: 'c1')]),
+        makeStep('s2', [campoConteudo(id: 'c2')]),
+        makeStep('s3', [instrucaoConteudo(id: 'c3')]),
       ]);
-      controller.loadProtocol(proto);
 
+      container.read(wizardControllerProvider.notifier).loadProtocol(protocol);
       final state = container.read(wizardControllerProvider);
-      expect(state.protocol?.id, 'test');
-      expect(state.queue.length, 2);
-      expect(state.queue[0].step.id, 'c1');
-      expect(state.queue[1].step.id, 'c2');
+
+      expect(state.protocol, isNotNull);
+      expect(state.queue.length, 3);
       expect(state.currentIndex, 0);
+      expect(state.isFinished, isFalse);
+    });
+  });
+
+  // ── 2. Navegação básica ───────────────────────────────────────────────────────
+
+  group('WizardStateController — navegação', () {
+    test('nextStep avança quando todos os conteudos opcionais', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [instrucaoConteudo(id: 'c1')]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+        ]),
+      );
+
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isTrue);
+      expect(container.read(wizardControllerProvider).currentIndex, 1);
     });
 
-    // ── nextStep — campo obrigatório ────────────────────────────────────────
+    test('nextStep bloqueia se campo obrigatório não preenchido', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [campoConteudo(id: 'c1', obrigatorio: true)]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+        ]),
+      );
 
-    test('nextStep bloqueia se campo obrigatório sem resposta', () {
-      controller.loadProtocol(_singleStepProtocol(_textStep('c1', obrigatorio: true)));
-
-      final success = controller.nextStep();
-
-      expect(success, false);
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isFalse);
       expect(container.read(wizardControllerProvider).currentIndex, 0);
     });
 
-    test('nextStep avança se campo obrigatório tem resposta', () {
-      controller.loadProtocol(_singleStepProtocol(_textStep('c1', obrigatorio: true)));
-      controller.answerCurrentStep('Resposta válida');
-
-      final success = controller.nextStep();
-
-      expect(success, true);
-      expect(container.read(wizardControllerProvider).currentIndex, 1);
-    });
-
-    test('nextStep avança campo não-obrigatório sem resposta', () {
-      controller.loadProtocol(_singleStepProtocol(_boolStep('c1')));
-
-      final success = controller.nextStep();
-
-      expect(success, true);
-      expect(container.read(wizardControllerProvider).currentIndex, 1);
-    });
-
-    // ── nextStep — StepInstrucao não bloqueia ───────────────────────────────
-
-    test('nextStep avança StepInstrucao sem resposta (nunca bloqueia)', () {
-      controller.loadProtocol(_singleStepProtocol(_instrucaoStep('inst1')));
-
-      final success = controller.nextStep();
-
-      expect(success, true);
-    });
-
-    // ── answerCurrentStep ───────────────────────────────────────────────────
-
-    test('answerCurrentStep registra resposta pela answerKey correta', () {
-      controller.loadProtocol(_multiStepProtocol([_textStep('c1'), _textStep('c2')]));
-      controller.answerCurrentStep('valor1');
-
-      final state = container.read(wizardControllerProvider);
-      expect(state.answers['c1'], 'valor1');
-      expect(state.answers.containsKey('c2'), false);
-    });
-
-    // ── chooseRamo ──────────────────────────────────────────────────────────
-
-    test('chooseRamo injeta sub-steps do ramo na fila e avança', () {
-      final proto = _multiStepProtocol([
-        _ramoStep('r1', ramos: [
-          Ramo(id: 'opcao_a', label: 'A', steps: [_textStep('sub_a1'), _textStep('sub_a2')]),
-          Ramo(id: 'opcao_b', label: 'B', steps: [_textStep('sub_b1')]),
+    test('nextStep avança após preencher campo obrigatório', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [campoConteudo(id: 'c1', obrigatorio: true)]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
         ]),
-        _textStep('pos_ramo'),
-      ]);
-      controller.loadProtocol(proto);
+      );
 
-      // Fila inicial: [r1, pos_ramo]
+      container.read(wizardControllerProvider.notifier).answerConteudo('c1', 'resposta');
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isTrue);
+      expect(container.read(wizardControllerProvider).currentIndex, 1);
+    });
+
+    test('nextStep com múltiplos conteudos: bloqueia se 1 obrigatório incompleto', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [
+            instrucaoConteudo(id: 'c1'),          // não obrigatório
+            campoConteudo(id: 'c2'),              // não obrigatório
+            campoConteudo(id: 'c3', obrigatorio: true), // OBRIGATÓRIO
+          ]),
+          makeStep('s2', [instrucaoConteudo(id: 'c4')]),
+        ]),
+      );
+
+      // Preenche apenas c2 (não obrigatório) — c3 still empty
+      container.read(wizardControllerProvider.notifier).answerConteudo('c2', 'ok');
+
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isFalse);
+    });
+
+    test('nextStep com múltiplos conteudos: avança quando todos satisfeitos', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [
+            instrucaoConteudo(id: 'c1'),
+            campoConteudo(id: 'c2', obrigatorio: true),
+            campoConteudo(id: 'c3', obrigatorio: true),
+          ]),
+          makeStep('s2', [instrucaoConteudo(id: 'c4')]),
+        ]),
+      );
+
+      container.read(wizardControllerProvider.notifier).answerConteudo('c2', 'v1');
+      container.read(wizardControllerProvider.notifier).answerConteudo('c3', 'v2');
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isTrue);
+    });
+
+    test('isFinished é true quando ultrapassa a fila', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [instrucaoConteudo(id: 'c1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier).nextStep();
+      expect(container.read(wizardControllerProvider).isFinished, isTrue);
+    });
+
+    test('previousStep volta ao step anterior', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [instrucaoConteudo(id: 'c1')]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+        ]),
+      );
+
+      container.read(wizardControllerProvider.notifier).nextStep();
+      expect(container.read(wizardControllerProvider).currentIndex, 1);
+
+      container.read(wizardControllerProvider.notifier).previousStep();
+      expect(container.read(wizardControllerProvider).currentIndex, 0);
+    });
+  });
+
+  // ── 3. chooseRamo — injeção na fila sem auto-avanço ──────────────────────────
+
+  group('WizardStateController — chooseRamo', () {
+    late DefinicaoProtocolo protocol;
+
+    final ramoA = Ramo(
+      id: 'ramo_a',
+      label: 'Ramo A',
+      steps: [makeStep('ra_s1', [campoConteudo(id: 'ra_c1')])],
+    );
+    final ramoB = Ramo(
+      id: 'ramo_b',
+      label: 'Ramo B',
+      steps: [makeStep('rb_s1', [campoConteudo(id: 'rb_c1')])],
+    );
+
+    setUp(() {
+      protocol = makeProtocol([
+        makeStep('s1', [
+          instrucaoConteudo(id: 'c0'),
+          ramoConteudo(id: 'selecao', ramos: [ramoA, ramoB]),
+        ]),
+        makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+      ]);
+    });
+
+    test('chooseRamo registra a resposta e injeta steps do ramo na fila', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(protocol);
       expect(container.read(wizardControllerProvider).queue.length, 2);
 
-      controller.chooseRamo('opcao_a');
-
-      // Fila após: [r1, sub_a1, sub_a2, pos_ramo]
+      container.read(wizardControllerProvider.notifier).chooseRamo('selecao', 'ramo_a');
       final state = container.read(wizardControllerProvider);
-      expect(state.queue.length, 4);
-      expect(state.queue[1].step.id, 'sub_a1');
-      expect(state.queue[2].step.id, 'sub_a2');
-      expect(state.queue[3].step.id, 'pos_ramo');
-      expect(state.currentIndex, 1); // já avançou para sub_a1
-      expect(state.answers['r1'], 'opcao_a');
+
+      expect(state.answers['selecao'], equals('ramo_a'));
+      expect(state.queue.length, 3); // s1 + ra_s1 + s2
+      expect(state.currentIndex, 0); // NÃO avançou
     });
 
-    test('chooseRamo com ramo vazio apenas registra resposta e avança', () {
-      final proto = _singleStepProtocol(
-        _ramoStep('r1', ramos: [
-          Ramo(id: 'sem_steps', label: 'Simples', steps: []),
+    test('chooseRamo substitui steps ao mudar de ramo', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(protocol);
+
+      container.read(wizardControllerProvider.notifier).chooseRamo('selecao', 'ramo_a');
+      expect(container.read(wizardControllerProvider).queue.length, 3);
+
+      // Muda para ramo_b — deve remover ra_s1 e injetar rb_s1
+      container.read(wizardControllerProvider.notifier).chooseRamo('selecao', 'ramo_b');
+      final state = container.read(wizardControllerProvider);
+
+      expect(state.answers['selecao'], equals('ramo_b'));
+      expect(state.queue.length, 3);
+      expect(state.queue[1].step.id, equals('rb_s1'));
+    });
+  });
+
+  // ── 4. addListItem / confirmListItem / expandListItem ────────────────────────
+
+  group('WizardStateController — lista inline', () {
+    late TipoAcao tipoSimples;
+    late TipoAcao tipoComObrigatorio;
+
+    setUp(() {
+      tipoSimples = TipoAcao(
+        id: 'tipo_simples',
+        label: 'Tipo Simples',
+        steps: [makeStep('ts_s1', [instrucaoConteudo(id: 'ts_c1')])],
+      );
+      tipoComObrigatorio = TipoAcao(
+        id: 'tipo_obrg',
+        label: 'Tipo Obrigatório',
+        steps: [makeStep('to_s1', [campoConteudo(id: 'to_c1', obrigatorio: true)])],
+      );
+    });
+
+    test('addListItem cria item e o expande', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [listaConteudo(id: 'lista1')]),
         ]),
       );
-      controller.loadProtocol(proto);
-      controller.chooseRamo('sem_steps');
 
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoSimples);
       final state = container.read(wizardControllerProvider);
-      expect(state.queue.length, 1); // nenhum step injetado
-      expect(state.answers['r1'], 'sem_steps');
-      expect(state.currentIndex, 1); // passou para além do ramo
+
+      expect(state.lists['lista1']!.length, 1);
+      final itemId = state.lists['lista1']!.first.id;
+      expect(state.expandedListItems['lista1'], equals(itemId));
     });
 
-    // ── addListItem ──────────────────────────────────────────────────────────
-
-    test('addListItem cria registro e injeta steps do tipo na fila', () {
-      final proto = _multiStepProtocol([
-        _listaStep('lista1'),
-        _textStep('pos_lista'),
-      ]);
-      controller.loadProtocol(proto);
-
-      // Fila inicial: [lista1, pos_lista]
-      final tipo = container.read(wizardControllerProvider)
-          .queue[0]
-          .step
-          .listaAcoes
-          .tiposDisponiveis[0];
-
-      controller.addListItem(listStepId: 'lista1', tipo: tipo);
-
-      final state = container.read(wizardControllerProvider);
-      // Fila: [lista1, tipo_a_detalhe, pos_lista]
-      expect(state.queue.length, 3);
-      expect(state.queue[1].step.id, 'tipo_a_detalhe');
-      expect(state.queue[1].listStepId, 'lista1');
-      expect(state.lists['lista1']?.length, 1);
-      expect(state.currentIndex, 1); // entrou no sub-fluxo
-    });
-
-    // ── setRefMateriais ──────────────────────────────────────────────────────
-
-    test('setRefMateriais registra ids e atualiza answers', () {
-      final refStep = Step(
-        id: 'ref1',
-        refMateriais: StepRefMateriais(
-          label: 'Materiais',
-          idStepMateriais: 'lista1',
-          obrigatorio: true,
-        ),
+    test('confirmListItem sem obrigatórios retorna true e colapsa', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'lista1')])]),
       );
-      controller.loadProtocol(_singleStepProtocol(refStep));
-      controller.setRefMateriais(['id_a', 'id_b']);
 
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoSimples);
+      final itemId = container.read(wizardControllerProvider).lists['lista1']!.first.id;
+
+      final ok = container.read(wizardControllerProvider.notifier)
+          .confirmListItem('lista1', itemId);
+      expect(ok, isTrue);
+      expect(container.read(wizardControllerProvider).expandedListItems['lista1'], isNull);
+    });
+
+    test('confirmListItem com campo obrigatório não preenchido retorna false', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'lista1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoComObrigatorio);
+      final itemId = container.read(wizardControllerProvider).lists['lista1']!.first.id;
+
+      final ok = container.read(wizardControllerProvider.notifier)
+          .confirmListItem('lista1', itemId);
+      expect(ok, isFalse);
+    });
+
+    test('confirmListItem com campo obrigatório preenchido retorna true', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'lista1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoComObrigatorio);
+      final itemId = container.read(wizardControllerProvider).lists['lista1']!.first.id;
+
+      // Preenche o campo obrigatório (key = "to_c1__itemId")
+      container.read(wizardControllerProvider.notifier)
+          .answerInlineConteudo('to_c1', 'valor', itemId);
+
+      final ok = container.read(wizardControllerProvider.notifier)
+          .confirmListItem('lista1', itemId);
+      expect(ok, isTrue);
+    });
+
+    test('expandListItem re-expande um item colapsado', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'lista1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoSimples);
+      final itemId = container.read(wizardControllerProvider).lists['lista1']!.first.id;
+      container.read(wizardControllerProvider.notifier)
+          .confirmListItem('lista1', itemId);
+      expect(container.read(wizardControllerProvider).expandedListItems['lista1'], isNull);
+
+      container.read(wizardControllerProvider.notifier)
+          .expandListItem('lista1', itemId);
+      expect(container.read(wizardControllerProvider).expandedListItems['lista1'], equals(itemId));
+    });
+
+    test('removeListItem remove o item da lista', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'lista1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoSimples);
+      final itemId = container.read(wizardControllerProvider).lists['lista1']!.first.id;
+
+      container.read(wizardControllerProvider.notifier)
+          .removeListItem('lista1', itemId);
+      expect(container.read(wizardControllerProvider).lists['lista1'], isEmpty);
+    });
+
+    test('nextStep bloqueia se lista com minimo não atingido', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [listaConteudo(id: 'lista1', minimo: 1)]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+        ]),
+      );
+
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isFalse);
+    });
+
+    test('nextStep libera após atingir mínimo da lista', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([
+          makeStep('s1', [listaConteudo(id: 'lista1', minimo: 1)]),
+          makeStep('s2', [instrucaoConteudo(id: 'c2')]),
+        ]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'lista1', tipo: tipoSimples);
+
+      final success = container.read(wizardControllerProvider.notifier).nextStep();
+      expect(success, isTrue);
+    });
+  });
+
+  // ── 5. RefMateriais ───────────────────────────────────────────────────────────
+
+  group('WizardStateController — RefMateriais', () {
+    test('setRefMateriais salva IDs e resposta no formato join', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [instrucaoConteudo(id: 'c1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .setRefMateriais('ref_c1', ['id1', 'id2', 'id3']);
       final state = container.read(wizardControllerProvider);
-      expect(state.refSelections['ref1'], containsAll(['id_a', 'id_b']));
-      expect(state.answers.containsKey('ref1'), true);
+
+      expect(state.refSelections['ref_c1'], equals(['id1', 'id2', 'id3']));
+      expect(state.answers['ref_c1'], equals('id1,id2,id3'));
     });
 
-    // ── goToStep / previousStep ──────────────────────────────────────────────
+    test('setRefMateriais com listItemId usa chave composta', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [instrucaoConteudo(id: 'c1')])]),
+      );
 
-    test('goToStep navega para índice válido', () {
-      controller.loadProtocol(_multiStepProtocol([
-        _boolStep('c1'), _boolStep('c2'), _boolStep('c3'),
-      ]));
-      controller.goToStep(2);
+      container.read(wizardControllerProvider.notifier)
+          .setRefMateriais('ref_c1', ['m1'], listItemId: 'item_abc');
+      final state = container.read(wizardControllerProvider);
 
-      expect(container.read(wizardControllerProvider).currentIndex, 2);
+      expect(state.refSelections['ref_c1__item_abc'], equals(['m1']));
+      expect(state.answers['ref_c1__item_abc'], equals('m1'));
     });
 
-    test('previousStep decrementa índice', () {
-      controller.loadProtocol(_multiStepProtocol([_boolStep('c1'), _boolStep('c2')]));
-      controller.nextStep();
-      controller.previousStep();
+    test('getMaterialItems retorna itens da lista correta', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [listaConteudo(id: 'materiais')])]),
+      );
 
-      expect(container.read(wizardControllerProvider).currentIndex, 0);
+      final tipo = TipoAcao(id: 't1', label: 'T1', steps: []);
+      container.read(wizardControllerProvider.notifier)
+          .addListItem(listConteudoId: 'materiais', tipo: tipo);
+
+      final items = container.read(wizardControllerProvider.notifier)
+          .getMaterialItems('materiais');
+      expect(items.length, 1);
+      expect(items.first.tipoId, 't1');
+    });
+  });
+
+  // ── 6. answerInlineConteudo — chave composta ────────────────────────────────
+
+  group('WizardStateController — respostas inline', () {
+    test('answerInlineConteudo usa chave "conteudoId__listItemId"', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [instrucaoConteudo(id: 'c1')])]),
+      );
+
+      container.read(wizardControllerProvider.notifier)
+          .answerInlineConteudo('campo_marca', 'Petzl', 'item_xyz');
+      final state = container.read(wizardControllerProvider);
+
+      expect(state.answers['campo_marca__item_xyz'], equals('Petzl'));
+      expect(state.answers.containsKey('campo_marca'), isFalse);
     });
 
-    test('previousStep não vai abaixo de 0', () {
-      controller.loadProtocol(_singleStepProtocol(_boolStep('c1')));
-      controller.previousStep();
+    test('answerConteudo usa chave simples sem sufixo', () {
+      final container = makeContainer();
+      container.read(wizardControllerProvider.notifier).loadProtocol(
+        makeProtocol([makeStep('s1', [campoConteudo(id: 'via_nome')])]),
+      );
 
-      expect(container.read(wizardControllerProvider).currentIndex, 0);
-    });
+      container.read(wizardControllerProvider.notifier)
+          .answerConteudo('via_nome', 'Via Teste');
+      final state = container.read(wizardControllerProvider);
 
-    // ── isFinished ───────────────────────────────────────────────────────────
-
-    test('isFinished é true quando currentIndex >= queue.length', () {
-      controller.loadProtocol(_singleStepProtocol(_boolStep('c1')));
-      expect(container.read(wizardControllerProvider).isFinished, false);
-
-      controller.nextStep();
-      expect(container.read(wizardControllerProvider).isFinished, true);
+      expect(state.answers['via_nome'], equals('Via Teste'));
     });
   });
 }

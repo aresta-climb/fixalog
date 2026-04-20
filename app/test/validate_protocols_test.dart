@@ -8,177 +8,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yaml/yaml.dart';
 
 import 'package:app/core/models/proto/protos/wizard.pb.dart';
 import 'package:app/core/models/proto/protos/wizard.pbenum.dart';
+import 'package:app/core/services/protocol_parser.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parser: YAML → DefinicaoProtocolo
-//
-// O YAML usa snake_case e tem um wrapper raiz 'protocolo:'.
-// Esta função converte recursivamente o mapa YAML para as classes proto geradas.
-// ─────────────────────────────────────────────────────────────────────────────
-
-DefinicaoProtocolo parseYamlToProto(String yamlContent) {
-  final doc = loadYaml(yamlContent) as YamlMap;
-  final proto = doc['protocolo'] as YamlMap? ?? doc;
-  return _parseDefinicaoProtocolo(proto);
-}
-
-DefinicaoProtocolo _parseDefinicaoProtocolo(YamlMap m) {
-  return DefinicaoProtocolo(
-    id: m['id'] as String? ?? '',
-    nome: m['nome'] as String? ?? '',
-    descricao: m['descricao'] as String? ?? '',
-    versao: m['versao'] as String? ?? '',
-    blocos: (m['blocos'] as YamlList? ?? YamlList.wrap([])).map(_parseBloco),
-  );
-}
-
-Bloco _parseBloco(dynamic b) {
-  final m = b as YamlMap;
-  return Bloco(
-    id: m['id'] as String? ?? '',
-    titulo: m['titulo'] as String? ?? '',
-    subtitulo: m['subtitulo'] as String? ?? '',
-    steps: (m['steps'] as YamlList? ?? YamlList.wrap([])).map(_parseStep),
-  );
-}
-
-Step _parseStep(dynamic s) {
-  final m = s as YamlMap;
-  final id = m['id'] as String? ?? '';
-
-  if (m.containsKey('instrucao')) {
-    return Step(id: id, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
-  }
-  if (m.containsKey('campo_simples')) {
-    return Step(id: id, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
-  }
-  if (m.containsKey('selecao_ramo')) {
-    return Step(id: id, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
-  }
-  if (m.containsKey('lista_acoes')) {
-    return Step(id: id, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
-  }
-  if (m.containsKey('ref_materiais')) {
-    return Step(id: id, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
-  }
-
-  throw FormatException('Step "$id" não tem um tipo reconhecido. '
-      'Chaves encontradas: ${m.keys.toList()}');
-}
-
-StepInstrucao _parseStepInstrucao(YamlMap m) {
-  return StepInstrucao(
-    titulo: m['titulo'] as String? ?? '',
-    corpo: m['corpo'] as String? ?? '',
-    iconName: m['icon_name'] as String? ?? '',
-    nivelAlerta: _parseNivelAlerta(m['nivel_alerta'] as String?),
-  );
-}
-
-StepInstrucao_NivelAlerta _parseNivelAlerta(String? s) => switch (s) {
-      'ATENCAO' => StepInstrucao_NivelAlerta.ATENCAO,
-      'PERIGO'  => StepInstrucao_NivelAlerta.PERIGO,
-      _         => StepInstrucao_NivelAlerta.INFO,
-    };
-
-StepCampoSimples _parseStepCampoSimples(YamlMap m) {
-  return StepCampoSimples(
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    tipo: _parseTipoCampo(m['tipo'] as String?),
-    uiHint: _parseUiHint(m['ui_hint'] as String?),
-    obrigatorio: m['obrigatorio'] as bool? ?? false,
-    opcoes: (m['opcoes'] as YamlList? ?? YamlList.wrap([])).map(_parseOpcaoCampo),
-  );
-}
-
-StepCampoSimples_TipoCampo _parseTipoCampo(String? s) => switch (s) {
-      'NUMBER'    => StepCampoSimples_TipoCampo.NUMBER,
-      'DROPDOWN'  => StepCampoSimples_TipoCampo.DROPDOWN,
-      'IMAGE'     => StepCampoSimples_TipoCampo.IMAGE,
-      'BOOLEAN'   => StepCampoSimples_TipoCampo.BOOLEAN,
-      'GPS'       => StepCampoSimples_TipoCampo.GPS,
-      'VIDEO'     => StepCampoSimples_TipoCampo.VIDEO,
-      'SIGNATURE' => StepCampoSimples_TipoCampo.SIGNATURE,
-      'DATE'      => StepCampoSimples_TipoCampo.DATE,
-      _           => StepCampoSimples_TipoCampo.TEXT,
-    };
-
-StepCampoSimples_UiHint _parseUiHint(String? s) => switch (s) {
-      'LARGE_TILES'   => StepCampoSimples_UiHint.LARGE_TILES,
-      'CAMERA_ACTION' => StepCampoSimples_UiHint.CAMERA_ACTION,
-      'TEXT_AREA'     => StepCampoSimples_UiHint.TEXT_AREA,
-      _               => StepCampoSimples_UiHint.DEFAULT,
-    };
-
-OpcaoCampo _parseOpcaoCampo(dynamic o) {
-  final m = o as YamlMap;
-  return OpcaoCampo(
-    valor: m['valor'] as String? ?? '',
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    iconName: m['icon_name'] as String? ?? '',
-  );
-}
-
-StepSelecaoRamo _parseStepSelecaoRamo(YamlMap m) {
-  return StepSelecaoRamo(
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    obrigatorio: m['obrigatorio'] as bool? ?? false,
-    ramos: (m['ramos'] as YamlList? ?? YamlList.wrap([])).map(_parseRamo),
-  );
-}
-
-Ramo _parseRamo(dynamic r) {
-  final m = r as YamlMap;
-  return Ramo(
-    id: m['id'] as String? ?? '',
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    iconName: m['icon_name'] as String? ?? '',
-    // Recursão: sub-fluxo de cada ramo pode conter qualquer tipo de step
-    steps: (m['steps'] as YamlList? ?? YamlList.wrap([])).map(_parseStep),
-  );
-}
-
-StepListaAcoes _parseStepListaAcoes(YamlMap m) {
-  return StepListaAcoes(
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    minimo: m['minimo'] as int? ?? 0,
-    maximo: m['maximo'] as int? ?? 0,
-    tiposDisponiveis: (m['tipos_disponiveis'] as YamlList? ?? YamlList.wrap([]))
-        .map(_parseTipoAcao),
-  );
-}
-
-TipoAcao _parseTipoAcao(dynamic t) {
-  final m = t as YamlMap;
-  return TipoAcao(
-    id: m['id'] as String? ?? '',
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    iconName: m['icon_name'] as String? ?? '',
-    steps: (m['steps'] as YamlList? ?? YamlList.wrap([])).map(_parseStep),
-  );
-}
-
-StepRefMateriais _parseStepRefMateriais(YamlMap m) {
-  return StepRefMateriais(
-    label: m['label'] as String? ?? '',
-    sublabel: m['sublabel'] as String? ?? '',
-    idStepMateriais: m['id_step_materiais'] as String? ?? '',
-    obrigatorio: m['obrigatorio'] as bool? ?? false,
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers para os testes
+// Helpers para os testes — adaptados para o novo schema (Step.conteudos)
 // ─────────────────────────────────────────────────────────────────────────────
 
 List<File> _getProtocolFiles() {
@@ -187,35 +23,98 @@ List<File> _getProtocolFiles() {
     ..sort((a, b) => a.path.compareTo(b.path));
 }
 
-void _collectRefMateriais(List<Step> steps, List<String> refs) {
-  for (final s in steps) {
-    switch (s.whichConteudo()) {
-      case Step_Conteudo.refMateriais:
-        refs.add(s.refMateriais.idStepMateriais);
-      case Step_Conteudo.selecaoRamo:
-        for (final ramo in s.selecaoRamo.ramos) {
-          _collectRefMateriais(ramo.steps, refs);
+/// Coleta recursivamente todos os ConteudoSteps de um certo tipo em uma lista
+/// de steps (incluindo dentro de ramos e tipos de ação).
+void _collectConteudosByType(
+    List<Step> steps,
+    ConteudoStep_Tipo tipo,
+    List<ConteudoStep> result) {
+  for (final step in steps) {
+    for (final c in step.conteudos) {
+      if (c.whichTipo() == tipo) {
+        result.add(c);
+      }
+      // Recursão em ramos
+      if (c.whichTipo() == ConteudoStep_Tipo.selecaoRamo) {
+        for (final ramo in c.selecaoRamo.ramos) {
+          _collectConteudosByType(ramo.steps, tipo, result);
         }
-      case Step_Conteudo.listaAcoes:
-        for (final tipo in s.listaAcoes.tiposDisponiveis) {
-          _collectRefMateriais(tipo.steps, refs);
+      }
+      // Recursão em tipos de ação de listas
+      if (c.whichTipo() == ConteudoStep_Tipo.listaAcoes) {
+        for (final tipo in c.listaAcoes.tiposDisponiveis) {
+          _collectConteudosByType(tipo.steps, c.whichTipo(), result);
         }
-      default:
-        break;
+      }
     }
   }
 }
 
-Set<String> _collectListaStepIds(DefinicaoProtocolo proto) {
+/// Coleta os IDs de todos os ConteudoSteps do tipo listaAcoes no protocolo.
+Set<String> _collectListaConteudoIds(DefinicaoProtocolo proto) {
   final ids = <String>{};
   for (final bloco in proto.blocos) {
     for (final step in bloco.steps) {
-      if (step.whichConteudo() == Step_Conteudo.listaAcoes) {
-        ids.add(step.id);
+      for (final c in step.conteudos) {
+        if (c.whichTipo() == ConteudoStep_Tipo.listaAcoes) {
+          ids.add(c.id);
+        }
       }
     }
   }
   return ids;
+}
+
+/// Coleta recursivamente todos os StepRefMateriais do protocolo
+/// (incluindo dentro de ramos e tipos de ação).
+void _collectRefMateriais(List<Step> steps, List<StepRefMateriais> refs) {
+  for (final step in steps) {
+    for (final c in step.conteudos) {
+      if (c.whichTipo() == ConteudoStep_Tipo.refMateriais) {
+        refs.add(c.refMateriais);
+      }
+      if (c.whichTipo() == ConteudoStep_Tipo.selecaoRamo) {
+        for (final ramo in c.selecaoRamo.ramos) {
+          _collectRefMateriais(ramo.steps, refs);
+        }
+      }
+      if (c.whichTipo() == ConteudoStep_Tipo.listaAcoes) {
+        for (final tipo in c.listaAcoes.tiposDisponiveis) {
+          _collectRefMateriais(tipo.steps, refs);
+        }
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers para acessar conteudos de steps (novo schema)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Retorna o primeiro ConteudoStep de um dado tipo dentro de uma lista de steps.
+/// Lança TestFailure se não encontrar.
+ConteudoStep _firstConteudoOfType(List<Step> steps, ConteudoStep_Tipo tipo, {String? reason}) {
+  for (final step in steps) {
+    for (final c in step.conteudos) {
+      if (c.whichTipo() == tipo) return c;
+    }
+  }
+  throw TestFailure(reason ?? 'ConteudoStep do tipo $tipo não encontrado');
+}
+
+/// Retorna o ConteudoStep com um id específico dentro de uma lista de steps.
+ConteudoStep _conteudoById(List<Step> steps, String id) {
+  for (final step in steps) {
+    for (final c in step.conteudos) {
+      if (c.id == id) return c;
+    }
+  }
+  throw TestFailure('ConteudoStep com id "$id" não encontrado');
+}
+
+/// Verifica se uma lista de steps tem algum ConteudoStep de um dado tipo.
+bool _hasConteudoOfType(List<Step> steps, ConteudoStep_Tipo tipo) {
+  return steps.any((s) => s.conteudos.any((c) => c.whichTipo() == tipo));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -236,7 +135,7 @@ void main() {
         final name = file.uri.pathSegments.last;
         final yaml = file.readAsStringSync();
 
-        final proto = parseYamlToProto(yaml);
+        final proto = ProtocolParser.fromYaml(yaml);
 
         expect(proto.id, isNotEmpty, reason: '$name: campo "id" vazio');
         expect(proto.versao, isNotEmpty, reason: '$name: campo "versao" vazio');
@@ -244,10 +143,24 @@ void main() {
       }
     });
 
-    test('todos os YAMLs serializam para binary protobuf (binarypb)', () {
+    test('todos os steps têm pelo menos um ConteudoStep', () {
       for (final file in _getProtocolFiles()) {
         final name = file.uri.pathSegments.last;
-        final proto = parseYamlToProto(file.readAsStringSync());
+        final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+
+        for (final bloco in proto.blocos) {
+          for (final step in bloco.steps) {
+            expect(step.conteudos, isNotEmpty,
+                reason: '$name: step "${step.id}" não tem conteudos');
+          }
+        }
+      }
+    });
+
+    test('todos os YAMLs serializam para binary protobuf (binarypb)', () {
+      for (final file in _getProtocolFiles()) {
+        final name  = file.uri.pathSegments.last;
+        final proto = ProtocolParser.fromYaml(file.readAsStringSync());
 
         final bytes = proto.writeToBuffer();
 
@@ -258,8 +171,8 @@ void main() {
 
     test('todos os YAMLs passam pelo roundtrip binarypb → DefinicaoProtocolo', () {
       for (final file in _getProtocolFiles()) {
-        final name = file.uri.pathSegments.last;
-        final original = parseYamlToProto(file.readAsStringSync());
+        final name    = file.uri.pathSegments.last;
+        final original = ProtocolParser.fromYaml(file.readAsStringSync());
         final bytes    = original.writeToBuffer();
 
         final restored = DefinicaoProtocolo.fromBuffer(bytes);
@@ -271,36 +184,36 @@ void main() {
       }
     });
 
-    test('todos os StepRefMateriais referenciam um StepListaAcoes existente', () {
+    test('todos os StepRefMateriais referenciam um ConteudoStep listaAcoes existente', () {
       for (final file in _getProtocolFiles()) {
         final name  = file.uri.pathSegments.last;
-        final proto = parseYamlToProto(file.readAsStringSync());
+        final proto = ProtocolParser.fromYaml(file.readAsStringSync());
 
-        final listaIds = _collectListaStepIds(proto);
-        final refs     = <String>[];
+        final listaIds = _collectListaConteudoIds(proto);
+        final refs     = <StepRefMateriais>[];
 
         for (final bloco in proto.blocos) {
           _collectRefMateriais(bloco.steps, refs);
         }
 
         for (final ref in refs) {
-          expect(listaIds, contains(ref),
-              reason: '$name: StepRefMateriais referencia "$ref" '
-                  'que não existe como StepListaAcoes no protocolo');
+          expect(listaIds, contains(ref.idStepMateriais),
+              reason: '$name: StepRefMateriais referencia "${ref.idStepMateriais}" '
+                  'que não existe como ConteudoStep listaAcoes no protocolo');
         }
       }
     });
   });
 
-  // ── 2. Validações estruturais: manutencao_ferragens ──────────────────────────
+  // ── 2. Feature 1: Multi-conteúdo por step ───────────────────────────────────
 
-  group('manutencao_ferragens.yaml — estrutura', () {
+  group('manutencao_ferragens.yaml — Feature 1 (multi-conteúdo)', () {
     late DefinicaoProtocolo proto;
 
     setUp(() {
       final file = File('assets/protocols/manutencao_ferragens.yaml');
       expect(file.existsSync(), isTrue, reason: 'manutencao_ferragens.yaml não encontrado');
-      proto = parseYamlToProto(file.readAsStringSync());
+      proto = ProtocolParser.fromYaml(file.readAsStringSync());
     });
 
     test('tem 4 blocos na ordem correta', () {
@@ -308,127 +221,202 @@ void main() {
           equals(['materiais', 'via', 'acoes', 'avaliacao']));
     });
 
-    test('bloco "materiais" tem um StepListaAcoes com mínimo 1 e 5 tipos', () {
-      final bloco = proto.blocos.firstWhere((b) => b.id == 'materiais');
-      expect(bloco.steps.length, equals(1));
+    test('step "via_localizacao" tem múltiplos conteudos (instrucao + GPS + campos)', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'via');
+      final step  = bloco.steps.firstWhere((s) => s.id == 'via_localizacao');
 
-      final step = bloco.steps.first;
-      expect(step.id, equals('lista_materiais'));
-      expect(step.whichConteudo(), equals(Step_Conteudo.listaAcoes));
-      expect(step.listaAcoes.minimo, equals(1));
+      expect(step.conteudos.length, greaterThanOrEqualTo(3),
+          reason: 'via_localizacao deve ter instrucao + GPS + nome (mínimo 3 conteudos)');
+
+      final tipos = step.conteudos.map((c) => c.whichTipo()).toList();
+      expect(tipos, contains(ConteudoStep_Tipo.instrucao));
+      expect(tipos, contains(ConteudoStep_Tipo.campoSimples));
+    });
+
+    test('step "assinatura" tem instrucao + SIGNATURE em sequência', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
+      final step  = bloco.steps.firstWhere((s) => s.id == 'assinatura');
+
+      expect(step.conteudos.length, greaterThanOrEqualTo(2));
+      expect(step.conteudos.first.whichTipo(), ConteudoStep_Tipo.instrucao);
+      final lastC = step.conteudos.last;
+      expect(lastC.whichTipo(), ConteudoStep_Tipo.campoSimples);
+      expect(lastC.campoSimples.tipo, StepCampoSimples_TipoCampo.SIGNATURE);
+      expect(lastC.campoSimples.obrigatorio, isTrue);
+    });
+
+    test('"ia_avaliacao" (tipo inspecao_ancoragem) tem instrucao + IMAGE + SelecaoRamo no mesmo step', () {
+      final bloco     = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC    = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final inspecao  = listaC.listaAcoes.tiposDisponiveis.firstWhere((t) => t.id == 'inspecao_ancoragem');
+      final iaStep    = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
+
+      final tipos = iaStep.conteudos.map((c) => c.whichTipo()).toList();
+      expect(tipos, contains(ConteudoStep_Tipo.instrucao));
+      expect(tipos, contains(ConteudoStep_Tipo.campoSimples));
+      expect(tipos, contains(ConteudoStep_Tipo.selecaoRamo));
+    });
+
+    test('"avaliacao_geral" tem condição + comentários em sequência no mesmo step', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
+      final step  = bloco.steps.firstWhere((s) => s.id == 'avaliacao_geral');
+
+      expect(step.conteudos.length, greaterThanOrEqualTo(2));
+      final tipos = step.conteudos.map((c) => c.whichTipo()).toList();
+      // Ambos são campoSimples (dropdown + text_area)
+      expect(tipos.where((t) => t == ConteudoStep_Tipo.campoSimples).length,
+          greaterThanOrEqualTo(2));
+    });
+  });
+
+  // ── 3. Feature 2: Lista de ações inline ─────────────────────────────────────
+
+  group('manutencao_ferragens.yaml — Feature 2 (listas inline)', () {
+    late DefinicaoProtocolo proto;
+
+    setUp(() {
+      proto = ProtocolParser.fromYaml(
+        File('assets/protocols/manutencao_ferragens.yaml').readAsStringSync(),
+      );
+    });
+
+    test('bloco "materiais" tem ConteudoStep listaAcoes com id "lista_materiais_c" e 5 tipos', () {
+      final bloco  = proto.blocos.firstWhere((b) => b.id == 'materiais');
+      final listaC = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+
+      expect(listaC.id, equals('lista_materiais_c'));
+      expect(listaC.listaAcoes.minimo, equals(1));
       expect(
-        step.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
+        listaC.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
         equals(['parabolt', 'chapeleta', 'argola', 'ancoragem_quimica', 'cola_quimica']),
       );
     });
 
-    test('bloco "via" tem pelo menos um step GPS obrigatório', () {
-      final bloco   = proto.blocos.firstWhere((b) => b.id == 'via');
-      final gpsStep = bloco.steps.firstWhere(
-        (s) =>
-            s.whichConteudo() == Step_Conteudo.campoSimples &&
-            s.campoSimples.tipo == StepCampoSimples_TipoCampo.GPS,
-        orElse: () => throw TestFailure('Nenhum step GPS encontrado no bloco "via"'),
-      );
-      expect(gpsStep.campoSimples.obrigatorio, isTrue);
+    test('tipo "parabolt" tem step único com múltiplos conteudos (inclui lote obrigatório)', () {
+      final bloco    = proto.blocos.firstWhere((b) => b.id == 'materiais');
+      final listaC   = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final parabolt = listaC.listaAcoes.tiposDisponiveis.firstWhere((t) => t.id == 'parabolt');
+
+      expect(parabolt.steps.length, equals(1));
+      final pbStep = parabolt.steps.first;
+      expect(pbStep.conteudos.length, greaterThanOrEqualTo(4)); // aviso+marca+liga+lote...
+
+      final loteC = _conteudoById([pbStep], 'pb_lote');
+      expect(loteC.campoSimples.obrigatorio, isTrue);
     });
 
-    test('bloco "acoes" tem StepListaAcoes com mínimo 1 e 5 tipos de ação', () {
-      final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
-      expect(bloco.steps.length, equals(1));
+    test('bloco "acoes" tem ConteudoStep listaAcoes com id "lista_acoes_c" e 6 tipos', () {
+      final bloco  = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
 
-      final step = bloco.steps.first;
-      expect(step.whichConteudo(), equals(Step_Conteudo.listaAcoes));
-      expect(step.listaAcoes.minimo, equals(1));
+      expect(listaC.id, equals('lista_acoes_c'));
+      expect(listaC.listaAcoes.minimo, equals(1));
       expect(
-        step.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
-        equals(['inspecao_ancoragem', 'novo_ponto', 'remocao_bloco',
-                'limpeza_vegetacao', 'outro']),
+        listaC.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
+        equals(['inspecao_ancoragem', 'novo_ponto', 'remocao_bloco', 'limpeza_vegetacao', 'outro']),
       );
-    });
-
-    test('bloco "avaliacao" termina com step SIGNATURE obrigatório', () {
-      final bloco    = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
-      final lastStep = bloco.steps.last;
-
-      expect(lastStep.whichConteudo(), equals(Step_Conteudo.campoSimples));
-      expect(lastStep.campoSimples.tipo, equals(StepCampoSimples_TipoCampo.SIGNATURE));
-      expect(lastStep.campoSimples.obrigatorio, isTrue);
     });
   });
 
-  // ── 3. Validações do branching recursivo ────────────────────────────────────
+  // ── 4. Branching recursivo ───────────────────────────────────────────────────
 
   group('manutencao_ferragens.yaml — branching recursivo', () {
     late DefinicaoProtocolo proto;
 
     setUp(() {
-      proto = parseYamlToProto(
+      proto = ProtocolParser.fromYaml(
         File('assets/protocols/manutencao_ferragens.yaml').readAsStringSync(),
       );
     });
 
-    test('inspecao_ancoragem tem StepSelecaoRamo com 3 ramos', () {
-      final stepLista = proto.blocos
-          .firstWhere((b) => b.id == 'acoes')
-          .steps
-          .first;
-      final inspecao = stepLista.listaAcoes.tiposDisponiveis
+    test('"ia_avaliacao" tem SelecaoRamo "ia_resultado" com 3 ramos', () {
+      final bloco    = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC   = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final inspecao = listaC.listaAcoes.tiposDisponiveis
           .firstWhere((t) => t.id == 'inspecao_ancoragem');
 
-      final ramoSteps = inspecao.steps
-          .where((s) => s.whichConteudo() == Step_Conteudo.selecaoRamo)
-          .toList();
-      expect(ramoSteps, isNotEmpty);
+      final iaStep    = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
+      final resultadoC = _conteudoById([iaStep], 'ia_resultado');
 
-      final resultado = ramoSteps.firstWhere((s) => s.id == 'ia_resultado');
-      final ramoIds   = resultado.selecaoRamo.ramos.map((r) => r.id).toList();
+      expect(resultadoC.whichTipo(), ConteudoStep_Tipo.selecaoRamo);
+      expect(resultadoC.selecaoRamo.obrigatorio, isTrue);
+
+      final ramoIds = resultadoC.selecaoRamo.ramos.map((r) => r.id).toList();
       expect(ramoIds, containsAll(['aprovado', 'reaperto', 'substituir']));
     });
 
-    test('ramo "substituir" contém um StepSelecaoRamo aninhado (branching recursivo)', () {
-      final stepLista = proto.blocos
-          .firstWhere((b) => b.id == 'acoes')
-          .steps
-          .first;
-      final inspecao = stepLista.listaAcoes.tiposDisponiveis
+    test('ramo "substituir" contém um SelecaoRamo aninhado com "reusar_furo" e "novo_local"', () {
+      final bloco    = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC   = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final inspecao = listaC.listaAcoes.tiposDisponiveis
           .firstWhere((t) => t.id == 'inspecao_ancoragem');
 
-      final resultado   = inspecao.steps.firstWhere((s) => s.id == 'ia_resultado');
-      final ramoSub     = resultado.selecaoRamo.ramos.firstWhere((r) => r.id == 'substituir');
-      final subRamoSteps = ramoSub.steps
-          .where((s) => s.whichConteudo() == Step_Conteudo.selecaoRamo)
-          .toList();
+      final iaStep    = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
+      final resultadoC = _conteudoById([iaStep], 'ia_resultado');
+      final ramoSub   = resultadoC.selecaoRamo.ramos.firstWhere((r) => r.id == 'substituir');
 
-      expect(subRamoSteps, isNotEmpty,
-          reason: 'Ramo "substituir" deve ter pelo menos um StepSelecaoRamo aninhado');
+      // o step dentro de "substituir" tem um conteudo SelecaoRamo
+      expect(_hasConteudoOfType(ramoSub.steps, ConteudoStep_Tipo.selecaoRamo), isTrue,
+          reason: 'Ramo "substituir" deve ter SelecaoRamo aninhado');
 
-      final subRamoIds = subRamoSteps.first.selecaoRamo.ramos.map((r) => r.id).toList();
+      final subRamoC = _firstConteudoOfType(ramoSub.steps, ConteudoStep_Tipo.selecaoRamo);
+      final subRamoIds = subRamoC.selecaoRamo.ramos.map((r) => r.id).toList();
       expect(subRamoIds, containsAll(['reusar_furo', 'novo_local']));
     });
 
-    test('sub-ramo "reusar_furo" contém um StepRefMateriais apontando para "lista_materiais"', () {
-      final stepLista = proto.blocos
-          .firstWhere((b) => b.id == 'acoes')
-          .steps
-          .first;
-      final inspecao = stepLista.listaAcoes.tiposDisponiveis
+    test('sub-ramo "reusar_furo" tem RefMateriais apontando para "lista_materiais_c"', () {
+      final bloco    = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC   = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final inspecao = listaC.listaAcoes.tiposDisponiveis
           .firstWhere((t) => t.id == 'inspecao_ancoragem');
 
-      final resultado = inspecao.steps.firstWhere((s) => s.id == 'ia_resultado');
-      final ramoSub   = resultado.selecaoRamo.ramos.firstWhere((r) => r.id == 'substituir');
-      final estrategia = ramoSub.steps
-          .firstWhere((s) => s.whichConteudo() == Step_Conteudo.selecaoRamo);
+      final iaStep    = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
+      final resultadoC = _conteudoById([iaStep], 'ia_resultado');
+      final ramoSub   = resultadoC.selecaoRamo.ramos.firstWhere((r) => r.id == 'substituir');
+      final subRamoC  = _firstConteudoOfType(ramoSub.steps, ConteudoStep_Tipo.selecaoRamo);
+      final ramoReusar = subRamoC.selecaoRamo.ramos.firstWhere((r) => r.id == 'reusar_furo');
 
-      final ramoReusar = estrategia.selecaoRamo.ramos
-          .firstWhere((r) => r.id == 'reusar_furo');
-      final refSteps = ramoReusar.steps
-          .where((s) => s.whichConteudo() == Step_Conteudo.refMateriais)
-          .toList();
+      expect(_hasConteudoOfType(ramoReusar.steps, ConteudoStep_Tipo.refMateriais), isTrue,
+          reason: 'Sub-ramo "reusar_furo" deve ter RefMateriais');
 
-      expect(refSteps, isNotEmpty,
-          reason: 'Sub-ramo "reusar_furo" deve ter um StepRefMateriais');
-      expect(refSteps.first.refMateriais.idStepMateriais, equals('lista_materiais'));
+      final refC = _firstConteudoOfType(ramoReusar.steps, ConteudoStep_Tipo.refMateriais);
+      expect(refC.refMateriais.idStepMateriais, equals('lista_materiais_c'));
+    });
+
+    test('"novo_ponto" tem RefMateriais que referencia "lista_materiais_c"', () {
+      final bloco    = proto.blocos.firstWhere((b) => b.id == 'acoes');
+      final listaC   = _firstConteudoOfType(bloco.steps, ConteudoStep_Tipo.listaAcoes);
+      final novoPonto = listaC.listaAcoes.tiposDisponiveis
+          .firstWhere((t) => t.id == 'novo_ponto');
+
+      final refC = _firstConteudoOfType(novoPonto.steps, ConteudoStep_Tipo.refMateriais,
+          reason: 'novo_ponto deve ter RefMateriais');
+      expect(refC.refMateriais.idStepMateriais, equals('lista_materiais_c'));
+      expect(refC.refMateriais.obrigatorio, isTrue);
+    });
+  });
+
+  // ── 5. Integridade global de referências ─────────────────────────────────────
+
+  group('Integridade de referências RefMateriais', () {
+    test('todos os RefMateriais referenciam ConteudoStep listaAcoes existente', () {
+      for (final file in _getProtocolFiles()) {
+        final name  = file.uri.pathSegments.last;
+        final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+
+        final listaIds = _collectListaConteudoIds(proto);
+        final refs     = <StepRefMateriais>[];
+
+        for (final bloco in proto.blocos) {
+          _collectRefMateriais(bloco.steps, refs);
+        }
+
+        for (final ref in refs) {
+          expect(listaIds, contains(ref.idStepMateriais),
+              reason: '$name: RefMateriais referencia "${ref.idStepMateriais}" '
+                  'que não existe como ConteudoStep listaAcoes');
+        }
+      }
     });
   });
 }

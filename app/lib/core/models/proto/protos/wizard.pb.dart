@@ -200,7 +200,7 @@ class Bloco extends $pb.GeneratedMessage {
   $pb.PbList<Step> get steps => $_getList(3);
 }
 
-enum Step_Conteudo {
+enum ConteudoStep_Tipo {
   instrucao,
   campoSimples,
   selecaoRamo,
@@ -209,8 +209,10 @@ enum Step_Conteudo {
   notSet
 }
 
-class Step extends $pb.GeneratedMessage {
-  factory Step({
+/// ConteudoStep: um elemento de conteúdo com ID próprio para mapeamento de
+/// respostas. Um Step (card) pode ter vários destes, exibidos em sequência.
+class ConteudoStep extends $pb.GeneratedMessage {
+  factory ConteudoStep({
     $core.String? id,
     StepInstrucao? instrucao,
     StepCampoSimples? campoSimples,
@@ -228,25 +230,26 @@ class Step extends $pb.GeneratedMessage {
     return result;
   }
 
-  Step._();
+  ConteudoStep._();
 
-  factory Step.fromBuffer($core.List<$core.int> data,
+  factory ConteudoStep.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory Step.fromJson($core.String json,
+  factory ConteudoStep.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
-  static const $core.Map<$core.int, Step_Conteudo> _Step_ConteudoByTag = {
-    2: Step_Conteudo.instrucao,
-    3: Step_Conteudo.campoSimples,
-    4: Step_Conteudo.selecaoRamo,
-    5: Step_Conteudo.listaAcoes,
-    6: Step_Conteudo.refMateriais,
-    0: Step_Conteudo.notSet
+  static const $core.Map<$core.int, ConteudoStep_Tipo> _ConteudoStep_TipoByTag =
+      {
+    2: ConteudoStep_Tipo.instrucao,
+    3: ConteudoStep_Tipo.campoSimples,
+    4: ConteudoStep_Tipo.selecaoRamo,
+    5: ConteudoStep_Tipo.listaAcoes,
+    6: ConteudoStep_Tipo.refMateriais,
+    0: ConteudoStep_Tipo.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'Step',
+      _omitMessageNames ? '' : 'ConteudoStep',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
       createEmptyInstance: create)
     ..oo(0, [2, 3, 4, 5, 6])
@@ -264,35 +267,36 @@ class Step extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Step clone() => deepCopy();
+  ConteudoStep clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Step copyWith(void Function(Step) updates) =>
-      super.copyWith((message) => updates(message as Step)) as Step;
+  ConteudoStep copyWith(void Function(ConteudoStep) updates) =>
+      super.copyWith((message) => updates(message as ConteudoStep))
+          as ConteudoStep;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static Step create() => Step._();
+  static ConteudoStep create() => ConteudoStep._();
   @$core.override
-  Step createEmptyInstance() => create();
+  ConteudoStep createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static Step getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Step>(create);
-  static Step? _defaultInstance;
+  static ConteudoStep getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConteudoStep>(create);
+  static ConteudoStep? _defaultInstance;
 
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
-  Step_Conteudo whichConteudo() => _Step_ConteudoByTag[$_whichOneof(0)]!;
+  ConteudoStep_Tipo whichTipo() => _ConteudoStep_TipoByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
-  void clearConteudo() => $_clearField($_whichOneof(0));
+  void clearTipo() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
@@ -357,6 +361,66 @@ class Step extends $pb.GeneratedMessage {
   void clearRefMateriais() => $_clearField(6);
   @$pb.TagNumber(6)
   StepRefMateriais ensureRefMateriais() => $_ensure(5);
+}
+
+class Step extends $pb.GeneratedMessage {
+  factory Step({
+    $core.String? id,
+    $core.Iterable<ConteudoStep>? conteudos,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (conteudos != null) result.conteudos.addAll(conteudos);
+    return result;
+  }
+
+  Step._();
+
+  factory Step.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Step.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Step',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..pPM<ConteudoStep>(2, _omitFieldNames ? '' : 'conteudos',
+        subBuilder: ConteudoStep.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Step clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Step copyWith(void Function(Step) updates) =>
+      super.copyWith((message) => updates(message as Step)) as Step;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Step create() => Step._();
+  @$core.override
+  Step createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Step getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Step>(create);
+  static Step? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<ConteudoStep> get conteudos => $_getList(1);
 }
 
 /// Orientação pura — exibe texto/instrução, não coleta dado algum
@@ -929,7 +993,7 @@ class StepListaAcoes extends $pb.GeneratedMessage {
   $pb.PbList<TipoAcao> get tiposDisponiveis => $_getList(4);
 }
 
-/// Um TipoAcao define o sub-fluxo de uma categoria de ação
+/// Um TipoAcao define o sub-fluxo inline de uma categoria de ação
 class TipoAcao extends $pb.GeneratedMessage {
   factory TipoAcao({
     $core.String? id,
@@ -1096,8 +1160,8 @@ class StepRefMateriais extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearSublabel() => $_clearField(2);
 
-  /// ID do Step (tipo StepListaAcoes) de onde os materiais devem ser lidos.
-  /// Ex: "lista_materiais" — referencia o step do Bloco 1.
+  /// ID do ConteudoStep (tipo StepListaAcoes) de onde os materiais vêm.
+  /// Ex: "lista_materiais_c" — referencia o ConteudoStep do Bloco 1.
   @$pb.TagNumber(3)
   $core.String get idStepMateriais => $_getSZ(2);
   @$pb.TagNumber(3)

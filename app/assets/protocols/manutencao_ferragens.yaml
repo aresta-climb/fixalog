@@ -1,611 +1,534 @@
-# manutencao_ferragens.yaml
-#
-# Protocolo: Manutenção de Proteções Fixas — ACEC-MG
-# Schema: fixalog_wizard.proto > DefinicaoProtocolo
-#
-# Versão 2.0.0 — Protocolo completo em 4 blocos com branching dinâmico.
-#
-# Convenção de IDs:
-#   - Blocos: snake_case curto (ex: "materiais", "via", "acoes")
-#   - Steps: <bloco>_<descricao> (ex: "lista_materiais", "ia_resultado")
-#   - Ramos: snake_case do valor salvo no RegistroManutencao
-#   - Referências a materiais: id_step_materiais: "lista_materiais"
-
 protocolo:
-  id: "acec_mg_manutencao_v2"
+  id: manutencao_ferragens
   nome: "Manutenção de Proteções Fixas"
+  descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas e ancoragens)"
   versao: "2.0.0"
-  descricao: "Protocolo técnico completo de manutenção de proteções fixas em vias de escalada."
 
   blocos:
 
-    # ══════════════════════════════════════════════════════════
-    # BLOCO 1 — Materiais a serem instalados
-    # ══════════════════════════════════════════════════════════
-    - id: "materiais"
-      titulo: "Materiais"
-      subtitulo: "Liste e fotografe todos os itens que serão instalados na rocha."
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 1 — Materiais a instalar
+    # ═══════════════════════════════════════════════════════════════
+    - id: materiais
+      titulo: "Bloco 1 — Materiais a Instalar"
+      subtitulo: "Registre todos os materiais que serão instalados nesta via antes de começar a subir"
+
       steps:
-        - id: "lista_materiais"
-          lista_acoes:
-            label: "Materiais utilizados"
-            sublabel: "Adicione um item para cada tipo de material que você trouxe."
-            minimo: 1
-            maximo: 0  # 0 = ilimitado
-            tipos_disponiveis:
+        - id: lista_materiais
+          conteudos:
+            - id: lista_materiais_c
+              lista_acoes:
+                label: "Materiais a instalar"
+                sublabel: "Adicione cada material com seus dados de rastreabilidade. Mínimo 1."
+                minimo: 1
+                maximo: 0
+                tipos_disponiveis:
 
-              - id: "parabolt"
-                label: "Parabolt"
-                sublabel: "Ancoragem mecânica expansiva"
-                icon_name: "bolt"
-                steps:
-                  - id: "pb_marca"
-                    campo_simples:
-                      label: "Marca"
-                      tipo: TEXT
-                      obrigatorio: true
-                  - id: "pb_liga"
-                    campo_simples:
-                      label: "Liga metálica"
-                      tipo: DROPDOWN
-                      ui_hint: LARGE_TILES
-                      obrigatorio: true
-                      opcoes:
-                        - { valor: "inox_304", label: "Inox 304", sublabel: "USO GERAL", icon_name: "layers" }
-                        - { valor: "inox_316l", label: "Inox 316L", sublabel: "MARINHO / ALTA RESISTÊNCIA", icon_name: "verified" }
-                        - { valor: "titanio", label: "Titânio", sublabel: "PERFORMANCE EXTREMA", icon_name: "diamond" }
-                  - id: "pb_lote"
-                    campo_simples:
-                      label: "Lote / N° de série"
-                      tipo: TEXT
-                      obrigatorio: false
-                  - id: "pb_validade"
-                    campo_simples:
-                      label: "Validade (se aplicável)"
-                      tipo: DATE
-                      obrigatorio: false
-                  - id: "pb_quantidade"
-                    campo_simples:
-                      label: "Quantidade"
-                      tipo: NUMBER
-                      obrigatorio: true
-                  - id: "pb_foto"
-                    campo_simples:
-                      label: "Foto da embalagem / lote"
-                      sublabel: "Garanta que a identificação do lote esteja visível."
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                  # ── Parabolt ─────────────────────────────────────
+                  - id: parabolt
+                    label: "Parabolt"
+                    sublabel: "Chumbador expansivo"
+                    icon_name: hardware
+                    steps:
+                      - id: pb_dados
+                        conteudos:
+                          - id: pb_aviso
+                            instrucao:
+                              titulo: "Dados do Parabolt"
+                              corpo: "Registre todos os dados de rastreabilidade do parabolt antes de instalar. Lote e marca são obrigatórios."
+                              nivel_alerta: INFO
+                          - id: pb_marca
+                            campo_simples:
+                              label: "Marca"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: pb_liga
+                            campo_simples:
+                              label: "Liga / Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316L"
+                                - valor: aco_inox_304
+                                  label: "Aço Inox 304"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: pb_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: pb_validade
+                            campo_simples:
+                              label: "Validade"
+                              tipo: DATE
+                          - id: pb_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-              - id: "chapeleta"
-                label: "Chapeleta"
-                sublabel: "Plaqueta de ancoragem"
-                icon_name: "link"
-                steps:
-                  - id: "ch_marca"
-                    campo_simples: { label: "Marca", tipo: TEXT, obrigatorio: true }
-                  - id: "ch_liga"
-                    campo_simples:
-                      label: "Liga metálica"
-                      tipo: DROPDOWN
-                      ui_hint: LARGE_TILES
-                      obrigatorio: true
-                      opcoes:
-                        - { valor: "inox_304", label: "Inox 304", sublabel: "USO GERAL", icon_name: "layers" }
-                        - { valor: "inox_316l", label: "Inox 316L", sublabel: "MARINHO", icon_name: "verified" }
-                        - { valor: "titanio", label: "Titânio", sublabel: "EXTREMO", icon_name: "diamond" }
-                  - id: "ch_quantidade"
-                    campo_simples: { label: "Quantidade", tipo: NUMBER, obrigatorio: true }
-                  - id: "ch_foto"
-                    campo_simples:
-                      label: "Foto"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                  # ── Chapeleta ─────────────────────────────────────
+                  - id: chapeleta
+                    label: "Chapeleta"
+                    sublabel: "Placa de distribuição de carga"
+                    icon_name: link
+                    steps:
+                      - id: ch_dados
+                        conteudos:
+                          - id: ch_marca
+                            campo_simples:
+                              label: "Marca"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: ch_liga
+                            campo_simples:
+                              label: "Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316L"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: ch_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: ch_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-              - id: "argola"
-                label: "Argola / Maillon"
-                sublabel: "Argola de reunião ou maillon rápido"
-                icon_name: "radio_button_unchecked"
-                steps:
-                  - id: "ar_marca"
-                    campo_simples: { label: "Marca", tipo: TEXT, obrigatorio: true }
-                  - id: "ar_liga"
-                    campo_simples:
-                      label: "Liga metálica"
-                      tipo: DROPDOWN
-                      ui_hint: LARGE_TILES
-                      obrigatorio: true
-                      opcoes:
-                        - { valor: "inox_304", label: "Inox 304", icon_name: "layers" }
-                        - { valor: "inox_316l", label: "Inox 316L", icon_name: "verified" }
-                        - { valor: "titanio", label: "Titânio", icon_name: "diamond" }
-                  - id: "ar_quantidade"
-                    campo_simples: { label: "Quantidade", tipo: NUMBER, obrigatorio: true }
-                  - id: "ar_foto"
-                    campo_simples:
-                      label: "Foto"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                  # ── Argola ────────────────────────────────────────
+                  - id: argola
+                    label: "Argola"
+                    sublabel: "Anel de ligação"
+                    icon_name: radio_button_unchecked
+                    steps:
+                      - id: arg_dados
+                        conteudos:
+                          - id: arg_marca
+                            campo_simples:
+                              label: "Marca"
+                              tipo: TEXT
+                          - id: arg_liga
+                            campo_simples:
+                              label: "Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316L"
+                                - valor: titanio
+                                  label: "Titânio"
+                          - id: arg_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-              - id: "ancoragem_quimica"
-                label: "Ancoragem Química"
-                sublabel: "Bucha química / cápsula"
-                icon_name: "science"
-                steps:
-                  - id: "aq_marca"
-                    campo_simples: { label: "Marca", tipo: TEXT, obrigatorio: true }
-                  - id: "aq_lote"
-                    campo_simples: { label: "Lote", tipo: TEXT, obrigatorio: false }
-                  - id: "aq_validade"
-                    campo_simples:
-                      label: "Validade"
-                      sublabel: "Ancoragem química vencida NÃO deve ser usada."
-                      tipo: DATE
-                      obrigatorio: true
-                  - id: "aq_quantidade"
-                    campo_simples: { label: "Quantidade", tipo: NUMBER, obrigatorio: true }
-                  - id: "aq_foto"
-                    campo_simples:
-                      label: "Foto da embalagem"
-                      sublabel: "Inclua validade e lote no enquadramento."
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                  # ── Ancoragem Química ─────────────────────────────
+                  - id: ancoragem_quimica
+                    label: "Ancoragem Química"
+                    sublabel: "Resina de fixação"
+                    icon_name: science
+                    steps:
+                      - id: aq_dados
+                        conteudos:
+                          - id: aq_aviso
+                            instrucao:
+                              titulo: "⚠ Atenção — Validade"
+                              corpo: "Verifique a validade antes de usar. Resina fora do prazo NÃO deve ser instalada em proteções de vida."
+                              nivel_alerta: PERIGO
+                          - id: aq_marca
+                            campo_simples:
+                              label: "Marca / Produto"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: aq_validade
+                            campo_simples:
+                              label: "Validade"
+                              tipo: DATE
+                              obrigatorio: true
+                          - id: aq_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: aq_foto
+                            campo_simples:
+                              label: "Foto da embalagem"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-              - id: "cola_quimica"
-                label: "Cola Química"
-                sublabel: "Resina injetável (tubo/cartucho)"
-                icon_name: "opacity"
-                steps:
-                  - id: "cq_marca"
-                    campo_simples: { label: "Marca", tipo: TEXT, obrigatorio: true }
-                  - id: "cq_validade"
-                    campo_simples:
-                      label: "Validade"
-                      sublabel: "Resina vencida NÃO deve ser usada."
-                      tipo: DATE
-                      obrigatorio: true
-                  - id: "cq_quantidade"
-                    campo_simples: { label: "Cartuchos / tubos", tipo: NUMBER, obrigatorio: true }
-                  - id: "cq_foto"
-                    campo_simples:
-                      label: "Foto da embalagem"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                  # ── Cola Química ──────────────────────────────────
+                  - id: cola_quimica
+                    label: "Cola Química"
+                    sublabel: "Adesivo estrutural"
+                    icon_name: colorize
+                    steps:
+                      - id: cq_dados
+                        conteudos:
+                          - id: cq_aviso
+                            instrucao:
+                              titulo: "Atenção — Validade"
+                              corpo: "Verifique a validade da cola antes de aplicar."
+                              nivel_alerta: ATENCAO
+                          - id: cq_marca
+                            campo_simples:
+                              label: "Marca / Produto"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: cq_validade
+                            campo_simples:
+                              label: "Validade"
+                              tipo: DATE
+                              obrigatorio: true
+                          - id: cq_foto
+                            campo_simples:
+                              label: "Foto da embalagem"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-    # ══════════════════════════════════════════════════════════
-    # BLOCO 2 — Identificação da Via
-    # ══════════════════════════════════════════════════════════
-    - id: "via"
-      titulo: "Identificação da Via"
-      subtitulo: "Dados da rota que está sendo manutenida."
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 2 — Identificação da via
+    # ═══════════════════════════════════════════════════════════════
+    - id: via
+      titulo: "Bloco 2 — Identificação da Via"
+      subtitulo: "Dados de localização e identificação da via manutenida"
+
       steps:
-        - id: "via_nome"
-          campo_simples:
-            label: "Nome da via"
-            tipo: TEXT
-            obrigatorio: true
+        # Card único com GPS + nome + setor + pico em sequência (Feature 1)
+        - id: via_localizacao
+          conteudos:
+            - id: via_aviso
+              instrucao:
+                titulo: "Identificação da Via"
+                corpo: "Preencha os dados de localização da via. A coordenada GPS é obrigatória."
+                nivel_alerta: INFO
+            - id: via_gps
+              campo_simples:
+                label: "Localização GPS"
+                tipo: GPS
+                obrigatorio: true
+            - id: via_nome
+              campo_simples:
+                label: "Nome da via"
+                tipo: TEXT
+                obrigatorio: true
+            - id: via_setor
+              campo_simples:
+                label: "Setor / Bloco"
+                tipo: TEXT
+            - id: via_pico
+              campo_simples:
+                label: "Pico / Área"
+                tipo: TEXT
 
-        - id: "via_pico"
-          campo_simples:
-            label: "Pico / Maciço"
-            tipo: TEXT
-            obrigatorio: false
+        # Segundo card: permissão do conquistador
+        - id: via_permissao
+          conteudos:
+            - id: via_tem_permissao
+              campo_simples:
+                label: "Possui permissão do conquistador?"
+                tipo: BOOLEAN
+                obrigatorio: true
+            - id: via_foto_permissao
+              campo_simples:
+                label: "Foto da permissão (se houver)"
+                tipo: IMAGE
+                ui_hint: CAMERA_ACTION
 
-        - id: "via_setor"
-          campo_simples:
-            label: "Setor"
-            tipo: TEXT
-            obrigatorio: false
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 3 — Ações de manutenção
+    # ═══════════════════════════════════════════════════════════════
+    - id: acoes
+      titulo: "Bloco 3 — Ações de Manutenção"
+      subtitulo: "Registre cada ação realizada nesta via. Mínimo 1."
 
-        - id: "via_localizacao"
-          campo_simples:
-            label: "Localização GPS da base"
-            sublabel: "Fique na base da via ao capturar as coordenadas."
-            tipo: GPS
-            obrigatorio: true
-
-        - id: "via_permissao"
-          campo_simples:
-            label: "Permissão do Conquistador"
-            sublabel: "Fotografie ou digitalize o documento de autorização de manutenção."
-            tipo: IMAGE
-            ui_hint: CAMERA_ACTION
-            obrigatorio: false
-
-    # ══════════════════════════════════════════════════════════
-    # BLOCO 3 — Ações de Manutenção
-    # ══════════════════════════════════════════════════════════
-    - id: "acoes"
-      titulo: "Ações de Manutenção"
-      subtitulo: "Registre cada intervenção realizada na via."
       steps:
-        - id: "lista_acoes"
-          lista_acoes:
-            label: "Ações realizadas"
-            sublabel: "Adicione uma ação para cada intervenção. Você pode adicionar quantas forem necessárias."
-            minimo: 1
-            maximo: 0
-            tipos_disponiveis:
+        - id: lista_acoes
+          conteudos:
+            - id: lista_acoes_c
+              lista_acoes:
+                label: "Ações realizadas"
+                sublabel: "Adicione cada ação de manutenção. Mínimo 1."
+                minimo: 1
+                maximo: 0
+                tipos_disponiveis:
 
-              # ──────────────────────────────────────────────
-              # AÇÃO 1: Inspeção de Ancoragem
-              # ──────────────────────────────────────────────
-              - id: "inspecao_ancoragem"
-                label: "Inspeção de Ancoragem"
-                sublabel: "Inspecionar um ponto existente"
-                icon_name: "search"
-                steps:
-                  # --- Registro inicial da ancoragem ---
-                  - id: "ia_tipo_original"
-                    campo_simples:
-                      label: "Tipo de ancoragem inspecionada"
-                      tipo: DROPDOWN
-                      ui_hint: LARGE_TILES
-                      obrigatorio: true
-                      opcoes:
-                        - { valor: "grampo_p", label: "Grampo P", sublabel: "Grampo em P de aço", icon_name: "push_pin" }
-                        - { valor: "parabolt", label: "Parabolt", sublabel: "Ancoragem expansiva", icon_name: "bolt" }
-                        - { valor: "outro", label: "Outro", icon_name: "more_horiz" }
+                  # ── Inspeção de Ancoragem (multi-conteúdo + branching) ──
+                  - id: inspecao_ancoragem
+                    label: "Inspeção de Ancoragem"
+                    sublabel: "Avaliação do estado de uma ancoragem existente"
+                    icon_name: search
+                    steps:
+                      # Card 1: Foto + resultado em um único card (Feature 1!)
+                      - id: ia_avaliacao
+                        conteudos:
+                          - id: ia_instrucao
+                            instrucao:
+                              titulo: "Avaliação Visual e Mecânica"
+                              corpo: "Fotografe o estado atual antes de qualquer intervenção. Em seguida, avalie visualmente (corrosão, trincas) e mecanicamente (reaperto). Classifique o resultado."
+                              nivel_alerta: ATENCAO
+                          - id: ia_foto_antes
+                            campo_simples:
+                              label: "Foto antes da intervenção"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+                          - id: ia_resultado
+                            selecao_ramo:
+                              label: "Resultado da avaliação"
+                              obrigatorio: true
+                              ramos:
+                                - id: aprovado
+                                  label: "Aprovado — Sem intervenção"
+                                  sublabel: "Ancoragem em bom estado"
+                                  icon_name: check_circle
+                                  steps:
+                                    - id: ia_ap_detalhe
+                                      conteudos:
+                                        - id: ia_ap_nota
+                                          campo_simples:
+                                            label: "Observações"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
 
-                  - id: "ia_material_original"
-                    campo_simples:
-                      label: "Material original estimado"
-                      sublabel: "Ex: inox, aço galvanizado, titânio..."
-                      tipo: TEXT
-                      obrigatorio: false
+                                - id: reaperto
+                                  label: "Reaperto realizado"
+                                  sublabel: "Ancoragem reaperta com torquímetro"
+                                  icon_name: build
+                                  steps:
+                                    - id: ia_re_detalhe
+                                      conteudos:
+                                        - id: ia_re_torque
+                                          campo_simples:
+                                            label: "Torque aplicado (Nm)"
+                                            tipo: NUMBER
+                                        - id: ia_re_nota
+                                          campo_simples:
+                                            label: "Observações"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
 
-                  - id: "ia_foto_antes"
-                    campo_simples:
-                      label: "Foto da ancoragem (antes)"
-                      sublabel: "Enquadre toda a ancoragem e a rocha ao redor."
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
+                                - id: substituir
+                                  label: "Substituição necessária"
+                                  sublabel: "Ancoragem com dano estrutural"
+                                  icon_name: swap_horiz
+                                  steps:
+                                    # Card com instrução + sub-branching (Feature 1 recursivo)
+                                    - id: ia_sub_estrategia
+                                      conteudos:
+                                        - id: ia_sub_aviso
+                                          instrucao:
+                                            titulo: "Estratégia de Substituição"
+                                            corpo: "Se o furo puder ser reutilizado, use ancoragem química. Caso contrário, perfure novo local."
+                                            nivel_alerta: PERIGO
+                                        - id: ia_sub_ramo
+                                          selecao_ramo:
+                                            label: "Como será feita a substituição?"
+                                            obrigatorio: true
+                                            ramos:
+                                              - id: reusar_furo
+                                                label: "Reutilizar furo existente"
+                                                sublabel: "Com ancoragem química"
+                                                icon_name: refresh
+                                                steps:
+                                                  - id: ia_sub_rf_dados
+                                                    conteudos:
+                                                      - id: ia_sub_rf_materiais
+                                                        ref_materiais:
+                                                          label: "Materiais utilizados"
+                                                          sublabel: "Selecione os materiais do Bloco 1 usados nesta ancoragem"
+                                                          id_step_materiais: "lista_materiais_c"
+                                                          obrigatorio: true
+                                                      - id: ia_sub_rf_foto
+                                                        campo_simples:
+                                                          label: "Foto após instalação"
+                                                          tipo: IMAGE
+                                                          ui_hint: CAMERA_ACTION
+                                                          obrigatorio: true
 
-                  - id: "ia_video_antes"
-                    campo_simples:
-                      label: "Vídeo (opcional)"
-                      sublabel: "Até 30s mostrando o estado atual."
-                      tipo: VIDEO
-                      obrigatorio: false
+                                              - id: novo_local
+                                                label: "Novo local de perfuração"
+                                                sublabel: "Perfuração em posição diferente"
+                                                icon_name: gps_fixed
+                                                steps:
+                                                  - id: ia_sub_nl_dados
+                                                    conteudos:
+                                                      - id: ia_sub_nl_materiais
+                                                        ref_materiais:
+                                                          label: "Materiais utilizados"
+                                                          sublabel: "Selecione os materiais usados nesta ancoragem"
+                                                          id_step_materiais: "lista_materiais_c"
+                                                          obrigatorio: true
+                                                      - id: ia_sub_nl_nota
+                                                        campo_simples:
+                                                          label: "Justificativa do novo local"
+                                                          tipo: TEXT
+                                                          ui_hint: TEXT_AREA
+                                                      - id: ia_sub_nl_foto
+                                                        campo_simples:
+                                                          label: "Foto após instalação"
+                                                          tipo: IMAGE
+                                                          ui_hint: CAMERA_ACTION
+                                                          obrigatorio: true
 
-                  # --- Instrução de inspeção ---
-                  - id: "ia_instrucao"
-                    instrucao:
-                      titulo: "Inspecione a ancoragem"
-                      corpo: |
-                        **Para Grampo P:**
-                        • Verifique se há palhetas de alumínio (alerta crítico — substituição imediata)
-                        • Avalie se o grampo está pouco inserido na rocha
-                        • Verifique se a ponta está pouco batida
-                        • Avalie o nível de corrosão
+                  # ── Novo Ponto de Ancoragem ───────────────────────
+                  - id: novo_ponto
+                    label: "Novo Ponto de Ancoragem"
+                    sublabel: "Instalação de nova ancoragem"
+                    icon_name: add_location
+                    steps:
+                      - id: np_dados
+                        conteudos:
+                          - id: np_instrucao
+                            instrucao:
+                              titulo: "Novo ponto de ancoragem"
+                              corpo: "Registre os materiais utilizados e fotografe após a instalação."
+                              nivel_alerta: INFO
+                          - id: np_materiais
+                            ref_materiais:
+                              label: "Materiais utilizados"
+                              sublabel: "Selecione os materiais do Bloco 1 instalados"
+                              id_step_materiais: "lista_materiais_c"
+                              obrigatorio: true
+                          - id: np_foto
+                            campo_simples:
+                              label: "Foto após instalação"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
 
-                        **Para Parabolt:**
-                        • Desaperte a porta com a chave correta
-                        • Inspecione o interior do furo — presença de corrosão?
-                        • Se OK: reapertar com chave de torque
-                        • Se corrosão visível: substituição necessária
-                      icon_name: "manage_search"
-                      nivel_alerta: INFO
+                  # ── Remoção de Bloco Solto ────────────────────────
+                  - id: remocao_bloco
+                    label: "Remoção de Bloco Solto"
+                    sublabel: "Retirada de pedra instável"
+                    icon_name: delete_forever
+                    steps:
+                      - id: rb_dados
+                        conteudos:
+                          - id: rb_aviso
+                            instrucao:
+                              titulo: "ATENÇÃO — Zona de Risco"
+                              corpo: "A remoção de blocos deve ser feita com a via interditada e sem presença de pessoas abaixo."
+                              nivel_alerta: PERIGO
+                          - id: rb_tamanho
+                            campo_simples:
+                              label: "Tamanho aproximado do bloco"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: pequeno
+                                  label: "Pequeno (tamanho de punho)"
+                                - valor: medio
+                                  label: "Médio (tamanho de melancia)"
+                                - valor: grande
+                                  label: "Grande (maior que melancia)"
+                          - id: rb_foto_antes
+                            campo_simples:
+                              label: "Foto antes da remoção"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: rb_foto_depois
+                            campo_simples:
+                              label: "Foto após remoção"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-                  # --- Decisão: resultado da inspeção ---
-                  - id: "ia_resultado"
-                    selecao_ramo:
-                      label: "Resultado da inspeção"
-                      sublabel: "O que precisa ser feito com esta ancoragem?"
-                      obrigatorio: true
-                      ramos:
+                  # ── Limpeza de Vegetação ──────────────────────────
+                  - id: limpeza_vegetacao
+                    label: "Limpeza de Vegetação"
+                    sublabel: "Retirada de plantas na via"
+                    icon_name: grass
+                    steps:
+                      - id: lv_dados
+                        conteudos:
+                          - id: lv_foto_antes
+                            campo_simples:
+                              label: "Foto antes da limpeza"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: lv_nota
+                            campo_simples:
+                              label: "Descrição da limpeza"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                          - id: lv_foto_depois
+                            campo_simples:
+                              label: "Foto após limpeza"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-                        - id: "aprovado"
-                          label: "Aprovado"
-                          sublabel: "Em bom estado — sem intervenção necessária"
-                          icon_name: "check_circle"
-                          steps: []  # fluxo encerrado para esta ancoragem
+                  # ── Outra Ação ────────────────────────────────────
+                  - id: outro
+                    label: "Outra Ação"
+                    sublabel: "Ação não catalogada acima"
+                    icon_name: more_horiz
+                    steps:
+                      - id: out_dados
+                        conteudos:
+                          - id: out_descricao
+                            campo_simples:
+                              label: "Descrição da ação realizada"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                              obrigatorio: true
+                          - id: out_foto
+                            campo_simples:
+                              label: "Foto (opcional)"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
 
-                        - id: "reaperto"
-                          label: "Reaperto realizado"
-                          sublabel: "Parabolt reaperto com chave de torque"
-                          icon_name: "settings"
-                          steps:
-                            - id: "ia_re_foto_apos"
-                              campo_simples:
-                                label: "Foto após reaperto"
-                                tipo: IMAGE
-                                ui_hint: CAMERA_ACTION
-                                obrigatorio: true
-                            - id: "ia_re_torque"
-                              campo_simples:
-                                label: "Torque aplicado (Nm)"
-                                sublabel: "Opcional — se utilizada chave de torque calibrada."
-                                tipo: NUMBER
-                                obrigatorio: false
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 4 — Avaliação e Encerramento
+    # ═══════════════════════════════════════════════════════════════
+    - id: avaliacao
+      titulo: "Bloco 4 — Avaliação e Encerramento"
+      subtitulo: "Avaliação final da via e assinatura do mantenedor"
 
-                        - id: "substituir"
-                          label: "Substituição necessária"
-                          sublabel: "Ancoragem degradada — precisa ser trocada"
-                          icon_name: "warning"
-                          steps:
-                            - id: "ia_sub_instrucao"
-                              instrucao:
-                                titulo: "Estratégia de substituição"
-                                corpo: |
-                                  Tente primeiro remover a ancoragem antiga para reaproveitar o furo.
-                                  Se não for possível, verifique se o local atual ainda faz sentido
-                                  para a segurança da via. Se fizer, instale ao lado. Se não, busque
-                                  um local alternativo e obtenha autorização do conquistador.
-                                icon_name: "swap_horiz"
-                                nivel_alerta: ATENCAO
-
-                            - id: "ia_sub_estrategia"
-                              selecao_ramo:
-                                label: "Como será feita a substituição?"
-                                obrigatorio: true
-                                ramos:
-
-                                  - id: "reusar_furo"
-                                    label: "Remover e reusar o furo"
-                                    sublabel: "Ancoragem removida + ancoragem química"
-                                    icon_name: "recycling"
-                                    steps:
-                                      - id: "ia_rf_instrucao"
-                                        instrucao:
-                                          titulo: "Instalação com reuso de furo"
-                                          corpo: |
-                                            1. Remova a ancoragem antiga com cuidado
-                                            2. Expanda o furo com a broca correta (se necessário)
-                                            3. Limpe o furo com jato de ar — sem resíduos de pó
-                                            4. Instale a cápsula ou injete a resina química
-                                            5. Insira o parabolt e aguarde o tempo de cura antes de carregar
-                                          icon_name: "construction"
-                                          nivel_alerta: INFO
-                                      - id: "ia_rf_materiais"
-                                        ref_materiais:
-                                          label: "Materiais utilizados"
-                                          sublabel: "Selecione os materiais do Bloco 1 usados nesta substituição."
-                                          id_step_materiais: "lista_materiais"
-                                          obrigatorio: true
-                                      - id: "ia_rf_foto_durante"
-                                        campo_simples:
-                                          label: "Foto durante instalação"
-                                          tipo: IMAGE
-                                          ui_hint: CAMERA_ACTION
-                                          obrigatorio: false
-                                      - id: "ia_rf_foto_depois"
-                                        campo_simples:
-                                          label: "Foto após instalação"
-                                          tipo: IMAGE
-                                          ui_hint: CAMERA_ACTION
-                                          obrigatorio: true
-
-                                  - id: "novo_local"
-                                    label: "Instalar em novo local"
-                                    sublabel: "Local inadequado ou ancoragem irremovível"
-                                    icon_name: "add_location"
-                                    steps:
-                                      - id: "ia_nl_instrucao_auth"
-                                        instrucao:
-                                          titulo: "⚠️ Confirme a autorização"
-                                          corpo: |
-                                            Instalar em novo local requer autorização do conquistador da via.
-                                            Confirme antes de furar. Em caso de dúvida, este campo pode ser
-                                            fotografado como evidência.
-                                          icon_name: "gpp_maybe"
-                                          nivel_alerta: PERIGO
-                                      - id: "ia_nl_autorizacao"
-                                        campo_simples:
-                                          label: "Autorização do conquistador confirmada?"
-                                          tipo: BOOLEAN
-                                          obrigatorio: true
-                                      - id: "ia_nl_foto_local"
-                                        campo_simples:
-                                          label: "Foto do novo local escolhido"
-                                          sublabel: "Antes de furar — mostrando o ponto na rocha."
-                                          tipo: IMAGE
-                                          ui_hint: CAMERA_ACTION
-                                          obrigatorio: true
-                                      - id: "ia_nl_materiais"
-                                        ref_materiais:
-                                          label: "Materiais utilizados"
-                                          id_step_materiais: "lista_materiais"
-                                          obrigatorio: true
-                                      - id: "ia_nl_foto_depois"
-                                        campo_simples:
-                                          label: "Foto após instalação"
-                                          tipo: IMAGE
-                                          ui_hint: CAMERA_ACTION
-                                          obrigatorio: true
-                                      - id: "ia_nl_justificativa"
-                                        campo_simples:
-                                          label: "Justificativa do novo local"
-                                          sublabel: "Por que o local original não pôde ser reaproveitado?"
-                                          tipo: TEXT
-                                          ui_hint: TEXT_AREA
-                                          obrigatorio: true
-
-              # ──────────────────────────────────────────────
-              # AÇÃO 2: Novo Ponto de Ancoragem
-              # ──────────────────────────────────────────────
-              - id: "novo_ponto"
-                label: "Novo Ponto de Ancoragem"
-                sublabel: "Instalar onde não havia proteção"
-                icon_name: "add_circle"
-                steps:
-                  - id: "np_instrucao_auth"
-                    instrucao:
-                      titulo: "⚠️ Confirme a autorização"
-                      corpo: |
-                        A instalação de novos pontos requer concordância do conquistador da via.
-                        Certifique-se de ter essa autorização documentada antes de prosseguir.
-                      icon_name: "gpp_maybe"
-                      nivel_alerta: PERIGO
-                  - id: "np_autorizacao"
-                    campo_simples:
-                      label: "Autorização do conquistador confirmada?"
-                      tipo: BOOLEAN
-                      obrigatorio: true
-                  - id: "np_foto_local"
-                    campo_simples:
-                      label: "Foto do local escolhido (antes)"
-                      sublabel: "Antes de furar — mostre o ponto na rocha."
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "np_instrucao_inst"
-                    instrucao:
-                      titulo: "Instalação do novo ponto"
-                      corpo: |
-                        1. Confirme solidez da rocha no local escolhido (martelo)
-                        2. Faça o furo no ângulo correto
-                        3. Limpe com jato de ar
-                        4. Instale conforme o tipo de ancoragem
-                        5. Aguarde cura antes de testar carga
-                      icon_name: "construction"
-                      nivel_alerta: INFO
-                  - id: "np_materiais"
-                    ref_materiais:
-                      label: "Materiais utilizados"
-                      sublabel: "Selecione os materiais do Bloco 1 usados nesta instalação."
-                      id_step_materiais: "lista_materiais"
-                      obrigatorio: true
-                  - id: "np_foto_depois"
-                    campo_simples:
-                      label: "Foto após instalação"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "np_observacoes"
-                    campo_simples:
-                      label: "Observações"
-                      tipo: TEXT
-                      ui_hint: TEXT_AREA
-                      obrigatorio: false
-
-              # ──────────────────────────────────────────────
-              # AÇÃO 3: Remoção de Bloco Solto
-              # ──────────────────────────────────────────────
-              - id: "remocao_bloco"
-                label: "Remoção de Bloco Solto"
-                sublabel: "Retirar rocha instável da via"
-                icon_name: "landslide"
-                steps:
-                  - id: "rb_instrucao_seg"
-                    instrucao:
-                      titulo: "⚠️ Protocolo de segurança"
-                      corpo: |
-                        **Antes de remover:**
-                        • Posicione-se ACIMA da ancoragem mais próxima
-                        • Confirme que a área abaixo está completamente livre de pessoas
-                        • Use capacete
-                        • Avise companheiros verbalmente antes de soltar o bloco
-                      icon_name: "health_and_safety"
-                      nivel_alerta: PERIGO
-                  - id: "rb_foto_antes"
-                    campo_simples:
-                      label: "Foto do bloco (antes)"
-                      sublabel: "Mostre o bloco em contexto com a parede."
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "rb_foto_depois"
-                    campo_simples:
-                      label: "Foto após remoção"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "rb_observacoes"
-                    campo_simples:
-                      label: "Observações"
-                      sublabel: "Tamanho estimado, risco residual, etc."
-                      tipo: TEXT
-                      ui_hint: TEXT_AREA
-                      obrigatorio: false
-
-              # ──────────────────────────────────────────────
-              # AÇÃO 4: Limpeza de Vegetação
-              # ──────────────────────────────────────────────
-              - id: "limpeza_vegetacao"
-                label: "Limpeza de Vegetação"
-                sublabel: "Remoção de plantas da linha da via"
-                icon_name: "forest"
-                steps:
-                  - id: "lv_foto_antes"
-                    campo_simples:
-                      label: "Foto antes da limpeza"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "lv_foto_depois"
-                    campo_simples:
-                      label: "Foto após limpeza"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: true
-                  - id: "lv_observacoes"
-                    campo_simples:
-                      label: "Observações"
-                      tipo: TEXT
-                      ui_hint: TEXT_AREA
-                      obrigatorio: false
-
-              # ──────────────────────────────────────────────
-              # AÇÃO 5: Outro
-              # ──────────────────────────────────────────────
-              - id: "outro"
-                label: "Outro"
-                sublabel: "Ação não prevista no protocolo"
-                icon_name: "more_horiz"
-                steps:
-                  - id: "ou_descricao"
-                    campo_simples:
-                      label: "Descreva a ação realizada"
-                      tipo: TEXT
-                      ui_hint: TEXT_AREA
-                      obrigatorio: true
-                  - id: "ou_foto"
-                    campo_simples:
-                      label: "Foto (opcional)"
-                      tipo: IMAGE
-                      ui_hint: CAMERA_ACTION
-                      obrigatorio: false
-                  - id: "ou_video"
-                    campo_simples:
-                      label: "Vídeo (opcional)"
-                      tipo: VIDEO
-                      obrigatorio: false
-
-    # ══════════════════════════════════════════════════════════
-    # BLOCO 4 — Avaliação Final e Assinatura
-    # ══════════════════════════════════════════════════════════
-    - id: "avaliacao"
-      titulo: "Avaliação Final"
-      subtitulo: "Revisão do trabalho realizado e assinatura do responsável."
       steps:
-        - id: "av_resultado"
-          campo_simples:
-            label: "Resultado geral da manutenção"
-            tipo: DROPDOWN
-            ui_hint: LARGE_TILES
-            obrigatorio: true
-            opcoes:
-              - { valor: "aprovado", label: "Aprovado", sublabel: "Via liberada para uso", icon_name: "check_circle" }
-              - { valor: "aprovado_ressalvas", label: "Com ressalvas", sublabel: "Requer atenção futura", icon_name: "warning" }
-              - { valor: "nova_visita", label: "Nova visita necessária", sublabel: "Trabalho incompleto ou pendente", icon_name: "event_repeat" }
+        # Card com condição + comentários em sequência (Feature 1)
+        - id: avaliacao_geral
+          conteudos:
+            - id: avaliacao_condicao
+              campo_simples:
+                label: "Condição final da via para escalada"
+                tipo: DROPDOWN
+                ui_hint: LARGE_TILES
+                obrigatorio: true
+                opcoes:
+                  - valor: liberada
+                    label: "Liberada para escalada"
+                    sublabel: "Via em boas condições"
+                    icon_name: check_circle
+                  - valor: liberada_restricao
+                    label: "Liberada com restrição"
+                    sublabel: "Verificar aviso antes de usar"
+                    icon_name: warning
+                  - valor: interditada
+                    label: "Interditada"
+                    sublabel: "Não escalar até nova manutenção"
+                    icon_name: block
+            - id: avaliacao_comentarios
+              campo_simples:
+                label: "Comentários adicionais (opcional)"
+                tipo: TEXT
+                ui_hint: TEXT_AREA
 
-        - id: "av_observacoes"
-          campo_simples:
-            label: "Observações finais"
-            sublabel: "Notas adicionais, pendências, recomendações para próxima manutenção."
-            tipo: TEXT
-            ui_hint: TEXT_AREA
-            obrigatorio: false
-
-        - id: "av_assinatura"
-          campo_simples:
-            label: "Assinatura do responsável"
-            sublabel: "Assine para certificar este registro."
-            tipo: SIGNATURE
-            obrigatorio: true
+        # Card de assinatura com declaração + campo em sequência (Feature 1)
+        - id: assinatura
+          conteudos:
+            - id: assinatura_instrucao
+              instrucao:
+                titulo: "Declaração do Mantenedor"
+                corpo: "Ao assinar abaixo, declaro que todas as informações registradas são verdadeiras e que a manutenção foi realizada conforme as normas da ACEC-MG e as boas práticas de escalada."
+                nivel_alerta: INFO
+            - id: assinatura_c
+              campo_simples:
+                label: "Assinatura do mantenedor"
+                tipo: SIGNATURE
+                obrigatorio: true

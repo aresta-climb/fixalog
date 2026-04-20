@@ -32,13 +32,15 @@ message Bloco {
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP — unidade básica de interação (uma "tela" no wizard)
+// CONTEÚDO — elemento atômico de interação dentro de um card
 // ══════════════════════════════════════════════════════════════
 
-message Step {
-  string id = 1;
+// ConteudoStep: um elemento de conteúdo com ID próprio para mapeamento de
+// respostas. Um Step (card) pode ter vários destes, exibidos em sequência.
+message ConteudoStep {
+  string id = 1; // id único para mapeamento de respostas
 
-  oneof conteudo {
+  oneof tipo {
     StepInstrucao    instrucao      = 2; // orientação pura, sem dado coletado
     StepCampoSimples campo_simples  = 3; // campo de dado simples
     StepSelecaoRamo  selecao_ramo   = 4; // escolha de caminho condicional
@@ -48,7 +50,16 @@ message Step {
 }
 
 // ══════════════════════════════════════════════════════════════
-// TIPOS DE STEP
+// STEP — um "card" no wizard, contendo 1..N ConteudoSteps
+// ══════════════════════════════════════════════════════════════
+
+message Step {
+  string id                       = 1; // id do card (para navegação)
+  repeated ConteudoStep conteudos = 2; // elementos de conteúdo em sequência
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIPOS DE CONTEÚDO
 // ══════════════════════════════════════════════════════════════
 
 // Orientação pura — exibe texto/instrução, não coleta dado algum
@@ -66,7 +77,7 @@ message StepInstrucao {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Campo de dado simples (equivalente ao Campo original)
+// Campo de dado simples
 // ──────────────────────────────────────────────────────────────
 
 message StepCampoSimples {
@@ -124,15 +135,15 @@ message Ramo {
   string label     = 2;
   string sublabel  = 3;
   string icon_name = 4;
-  repeated Step steps = 5; // sub-fluxo — pode conter StepSelecaoRamo recursivamente
+  repeated Step steps = 5; // sub-fluxo — pode conter SelecaoRamo recursivamente
 }
 
 // ──────────────────────────────────────────────────────────────
 // Lista de ações repetível
 //
 // O mantenedor pode adicionar N instâncias de ações.
-// Cada instância recebe um id_instancia auto-gerado pelo wizard
-// (UUID ou sequencial) que pode ser referenciado por StepRefMateriais.
+// Cada instância recebe um id_instancia auto-gerado pelo wizard.
+// O sub-wizard de cada item é exibido como card expansível inline.
 // ──────────────────────────────────────────────────────────────
 
 message StepListaAcoes {
@@ -143,33 +154,24 @@ message StepListaAcoes {
   repeated TipoAcao tipos_disponiveis = 5;
 }
 
-// Um TipoAcao define o sub-fluxo de uma categoria de ação
+// Um TipoAcao define o sub-fluxo inline de uma categoria de ação
 message TipoAcao {
   string id        = 1;
   string label     = 2;
   string sublabel  = 3;
   string icon_name = 4;
-  repeated Step steps = 5; // sub-fluxo de cada instância deste tipo
+  repeated Step steps = 5; // exibidos inline no card expansível
 }
 
 // ──────────────────────────────────────────────────────────────
 // Referência a materiais registrados em outro StepListaAcoes
-//
-// Em runtime, o wizard:
-//   1. Lê todas as instâncias adicionadas no step referenciado
-//      (identificado por id_step_materiais)
-//   2. Exibe uma lista de seleção múltipla ao mantenedor
-//   3. Salva os id_instancia das instâncias selecionadas no registro
-//
-// Os id_instancia são gerados automaticamente pelo wizard quando o
-// mantenedor adiciona cada item no StepListaAcoes de origem.
 // ──────────────────────────────────────────────────────────────
 
 message StepRefMateriais {
   string label             = 1;
   string sublabel          = 2;
-  // ID do Step (tipo StepListaAcoes) de onde os materiais devem ser lidos.
-  // Ex: "lista_materiais" — referencia o step do Bloco 1.
+  // ID do ConteudoStep (tipo StepListaAcoes) de onde os materiais vêm.
+  // Ex: "lista_materiais_c" — referencia o ConteudoStep do Bloco 1.
   string id_step_materiais = 3;
   bool   obrigatorio       = 4;
 }

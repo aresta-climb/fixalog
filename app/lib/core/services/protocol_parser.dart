@@ -3,8 +3,24 @@ import '../models/proto/protos/wizard.pb.dart';
 
 /// Converte um arquivo YAML de protocolo em um [DefinicaoProtocolo] proto.
 ///
-/// O YAML segue a DSL definida em wizard.proto. O parser aceita snake_case
-/// nos nomes dos campos e nos valores de enum.
+/// O YAML segue a DSL definida em wizard.proto.
+///
+/// **Formato canônico** (multi-conteúdo):
+/// ```yaml
+/// - id: "card_1"
+///   conteudos:
+///     - id: "c1"
+///       instrucao: { titulo: "..." }
+///     - id: "c2"
+///       campo_simples: { label: "...", tipo: TEXT }
+/// ```
+///
+/// **Formato shorthand** (retrocompatível — gera um único ConteudoStep):
+/// ```yaml
+/// - id: "card_1"
+///   campo_simples: { label: "...", tipo: TEXT }
+/// ```
+/// Neste caso o ConteudoStep herda o mesmo id do Step pai.
 class ProtocolParser {
   static DefinicaoProtocolo fromYaml(String yamlContent) {
     final doc = loadYaml(yamlContent) as YamlMap;
@@ -32,30 +48,83 @@ class ProtocolParser {
     );
   }
 
+  // ─── Step (card) ─────────────────────────────────────────────────────────
+
   static Step _parseStep(dynamic s) {
     final m = s as YamlMap;
     final id = m['id'] as String? ?? '';
 
-    if (m.containsKey('instrucao')) {
-      return Step(id: id, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
+    // Formato canônico: conteudos explícitos
+    if (m.containsKey('conteudos')) {
+      return Step(
+        id: id,
+        conteudos: (m['conteudos'] as YamlList).map(_parseConteudoStep),
+      );
     }
-    if (m.containsKey('campo_simples')) {
-      return Step(id: id, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
-    }
-    if (m.containsKey('selecao_ramo')) {
-      return Step(id: id, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
-    }
-    if (m.containsKey('lista_acoes')) {
-      return Step(id: id, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
-    }
-    if (m.containsKey('ref_materiais')) {
-      return Step(id: id, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
+
+    // Formato shorthand: conteúdo direto no step — retrocompatível
+    // O ConteudoStep herda o id do Step para manter refs existentes.
+    final conteudo = _parseConteudoStepShorthand(id, m);
+    if (conteudo != null) {
+      return Step(id: id, conteudos: [conteudo]);
     }
 
     throw FormatException(
-      'Step "$id" não tem tipo reconhecido. Chaves encontradas: ${m.keys.toList()}',
+      'Step "$id" não tem conteúdo reconhecido. '
+      'Chaves encontradas: ${m.keys.toList()}',
     );
   }
+
+  // ─── ConteudoStep ─────────────────────────────────────────────────────────
+
+  static ConteudoStep _parseConteudoStep(dynamic s) {
+    final m = s as YamlMap;
+    final id = m['id'] as String? ?? '';
+
+    if (m.containsKey('instrucao')) {
+      return ConteudoStep(id: id, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
+    }
+    if (m.containsKey('campo_simples')) {
+      return ConteudoStep(id: id, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
+    }
+    if (m.containsKey('selecao_ramo')) {
+      return ConteudoStep(id: id, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
+    }
+    if (m.containsKey('lista_acoes')) {
+      return ConteudoStep(id: id, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
+    }
+    if (m.containsKey('ref_materiais')) {
+      return ConteudoStep(id: id, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
+    }
+
+    throw FormatException(
+      'ConteudoStep "$id" não tem tipo reconhecido. '
+      'Chaves encontradas: ${m.keys.toList()}',
+    );
+  }
+
+  /// Retrocompatibilidade: lê o tipo de conteúdo diretamente do YamlMap do
+  /// Step e devolve um [ConteudoStep] com o mesmo id do Step.
+  static ConteudoStep? _parseConteudoStepShorthand(String stepId, YamlMap m) {
+    if (m.containsKey('instrucao')) {
+      return ConteudoStep(id: stepId, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
+    }
+    if (m.containsKey('campo_simples')) {
+      return ConteudoStep(id: stepId, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
+    }
+    if (m.containsKey('selecao_ramo')) {
+      return ConteudoStep(id: stepId, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
+    }
+    if (m.containsKey('lista_acoes')) {
+      return ConteudoStep(id: stepId, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
+    }
+    if (m.containsKey('ref_materiais')) {
+      return ConteudoStep(id: stepId, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
+    }
+    return null;
+  }
+
+  // ─── Tipos de ConteudoStep ─────────────────────────────────────────────────
 
   static StepInstrucao _parseStepInstrucao(YamlMap m) {
     return StepInstrucao(
@@ -138,8 +207,7 @@ class ProtocolParser {
       sublabel: m['sublabel'] as String? ?? '',
       minimo: m['minimo'] as int? ?? 0,
       maximo: m['maximo'] as int? ?? 0,
-      tiposDisponiveis: (m['tipos_disponiveis'] as YamlList? ?? YamlList.wrap([]))
-          .map(_parseTipoAcao),
+      tiposDisponiveis: (m['tipos_disponiveis'] as YamlList? ?? YamlList.wrap([])).map(_parseTipoAcao),
     );
   }
 

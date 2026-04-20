@@ -9,7 +9,7 @@ import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tela principal do Wizard
+// Tela principal
 // ─────────────────────────────────────────────────────────────────────────────
 
 class WizardScreen extends ConsumerStatefulWidget {
@@ -40,49 +40,19 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     super.dispose();
   }
 
-  // Valida step atual e avança se possível
-  void _onNextPressed(WizardState state) {
+  void _onNextPressed() {
     HapticFeedback.lightImpact();
-    final flowStep = state.currentFlowStep;
-    if (flowStep == null) return;
-
-    final step = flowStep.step;
-    final kind = step.whichConteudo();
-
-    // StepListaAcoes: verificar mínimo
-    if (kind == Step_Conteudo.listaAcoes) {
-      final minimo = step.listaAcoes.minimo;
-      final count = state.lists[flowStep.answerKey]?.length ?? 0;
-      if (minimo > 0 && count < minimo) {
-        _showSnack('Adicione pelo menos $minimo item(ns) para continuar.');
-        return;
-      }
-      final success = ref.read(wizardControllerProvider.notifier).nextStep();
-      if (success) _scrollToIndex(state.currentIndex + 1);
-      return;
-    }
-
-    // StepInstrucao: sem validação
-    if (kind == Step_Conteudo.instrucao) {
-      final success = ref.read(wizardControllerProvider.notifier).nextStep();
-      if (success) _scrollToIndex(state.currentIndex + 1);
-      return;
-    }
-
+    final state = ref.read(wizardControllerProvider);
     final success = ref.read(wizardControllerProvider.notifier).nextStep();
     if (success) {
       _scrollToIndex(state.currentIndex + 1);
     } else {
-      _showSnack('Por favor, preencha este campo antes de prosseguir.');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Preencha todos os campos obrigatórios para prosseguir.',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF5A1E1E),
+      ));
     }
-  }
-
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      backgroundColor: const Color(0xFF5A1E1E),
-    ));
   }
 
   void _scrollToIndex(int index) {
@@ -90,11 +60,16 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       if (!_scrollController.hasClients) return;
       final state = ref.read(wizardControllerProvider);
       final isSummary = index >= state.queue.length;
-      if (isSummary && _summaryKey.currentContext == null) return;
-      if (!isSummary && (index >= _cardKeys.length || _cardKeys[index].currentContext == null)) return;
-
-      final key = isSummary ? _summaryKey : _cardKeys[index];
-      final ctx = key.currentContext!;
+      GlobalKey key;
+      if (isSummary) {
+        key = _summaryKey;
+      } else if (index < _cardKeys.length) {
+        key = _cardKeys[index];
+      } else {
+        return;
+      }
+      final ctx = key.currentContext;
+      if (ctx == null) return;
       final box = ctx.findRenderObject() as RenderBox;
       final pos = box.localToGlobal(
         Offset.zero,
@@ -120,134 +95,121 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       );
     }
 
-    // Sincronia das GlobalKeys com a fila
     while (_cardKeys.length < state.queue.length) {
       _cardKeys.add(GlobalKey());
     }
 
     return Scaffold(
       backgroundColor: const Color(0xFF060908),
-      body: Stack(
-        children: [
-          // Fundo
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0A1F16), Color(0xFF060908)],
-              ),
+      body: Stack(children: [
+        // Fundo decorativo
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0A1F16), Color(0xFF060908)],
             ),
           ),
-          Positioned(
-            top: -150, left: -100,
-            child: Container(
-              width: 700, height: 700,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1B3D2F).withOpacity(0.4),
-                shape: BoxShape.circle,
-              ),
+        ),
+        Positioned(
+          top: -150, left: -100,
+          child: Container(
+            width: 700, height: 700,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B3D2F).withOpacity(0.4),
+              shape: BoxShape.circle,
             ),
           ),
-          Positioned.fill(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
-                child: Container(color: Colors.transparent),
-              ),
+        ),
+        Positioned.fill(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
+              child: Container(color: Colors.transparent),
             ),
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'FIXALOG',
-                        style: TextStyle(
-                          color: Color(0xFFFF6B00),
-                          fontFamily: 'SpaceGrotesk',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 2.0,
-                        ),
-                      ),
-                      const Spacer(),
-                      // Progresso
-                      if (state.queue.isNotEmpty)
-                        Text(
-                          '${state.currentIndex + 1}/${state.queue.length}',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.35),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
-                  ),
+        ),
+        SafeArea(
+          child: Column(children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                // Barra de progresso
+                const SizedBox(width: 8),
+                const Text('FIXALOG',
+                    style: TextStyle(
+                      color: Color(0xFFFF6B00),
+                      fontFamily: 'SpaceGrotesk',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      letterSpacing: 2.0,
+                    )),
+                const Spacer(),
                 if (state.queue.isNotEmpty)
-                  LinearProgressIndicator(
-                    value: (state.currentIndex + 1) / state.queue.length,
-                    backgroundColor: Colors.white.withOpacity(0.05),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B00)),
-                    minHeight: 2,
-                  ),
-                // Conteúdo scrollável
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).size.height / 2,
-                    ),
-                    child: Column(
-                      children: [
-                        ...state.queue.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final flowStep = entry.value;
-                          final isLocked = index > state.currentIndex;
-                          final isCompleted = index < state.currentIndex;
-
-                          return _StepCard(
-                            key: _cardKeys[index],
-                            flowStep: flowStep,
-                            stepIndex: index + 1,
-                            isLocked: isLocked,
-                            isCompleted: isCompleted,
-                            isLastStep: index == state.queue.length - 1,
-                            onNext: () => _onNextPressed(state),
-                            onBackToStep: () {
-                              ref.read(wizardControllerProvider.notifier).goToStep(index);
-                              _scrollToIndex(index);
-                            },
-                          );
-                        }),
-                        if (state.isFinished)
-                          SummaryConclusionCard(key: _summaryKey),
-                      ],
+                  Text(
+                    '${state.currentIndex + 1}/${state.queue.length}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.35),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+              ]),
             ),
-          ),
-        ],
-      ),
+            // Barra de progresso
+            if (state.queue.isNotEmpty)
+              LinearProgressIndicator(
+                value: (state.currentIndex + 1) / state.queue.length,
+                backgroundColor: Colors.white.withOpacity(0.05),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B00)),
+                minHeight: 2,
+              ),
+            // Cards
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).size.height / 2,
+                ),
+                child: Column(children: [
+                  ...state.queue.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final flowStep = entry.value;
+                    final isLocked = index > state.currentIndex;
+                    final isCompleted = index < state.currentIndex;
+
+                    return _StepCard(
+                      key: _cardKeys[index],
+                      flowStep: flowStep,
+                      stepIndex: index + 1,
+                      isLocked: isLocked,
+                      isCompleted: isCompleted,
+                      isLastStep: index == state.queue.length - 1,
+                      onNext: _onNextPressed,
+                      onBackToStep: () {
+                        ref.read(wizardControllerProvider.notifier).goToStep(index);
+                        _scrollToIndex(index);
+                      },
+                    );
+                  }),
+                  if (state.isFinished) SummaryConclusionCard(key: _summaryKey),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Card genérico de step — despacha para o widget correto
+// Card genérico — itera sobre os conteudos do step
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StepCard extends ConsumerWidget {
@@ -272,16 +234,8 @@ class _StepCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final step = flowStep.step;
-    final kind = step.whichConteudo();
     final isCurrent = !isLocked && !isCompleted;
-
-    double opacity = 1.0;
-    if (isCompleted) opacity = 0.65;
-    if (isLocked) opacity = 0.45;
-
-    // Contexto de lista: badge opcional
-    final inListContext = flowStep.listItemId != null;
+    final opacity = isCompleted ? 0.65 : (isLocked ? 0.45 : 1.0);
 
     return Opacity(
       opacity: opacity,
@@ -297,117 +251,108 @@ class _StepCard extends ConsumerWidget {
             width: isCurrent ? 1.2 : 1.0,
           ),
         ),
-        child: Column(
-          children: [
-            // Indicador de contexto de lista
-            if (inListContext)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D2318),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                ),
-                child: Text(
-                  'Item da lista',
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('PASSO $stepIndex',
                   style: TextStyle(
-                    color: const Color(0xFF4CAF50).withOpacity(0.7),
+                    color: isCurrent
+                        ? const Color(0xFFFF6B00)
+                        : Colors.white.withOpacity(0.35),
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
-                  ),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  )),
+              const SizedBox(height: 16),
+              // Renderiza todos os conteudos em sequência
+              IgnorePointer(
+                ignoring: !isCurrent,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: flowStep.step.conteudos.asMap().entries.map((e) {
+                    final index = e.key;
+                    final conteudo = e.value;
+                    final isFirst = index == 0;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!isFirst) ...[
+                          const SizedBox(height: 20),
+                          Divider(color: Colors.white.withOpacity(0.06)),
+                          const SizedBox(height: 12),
+                        ],
+                        _ConteudoWidget(conteudo: conteudo),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Label do passo
-                  Text(
-                    'PASSO $stepIndex',
-                    style: TextStyle(
-                      color: isCurrent
-                          ? const Color(0xFFFF6B00)
-                          : Colors.white.withOpacity(0.35),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+              // Botões de ação
+              if (isCompleted) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: onBackToStep,
+                    icon: const Icon(Icons.history, size: 14),
+                    label: const Text('VOLTAR A ESTE PASSO',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      backgroundColor: Colors.white.withOpacity(0.04),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Conteúdo do step
-                  IgnorePointer(
-                    ignoring: !isCurrent,
-                    child: _buildStepContent(context, ref, step, kind, isCurrent),
+                ),
+              ],
+              if (isCurrent) ...[
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _NextButton(
+                    flowStep: flowStep,
+                    isLastStep: isLastStep,
+                    onNext: onNext,
                   ),
-                  // Botões de navegação
-                  if (isCompleted) ...[
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: OutlinedButton.icon(
-                        onPressed: onBackToStep,
-                        icon: const Icon(Icons.history, size: 14),
-                        label: const Text(
-                          'VOLTAR A ESTE PASSO',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                              letterSpacing: 0.5),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                          backgroundColor: Colors.white.withOpacity(0.04),
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (isCurrent) ...[
-                    const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _NextButton(
-                        flowStep: flowStep,
-                        isLastStep: isLastStep,
-                        onNext: onNext,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildStepContent(
-    BuildContext context,
-    WidgetRef ref,
-    Step step,
-    Step_Conteudo kind,
-    bool isCurrent,
-  ) {
-    return switch (kind) {
-      Step_Conteudo.instrucao    => InstrucaoWidget(step: step),
-      Step_Conteudo.campoSimples => CampoSimplesWidget(flowStep: flowStep, isCurrent: isCurrent),
-      Step_Conteudo.selecaoRamo  => SelecaoRamoWidget(flowStep: flowStep, isCurrent: isCurrent),
-      Step_Conteudo.listaAcoes   => ListaAcoesWidget(flowStep: flowStep, isCurrent: isCurrent),
-      Step_Conteudo.refMateriais => RefMateriaisWidget(flowStep: flowStep, isCurrent: isCurrent),
-      _ => const Text('Tipo de step não suportado', style: TextStyle(color: Colors.white24)),
+// ─────────────────────────────────────────────────────────────────────────────
+// Despacho de ConteudoStep → widget correto
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ConteudoWidget extends ConsumerWidget {
+  final ConteudoStep conteudo;
+  const _ConteudoWidget({required this.conteudo});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return switch (conteudo.whichTipo()) {
+      ConteudoStep_Tipo.instrucao   => InstrucaoWidget(instrucao: conteudo.instrucao),
+      ConteudoStep_Tipo.campoSimples => CampoSimplesWidget(conteudo: conteudo),
+      ConteudoStep_Tipo.selecaoRamo  => SelecaoRamoWidget(conteudo: conteudo),
+      ConteudoStep_Tipo.listaAcoes   => ListaAcoesWidget(conteudo: conteudo),
+      ConteudoStep_Tipo.refMateriais => RefMateriaisWidget(conteudo: conteudo),
+      _ => const Text('Tipo de conteúdo não suportado',
+                style: TextStyle(color: Colors.white24)),
     };
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Botão "Próximo" adaptável
+// Botão Próximo
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _NextButton extends ConsumerWidget {
@@ -419,64 +364,74 @@ class _NextButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
-    final hasAnswer = state.answers.containsKey(flowStep.answerKey);
-    final step = flowStep.step;
-    final kind = step.whichConteudo();
 
-    // StepInstrucao e StepListaAcoes sempre habilitados
-    final alwaysEnabled =
-        kind == Step_Conteudo.instrucao || kind == Step_Conteudo.listaAcoes;
-    final isEnabled = alwaysEnabled || hasAnswer;
+    // Verificar se todos os conteudos obrigatórios estão satisfeitos
+    bool allSatisfied = true;
+    String label = isLastStep ? 'ASSINAR E CONCLUIR' : 'SEGUINTE';
 
-    String label;
-    if (kind == Step_Conteudo.instrucao) {
-      label = 'ENTENDIDO';
-    } else if (kind == Step_Conteudo.listaAcoes) {
-      final count = state.lists[flowStep.answerKey]?.length ?? 0;
-      label = count > 0 ? 'CONCLUIR LISTA ($count)' : 'PULAR';
-    } else if (isLastStep) {
-      label = 'ASSINAR E CONCLUIR';
-    } else {
-      label = 'SEGUINTE';
+    for (final c in flowStep.step.conteudos) {
+      final kind = c.whichTipo();
+      if (kind == ConteudoStep_Tipo.instrucao) continue;
+
+      if (kind == ConteudoStep_Tipo.listaAcoes) {
+        final count = state.lists[c.id]?.length ?? 0;
+        final minimo = c.listaAcoes.minimo;
+        if (minimo > 0 && count < minimo) allSatisfied = false;
+        label = count > 0 ? 'CONCLUIR LISTA ($count)' : (minimo == 0 ? 'PULAR' : 'SEGUINTE');
+        continue;
+      }
+
+      if (kind == ConteudoStep_Tipo.campoSimples && c.campoSimples.obrigatorio &&
+          !state.answers.containsKey(c.id)) {
+        allSatisfied = false;
+      }
+      if (kind == ConteudoStep_Tipo.selecaoRamo && c.selecaoRamo.obrigatorio &&
+          !state.answers.containsKey(c.id)) {
+        allSatisfied = false;
+      }
+      if (kind == ConteudoStep_Tipo.refMateriais && c.refMateriais.obrigatorio &&
+          !state.answers.containsKey(c.id)) {
+        allSatisfied = false;
+      }
     }
 
     return ElevatedButton(
       onPressed: onNext,
       style: ElevatedButton.styleFrom(
-        backgroundColor:
-            isEnabled ? const Color(0xFFFF6B00) : Colors.white.withOpacity(0.08),
-        foregroundColor: isEnabled ? Colors.white : Colors.white24,
+        backgroundColor: allSatisfied
+            ? const Color(0xFFFF6B00)
+            : Colors.white.withOpacity(0.08),
+        foregroundColor: allSatisfied ? Colors.white : Colors.white24,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         elevation: 0,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, size: 18),
-        ],
-      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        const SizedBox(width: 8),
+        const Icon(Icons.chevron_right, size: 18),
+      ]),
     );
   }
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WIDGETS DE CONTEÚDO — Fluxo principal
+// ═════════════════════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StepInstrucao
 // ─────────────────────────────────────────────────────────────────────────────
 
 class InstrucaoWidget extends StatelessWidget {
-  final Step step;
-  const InstrucaoWidget({super.key, required this.step});
+  final StepInstrucao instrucao;
+  const InstrucaoWidget({super.key, required this.instrucao});
 
   @override
   Widget build(BuildContext context) {
-    final inst = step.instrucao;
-    final Color alertColor = switch (inst.nivelAlerta) {
+    final Color alertColor = switch (instrucao.nivelAlerta) {
       StepInstrucao_NivelAlerta.PERIGO  => const Color(0xFFFF3D3D),
       StepInstrucao_NivelAlerta.ATENCAO => const Color(0xFFFFB800),
       _                                  => const Color(0xFF4FC3F7),
@@ -485,52 +440,38 @@ class InstrucaoWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Título
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: alertColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                ProtocolIcons.get(inst.iconName),
-                color: alertColor,
-                size: 22,
-              ),
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: alertColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                inst.titulo,
+            child: Icon(ProtocolIcons.get(instrucao.iconName), color: alertColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(instrucao.titulo,
                 style: TextStyle(
                   color: alertColor,
                   fontFamily: 'SpaceGrotesk',
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (inst.corpo.isNotEmpty) ...[
-          const SizedBox(height: 16),
+                )),
+          ),
+        ]),
+        if (instrucao.corpo.isNotEmpty) ...[
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: alertColor.withOpacity(0.06),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: alertColor.withOpacity(0.2)),
             ),
-            child: Text(
-              inst.corpo,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.75),
-                fontSize: 13,
-                height: 1.6,
-              ),
-            ),
+            child: Text(instrucao.corpo,
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.75), fontSize: 13, height: 1.6)),
           ),
         ],
       ],
@@ -539,315 +480,59 @@ class InstrucaoWidget extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// StepCampoSimples
+// StepCampoSimples (fluxo principal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CampoSimplesWidget extends ConsumerWidget {
-  final FlowStep flowStep;
-  final bool isCurrent;
-  const CampoSimplesWidget({super.key, required this.flowStep, required this.isCurrent});
+  final ConteudoStep conteudo;
+  const CampoSimplesWidget({super.key, required this.conteudo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state  = ref.watch(wizardControllerProvider);
-    final campo  = flowStep.step.campoSimples;
-    final answer = state.answers[flowStep.answerKey];
-
-    void saveAnswer(String val) =>
-        ref.read(wizardControllerProvider.notifier).answerCurrentStep(val);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          campo.label,
-          style: TextStyle(
-            color: isCurrent ? Colors.white : Colors.white70,
-            fontFamily: 'SpaceGrotesk',
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            height: 1.2,
-          ),
-        ),
-        if (campo.sublabel.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(campo.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.4)),
-        ],
-        const SizedBox(height: 24),
-        _buildInput(campo, answer, isCurrent, saveAnswer),
-      ],
-    );
+    final campo = conteudo.campoSimples;
+    final answer = ref.watch(wizardControllerProvider).answers[conteudo.id];
+    void save(String v) =>
+        ref.read(wizardControllerProvider.notifier).answerConteudo(conteudo.id, v);
+    return _CampoSimplesContent(campo: campo, answer: answer, onSave: save);
   }
-
-  Widget _buildInput(StepCampoSimples campo, String? answer, bool isCurrent,
-      void Function(String) save) {
-    switch (campo.tipo) {
-      case StepCampoSimples_TipoCampo.TEXT:
-      case StepCampoSimples_TipoCampo.NUMBER:
-      case StepCampoSimples_TipoCampo.DATE:
-        final isMultiline = campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA;
-        return TextFormField(
-          initialValue: answer,
-          readOnly: !isCurrent,
-          maxLines: isMultiline ? 4 : 1,
-          keyboardType: campo.tipo == StepCampoSimples_TipoCampo.NUMBER
-              ? TextInputType.number
-              : TextInputType.text,
-          style: TextStyle(
-              color: isCurrent ? Colors.white : Colors.white24, fontSize: 16),
-          decoration: _inputDecoration(
-            campo.tipo == StepCampoSimples_TipoCampo.DATE
-                ? 'DD/MM/AAAA'
-                : 'DIGITE AQUI...',
-          ),
-          onChanged: save,
-        );
-
-      case StepCampoSimples_TipoCampo.BOOLEAN:
-        return Row(
-          children: [
-            Expanded(
-              child: _SelectionTile(
-                title: 'SIM',
-                subtitle: '',
-                icon: Icons.check_circle_outline,
-                isSelected: answer == 'true',
-                onTap: () => save('true'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SelectionTile(
-                title: 'NÃO',
-                subtitle: '',
-                icon: Icons.cancel_outlined,
-                isSelected: answer == 'false',
-                onTap: () => save('false'),
-              ),
-            ),
-          ],
-        );
-
-      case StepCampoSimples_TipoCampo.DROPDOWN:
-        if (campo.uiHint == StepCampoSimples_UiHint.LARGE_TILES) {
-          return Column(
-            children: campo.opcoes.map((opcao) {
-              return _SelectionTile(
-                title: opcao.label,
-                subtitle: opcao.sublabel,
-                icon: ProtocolIcons.get(opcao.iconName),
-                isSelected: answer == opcao.valor,
-                onTap: () => save(opcao.valor),
-              );
-            }).toList(),
-          );
-        }
-        // Dropdown padrão
-        return DropdownButtonFormField<String>(
-          value: answer,
-          dropdownColor: const Color(0xFF1A1C1E),
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration('SELECIONE...'),
-          items: campo.opcoes
-              .map((o) => DropdownMenuItem(value: o.valor, child: Text(o.label)))
-              .toList(),
-          onChanged: isCurrent ? (v) => save(v ?? '') : null,
-        );
-
-      case StepCampoSimples_TipoCampo.GPS:
-        final hasCoord = answer != null && answer.isNotEmpty;
-        return GestureDetector(
-          onTap: isCurrent
-              ? () => save('-19.9218, -43.9366') // mock
-              : null,
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.black26,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF1A1D1C),
-                    borderRadius: BorderRadius.circular(8)),
-                child: Icon(
-                  hasCoord ? Icons.location_on : Icons.gps_fixed,
-                  color: hasCoord ? const Color(0xFFFF6B00) : Colors.white24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(
-                    hasCoord ? 'COORDENADAS CAPTURADAS' : 'CAPTURAR POSIÇÃO',
-                    style: TextStyle(
-                        color: hasCoord ? Colors.white : Colors.white38,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 1.0),
-                  ),
-                  if (hasCoord)
-                    Text(answer,
-                        style: TextStyle(
-                            color: const Color(0xFFFF6B00).withOpacity(0.7),
-                            fontSize: 10,
-                            fontFamily: 'monospace')),
-                ]),
-              ),
-            ]),
-          ),
-        );
-
-      case StepCampoSimples_TipoCampo.IMAGE:
-      case StepCampoSimples_TipoCampo.VIDEO:
-        final isCaptured = answer != null && answer.isNotEmpty;
-        final isVideo = campo.tipo == StepCampoSimples_TipoCampo.VIDEO;
-        return GestureDetector(
-          onTap: isCurrent ? () => save(isVideo ? 'video_captured.mp4' : 'image_captured.jpg') : null,
-          child: Container(
-            width: double.infinity,
-            height: 160,
-            decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05))),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF1A1D1C),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Icon(
-                  isCaptured
-                      ? Icons.check_circle
-                      : (isVideo ? Icons.videocam_outlined : Icons.camera_alt_outlined),
-                  color: isCaptured ? Colors.greenAccent : Colors.white24,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                isCaptured ? (isVideo ? 'VÍDEO GRAVADO' : 'FOTO CAPTURADA') : (isVideo ? 'GRAVAR VÍDEO' : 'ABRIR CÂMERA'),
-                style: TextStyle(
-                    color: isCaptured ? Colors.greenAccent : Colors.white38,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.0),
-              ),
-            ]),
-          ),
-        );
-
-      case StepCampoSimples_TipoCampo.SIGNATURE:
-        final hasSig = answer != null && answer.isNotEmpty;
-        return GestureDetector(
-          onTap: isCurrent ? () => save('signature_data') : null,
-          child: Container(
-            height: 200,
-            decoration: BoxDecoration(
-                color: Colors.black38,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: hasSig
-                        ? const Color(0xFFFF6B00).withOpacity(0.4)
-                        : Colors.white.withOpacity(0.05))),
-            child: Center(
-              child: hasSig
-                  ? Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.check_circle, color: Color(0xFFFF6B00), size: 40),
-                      const SizedBox(height: 8),
-                      const Text('ASSINATURA REGISTRADA',
-                          style: TextStyle(
-                              color: Color(0xFFFF6B00),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                              letterSpacing: 1.0)),
-                    ])
-                  : Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.gesture, color: Colors.white.withOpacity(0.12), size: 48),
-                      const SizedBox(height: 8),
-                      Text('TOQUE PARA ASSINAR',
-                          style: TextStyle(
-                              color: Colors.white.withOpacity(0.25),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                              letterSpacing: 1.0)),
-                    ]),
-            ),
-          ),
-        );
-
-      default:
-        return Text('Tipo de campo não implementado: ${campo.tipo}',
-            style: const TextStyle(color: Colors.white24));
-    }
-  }
-
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
-        filled: true,
-        fillColor: Colors.black26,
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
-        contentPadding: const EdgeInsets.all(20),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: const Color(0xFFFF6B00).withOpacity(0.5))),
-      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// StepSelecaoRamo
+// StepSelecaoRamo (fluxo principal — injeta steps na fila)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SelecaoRamoWidget extends ConsumerWidget {
-  final FlowStep flowStep;
-  final bool isCurrent;
-  const SelecaoRamoWidget({super.key, required this.flowStep, required this.isCurrent});
+  final ConteudoStep conteudo;
+  const SelecaoRamoWidget({super.key, required this.conteudo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(wizardControllerProvider);
-    final selecao  = flowStep.step.selecaoRamo;
-    final selected = state.answers[flowStep.answerKey];
+    final selecao = conteudo.selecaoRamo;
+    final selected = ref.watch(wizardControllerProvider).answers[conteudo.id];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          selecao.label,
-          style: TextStyle(
-            color: isCurrent ? Colors.white : Colors.white70,
-            fontFamily: 'SpaceGrotesk',
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(selecao.label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'SpaceGrotesk',
+                fontSize: 18,
+                fontWeight: FontWeight.bold)),
         if (selecao.sublabel.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(selecao.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.4)),
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         ...selecao.ramos.map((ramo) => _SelectionTile(
               title: ramo.label,
               subtitle: ramo.sublabel,
               icon: ProtocolIcons.get(ramo.iconName),
               isSelected: selected == ramo.id,
-              onTap: isCurrent
-                  ? () => ref
-                      .read(wizardControllerProvider.notifier)
-                      .chooseRamo(ramo.id)
-                  : null,
+              onTap: () => ref
+                  .read(wizardControllerProvider.notifier)
+                  .chooseRamo(conteudo.id, ramo.id),
             )),
       ],
     );
@@ -855,69 +540,55 @@ class SelecaoRamoWidget extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// StepListaAcoes
+// StepListaAcoes — itens como cards expansíveis dentro do card pai
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ListaAcoesWidget extends ConsumerWidget {
-  final FlowStep flowStep;
-  final bool isCurrent;
-  const ListaAcoesWidget({super.key, required this.flowStep, required this.isCurrent});
+  final ConteudoStep conteudo;
+  const ListaAcoesWidget({super.key, required this.conteudo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state    = ref.watch(wizardControllerProvider);
-    final lista    = flowStep.step.listaAcoes;
-    final items    = state.lists[flowStep.answerKey] ?? [];
+    final state = ref.watch(wizardControllerProvider);
+    final lista = conteudo.listaAcoes;
+    final items = state.lists[conteudo.id] ?? [];
+    final expandedId = state.expandedListItems[conteudo.id];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          lista.label,
-          style: TextStyle(
-              color: isCurrent ? Colors.white : Colors.white70,
-              fontFamily: 'SpaceGrotesk',
-              fontSize: 22,
-              fontWeight: FontWeight.bold),
-        ),
+        Text(lista.label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'SpaceGrotesk',
+                fontSize: 18,
+                fontWeight: FontWeight.bold)),
         if (lista.sublabel.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(lista.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.4)),
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
         ],
-        const SizedBox(height: 20),
-        // Itens já adicionados
-        if (items.isNotEmpty) ...[
-          ...items.map((item) => Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D2318),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
-                ),
-                child: Row(children: [
-                  Icon(ProtocolIcons.get(item.tipoIconName),
-                      color: const Color(0xFF4CAF50), size: 18),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(item.tipoLabel,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  ),
-                  Icon(Icons.check_circle, color: const Color(0xFF4CAF50).withOpacity(0.6), size: 16),
-                ]),
-              )),
-          const SizedBox(height: 12),
-        ],
-        // Botão de adicionar
-        if (isCurrent && (lista.maximo == 0 || items.length < lista.maximo))
+        const SizedBox(height: 16),
+
+        // Itens da lista
+        ...items.map((item) => InlineItemCard(
+              key: ValueKey(item.id),
+              item: item,
+              listConteudoId: conteudo.id,
+              isExpanded: expandedId == item.id,
+            )),
+
+        const SizedBox(height: 8),
+
+        // Botão adicionar
+        if (lista.maximo == 0 || items.length < lista.maximo)
           OutlinedButton.icon(
             onPressed: () => _showAddItemSheet(context, ref, lista),
             icon: const Icon(Icons.add, size: 18),
             label: Text(
               items.isEmpty ? 'ADICIONAR ITEM' : 'ADICIONAR OUTRO',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFFF6B00),
@@ -927,18 +598,18 @@ class ListaAcoesWidget extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
+
         if (lista.minimo > 0 && items.length < lista.minimo) ...[
           const SizedBox(height: 8),
-          Text(
-            'Mínimo ${lista.minimo} item(ns) necessário(s).',
-            style: TextStyle(color: Colors.orange.withOpacity(0.6), fontSize: 11),
-          ),
+          Text('Mínimo ${lista.minimo} item(ns) obrigatório(s).',
+              style: TextStyle(color: Colors.orange.withOpacity(0.6), fontSize: 11)),
         ],
       ],
     );
   }
 
-  void _showAddItemSheet(BuildContext context, WidgetRef ref, StepListaAcoes lista) {
+  void _showAddItemSheet(
+      BuildContext context, WidgetRef ref, StepListaAcoes lista) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF181A1C),
@@ -950,22 +621,19 @@ class ListaAcoesWidget extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'SELECIONE O TIPO',
-              style: TextStyle(
-                  color: Color(0xFFFF6B00),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.5),
-            ),
+            const Text('SELECIONE O TIPO',
+                style: TextStyle(
+                    color: Color(0xFFFF6B00),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.5)),
             const SizedBox(height: 16),
             ...lista.tiposDisponiveis.map((tipo) => GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
-                    ref.read(wizardControllerProvider.notifier).addListItem(
-                          listStepId: flowStep.answerKey,
-                          tipo: tipo,
-                        );
+                    ref
+                        .read(wizardControllerProvider.notifier)
+                        .addListItem(listConteudoId: conteudo.id, tipo: tipo);
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
@@ -985,19 +653,15 @@ class ListaAcoesWidget extends ConsumerWidget {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(tipo.label,
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(tipo.label,
+                              style: const TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold)),
+                          if (tipo.sublabel.isNotEmpty)
+                            Text(tipo.sublabel,
                                 style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold)),
-                            if (tipo.sublabel.isNotEmpty)
-                              Text(tipo.sublabel,
-                                  style: const TextStyle(
-                                      color: Colors.white38, fontSize: 11)),
-                          ],
-                        ),
+                                    color: Colors.white38, fontSize: 11)),
+                        ]),
                       ),
                       const Icon(Icons.chevron_right, color: Colors.white24),
                     ]),
@@ -1011,102 +675,694 @@ class ListaAcoesWidget extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// StepRefMateriais
+// StepRefMateriais (fluxo principal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class RefMateriaisWidget extends ConsumerWidget {
-  final FlowStep flowStep;
-  final bool isCurrent;
-  const RefMateriaisWidget({super.key, required this.flowStep, required this.isCurrent});
+  final ConteudoStep conteudo;
+  const RefMateriaisWidget({super.key, required this.conteudo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state       = ref.watch(wizardControllerProvider);
-    final refStep     = flowStep.step.refMateriais;
-    final allItems    = state.lists[refStep.idStepMateriais] ?? [];
-    final selectedIds = state.refSelections[flowStep.answerKey] ?? [];
+    final state = ref.watch(wizardControllerProvider);
+    final refStep = conteudo.refMateriais;
+    final allItems = state.lists[refStep.idStepMateriais] ?? [];
+    final selectedIds = state.refSelections[conteudo.id] ?? [];
 
+    return _RefMateriaisContent(
+      label: refStep.label,
+      sublabel: refStep.sublabel,
+      allItems: allItems,
+      selectedIds: selectedIds,
+      onToggle: (itemId) {
+        final newIds = List<String>.from(selectedIds);
+        newIds.contains(itemId) ? newIds.remove(itemId) : newIds.add(itemId);
+        ref.read(wizardControllerProvider.notifier).setRefMateriais(conteudo.id, newIds);
+      },
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INLINE ITEM CARD — card expansível dentro de ListaAcoesWidget
+// ═════════════════════════════════════════════════════════════════════════════
+
+class InlineItemCard extends ConsumerWidget {
+  final ListItemRecord item;
+  final String listConteudoId;
+  final bool isExpanded;
+
+  const InlineItemCard({
+    super.key,
+    required this.item,
+    required this.listConteudoId,
+    required this.isExpanded,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isExpanded
+            ? const Color(0xFF0D1F15)
+            : const Color(0xFF0F1210),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isExpanded
+              ? const Color(0xFF4CAF50).withOpacity(0.4)
+              : Colors.white.withOpacity(0.08),
+          width: isExpanded ? 1.5 : 1.0,
+        ),
+      ),
+      child: isExpanded ? _buildExpanded(context, ref) : _buildCollapsed(context, ref),
+    );
+  }
+
+  Widget _buildCollapsed(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => ref
+          .read(wizardControllerProvider.notifier)
+          .expandListItem(listConteudoId, item.id),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: const Color(0xFF1A2E1E),
+                borderRadius: BorderRadius.circular(6)),
+            child: Icon(ProtocolIcons.get(item.tipoIconName),
+                color: const Color(0xFF4CAF50), size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(children: [
+              const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 14),
+              const SizedBox(width: 6),
+              Text(item.tipoLabel,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            ]),
+          ),
+          Icon(Icons.expand_more,
+              color: Colors.white.withOpacity(0.3), size: 18),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildExpanded(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          refStep.label,
-          style: TextStyle(
-              color: isCurrent ? Colors.white : Colors.white70,
-              fontFamily: 'SpaceGrotesk',
-              fontSize: 22,
-              fontWeight: FontWeight.bold),
+        // Header do item expandido
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          child: Row(children: [
+            Icon(ProtocolIcons.get(item.tipoIconName),
+                color: const Color(0xFF4CAF50), size: 18),
+            const SizedBox(width: 10),
+            Text(item.tipoLabel.toUpperCase(),
+                style: const TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.4)),
+            const Spacer(),
+            // Botão para colapsar sem confirmar
+            InkWell(
+              onTap: () => ref
+                  .read(wizardControllerProvider.notifier)
+                  .expandListItem(listConteudoId, ''), // colapsa
+              child: Icon(Icons.expand_less,
+                  color: Colors.white.withOpacity(0.3), size: 20),
+            ),
+            const SizedBox(width: 8),
+            // Remover item
+            InkWell(
+              onTap: () => _confirmDelete(context, ref),
+              child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+            ),
+          ]),
         ),
-        if (refStep.sublabel.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(refStep.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.4)),
+        Divider(color: const Color(0xFF4CAF50).withOpacity(0.2), height: 20),
+        // Conteúdos do item (renderização recursiva inline)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: InlineStepsRenderer(
+            steps: item.tipo.steps,
+            itemId: item.id,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Botão Confirmar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              final success = ref
+                  .read(wizardControllerProvider.notifier)
+                  .confirmListItem(listConteudoId, item.id);
+              if (!success) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Preencha os campos obrigatórios do item.',
+                      style: TextStyle(color: Colors.white)),
+                  backgroundColor: Color(0xFF5A1E1E),
+                ));
+              }
+            },
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('CONFIRMAR ITEM',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1C1E),
+        title: const Text('Remover item?',
+            style: TextStyle(color: Colors.white)),
+        content: Text('Remover "${item.tipoLabel}"?',
+            style: const TextStyle(color: Colors.white54)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ref.read(wizardControllerProvider.notifier)
+                  .removeListItem(listConteudoId, item.id);
+            },
+            child: const Text('REMOVER', style: TextStyle(color: Colors.red)),
+          ),
         ],
-        const SizedBox(height: 20),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Renderização recursiva dos steps inline de um item de lista
+// ─────────────────────────────────────────────────────────────────────────────
+
+class InlineStepsRenderer extends StatelessWidget {
+  final List<Step> steps;
+  final String itemId;
+
+  const InlineStepsRenderer({
+    super.key,
+    required this.steps,
+    required this.itemId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: steps.expand((step) {
+        return step.conteudos.asMap().entries.map((e) {
+          final idx = e.key;
+          final conteudo = e.value;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (idx > 0 || steps.indexOf(step) > 0) ...[
+                const SizedBox(height: 16),
+                Divider(color: Colors.white.withOpacity(0.04)),
+                const SizedBox(height: 10),
+              ],
+              InlineConteudoRenderer(conteudo: conteudo, itemId: itemId),
+            ],
+          );
+        });
+      }).toList(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Renderização de um ConteudoStep inline (dentro de um item de lista)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class InlineConteudoRenderer extends ConsumerWidget {
+  final ConteudoStep conteudo;
+  final String itemId;
+
+  const InlineConteudoRenderer({
+    super.key,
+    required this.conteudo,
+    required this.itemId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final answerKey = '${conteudo.id}__$itemId';
+
+    switch (conteudo.whichTipo()) {
+      case ConteudoStep_Tipo.instrucao:
+        return InstrucaoWidget(instrucao: conteudo.instrucao);
+
+      case ConteudoStep_Tipo.campoSimples:
+        final campo = conteudo.campoSimples;
+        final answer = ref.watch(wizardControllerProvider).answers[answerKey];
+        return _CampoSimplesContent(
+          campo: campo,
+          answer: answer,
+          onSave: (v) => ref
+              .read(wizardControllerProvider.notifier)
+              .answerInlineConteudo(conteudo.id, v, itemId),
+        );
+
+      case ConteudoStep_Tipo.selecaoRamo:
+        final selecao = conteudo.selecaoRamo;
+        final selectedRamoId =
+            ref.watch(wizardControllerProvider).answers[answerKey];
+        final selectedRamo = selectedRamoId != null
+            ? selecao.ramos.cast<Ramo?>().firstWhere(
+                (r) => r?.id == selectedRamoId,
+                orElse: () => null)
+            : null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Seleção de ramo (puro UI — sem queue injection)
+            _InlineSelecaoRamoWidget(
+              selecao: selecao,
+              selectedId: selectedRamoId,
+              onChoose: (ramoId) => ref
+                  .read(wizardControllerProvider.notifier)
+                  .answerInlineConteudo(conteudo.id, ramoId, itemId),
+            ),
+            // Sub-steps do ramo escolhido (recursivo)
+            if (selectedRamo != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.only(left: 16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: const Color(0xFFFF6B00).withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: InlineStepsRenderer(
+                  steps: selectedRamo.steps,
+                  itemId: itemId,
+                ),
+              ),
+            ],
+          ],
+        );
+
+      case ConteudoStep_Tipo.refMateriais:
+        final refStep = conteudo.refMateriais;
+        final state = ref.watch(wizardControllerProvider);
+        final allItems = state.lists[refStep.idStepMateriais] ?? [];
+        final selectedIds = state.refSelections[answerKey] ?? [];
+
+        return _RefMateriaisContent(
+          label: refStep.label,
+          sublabel: refStep.sublabel,
+          allItems: allItems,
+          selectedIds: selectedIds,
+          onToggle: (mid) {
+            final newIds = List<String>.from(selectedIds);
+            newIds.contains(mid) ? newIds.remove(mid) : newIds.add(mid);
+            ref
+                .read(wizardControllerProvider.notifier)
+                .setRefMateriais(conteudo.id, newIds, listItemId: itemId);
+          },
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Selecao de ramo inline (sem queue injection — puro UI)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InlineSelecaoRamoWidget extends StatelessWidget {
+  final StepSelecaoRamo selecao;
+  final String? selectedId;
+  final void Function(String ramoId) onChoose;
+
+  const _InlineSelecaoRamoWidget({
+    required this.selecao,
+    required this.selectedId,
+    required this.onChoose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(selecao.label,
+            style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 14)),
+        const SizedBox(height: 10),
+        ...selecao.ramos.map((ramo) => _SelectionTile(
+              title: ramo.label,
+              subtitle: ramo.sublabel,
+              icon: ProtocolIcons.get(ramo.iconName),
+              isSelected: selectedId == ramo.id,
+              onTap: () => onChoose(ramo.id),
+            )),
+      ],
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WIDGETS REUTILIZÁVEIS (internos)
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CampoSimples — conteúdo compartilhado entre inline e principal
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CampoSimplesContent extends StatelessWidget {
+  final StepCampoSimples campo;
+  final String? answer;
+  final void Function(String) onSave;
+
+  const _CampoSimplesContent({
+    required this.campo,
+    required this.answer,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(children: [
+          Expanded(
+            child: Text(campo.label,
+                style: const TextStyle(
+                    color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+          ),
+          if (campo.obrigatorio)
+            Text(' *', style: const TextStyle(color: Color(0xFFFF6B00), fontSize: 14)),
+        ]),
+        if (campo.sublabel.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(campo.sublabel,
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+        ],
+        const SizedBox(height: 10),
+        _buildInput(campo, answer, onSave),
+      ],
+    );
+  }
+
+  Widget _buildInput(StepCampoSimples campo, String? answer, void Function(String) save) {
+    switch (campo.tipo) {
+      case StepCampoSimples_TipoCampo.TEXT:
+      case StepCampoSimples_TipoCampo.NUMBER:
+      case StepCampoSimples_TipoCampo.DATE:
+        return TextFormField(
+          initialValue: answer,
+          maxLines: campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA ? 4 : 1,
+          keyboardType: campo.tipo == StepCampoSimples_TipoCampo.NUMBER
+              ? TextInputType.number
+              : TextInputType.text,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+          decoration: _inputDec(
+              campo.tipo == StepCampoSimples_TipoCampo.DATE ? 'DD/MM/AAAA' : 'DIGITAR...'),
+          onChanged: save,
+        );
+
+      case StepCampoSimples_TipoCampo.BOOLEAN:
+        return Row(children: [
+          Expanded(child: _SelectionTile(title: 'SIM', subtitle: '', icon: Icons.check_circle_outline, isSelected: answer == 'true', onTap: () => save('true'))),
+          const SizedBox(width: 10),
+          Expanded(child: _SelectionTile(title: 'NÃO', subtitle: '', icon: Icons.cancel_outlined, isSelected: answer == 'false', onTap: () => save('false'))),
+        ]);
+
+      case StepCampoSimples_TipoCampo.DROPDOWN:
+        if (campo.uiHint == StepCampoSimples_UiHint.LARGE_TILES) {
+          return Column(
+              children: campo.opcoes.map((o) => _SelectionTile(
+                    title: o.label,
+                    subtitle: o.sublabel,
+                    icon: ProtocolIcons.get(o.iconName),
+                    isSelected: answer == o.valor,
+                    onTap: () => save(o.valor),
+                  )).toList());
+        }
+        return DropdownButtonFormField<String>(
+          value: answer,
+          dropdownColor: const Color(0xFF1A1C1E),
+          style: const TextStyle(color: Colors.white),
+          decoration: _inputDec('SELECIONAR...'),
+          items: campo.opcoes
+              .map((o) => DropdownMenuItem(value: o.valor, child: Text(o.label)))
+              .toList(),
+          onChanged: (v) => save(v ?? ''),
+        );
+
+      case StepCampoSimples_TipoCampo.GPS:
+        final has = answer != null && answer.isNotEmpty;
+        return GestureDetector(
+          onTap: () => save('-19.9218, -43.9366'),
+          child: _actionTile(
+            icon: has ? Icons.location_on : Icons.gps_fixed,
+            label: has ? 'COORDENADAS CAPTURADAS' : 'CAPTURAR POSIÇÃO GPS',
+            sub: has ? answer : '',
+            active: has,
+          ),
+        );
+
+      case StepCampoSimples_TipoCampo.IMAGE:
+      case StepCampoSimples_TipoCampo.VIDEO:
+        final has = answer != null && answer.isNotEmpty;
+        final isVid = campo.tipo == StepCampoSimples_TipoCampo.VIDEO;
+        return GestureDetector(
+          onTap: () => save(isVid ? 'video.mp4' : 'photo.jpg'),
+          child: _actionTile(
+            icon: has
+                ? Icons.check_circle
+                : (isVid ? Icons.videocam_outlined : Icons.camera_alt_outlined),
+            label: has
+                ? (isVid ? 'VÍDEO GRAVADO' : 'FOTO CAPTURADA')
+                : (isVid ? 'GRAVAR VÍDEO' : 'ABRIR CÂMERA'),
+            sub: '',
+            active: has,
+          ),
+        );
+
+      case StepCampoSimples_TipoCampo.SIGNATURE:
+        final has = answer != null && answer.isNotEmpty;
+        return GestureDetector(
+          onTap: () => save('signature_data'),
+          child: Container(
+            height: 160,
+            decoration: BoxDecoration(
+                color: Colors.black38,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: has
+                        ? const Color(0xFFFF6B00).withOpacity(0.4)
+                        : Colors.white.withOpacity(0.05))),
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(has ? Icons.check_circle : Icons.gesture,
+                    color: has ? const Color(0xFFFF6B00) : Colors.white12, size: 40),
+                const SizedBox(height: 8),
+                Text(has ? 'ASSINATURA REGISTRADA' : 'TOQUE PARA ASSINAR',
+                    style: TextStyle(
+                        color: has
+                            ? const Color(0xFFFF6B00)
+                            : Colors.white.withOpacity(0.2),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.0)),
+              ]),
+            ),
+          ),
+        );
+
+      default:
+        return Text('Tipo não implementado: ${campo.tipo}',
+            style: const TextStyle(color: Colors.white24));
+    }
+  }
+
+  Widget _actionTile({
+    required IconData icon,
+    required String label,
+    required String sub,
+    required bool active,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: Colors.black26,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withOpacity(0.06))),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: const Color(0xFF1A1D1C),
+              borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon,
+              color: active ? const Color(0xFFFF6B00) : Colors.white24, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: TextStyle(
+                    color: active ? Colors.white : Colors.white38,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 0.8)),
+            if (sub.isNotEmpty)
+              Text(sub,
+                  style: const TextStyle(
+                      color: Color(0xFFFF6B00), fontSize: 10, fontFamily: 'monospace')),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  InputDecoration _inputDec(String hint) => InputDecoration(
+        filled: true,
+        fillColor: Colors.black26,
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
+        contentPadding: const EdgeInsets.all(16),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                BorderSide(color: const Color(0xFFFF6B00).withOpacity(0.5))),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RefMateriais — conteúdo compartilhado entre inline e principal
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RefMateriaisContent extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final List<ListItemRecord> allItems;
+  final List<String> selectedIds;
+  final void Function(String itemId) onToggle;
+
+  const _RefMateriaisContent({
+    required this.label,
+    required this.sublabel,
+    required this.allItems,
+    required this.selectedIds,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+        if (sublabel.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(sublabel,
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+        ],
+        const SizedBox(height: 10),
         if (allItems.isEmpty)
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
                 color: Colors.black26,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.white.withOpacity(0.05))),
             child: Text(
               'Nenhum material registrado no Bloco 1.\nVolte e adicione os materiais primeiro.',
-              style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 13, height: 1.5),
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.3), fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
           )
         else
           ...allItems.map((item) {
-            final isSelected = selectedIds.contains(item.id);
+            final isSel = selectedIds.contains(item.id);
             return GestureDetector(
-              onTap: isCurrent
-                  ? () {
-                      final newIds = List<String>.from(selectedIds);
-                      if (isSelected) {
-                        newIds.remove(item.id);
-                      } else {
-                        newIds.add(item.id);
-                      }
-                      ref.read(wizardControllerProvider.notifier).setRefMateriais(newIds);
-                    }
-                  : null,
+              onTap: () => onToggle(item.id),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.02) : Colors.black26,
+                  color: isSel ? Colors.white.withOpacity(0.02) : Colors.black26,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected
+                    color: isSel
                         ? const Color(0xFFFF6B00).withOpacity(0.5)
                         : Colors.white.withOpacity(0.06),
-                    width: isSelected ? 1.5 : 1,
                   ),
                 ),
                 child: Row(children: [
                   Icon(ProtocolIcons.get(item.tipoIconName),
-                      color: isSelected ? const Color(0xFFFF6B00) : Colors.white38,
-                      size: 20),
+                      color: isSel ? const Color(0xFFFF6B00) : Colors.white38,
+                      size: 18),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(item.tipoLabel,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
+                      child: Text(item.tipoLabel,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold))),
                   Container(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: isSelected
+                          color: isSel
                               ? const Color(0xFFFF6B00)
                               : Colors.white24,
                           width: 2),
                     ),
-                    child: isSelected
-                        ? const Center(
-                            child: Icon(Icons.check, color: Color(0xFFFF6B00), size: 12))
+                    child: isSel
+                        ? Center(
+                            child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                    color: Color(0xFFFF6B00),
+                                    shape: BoxShape.circle)))
                         : null,
                   ),
                 ]),
@@ -1119,7 +1375,7 @@ class RefMateriaisWidget extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Utilitários compartilhados
+// Tile de seleção reutilizável
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SelectionTile extends StatelessWidget {
@@ -1142,46 +1398,43 @@ class _SelectionTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white.withOpacity(0.02) : Colors.black26,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFFFF6B00).withOpacity(0.6)
                 : Colors.white.withOpacity(0.05),
-            width: isSelected ? 1.5 : 1,
+            width: isSelected ? 1.5 : 1.0,
           ),
         ),
         child: Row(children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
                 color: const Color(0xFF121416),
                 borderRadius: BorderRadius.circular(8)),
             child: Icon(icon,
                 color: isSelected ? const Color(0xFFFF6B00) : Colors.white38,
-                size: 20),
+                size: 18),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               if (subtitle.isNotEmpty)
                 Text(subtitle,
                     style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5)),
+                        color: Colors.white38, fontSize: 10, letterSpacing: 0.3)),
             ]),
           ),
           Container(
-            width: 18,
-            height: 18,
+            width: 16,
+            height: 16,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -1191,8 +1444,8 @@ class _SelectionTile extends StatelessWidget {
             child: isSelected
                 ? Center(
                     child: Container(
-                        width: 8,
-                        height: 8,
+                        width: 7,
+                        height: 7,
                         decoration: const BoxDecoration(
                             color: Color(0xFFFF6B00), shape: BoxShape.circle)))
                 : null,
@@ -1226,15 +1479,13 @@ class SummaryConclusionCard extends StatelessWidget {
         children: [
           const Icon(Icons.verified, color: Color(0xFFFF6B00), size: 48),
           const SizedBox(height: 20),
-          const Text(
-            'PROTOCOLO CONCLUÍDO',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'SpaceGrotesk'),
-          ),
+          const Text('PROTOCOLO CONCLUÍDO',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'SpaceGrotesk')),
           const SizedBox(height: 12),
           Text(
             'Todos os dados foram coletados offline.\nO registro está pronto para ser assinado e exportado.',

@@ -35,6 +35,15 @@ class FixaLogApp extends StatelessWidget {
     return MaterialApp(
       title: 'FixaLog',
       themeMode: ThemeMode.dark,
+      builder: (context, child) {
+        final mediaQueryData = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQueryData.copyWith(
+            textScaler: TextScaler.linear(mediaQueryData.textScaler.scale(1) * 1.25),
+          ),
+          child: child!,
+        );
+      },
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121416), // Surface Noise Background
@@ -46,10 +55,10 @@ class FixaLogApp extends StatelessWidget {
           surface: Color(0xFF1A1C1E), // Surface-container-low
           surfaceContainerHighest: Color(0xFF333537),
         ),
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(fontFamily: 'SpaceGrotesk', letterSpacing: -0.02),
-          bodyMedium: TextStyle(fontFamily: 'Inter'),
-          labelMedium: TextStyle(fontFamily: 'SpaceGrotesk', textBaseline: TextBaseline.alphabetic),
+        textTheme: ThemeData.dark().textTheme.copyWith(
+          headlineLarge: const TextStyle(fontFamily: 'SpaceGrotesk', letterSpacing: -0.02),
+          bodyMedium: const TextStyle(fontFamily: 'Inter'),
+          labelMedium: const TextStyle(fontFamily: 'SpaceGrotesk', textBaseline: TextBaseline.alphabetic),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(

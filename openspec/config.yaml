@@ -1,0 +1,18 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Flutter, Riverpod (State Management), Isar (Local Database), Protobuf.
+  Domain: FixaLog - Cataloguing fixed protections during climbing route opening or maintenance.
+  Architecture: Feature-driven directory structure under `app/lib/features` and `app/lib/core`.
+  
+  IMPORTANT: You MUST adhere to the engineering principles defined in the `PRINCIPIOS.md` file at the root of the project. Read this file before making architectural decisions or proposing changes.
+
+rules:
+  proposal:
+    - OBRIGATÓRIO estar escrito em português brasileiro (PT-BR).
+    - Considerar os princípios do PRINCIPIOS.md em qualquer proposição.
+  tasks:
+    - OBRIGATÓRIO estar escrito em português brasileiro (PT-BR).
+    - Seguir a arquitetura Library-First e Test-First conforme PRINCIPIOS.md.
+  design:
+    - OBRIGATÓRIO estar escrito em português brasileiro (PT-BR).

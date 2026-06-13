@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/views/new_protocol_screen.dart';
-import 'package:app/features/identity/controllers/identity_form_controller.dart';
+import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:app/core/models/local/identity_record.dart';
 
 // Helper: monta a tela com um provider de identidade mockado.
@@ -10,7 +10,7 @@ Widget _buildScreen({IdentityRecord? identity}) {
   return ProviderScope(
     overrides: [
       currentIdentityProvider.overrideWith(
-        (ref) => identity ?? IdentityRecord(),
+        (ref) async => identity ?? IdentityRecord(),
       ),
     ],
     child: const MaterialApp(home: Scaffold(body: NewProtocolScreen())),

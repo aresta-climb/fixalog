@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/identity_form_controller.dart';
+import '../viewmodels/identity_form_view_model.dart';
 import '../../home/views/home_screen.dart';
 
 class IdentitySetupScreen extends ConsumerStatefulWidget {
@@ -23,10 +23,10 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(identityFormProvider);
+    final state = ref.watch(identityFormViewModelProvider);
 
     // React to success
-    ref.listen<IdentityFormState>(identityFormProvider, (previous, next) {
+    ref.listen<IdentityFormState>(identityFormViewModelProvider, (previous, next) {
       if (next.isSuccess) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -259,7 +259,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                   child: ElevatedButton(
                     onPressed: state.isLoading ? null : () {
                       FocusScope.of(context).unfocus();
-                      ref.read(identityFormProvider.notifier).submitIdentity(
+                      ref.read(identityFormViewModelProvider.notifier).submitIdentity(
                         _nomeController.text,
                         _clubeController.text,
                       );

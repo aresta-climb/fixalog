@@ -1,4 +1,4 @@
-# Princípios de Engenharia Aresta
+# Princípios de Engenharia Fixalog
 
 Para garantir que o nosso código, seja ele escrito por humanos ou por agentes autônomos de IA (como Google Antigravity e OPSX), se mantenha coeso, testável, sustentável e simples, adotamos cinco princípios basilares e inegociáveis. 
 
@@ -13,13 +13,16 @@ Toda funcionalidade DEVE começar como uma biblioteca independente.
 - Evite criar bibliotecas que sirvam apenas para fins organizacionais; cada biblioteca deve ter um propósito funcional claro.
 - Não misture regras de negócios em grandes monólitos fortemente acoplados.
 
-## III. Imperativo do Teste em Primeiro Lugar (TDD)
+## III. 100% de unit test coverage
+Qualquer commit submetido no Fixalog deve possuir 100% de unit test coverage. Isso é Inegociável.
+
+## IV. Imperativo do Teste em Primeiro Lugar (TDD)
 O Desenvolvimento Orientado a Testes (Test-Driven Development) é **obrigatório** e inegociável. 
 - QUALQUER arquivo `.py` DEVE ter um `_test.py` acompanhando no mesmo diretório com os testes da biblioteca.
 - Os testes DEVEM ser escritos e aprovados (ou melhor, devem inicialmente falhar) antes do início de qualquer implementação do código de produção. 
 - O ciclo Red-Green-Refactor (Vermelho-Verde-Refatorar) deve ser estritamente seguido para cada nova tarefa e unidade lógica introduzida.
 
-## IV. Testes de Integração em Primeiro Lugar
+## V. Testes de Integração em Primeiro Lugar
 Priorize testar as fronteiras e os contratos entre os componentes do sistema. 
 - Os testes de integração DEVEM ser estabelecidos antes dos testes unitários profundos.
 - Isso garante a integridade do sistema como um todo e assegura que os requisitos funcionais inter-sistemas sejam atendidos logo no início do desenvolvimento.

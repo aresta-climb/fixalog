@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../wizard/views/wizard_screen.dart';
-import '../../identity/controllers/identity_form_controller.dart';
+import '../../identity/viewmodels/identity_form_view_model.dart';
 
 class NewProtocolScreen extends ConsumerWidget {
   const NewProtocolScreen({super.key});

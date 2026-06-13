@@ -4,7 +4,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
-import 'features/identity/controllers/identity_form_controller.dart';
+import 'features/identity/viewmodels/identity_form_view_model.dart';
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
 

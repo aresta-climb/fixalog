@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/views/new_protocol_screen.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:app/core/models/local/identity_record.dart';
+import 'package:app/features/express_form/views/express_form_screen.dart';
 
 // Helper: monta a tela com um provider de identidade mockado.
 Widget _buildScreen({IdentityRecord? identity}) {
@@ -89,7 +90,50 @@ void main() {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(find.text('INICIAR'), findsNWidgets(3));
+      expect(find.text('INICIAR'), findsNWidgets(4));
+    });
+    testWidgets('Navega para Express Form ao tocar em Registro Expresso', (tester) async {
+      await tester.pumpWidget(_buildScreen());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('INICIAR').first);
+      await tester.pumpAndSettle();
+
+      // ExpressFormScreen is shown
+      expect(find.byType(ExpressFormScreen), findsOneWidget);
+    });
+
+    testWidgets('Tenta navegar para Manutenção de Proteções Fixas', (tester) async {
+      await tester.pumpWidget(_buildScreen());
+      await tester.pumpAndSettle();
+
+      final finder = find.text('INICIAR').at(1);
+      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pump();
+    });
+
+    testWidgets('Tenta navegar para Inspeção Visual', (tester) async {
+      await tester.pumpWidget(_buildScreen());
+      await tester.pumpAndSettle();
+
+      final finder = find.text('INICIAR').at(2);
+      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pump();
+    });
+
+    testWidgets('Tenta navegar para Abertura de Via', (tester) async {
+      await tester.pumpWidget(_buildScreen());
+      await tester.pumpAndSettle();
+
+      final finder = find.text('INICIAR').at(3);
+      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pump();
     });
   });
 }

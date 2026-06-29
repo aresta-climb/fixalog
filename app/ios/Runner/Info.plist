@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Precisamos da sua câmera para registrar a manutenção.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Precisamos da sua biometria para autorizar a assinatura digital do documento.</string>
 </dict>
 </plist>

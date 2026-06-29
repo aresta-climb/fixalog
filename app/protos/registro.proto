@@ -30,6 +30,7 @@ message RegistroManutencao {
   bytes assinatura_visual   = 10; // PNG do canvas de assinatura
   bytes assinatura_digital  = 11; // JWS do hash do registro completo
   string id_mantenedor      = 12; // hash da chave pública do mantenedor
+  string attestation_token  = 99; // Futuro uso com Play Integrity / App Attest
 }
 
 // ══════════════════════════════════════════════════════════════

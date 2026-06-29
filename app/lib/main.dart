@@ -5,15 +5,17 @@ import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
+import 'features/onboarding/views/terms_of_use_screen.dart' as fixalog_onboarding;
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
+import 'core/models/local/app_config_record.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open(
-    [IdentityRecordSchema, SubmissionRecordSchema],
+    [IdentityRecordSchema, SubmissionRecordSchema, AppConfigRecordSchema],
     directory: dir.path,
   );
 
@@ -87,6 +89,20 @@ class FixaLogApp extends StatelessWidget {
 class _StartupRouter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Primeiro avaliamos se o Isar carregou e tem os termos aceitos
+    final isar = ref.watch(isarProvider);
+    if (isar == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final config = isar.appConfigRecords.getSync(1);
+    final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= 1; // 1 is kCurrentTermsVersion
+
+    if (!acceptedTerms) {
+      // Import the screen conditionally or ensure it is imported at the top
+      return const fixalog_onboarding.TermsOfUseScreen();
+    }
+
     final hasIdentityAsync = ref.watch(hasIdentityProvider);
     
     return hasIdentityAsync.when(

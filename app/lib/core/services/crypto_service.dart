@@ -1,18 +1,81 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class CryptoService {
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+import 'package:basic_utils/basic_utils.dart';
+import 'package:local_auth/local_auth.dart';
 
-  /// Mock: gera as chaves assimétricas persistindo em Secure Storage via AES
+class CryptoService {
+  final FlutterSecureStorage _secureStorage;
+  final LocalAuthentication _localAuth;
+
+  CryptoService({
+    FlutterSecureStorage? secureStorage,
+    LocalAuthentication? localAuth,
+  })  : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+        _localAuth = localAuth ?? LocalAuthentication();
+
+  /// Gera as chaves ECDSA secp256r1 persistindo em Secure Storage
   Future<void> generateAndStoreKeysIfNeeded() async {
     final existingKey = await _secureStorage.read(key: 'private_key');
     if (existingKey == null) {
-      // Stub: Aqui uma ECDSA/RSA KeyPair geraria via pointycastle
-      await _secureStorage.write(key: 'private_key', value: 'generated_key_mock_base64');
-      await _secureStorage.write(key: 'public_key', value: 'public_key_mock_base64');
+      // Gera ECDSA KeyPair (secp256r1 é o padrão prime256v1 em pointycastle)
+      final keyPair = CryptoUtils.generateEcKeyPair();
+      
+      final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(keyPair.privateKey as ECPrivateKey);
+      final publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(keyPair.publicKey as ECPublicKey);
+
+      await _secureStorage.write(key: 'private_key', value: privateKeyPem);
+      await _secureStorage.write(key: 'public_key', value: publicKeyPem);
     }
+  }
+
+  /// Gera um Certificado X.509 Autoassinado com CN=Nome, O=FixaLog
+  Future<String> generateX509Certificate(String mantenedorName) async {
+    final privateKeyPem = await _secureStorage.read(key: 'private_key');
+    final publicKeyPem = await _secureStorage.read(key: 'public_key');
+
+    if (privateKeyPem == null || publicKeyPem == null) {
+      throw Exception("Chaves não encontradas no dispositivo. Gere as chaves primeiro.");
+    }
+
+    final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
+    final publicKey = CryptoUtils.ecPublicKeyFromPem(publicKeyPem);
+
+    final subject = {
+      'CN': mantenedorName,
+      'O': 'FixaLog',
+    };
+
+    final csr = X509Utils.generateEccCsrPem(subject, privateKey, publicKey);
+
+    final x509Pem = X509Utils.generateSelfSignedCertificate(
+      privateKey,
+      csr,
+      365 * 5,
+    );
+
+    return x509Pem;
+  }
+
+  /// Autentica o usuário e retorna o signer
+  Future<dynamic> getPdfSigner() async {
+    final authenticated = await _localAuth.authenticate(
+      localizedReason: 'Autorize a assinatura do documento com sua biometria',
+    );
+
+    if (!authenticated) {
+      throw Exception("Autenticação biométrica falhou.");
+    }
+
+    final privateKeyPem = await _secureStorage.read(key: 'private_key');
+    if (privateKeyPem == null) {
+      throw Exception("Chaves não encontradas.");
+    }
+
+    // Retorna a chave PEM temporariamente para o gerador usar (será refatorado com PdfSignatureBase)
+    return privateKeyPem;
   }
 
   /// Pega o hash do conteudo (PDF + YAML) gerado
@@ -21,16 +84,24 @@ class CryptoService {
     return digest.toString();
   }
 
-  /// Assina o hash usando a chave do device imitando JWS signature
-  Future<String> signDocumentHash(String hash) async {
-    final privateKey = await _secureStorage.read(key: 'private_key');
-    // Stub: PointyCastle Signer (e.g. RSASigner(SHA256Digest(), ...))
-    if (privateKey == null) {
+  /// Retorna a chave pública armazenada para ser embutida no relatório
+  Future<String> getPublicKeyPem() async {
+    final publicKeyPem = await _secureStorage.read(key: 'public_key');
+    if (publicKeyPem == null) {
+      throw Exception("Chave pública não encontrada.");
+    }
+    return publicKeyPem;
+  }
+
+  /// Assina o binário usando a chave do device (ECDSA secp256r1)
+  Future<String> signDocument(List<int> documentBytes) async {
+    final privateKeyPem = await _secureStorage.read(key: 'private_key');
+    if (privateKeyPem == null) {
       throw Exception("Chaves não existem no dispositivo");
     }
     
-    // Simula a assinatura agregando o privado no hash para o MVP
-    var signatureMock = base64Encode(utf8.encode("\$privateKey:\$hash"));
-    return signatureMock;
+    final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
+    final sig = CryptoUtils.ecSign(privateKey, Uint8List.fromList(documentBytes), algorithmName: 'SHA-256/ECDSA');
+    return CryptoUtils.ecSignatureToBase64(sig);
   }
 }

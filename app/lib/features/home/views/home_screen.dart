@@ -23,10 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060908),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _FixalogBottomBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -61,7 +58,7 @@ class _SettingsPlaceholder extends StatelessWidget {
             width: 600,
             height: 600,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.5),
+              color: const Color(0xFF1B3D2F).withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
           ),
@@ -76,7 +73,10 @@ class _SettingsPlaceholder extends StatelessWidget {
         ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -88,8 +88,11 @@ class _SettingsPlaceholder extends StatelessWidget {
                         color: const Color(0xFF121416),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.shield_outlined,
-                          color: Colors.blueAccent, size: 20),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        color: Colors.blueAccent,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -119,7 +122,7 @@ class _SettingsPlaceholder extends StatelessWidget {
                 Text(
                   'Em breve',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
                   ),
                 ),
@@ -136,10 +139,7 @@ class _SettingsPlaceholder extends StatelessWidget {
 // Bottom Bar
 // ---------------------------------------------------------------------------
 class _FixalogBottomBar extends StatelessWidget {
-  const _FixalogBottomBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const _FixalogBottomBar({required this.currentIndex, required this.onTap});
 
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -151,7 +151,7 @@ class _FixalogBottomBar extends StatelessWidget {
         color: const Color(0xFF0D0F11),
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.07),
+            color: Colors.white.withValues(alpha: 0.07),
             width: 1,
           ),
         ),
@@ -209,7 +209,7 @@ class _BottomBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const activeColor = Color(0xFFFF6B00);
-    final inactiveColor = Colors.white.withOpacity(0.4);
+    final inactiveColor = Colors.white.withValues(alpha: 0.4);
 
     return Expanded(
       child: GestureDetector(
@@ -221,7 +221,7 @@ class _BottomBarItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? activeColor.withOpacity(0.08)
+                ? activeColor.withValues(alpha: 0.08)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),

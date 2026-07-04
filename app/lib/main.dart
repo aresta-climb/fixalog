@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
@@ -9,10 +9,12 @@ import 'features/onboarding/views/terms_of_use_screen.dart' as fixalog_onboardin
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
 import 'core/models/local/app_config_record.dart';
+import 'package:app/src/rust/frb_generated.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  await RustLib.init();
+
   final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open(
     [IdentityRecordSchema, SubmissionRecordSchema, AppConfigRecordSchema],
@@ -68,7 +70,7 @@ class FixaLogApp extends StatelessWidget {
             foregroundColor: Colors.black, // on_primary_container
             minimumSize: const Size(double.infinity, 56), // Hit area for gloved hands
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // xl radius
-            elevation: 0, 
+            elevation: 0,
           ),
         ),
         inputDecorationTheme: const InputDecorationTheme(
@@ -104,7 +106,7 @@ class _StartupRouter extends ConsumerWidget {
     }
 
     final hasIdentityAsync = ref.watch(hasIdentityProvider);
-    
+
     return hasIdentityAsync.when(
       data: (hasIdentity) {
         if (hasIdentity) {

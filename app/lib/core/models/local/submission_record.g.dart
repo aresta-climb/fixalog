@@ -47,17 +47,14 @@ const SubmissionRecordSchema = CollectionSchema(
       name: r'nomeProtocolo',
       type: IsarType.string,
     ),
-    r'pdfPath': PropertySchema(
-      id: 6,
-      name: r'pdfPath',
-      type: IsarType.string,
-    ),
+    r'pdfPath': PropertySchema(id: 6, name: r'pdfPath', type: IsarType.string),
     r'yamlPath': PropertySchema(
       id: 7,
       name: r'yamlPath',
       type: IsarType.string,
-    )
+    ),
   },
+
   estimateSize: _submissionRecordEstimateSize,
   serialize: _submissionRecordSerialize,
   deserialize: _submissionRecordDeserialize,
@@ -74,16 +71,17 @@ const SubmissionRecordSchema = CollectionSchema(
           name: r'idSessao',
           type: IndexType.hash,
           caseSensitive: true,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _submissionRecordGetId,
   getLinks: _submissionRecordGetLinks,
   attach: _submissionRecordAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _submissionRecordEstimateSize(
@@ -173,7 +171,10 @@ List<IsarLinkBase<dynamic>> _submissionRecordGetLinks(SubmissionRecord object) {
 }
 
 void _submissionRecordAttach(
-    IsarCollection<dynamic> col, Id id, SubmissionRecord object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  SubmissionRecord object,
+) {
   object.id = id;
 }
 
@@ -195,7 +196,8 @@ extension SubmissionRecordByIndex on IsarCollection<SubmissionRecord> {
   }
 
   Future<List<SubmissionRecord?>> getAllByIdSessao(
-      List<String> idSessaoValues) {
+    List<String> idSessaoValues,
+  ) {
     final values = idSessaoValues.map((e) => [e]).toList();
     return getAllByIndex(r'idSessao', values);
   }
@@ -227,8 +229,10 @@ extension SubmissionRecordByIndex on IsarCollection<SubmissionRecord> {
     return putAllByIndex(r'idSessao', objects);
   }
 
-  List<Id> putAllByIdSessaoSync(List<SubmissionRecord> objects,
-      {bool saveLinks = true}) {
+  List<Id> putAllByIdSessaoSync(
+    List<SubmissionRecord> objects, {
+    bool saveLinks = true,
+  }) {
     return putAllByIndexSync(r'idSessao', objects, saveLinks: saveLinks);
   }
 }
@@ -245,17 +249,15 @@ extension SubmissionRecordQueryWhereSort
 extension SubmissionRecordQueryWhere
     on QueryBuilder<SubmissionRecord, SubmissionRecord, QWhereClause> {
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause> idEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -278,7 +280,7 @@ extension SubmissionRecordQueryWhere
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -287,7 +289,7 @@ extension SubmissionRecordQueryWhere
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -302,56 +304,65 @@ extension SubmissionRecordQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause>
-      idSessaoEqualTo(String idSessao) {
+  idSessaoEqualTo(String idSessao) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'idSessao',
-        value: [idSessao],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'idSessao', value: [idSessao]),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterWhereClause>
-      idSessaoNotEqualTo(String idSessao) {
+  idSessaoNotEqualTo(String idSessao) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'idSessao',
-              lower: [],
-              upper: [idSessao],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'idSessao',
-              lower: [idSessao],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'idSessao',
+                lower: [],
+                upper: [idSessao],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'idSessao',
+                lower: [idSessao],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'idSessao',
-              lower: [idSessao],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'idSessao',
-              lower: [],
-              upper: [idSessao],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'idSessao',
+                lower: [idSessao],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'idSessao',
+                lower: [],
+                upper: [idSessao],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
@@ -360,119 +371,120 @@ extension SubmissionRecordQueryWhere
 extension SubmissionRecordQueryFilter
     on QueryBuilder<SubmissionRecord, SubmissionRecord, QFilterCondition> {
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      dataInclusaoEqualTo(DateTime value) {
+  dataInclusaoEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'dataInclusao',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'dataInclusao', value: value),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      dataInclusaoGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dataInclusaoGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'dataInclusao',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dataInclusao',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      dataInclusaoLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dataInclusaoLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'dataInclusao',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dataInclusao',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      dataInclusaoBetween(
+  dataInclusaoBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'dataInclusao',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dataInclusao',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      enviadoNuvemEqualTo(bool value) {
+  enviadoNuvemEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'enviadoNuvem',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'enviadoNuvem', value: value),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  hashAssinaturaEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaLessThan(
+  hashAssinaturaGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaBetween(
+  hashAssinaturaLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  hashAssinaturaBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -480,191 +492,195 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hashAssinatura',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hashAssinatura',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  hashAssinaturaStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  hashAssinaturaEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaContains(String value, {bool caseSensitive = true}) {
+  hashAssinaturaContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'hashAssinatura',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'hashAssinatura',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaMatches(String pattern, {bool caseSensitive = true}) {
+  hashAssinaturaMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'hashAssinatura',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'hashAssinatura',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaIsEmpty() {
+  hashAssinaturaIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hashAssinatura',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hashAssinatura', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      hashAssinaturaIsNotEmpty() {
+  hashAssinaturaIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'hashAssinatura',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'hashAssinatura', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idProtocoloEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloLessThan(
+  idProtocoloGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloBetween(
+  idProtocoloLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  idProtocoloBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -672,135 +688,140 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'idProtocolo',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'idProtocolo',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idProtocoloStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idProtocoloEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloContains(String value, {bool caseSensitive = true}) {
+  idProtocoloContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'idProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'idProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloMatches(String pattern, {bool caseSensitive = true}) {
+  idProtocoloMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'idProtocolo',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'idProtocolo',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloIsEmpty() {
+  idProtocoloIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'idProtocolo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'idProtocolo', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idProtocoloIsNotEmpty() {
+  idProtocoloIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'idProtocolo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'idProtocolo', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idSessaoEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoLessThan(
+  idSessaoGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoBetween(
+  idSessaoLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  idSessaoBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -808,135 +829,140 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'idSessao',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'idSessao',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idSessaoStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idSessaoEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoContains(String value, {bool caseSensitive = true}) {
+  idSessaoContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'idSessao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'idSessao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoMatches(String pattern, {bool caseSensitive = true}) {
+  idSessaoMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'idSessao',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'idSessao',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoIsEmpty() {
+  idSessaoIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'idSessao',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'idSessao', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      idSessaoIsNotEmpty() {
+  idSessaoIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'idSessao',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'idSessao', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeProtocoloEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloLessThan(
+  nomeProtocoloGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloBetween(
+  nomeProtocoloLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  nomeProtocoloBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -944,135 +970,140 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'nomeProtocolo',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'nomeProtocolo',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeProtocoloStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeProtocoloEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloContains(String value, {bool caseSensitive = true}) {
+  nomeProtocoloContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'nomeProtocolo',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'nomeProtocolo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloMatches(String pattern, {bool caseSensitive = true}) {
+  nomeProtocoloMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'nomeProtocolo',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'nomeProtocolo',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloIsEmpty() {
+  nomeProtocoloIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nomeProtocolo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'nomeProtocolo', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      nomeProtocoloIsNotEmpty() {
+  nomeProtocoloIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'nomeProtocolo',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'nomeProtocolo', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pdfPathEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathLessThan(
+  pdfPathGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathBetween(
+  pdfPathLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  pdfPathBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1080,135 +1111,140 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'pdfPath',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pdfPath',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pdfPathStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  pdfPathEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathContains(String value, {bool caseSensitive = true}) {
+  pdfPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'pdfPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pdfPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathMatches(String pattern, {bool caseSensitive = true}) {
+  pdfPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'pdfPath',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pdfPath',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathIsEmpty() {
+  pdfPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pdfPath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pdfPath', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      pdfPathIsNotEmpty() {
+  pdfPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'pdfPath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pdfPath', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  yamlPathEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathLessThan(
+  yamlPathGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathBetween(
+  yamlPathLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  yamlPathBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1216,84 +1252,86 @@ extension SubmissionRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'yamlPath',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'yamlPath',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  yamlPathStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  yamlPathEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathContains(String value, {bool caseSensitive = true}) {
+  yamlPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'yamlPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'yamlPath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathMatches(String pattern, {bool caseSensitive = true}) {
+  yamlPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'yamlPath',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'yamlPath',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathIsEmpty() {
+  yamlPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'yamlPath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'yamlPath', value: ''),
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-      yamlPathIsNotEmpty() {
+  yamlPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'yamlPath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'yamlPath', value: ''),
+      );
     });
   }
 }
@@ -1307,112 +1345,112 @@ extension SubmissionRecordQueryLinks
 extension SubmissionRecordQuerySortBy
     on QueryBuilder<SubmissionRecord, SubmissionRecord, QSortBy> {
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByDataInclusao() {
+  sortByDataInclusao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByDataInclusaoDesc() {
+  sortByDataInclusaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByEnviadoNuvem() {
+  sortByEnviadoNuvem() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enviadoNuvem', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByEnviadoNuvemDesc() {
+  sortByEnviadoNuvemDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enviadoNuvem', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByHashAssinatura() {
+  sortByHashAssinatura() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashAssinatura', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByHashAssinaturaDesc() {
+  sortByHashAssinaturaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashAssinatura', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByIdProtocolo() {
+  sortByIdProtocolo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idProtocolo', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByIdProtocoloDesc() {
+  sortByIdProtocoloDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idProtocolo', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByIdSessao() {
+  sortByIdSessao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idSessao', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByIdSessaoDesc() {
+  sortByIdSessaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idSessao', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByNomeProtocolo() {
+  sortByNomeProtocolo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'nomeProtocolo', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByNomeProtocoloDesc() {
+  sortByNomeProtocoloDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'nomeProtocolo', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByPdfPath() {
+  sortByPdfPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pdfPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByPdfPathDesc() {
+  sortByPdfPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pdfPath', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByYamlPath() {
+  sortByYamlPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'yamlPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      sortByYamlPathDesc() {
+  sortByYamlPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'yamlPath', Sort.desc);
     });
@@ -1422,42 +1460,42 @@ extension SubmissionRecordQuerySortBy
 extension SubmissionRecordQuerySortThenBy
     on QueryBuilder<SubmissionRecord, SubmissionRecord, QSortThenBy> {
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByDataInclusao() {
+  thenByDataInclusao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByDataInclusaoDesc() {
+  thenByDataInclusaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByEnviadoNuvem() {
+  thenByEnviadoNuvem() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enviadoNuvem', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByEnviadoNuvemDesc() {
+  thenByEnviadoNuvemDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enviadoNuvem', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByHashAssinatura() {
+  thenByHashAssinatura() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashAssinatura', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByHashAssinaturaDesc() {
+  thenByHashAssinaturaDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashAssinatura', Sort.desc);
     });
@@ -1470,77 +1508,77 @@ extension SubmissionRecordQuerySortThenBy
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByIdDesc() {
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByIdProtocolo() {
+  thenByIdProtocolo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idProtocolo', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByIdProtocoloDesc() {
+  thenByIdProtocoloDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idProtocolo', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByIdSessao() {
+  thenByIdSessao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idSessao', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByIdSessaoDesc() {
+  thenByIdSessaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'idSessao', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByNomeProtocolo() {
+  thenByNomeProtocolo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'nomeProtocolo', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByNomeProtocoloDesc() {
+  thenByNomeProtocoloDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'nomeProtocolo', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByPdfPath() {
+  thenByPdfPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pdfPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByPdfPathDesc() {
+  thenByPdfPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pdfPath', Sort.desc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByYamlPath() {
+  thenByYamlPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'yamlPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-      thenByYamlPathDesc() {
+  thenByYamlPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'yamlPath', Sort.desc);
     });
@@ -1550,58 +1588,62 @@ extension SubmissionRecordQuerySortThenBy
 extension SubmissionRecordQueryWhereDistinct
     on QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct> {
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByDataInclusao() {
+  distinctByDataInclusao() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'dataInclusao');
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByEnviadoNuvem() {
+  distinctByEnviadoNuvem() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'enviadoNuvem');
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByHashAssinatura({bool caseSensitive = true}) {
+  distinctByHashAssinatura({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'hashAssinatura',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(
+        r'hashAssinatura',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByIdProtocolo({bool caseSensitive = true}) {
+  distinctByIdProtocolo({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'idProtocolo', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByIdSessao({bool caseSensitive = true}) {
+  distinctByIdSessao({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'idSessao', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByNomeProtocolo({bool caseSensitive = true}) {
+  distinctByNomeProtocolo({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'nomeProtocolo',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(
+        r'nomeProtocolo',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
-  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct> distinctByPdfPath(
-      {bool caseSensitive = true}) {
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
+  distinctByPdfPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pdfPath', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-      distinctByYamlPath({bool caseSensitive = true}) {
+  distinctByYamlPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'yamlPath', caseSensitive: caseSensitive);
     });
@@ -1617,28 +1659,28 @@ extension SubmissionRecordQueryProperty
   }
 
   QueryBuilder<SubmissionRecord, DateTime, QQueryOperations>
-      dataInclusaoProperty() {
+  dataInclusaoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dataInclusao');
     });
   }
 
   QueryBuilder<SubmissionRecord, bool, QQueryOperations>
-      enviadoNuvemProperty() {
+  enviadoNuvemProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'enviadoNuvem');
     });
   }
 
   QueryBuilder<SubmissionRecord, String, QQueryOperations>
-      hashAssinaturaProperty() {
+  hashAssinaturaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'hashAssinatura');
     });
   }
 
   QueryBuilder<SubmissionRecord, String, QQueryOperations>
-      idProtocoloProperty() {
+  idProtocoloProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'idProtocolo');
     });
@@ -1651,7 +1693,7 @@ extension SubmissionRecordQueryProperty
   }
 
   QueryBuilder<SubmissionRecord, String, QQueryOperations>
-      nomeProtocoloProperty() {
+  nomeProtocoloProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'nomeProtocolo');
     });

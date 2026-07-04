@@ -95,7 +95,9 @@ class WizardState {
   }
 
   FlowStep? get currentFlowStep =>
-      (queue.isNotEmpty && currentIndex < queue.length) ? queue[currentIndex] : null;
+      (queue.isNotEmpty && currentIndex < queue.length)
+      ? queue[currentIndex]
+      : null;
 
   Step? get currentStep => currentFlowStep?.step;
 
@@ -158,12 +160,17 @@ class WizardStateController extends Notifier<WizardState> {
 
   /// Registra uma resposta para um [ConteudoStep] no fluxo principal.
   void answerConteudo(String conteudoId, String value) {
-    final updated = Map<String, String>.from(state.answers)..[conteudoId] = value;
+    final updated = Map<String, String>.from(state.answers)
+      ..[conteudoId] = value;
     state = state.copyWith(answers: updated);
   }
 
   /// Registra uma resposta para um [ConteudoStep] dentro de um item de lista.
-  void answerInlineConteudo(String conteudoId, String value, String listItemId) {
+  void answerInlineConteudo(
+    String conteudoId,
+    String value,
+    String listItemId,
+  ) {
     final key = '${conteudoId}__$listItemId';
     final updated = Map<String, String>.from(state.answers)..[key] = value;
     state = state.copyWith(answers: updated);
@@ -209,8 +216,9 @@ class WizardStateController extends Notifier<WizardState> {
     newQueue.insertAll(insertAt, ramoFlowSteps);
 
     // Rastrear ids injetados para possível substituição futura
-    final updatedInjected = Map<String, List<String>>.from(state.ramoInjectedStepIds)
-      ..[conteudoId] = ramo.steps.map((s) => s.id).toList();
+    final updatedInjected = Map<String, List<String>>.from(
+      state.ramoInjectedStepIds,
+    )..[conteudoId] = ramo.steps.map((s) => s.id).toList();
 
     state = state.copyWith(
       queue: newQueue,
@@ -234,12 +242,18 @@ class WizardStateController extends Notifier<WizardState> {
     );
 
     final updatedLists = Map<String, List<ListItemRecord>>.from(state.lists);
-    updatedLists[listConteudoId] = [...(updatedLists[listConteudoId] ?? []), record];
+    updatedLists[listConteudoId] = [
+      ...(updatedLists[listConteudoId] ?? []),
+      record,
+    ];
 
     final updatedExpanded = Map<String, String?>.from(state.expandedListItems)
       ..[listConteudoId] = itemId;
 
-    state = state.copyWith(lists: updatedLists, expandedListItems: updatedExpanded);
+    state = state.copyWith(
+      lists: updatedLists,
+      expandedListItems: updatedExpanded,
+    );
   }
 
   /// Valida os conteúdos do item e, se completo, o colapsa.
@@ -281,13 +295,19 @@ class WizardStateController extends Notifier<WizardState> {
       updatedExpanded[listConteudoId] = null;
     }
 
-    state = state.copyWith(lists: updatedLists, expandedListItems: updatedExpanded);
+    state = state.copyWith(
+      lists: updatedLists,
+      expandedListItems: updatedExpanded,
+    );
   }
 
   // ── RefMateriais ──────────────────────────────────────────────────────────────
 
-  void setRefMateriais(String conteudoId, List<String> selectedIds,
-      {String? listItemId}) {
+  void setRefMateriais(
+    String conteudoId,
+    List<String> selectedIds, {
+    String? listItemId,
+  }) {
     final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
     final updatedRefs = Map<String, List<String>>.from(state.refSelections)
       ..[key] = selectedIds;
@@ -304,12 +324,16 @@ class WizardStateController extends Notifier<WizardState> {
   bool _isConteudoSatisfied(ConteudoStep conteudo) {
     final key = conteudo.id;
     return switch (conteudo.whichTipo()) {
-      ConteudoStep_Tipo.campoSimples => !conteudo.campoSimples.obrigatorio || state.answers.containsKey(key),
-      ConteudoStep_Tipo.selecaoRamo  => !conteudo.selecaoRamo.obrigatorio || state.answers.containsKey(key),
-      ConteudoStep_Tipo.listaAcoes   => (state.lists[key]?.length ?? 0) >= conteudo.listaAcoes.minimo,
-      ConteudoStep_Tipo.refMateriais => !conteudo.refMateriais.obrigatorio || state.answers.containsKey(key),
-      ConteudoStep_Tipo.instrucao    => true,
-      _                              => true,
+      ConteudoStep_Tipo.campoSimples =>
+        !conteudo.campoSimples.obrigatorio || state.answers.containsKey(key),
+      ConteudoStep_Tipo.selecaoRamo =>
+        !conteudo.selecaoRamo.obrigatorio || state.answers.containsKey(key),
+      ConteudoStep_Tipo.listaAcoes =>
+        (state.lists[key]?.length ?? 0) >= conteudo.listaAcoes.minimo,
+      ConteudoStep_Tipo.refMateriais =>
+        !conteudo.refMateriais.obrigatorio || state.answers.containsKey(key),
+      ConteudoStep_Tipo.instrucao => true,
+      _ => true,
     };
   }
 
@@ -327,11 +351,14 @@ class WizardStateController extends Notifier<WizardState> {
     final key = '${conteudo.id}__$itemId';
     switch (conteudo.whichTipo()) {
       case ConteudoStep_Tipo.campoSimples:
-        return !conteudo.campoSimples.obrigatorio || state.answers.containsKey(key);
+        return !conteudo.campoSimples.obrigatorio ||
+            state.answers.containsKey(key);
       case ConteudoStep_Tipo.refMateriais:
-        return !conteudo.refMateriais.obrigatorio || state.answers.containsKey(key);
+        return !conteudo.refMateriais.obrigatorio ||
+            state.answers.containsKey(key);
       case ConteudoStep_Tipo.selecaoRamo:
-        if (conteudo.selecaoRamo.obrigatorio && !state.answers.containsKey(key)) {
+        if (conteudo.selecaoRamo.obrigatorio &&
+            !state.answers.containsKey(key)) {
           return false;
         }
         // Valida recursivamente o ramo escolhido
@@ -363,4 +390,6 @@ class WizardStateController extends Notifier<WizardState> {
 }
 
 final wizardControllerProvider =
-    NotifierProvider<WizardStateController, WizardState>(WizardStateController.new);
+    NotifierProvider<WizardStateController, WizardState>(
+      WizardStateController.new,
+    );

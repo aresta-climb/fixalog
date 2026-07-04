@@ -27,7 +27,7 @@ class HistoryScreen extends StatelessWidget {
             width: 600,
             height: 600,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.5),
+              color: const Color(0xFF1B3D2F).withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
           ),
@@ -39,7 +39,7 @@ class HistoryScreen extends StatelessWidget {
             width: 800,
             height: 800,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.4),
+              color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
           ),
@@ -57,7 +57,10 @@ class HistoryScreen extends StatelessWidget {
 
         SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -70,8 +73,11 @@ class HistoryScreen extends StatelessWidget {
                         color: const Color(0xFF121416),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.shield_outlined,
-                          color: Colors.blueAccent, size: 20),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        color: Colors.blueAccent,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -102,7 +108,7 @@ class HistoryScreen extends StatelessWidget {
                 Text(
                   'Registros de manutenção preenchidos',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                   ),
@@ -112,11 +118,17 @@ class HistoryScreen extends StatelessWidget {
                 // Status Grid
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('LOGS TOTAIS', '128', Colors.white)),
+                    Expanded(
+                      child: _buildStatCard('LOGS TOTAIS', '128', Colors.white),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _buildStatCard(
-                            'VIA MAIS ATIVA', 'Via do Sol', Colors.white)),
+                      child: _buildStatCard(
+                        'VIA MAIS ATIVA',
+                        'Via do Sol',
+                        Colors.white,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 40),
@@ -128,7 +140,7 @@ class HistoryScreen extends StatelessWidget {
                     Text(
                       'HISTÓRICO RECENTE',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.5,
@@ -152,7 +164,7 @@ class HistoryScreen extends StatelessWidget {
                   title: 'Via do Sol',
                   date: '12 OUT 2023',
                   tag: 'QUÍMICO',
-                  tagColor: const Color(0xFFFF6B00).withOpacity(0.2),
+                  tagColor: const Color(0xFFFF6B00).withValues(alpha: 0.2),
                   textColor: const Color(0xFFFF6B00),
                   icon: Icons.cloud_outlined,
                 ),
@@ -170,7 +182,7 @@ class HistoryScreen extends StatelessWidget {
                   title: 'Cristal Rock',
                   date: '25 SET 2023',
                   tag: 'QUÍMICO',
-                  tagColor: const Color(0xFFFF6B00).withOpacity(0.2),
+                  tagColor: const Color(0xFFFF6B00).withValues(alpha: 0.2),
                   textColor: const Color(0xFFFF6B00),
                   icon: Icons.sync,
                 ),
@@ -196,7 +208,7 @@ class HistoryScreen extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
@@ -239,7 +251,11 @@ class HistoryScreen extends StatelessWidget {
               color: Colors.black,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.history, color: Color(0xFFFF6B00), size: 18),
+            child: const Icon(
+              Icons.history,
+              color: Color(0xFFFF6B00),
+              size: 18,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -260,7 +276,7 @@ class HistoryScreen extends StatelessWidget {
                     Text(
                       date,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -268,7 +284,9 @@ class HistoryScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: tagColor,
                         borderRadius: BorderRadius.circular(4),
@@ -276,9 +294,10 @@ class HistoryScreen extends StatelessWidget {
                       child: Text(
                         tag,
                         style: TextStyle(
-                            color: textColor,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold),
+                          color: textColor,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -286,8 +305,11 @@ class HistoryScreen extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.cloud_done_outlined,
-              color: Color(0xFF4F6D44), size: 16),
+          const Icon(
+            Icons.cloud_done_outlined,
+            color: Color(0xFF4F6D44),
+            size: 16,
+          ),
           const SizedBox(width: 12),
           const Icon(Icons.chevron_right, color: Colors.white24),
         ],

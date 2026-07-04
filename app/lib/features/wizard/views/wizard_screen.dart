@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/wizard_state_controller.dart';
 import '../../../core/models/proto/protos/wizard.pb.dart';
-import '../../../core/models/proto/protos/wizard.pbenum.dart';
 import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
 
@@ -47,11 +46,15 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     if (success) {
       _scrollToIndex(state.currentIndex + 1);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Preencha todos os campos obrigatórios para prosseguir.',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF5A1E1E),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Preencha todos os campos obrigatórios para prosseguir.',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: const Color(0xFF5A1E1E),
+        ),
+      );
     }
   }
 
@@ -73,7 +76,8 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       final box = ctx.findRenderObject() as RenderBox;
       final pos = box.localToGlobal(
         Offset.zero,
-        ancestor: _scrollController.position.context.storageContext.findRenderObject(),
+        ancestor: _scrollController.position.context.storageContext
+            .findRenderObject(),
       );
       final target = _scrollController.offset + pos.dy - 90;
       _scrollController.animateTo(
@@ -91,7 +95,9 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     if (state.protocol == null) {
       return const Scaffold(
         backgroundColor: Color(0xFF060908),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFFF6B00))),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFFF6B00)),
+        ),
       );
     }
 
@@ -101,109 +107,127 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF060908),
-      body: Stack(children: [
-        // Fundo decorativo
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF0A1F16), Color(0xFF060908)],
+      body: Stack(
+        children: [
+          // Fundo decorativo
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0A1F16), Color(0xFF060908)],
+              ),
             ),
           ),
-        ),
-        Positioned(
-          top: -150, left: -100,
-          child: Container(
-            width: 700, height: 700,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.4),
-              shape: BoxShape.circle,
+          Positioned(
+            top: -150,
+            left: -100,
+            child: Container(
+              width: 700,
+              height: 700,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-        ),
-        Positioned.fill(
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
-              child: Container(color: Colors.transparent),
+          Positioned.fill(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
+                child: Container(color: Colors.transparent),
+              ),
             ),
           ),
-        ),
-        SafeArea(
-          child: Column(children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'FIXALOG',
+                        style: TextStyle(
+                          color: Color(0xFFFF6B00),
+                          fontFamily: 'SpaceGrotesk',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (state.queue.isNotEmpty)
+                        Text(
+                          '${state.currentIndex + 1}/${state.queue.length}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                const Text('FIXALOG',
-                    style: TextStyle(
-                      color: Color(0xFFFF6B00),
-                      fontFamily: 'SpaceGrotesk',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      letterSpacing: 2.0,
-                    )),
-                const Spacer(),
+                // Barra de progresso
                 if (state.queue.isNotEmpty)
-                  Text(
-                    '${state.currentIndex + 1}/${state.queue.length}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.35),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  LinearProgressIndicator(
+                    value: (state.currentIndex + 1) / state.queue.length,
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B00)),
+                    minHeight: 2,
+                  ),
+                // Cards
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).size.height / 2,
+                    ),
+                    child: Column(
+                      children: [
+                        ...state.queue.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final flowStep = entry.value;
+                          final isLocked = index > state.currentIndex;
+                          final isCompleted = index < state.currentIndex;
+
+                          return _StepCard(
+                            key: _cardKeys[index],
+                            flowStep: flowStep,
+                            stepIndex: index + 1,
+                            isLocked: isLocked,
+                            isCompleted: isCompleted,
+                            isLastStep: index == state.queue.length - 1,
+                            onNext: _onNextPressed,
+                            onBackToStep: () {
+                              ref
+                                  .read(wizardControllerProvider.notifier)
+                                  .goToStep(index);
+                              _scrollToIndex(index);
+                            },
+                          );
+                        }),
+                        if (state.isFinished)
+                          SummaryConclusionCard(key: _summaryKey),
+                      ],
                     ),
                   ),
-              ]),
-            ),
-            // Barra de progresso
-            if (state.queue.isNotEmpty)
-              LinearProgressIndicator(
-                value: (state.currentIndex + 1) / state.queue.length,
-                backgroundColor: Colors.white.withOpacity(0.05),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B00)),
-                minHeight: 2,
-              ),
-            // Cards
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).size.height / 2,
                 ),
-                child: Column(children: [
-                  ...state.queue.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final flowStep = entry.value;
-                    final isLocked = index > state.currentIndex;
-                    final isCompleted = index < state.currentIndex;
-
-                    return _StepCard(
-                      key: _cardKeys[index],
-                      flowStep: flowStep,
-                      stepIndex: index + 1,
-                      isLocked: isLocked,
-                      isCompleted: isCompleted,
-                      isLastStep: index == state.queue.length - 1,
-                      onNext: _onNextPressed,
-                      onBackToStep: () {
-                        ref.read(wizardControllerProvider.notifier).goToStep(index);
-                        _scrollToIndex(index);
-                      },
-                    );
-                  }),
-                  if (state.isFinished) SummaryConclusionCard(key: _summaryKey),
-                ]),
-              ),
+              ],
             ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -246,8 +270,8 @@ class _StepCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCurrent
-                ? Colors.white.withOpacity(0.5)
-                : Colors.white.withOpacity(0.08),
+                ? Colors.white.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.08),
             width: isCurrent ? 1.2 : 1.0,
           ),
         ),
@@ -256,15 +280,17 @@ class _StepCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('PASSO $stepIndex',
-                  style: TextStyle(
-                    color: isCurrent
-                        ? const Color(0xFFFF6B00)
-                        : Colors.white.withOpacity(0.35),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  )),
+              Text(
+                'PASSO $stepIndex',
+                style: TextStyle(
+                  color: isCurrent
+                      ? const Color(0xFFFF6B00)
+                      : Colors.white.withValues(alpha: 0.35),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 16),
               // Renderiza todos os conteudos em sequência
               IgnorePointer(
@@ -280,7 +306,7 @@ class _StepCard extends ConsumerWidget {
                       children: [
                         if (!isFirst) ...[
                           const SizedBox(height: 20),
-                          Divider(color: Colors.white.withOpacity(0.06)),
+                          Divider(color: Colors.white.withValues(alpha: 0.06)),
                           const SizedBox(height: 12),
                         ],
                         _ConteudoWidget(conteudo: conteudo),
@@ -297,15 +323,27 @@ class _StepCard extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: onBackToStep,
                     icon: const Icon(Icons.history, size: 14),
-                    label: const Text('VOLTAR A ESTE PASSO',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5)),
+                    label: const Text(
+                      'VOLTAR A ESTE PASSO',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                      backgroundColor: Colors.white.withOpacity(0.04),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      backgroundColor: Colors.white.withValues(alpha: 0.04),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
@@ -340,13 +378,17 @@ class _ConteudoWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return switch (conteudo.whichTipo()) {
-      ConteudoStep_Tipo.instrucao   => InstrucaoWidget(instrucao: conteudo.instrucao),
+      ConteudoStep_Tipo.instrucao => InstrucaoWidget(
+        instrucao: conteudo.instrucao,
+      ),
       ConteudoStep_Tipo.campoSimples => CampoSimplesWidget(conteudo: conteudo),
-      ConteudoStep_Tipo.selecaoRamo  => SelecaoRamoWidget(conteudo: conteudo),
-      ConteudoStep_Tipo.listaAcoes   => ListaAcoesWidget(conteudo: conteudo),
+      ConteudoStep_Tipo.selecaoRamo => SelecaoRamoWidget(conteudo: conteudo),
+      ConteudoStep_Tipo.listaAcoes => ListaAcoesWidget(conteudo: conteudo),
       ConteudoStep_Tipo.refMateriais => RefMateriaisWidget(conteudo: conteudo),
-      _ => const Text('Tipo de conteúdo não suportado',
-                style: TextStyle(color: Colors.white24)),
+      _ => const Text(
+        'Tipo de conteúdo não suportado',
+        style: TextStyle(color: Colors.white24),
+      ),
     };
   }
 }
@@ -359,7 +401,11 @@ class _NextButton extends ConsumerWidget {
   final FlowStep flowStep;
   final bool isLastStep;
   final VoidCallback onNext;
-  const _NextButton({required this.flowStep, required this.isLastStep, required this.onNext});
+  const _NextButton({
+    required this.flowStep,
+    required this.isLastStep,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -377,19 +423,24 @@ class _NextButton extends ConsumerWidget {
         final count = state.lists[c.id]?.length ?? 0;
         final minimo = c.listaAcoes.minimo;
         if (minimo > 0 && count < minimo) allSatisfied = false;
-        label = count > 0 ? 'CONCLUIR LISTA ($count)' : (minimo == 0 ? 'PULAR' : 'SEGUINTE');
+        label = count > 0
+            ? 'CONCLUIR LISTA ($count)'
+            : (minimo == 0 ? 'PULAR' : 'SEGUINTE');
         continue;
       }
 
-      if (kind == ConteudoStep_Tipo.campoSimples && c.campoSimples.obrigatorio &&
+      if (kind == ConteudoStep_Tipo.campoSimples &&
+          c.campoSimples.obrigatorio &&
           !state.answers.containsKey(c.id)) {
         allSatisfied = false;
       }
-      if (kind == ConteudoStep_Tipo.selecaoRamo && c.selecaoRamo.obrigatorio &&
+      if (kind == ConteudoStep_Tipo.selecaoRamo &&
+          c.selecaoRamo.obrigatorio &&
           !state.answers.containsKey(c.id)) {
         allSatisfied = false;
       }
-      if (kind == ConteudoStep_Tipo.refMateriais && c.refMateriais.obrigatorio &&
+      if (kind == ConteudoStep_Tipo.refMateriais &&
+          c.refMateriais.obrigatorio &&
           !state.answers.containsKey(c.id)) {
         allSatisfied = false;
       }
@@ -400,7 +451,7 @@ class _NextButton extends ConsumerWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: allSatisfied
             ? const Color(0xFFFF6B00)
-            : Colors.white.withOpacity(0.08),
+            : Colors.white.withValues(alpha: 0.08),
         foregroundColor: allSatisfied ? Colors.white : Colors.white24,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         minimumSize: Size.zero,
@@ -408,11 +459,17 @@ class _NextButton extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         elevation: 0,
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        const SizedBox(width: 8),
-        const Icon(Icons.chevron_right, size: 18),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right, size: 18),
+        ],
+      ),
     );
   }
 }
@@ -432,46 +489,59 @@ class InstrucaoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color alertColor = switch (instrucao.nivelAlerta) {
-      StepInstrucao_NivelAlerta.PERIGO  => const Color(0xFFFF3D3D),
+      StepInstrucao_NivelAlerta.PERIGO => const Color(0xFFFF3D3D),
       StepInstrucao_NivelAlerta.ATENCAO => const Color(0xFFFFB800),
-      _                                  => const Color(0xFF4FC3F7),
+      _ => const Color(0xFF4FC3F7),
     };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: alertColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: alertColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                ProtocolIcons.get(instrucao.iconName),
+                color: alertColor,
+                size: 22,
+              ),
             ),
-            child: Icon(ProtocolIcons.get(instrucao.iconName), color: alertColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(instrucao.titulo,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                instrucao.titulo,
                 style: TextStyle(
                   color: alertColor,
                   fontFamily: 'SpaceGrotesk',
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
-                )),
-          ),
-        ]),
+                ),
+              ),
+            ),
+          ],
+        ),
         if (instrucao.corpo.isNotEmpty) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: alertColor.withOpacity(0.06),
+              color: alertColor.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: alertColor.withOpacity(0.2)),
+              border: Border.all(color: alertColor.withValues(alpha: 0.2)),
             ),
-            child: Text(instrucao.corpo,
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.75), fontSize: 13, height: 1.6)),
+            child: Text(
+              instrucao.corpo,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: 13,
+                height: 1.6,
+              ),
+            ),
           ),
         ],
       ],
@@ -491,8 +561,9 @@ class CampoSimplesWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final campo = conteudo.campoSimples;
     final answer = ref.watch(wizardControllerProvider).answers[conteudo.id];
-    void save(String v) =>
-        ref.read(wizardControllerProvider.notifier).answerConteudo(conteudo.id, v);
+    void save(String v) => ref
+        .read(wizardControllerProvider.notifier)
+        .answerConteudo(conteudo.id, v);
     return _CampoSimplesContent(campo: campo, answer: answer, onSave: save);
   }
 }
@@ -513,27 +584,37 @@ class SelecaoRamoWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(selecao.label,
-            style: const TextStyle(
-                color: Colors.white,
-                fontFamily: 'SpaceGrotesk',
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
+        Text(
+          selecao.label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'SpaceGrotesk',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         if (selecao.sublabel.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(selecao.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+          Text(
+            selecao.sublabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
+          ),
         ],
         const SizedBox(height: 16),
-        ...selecao.ramos.map((ramo) => _SelectionTile(
-              title: ramo.label,
-              subtitle: ramo.sublabel,
-              icon: ProtocolIcons.get(ramo.iconName),
-              isSelected: selected == ramo.id,
-              onTap: () => ref
-                  .read(wizardControllerProvider.notifier)
-                  .chooseRamo(conteudo.id, ramo.id),
-            )),
+        ...selecao.ramos.map(
+          (ramo) => _SelectionTile(
+            title: ramo.label,
+            subtitle: ramo.sublabel,
+            icon: ProtocolIcons.get(ramo.iconName),
+            isSelected: selected == ramo.id,
+            onTap: () => ref
+                .read(wizardControllerProvider.notifier)
+                .chooseRamo(conteudo.id, ramo.id),
+          ),
+        ),
       ],
     );
   }
@@ -557,26 +638,36 @@ class ListaAcoesWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(lista.label,
-            style: const TextStyle(
-                color: Colors.white,
-                fontFamily: 'SpaceGrotesk',
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
+        Text(
+          lista.label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'SpaceGrotesk',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         if (lista.sublabel.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(lista.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)),
+          Text(
+            lista.sublabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
+          ),
         ],
         const SizedBox(height: 16),
 
         // Itens da lista
-        ...items.map((item) => InlineItemCard(
-              key: ValueKey(item.id),
-              item: item,
-              listConteudoId: conteudo.id,
-              isExpanded: expandedId == item.id,
-            )),
+        ...items.map(
+          (item) => InlineItemCard(
+            key: ValueKey(item.id),
+            item: item,
+            listConteudoId: conteudo.id,
+            isExpanded: expandedId == item.id,
+          ),
+        ),
 
         const SizedBox(height: 8),
 
@@ -588,85 +679,126 @@ class ListaAcoesWidget extends ConsumerWidget {
             label: Text(
               items.isEmpty ? 'ADICIONAR ITEM' : 'ADICIONAR OUTRO',
               style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 0.5,
+              ),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFFF6B00),
-              side: BorderSide(color: const Color(0xFFFF6B00).withOpacity(0.4)),
-              backgroundColor: const Color(0xFFFF6B00).withOpacity(0.05),
+              side: BorderSide(
+                color: const Color(0xFFFF6B00).withValues(alpha: 0.4),
+              ),
+              backgroundColor: const Color(0xFFFF6B00).withValues(alpha: 0.05),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
 
         if (lista.minimo > 0 && items.length < lista.minimo) ...[
           const SizedBox(height: 8),
-          Text('Mínimo ${lista.minimo} item(ns) obrigatório(s).',
-              style: TextStyle(color: Colors.orange.withOpacity(0.6), fontSize: 11)),
+          Text(
+            'Mínimo ${lista.minimo} item(ns) obrigatório(s).',
+            style: TextStyle(
+              color: Colors.orange.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
+          ),
         ],
       ],
     );
   }
 
   void _showAddItemSheet(
-      BuildContext context, WidgetRef ref, StepListaAcoes lista) {
+    BuildContext context,
+    WidgetRef ref,
+    StepListaAcoes lista,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF181A1C),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('SELECIONE O TIPO',
-                style: TextStyle(
-                    color: Color(0xFFFF6B00),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.5)),
+            const Text(
+              'SELECIONE O TIPO',
+              style: TextStyle(
+                color: Color(0xFFFF6B00),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 1.5,
+              ),
+            ),
             const SizedBox(height: 16),
-            ...lista.tiposDisponiveis.map((tipo) => GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    ref
-                        .read(wizardControllerProvider.notifier)
-                        .addListItem(listConteudoId: conteudo.id, tipo: tipo);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withOpacity(0.08))),
-                    child: Row(children: [
+            ...lista.tiposDisponiveis.map(
+              (tipo) => GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  ref
+                      .read(wizardControllerProvider.notifier)
+                      .addListItem(listConteudoId: conteudo.id, tipo: tipo);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                            color: const Color(0xFF1A1D1C),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Icon(ProtocolIcons.get(tipo.iconName),
-                            color: Colors.white54, size: 20),
+                          color: const Color(0xFF1A1D1C),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          ProtocolIcons.get(tipo.iconName),
+                          color: Colors.white54,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(tipo.label,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tipo.label,
                               style: const TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold)),
-                          if (tipo.sublabel.isNotEmpty)
-                            Text(tipo.sublabel,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (tipo.sublabel.isNotEmpty)
+                              Text(
+                                tipo.sublabel,
                                 style: const TextStyle(
-                                    color: Colors.white38, fontSize: 11)),
-                        ]),
+                                  color: Colors.white38,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       const Icon(Icons.chevron_right, color: Colors.white24),
-                    ]),
+                    ],
                   ),
-                )),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -697,7 +829,9 @@ class RefMateriaisWidget extends ConsumerWidget {
       onToggle: (itemId) {
         final newIds = List<String>.from(selectedIds);
         newIds.contains(itemId) ? newIds.remove(itemId) : newIds.add(itemId);
-        ref.read(wizardControllerProvider.notifier).setRefMateriais(conteudo.id, newIds);
+        ref
+            .read(wizardControllerProvider.notifier)
+            .setRefMateriais(conteudo.id, newIds);
       },
     );
   }
@@ -726,18 +860,18 @@ class InlineItemCard extends ConsumerWidget {
       curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isExpanded
-            ? const Color(0xFF0D1F15)
-            : const Color(0xFF0F1210),
+        color: isExpanded ? const Color(0xFF0D1F15) : const Color(0xFF0F1210),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isExpanded
-              ? const Color(0xFF4CAF50).withOpacity(0.4)
-              : Colors.white.withOpacity(0.08),
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.08),
           width: isExpanded ? 1.5 : 1.0,
         ),
       ),
-      child: isExpanded ? _buildExpanded(context, ref) : _buildCollapsed(context, ref),
+      child: isExpanded
+          ? _buildExpanded(context, ref)
+          : _buildCollapsed(context, ref),
     );
   }
 
@@ -749,28 +883,48 @@ class InlineItemCard extends ConsumerWidget {
           .expandListItem(listConteudoId, item.id),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
                 color: const Color(0xFF1A2E1E),
-                borderRadius: BorderRadius.circular(6)),
-            child: Icon(ProtocolIcons.get(item.tipoIconName),
-                color: const Color(0xFF4CAF50), size: 16),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Row(children: [
-              const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 14),
-              const SizedBox(width: 6),
-              Text(item.tipoLabel,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-            ]),
-          ),
-          Icon(Icons.expand_more,
-              color: Colors.white.withOpacity(0.3), size: 18),
-        ]),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                ProtocolIcons.get(item.tipoIconName),
+                color: const Color(0xFF4CAF50),
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF4CAF50),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    item.tipoLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.expand_more,
+              color: Colors.white.withValues(alpha: 0.3),
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -782,41 +936,56 @@ class InlineItemCard extends ConsumerWidget {
         // Header do item expandido
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-          child: Row(children: [
-            Icon(ProtocolIcons.get(item.tipoIconName),
-                color: const Color(0xFF4CAF50), size: 18),
-            const SizedBox(width: 10),
-            Text(item.tipoLabel.toUpperCase(),
+          child: Row(
+            children: [
+              Icon(
+                ProtocolIcons.get(item.tipoIconName),
+                color: const Color(0xFF4CAF50),
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                item.tipoLabel.toUpperCase(),
                 style: const TextStyle(
-                    color: Color(0xFF4CAF50),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.4)),
-            const Spacer(),
-            // Botão para colapsar sem confirmar
-            InkWell(
-              onTap: () => ref
-                  .read(wizardControllerProvider.notifier)
-                  .expandListItem(listConteudoId, ''), // colapsa
-              child: Icon(Icons.expand_less,
-                  color: Colors.white.withOpacity(0.3), size: 20),
-            ),
-            const SizedBox(width: 8),
-            // Remover item
-            InkWell(
-              onTap: () => _confirmDelete(context, ref),
-              child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-            ),
-          ]),
+                  color: Color(0xFF4CAF50),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const Spacer(),
+              // Botão para colapsar sem confirmar
+              InkWell(
+                onTap: () => ref
+                    .read(wizardControllerProvider.notifier)
+                    .expandListItem(listConteudoId, ''), // colapsa
+                child: Icon(
+                  Icons.expand_less,
+                  color: Colors.white.withValues(alpha: 0.3),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Remover item
+              InkWell(
+                onTap: () => _confirmDelete(context, ref),
+                child: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
         ),
-        Divider(color: const Color(0xFF4CAF50).withOpacity(0.2), height: 20),
+        Divider(
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
+          height: 20,
+        ),
         // Conteúdos do item (renderização recursiva inline)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: InlineStepsRenderer(
-            steps: item.tipo.steps,
-            itemId: item.id,
-          ),
+          child: InlineStepsRenderer(steps: item.tipo.steps, itemId: item.id),
         ),
         const SizedBox(height: 16),
         // Botão Confirmar
@@ -828,21 +997,29 @@ class InlineItemCard extends ConsumerWidget {
                   .read(wizardControllerProvider.notifier)
                   .confirmListItem(listConteudoId, item.id);
               if (!success) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Preencha os campos obrigatórios do item.',
-                      style: TextStyle(color: Colors.white)),
-                  backgroundColor: Color(0xFF5A1E1E),
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Preencha os campos obrigatórios do item.',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: Color(0xFF5A1E1E),
+                  ),
+                );
               }
             },
             icon: const Icon(Icons.check, size: 18),
-            label: const Text('CONFIRMAR ITEM',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            label: const Text(
+              'CONFIRMAR ITEM',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ),
@@ -855,17 +1032,27 @@ class InlineItemCard extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1C1E),
-        title: const Text('Remover item?',
-            style: TextStyle(color: Colors.white)),
-        content: Text('Remover "${item.tipoLabel}"?',
-            style: const TextStyle(color: Colors.white54)),
+        title: const Text(
+          'Remover item?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Remover "${item.tipoLabel}"?',
+          style: const TextStyle(color: Colors.white54),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CANCELAR',
+              style: TextStyle(color: Colors.white38),
+            ),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ref.read(wizardControllerProvider.notifier)
+              ref
+                  .read(wizardControllerProvider.notifier)
                   .removeListItem(listConteudoId, item.id);
             },
             child: const Text('REMOVER', style: TextStyle(color: Colors.red)),
@@ -903,7 +1090,7 @@ class InlineStepsRenderer extends StatelessWidget {
             children: [
               if (idx > 0 || steps.indexOf(step) > 0) ...[
                 const SizedBox(height: 16),
-                Divider(color: Colors.white.withOpacity(0.04)),
+                Divider(color: Colors.white.withValues(alpha: 0.04)),
                 const SizedBox(height: 10),
               ],
               InlineConteudoRenderer(conteudo: conteudo, itemId: itemId),
@@ -950,12 +1137,14 @@ class InlineConteudoRenderer extends ConsumerWidget {
 
       case ConteudoStep_Tipo.selecaoRamo:
         final selecao = conteudo.selecaoRamo;
-        final selectedRamoId =
-            ref.watch(wizardControllerProvider).answers[answerKey];
+        final selectedRamoId = ref
+            .watch(wizardControllerProvider)
+            .answers[answerKey];
         final selectedRamo = selectedRamoId != null
             ? selecao.ramos.cast<Ramo?>().firstWhere(
                 (r) => r?.id == selectedRamoId,
-                orElse: () => null)
+                orElse: () => null,
+              )
             : null;
 
         return Column(
@@ -977,7 +1166,7 @@ class InlineConteudoRenderer extends ConsumerWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     left: BorderSide(
-                      color: const Color(0xFFFF6B00).withOpacity(0.3),
+                      color: const Color(0xFFFF6B00).withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -1037,19 +1226,24 @@ class _InlineSelecaoRamoWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(selecao.label,
-            style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.bold,
-                fontSize: 14)),
+        Text(
+          selecao.label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
         const SizedBox(height: 10),
-        ...selecao.ramos.map((ramo) => _SelectionTile(
-              title: ramo.label,
-              subtitle: ramo.sublabel,
-              icon: ProtocolIcons.get(ramo.iconName),
-              isSelected: selectedId == ramo.id,
-              onTap: () => onChoose(ramo.id),
-            )),
+        ...selecao.ramos.map(
+          (ramo) => _SelectionTile(
+            title: ramo.label,
+            subtitle: ramo.sublabel,
+            icon: ProtocolIcons.get(ramo.iconName),
+            isSelected: selectedId == ramo.id,
+            onTap: () => onChoose(ramo.id),
+          ),
+        ),
       ],
     );
   }
@@ -1079,19 +1273,34 @@ class _CampoSimplesContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [
-          Expanded(
-            child: Text(campo.label,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                campo.label,
                 style: const TextStyle(
-                    color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
-          ),
-          if (campo.obrigatorio)
-            Text(' *', style: const TextStyle(color: Color(0xFFFF6B00), fontSize: 14)),
-        ]),
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (campo.obrigatorio)
+              Text(
+                ' *',
+                style: const TextStyle(color: Color(0xFFFF6B00), fontSize: 14),
+              ),
+          ],
+        ),
         if (campo.sublabel.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(campo.sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+          Text(
+            campo.sublabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 12,
+            ),
+          ),
         ],
         const SizedBox(height: 10),
         _buildInput(campo, answer, onSave),
@@ -1099,7 +1308,11 @@ class _CampoSimplesContent extends StatelessWidget {
     );
   }
 
-  Widget _buildInput(StepCampoSimples campo, String? answer, void Function(String) save) {
+  Widget _buildInput(
+    StepCampoSimples campo,
+    String? answer,
+    void Function(String) save,
+  ) {
     switch (campo.tipo) {
       case StepCampoSimples_TipoCampo.TEXT:
       case StepCampoSimples_TipoCampo.NUMBER:
@@ -1112,35 +1325,63 @@ class _CampoSimplesContent extends StatelessWidget {
               : TextInputType.text,
           style: const TextStyle(color: Colors.white, fontSize: 15),
           decoration: _inputDec(
-              campo.tipo == StepCampoSimples_TipoCampo.DATE ? 'DD/MM/AAAA' : 'DIGITAR...'),
+            campo.tipo == StepCampoSimples_TipoCampo.DATE
+                ? 'DD/MM/AAAA'
+                : 'DIGITAR...',
+          ),
           onChanged: save,
         );
 
       case StepCampoSimples_TipoCampo.BOOLEAN:
-        return Row(children: [
-          Expanded(child: _SelectionTile(title: 'SIM', subtitle: '', icon: Icons.check_circle_outline, isSelected: answer == 'true', onTap: () => save('true'))),
-          const SizedBox(width: 10),
-          Expanded(child: _SelectionTile(title: 'NÃO', subtitle: '', icon: Icons.cancel_outlined, isSelected: answer == 'false', onTap: () => save('false'))),
-        ]);
+        return Row(
+          children: [
+            Expanded(
+              child: _SelectionTile(
+                title: 'SIM',
+                subtitle: '',
+                icon: Icons.check_circle_outline,
+                isSelected: answer == 'true',
+                onTap: () => save('true'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SelectionTile(
+                title: 'NÃO',
+                subtitle: '',
+                icon: Icons.cancel_outlined,
+                isSelected: answer == 'false',
+                onTap: () => save('false'),
+              ),
+            ),
+          ],
+        );
 
       case StepCampoSimples_TipoCampo.DROPDOWN:
         if (campo.uiHint == StepCampoSimples_UiHint.LARGE_TILES) {
           return Column(
-              children: campo.opcoes.map((o) => _SelectionTile(
+            children: campo.opcoes
+                .map(
+                  (o) => _SelectionTile(
                     title: o.label,
                     subtitle: o.sublabel,
                     icon: ProtocolIcons.get(o.iconName),
                     isSelected: answer == o.valor,
                     onTap: () => save(o.valor),
-                  )).toList());
+                  ),
+                )
+                .toList(),
+          );
         }
         return DropdownButtonFormField<String>(
-          value: answer,
+          initialValue: answer,
           dropdownColor: const Color(0xFF1A1C1E),
           style: const TextStyle(color: Colors.white),
           decoration: _inputDec('SELECIONAR...'),
           items: campo.opcoes
-              .map((o) => DropdownMenuItem(value: o.valor, child: Text(o.label)))
+              .map(
+                (o) => DropdownMenuItem(value: o.valor, child: Text(o.label)),
+              )
               .toList(),
           onChanged: (v) => save(v ?? ''),
         );
@@ -1182,33 +1423,46 @@ class _CampoSimplesContent extends StatelessWidget {
           child: Container(
             height: 160,
             decoration: BoxDecoration(
-                color: Colors.black38,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: has
-                        ? const Color(0xFFFF6B00).withOpacity(0.4)
-                        : Colors.white.withOpacity(0.05))),
+              color: Colors.black38,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: has
+                    ? const Color(0xFFFF6B00).withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
             child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(has ? Icons.check_circle : Icons.gesture,
-                    color: has ? const Color(0xFFFF6B00) : Colors.white12, size: 40),
-                const SizedBox(height: 8),
-                Text(has ? 'ASSINATURA REGISTRADA' : 'TOQUE PARA ASSINAR',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    has ? Icons.check_circle : Icons.gesture,
+                    color: has ? const Color(0xFFFF6B00) : Colors.white12,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    has ? 'ASSINATURA REGISTRADA' : 'TOQUE PARA ASSINAR',
                     style: TextStyle(
-                        color: has
-                            ? const Color(0xFFFF6B00)
-                            : Colors.white.withOpacity(0.2),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 1.0)),
-              ]),
+                      color: has
+                          ? const Color(0xFFFF6B00)
+                          : Colors.white.withValues(alpha: 0.2),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
 
       default:
-        return Text('Tipo não implementado: ${campo.tipo}',
-            style: const TextStyle(color: Colors.white24));
+        return Text(
+          'Tipo não implementado: ${campo.tipo}',
+          style: const TextStyle(color: Colors.white24),
+        );
     }
   }
 
@@ -1221,54 +1475,76 @@ class _CampoSimplesContent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.black26,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.06))),
-      child: Row(children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
               color: const Color(0xFF1A1D1C),
-              borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon,
-              color: active ? const Color(0xFFFF6B00) : Colors.white24, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label,
-                style: TextStyle(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: active ? const Color(0xFFFF6B00) : Colors.white24,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
                     color: active ? Colors.white : Colors.white38,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
-                    letterSpacing: 0.8)),
-            if (sub.isNotEmpty)
-              Text(sub,
-                  style: const TextStyle(
-                      color: Color(0xFFFF6B00), fontSize: 10, fontFamily: 'monospace')),
-          ]),
-        ),
-      ]),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                if (sub.isNotEmpty)
+                  Text(
+                    sub,
+                    style: const TextStyle(
+                      color: Color(0xFFFF6B00),
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   InputDecoration _inputDec(String hint) => InputDecoration(
-        filled: true,
-        fillColor: Colors.black26,
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
-        contentPadding: const EdgeInsets.all(16),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:
-                BorderSide(color: const Color(0xFFFF6B00).withOpacity(0.5))),
-      );
+    filled: true,
+    fillColor: Colors.black26,
+    hintText: hint,
+    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
+    contentPadding: const EdgeInsets.all(16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(
+        color: const Color(0xFFFF6B00).withValues(alpha: 0.5),
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1295,26 +1571,40 @@ class _RefMateriaisContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
         if (sublabel.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text(sublabel,
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+          Text(
+            sublabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 12,
+            ),
+          ),
         ],
         const SizedBox(height: 10),
         if (allItems.isEmpty)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withOpacity(0.05))),
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
             child: Text(
               'Nenhum material registrado no Bloco 1.\nVolte e adicione os materiais primeiro.',
               style: TextStyle(
-                  color: Colors.white.withOpacity(0.3), fontSize: 13, height: 1.5),
+                color: Colors.white.withValues(alpha: 0.3),
+                fontSize: 13,
+                height: 1.5,
+              ),
               textAlign: TextAlign.center,
             ),
           )
@@ -1327,45 +1617,60 @@ class _RefMateriaisContent extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isSel ? Colors.white.withOpacity(0.02) : Colors.black26,
+                  color: isSel
+                      ? Colors.white.withValues(alpha: 0.02)
+                      : Colors.black26,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSel
-                        ? const Color(0xFFFF6B00).withOpacity(0.5)
-                        : Colors.white.withOpacity(0.06),
+                        ? const Color(0xFFFF6B00).withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
-                child: Row(children: [
-                  Icon(ProtocolIcons.get(item.tipoIconName),
+                child: Row(
+                  children: [
+                    Icon(
+                      ProtocolIcons.get(item.tipoIconName),
                       color: isSel ? const Color(0xFFFF6B00) : Colors.white38,
-                      size: 18),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Text(item.tipoLabel,
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold))),
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                      size: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item.tipoLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
                           color: isSel
                               ? const Color(0xFFFF6B00)
                               : Colors.white24,
-                          width: 2),
-                    ),
-                    child: isSel
-                        ? Center(
-                            child: Container(
+                          width: 2,
+                        ),
+                      ),
+                      child: isSel
+                          ? Center(
+                              child: Container(
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                    color: Color(0xFFFF6B00),
-                                    shape: BoxShape.circle)))
-                        : null,
-                  ),
-                ]),
+                                  color: Color(0xFFFF6B00),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
               ),
             );
           }),
@@ -1401,56 +1706,81 @@ class _SelectionTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.02) : Colors.black26,
+          color: isSelected
+              ? Colors.white.withValues(alpha: 0.02)
+              : Colors.black26,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFFF6B00).withOpacity(0.6)
-                : Colors.white.withOpacity(0.05),
+                ? const Color(0xFFFF6B00).withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.05),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
                 color: const Color(0xFF121416),
-                borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
                 color: isSelected ? const Color(0xFFFF6B00) : Colors.white38,
-                size: 18),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              if (subtitle.isNotEmpty)
-                Text(subtitle,
-                    style: const TextStyle(
-                        color: Colors.white38, fontSize: 10, letterSpacing: 0.3)),
-            ]),
-          ),
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: isSelected ? const Color(0xFFFF6B00) : Colors.white12,
-                  width: 2),
+                size: 18,
+              ),
             ),
-            child: isSelected
-                ? Center(
-                    child: Container(
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFFF6B00) : Colors.white12,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
                         width: 7,
                         height: 7,
                         decoration: const BoxDecoration(
-                            color: Color(0xFFFF6B00), shape: BoxShape.circle)))
-                : null,
-          ),
-        ]),
+                          color: Color(0xFFFF6B00),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1470,40 +1800,51 @@ class SummaryConclusionCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-          color: const Color(0xFF1A1C1E),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05))),
+        color: const Color(0xFF1A1C1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Icon(Icons.verified, color: Color(0xFFFF6B00), size: 48),
           const SizedBox(height: 20),
-          const Text('PROTOCOLO CONCLUÍDO',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'SpaceGrotesk')),
+          const Text(
+            'PROTOCOLO CONCLUÍDO',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'SpaceGrotesk',
+            ),
+          ),
           const SizedBox(height: 12),
           Text(
             'Todos os dados foram coletados offline.\nO registro está pronto para ser assinado e exportado.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.5),
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.check),
-            label: const Text('FECHAR',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text(
+              'FECHAR',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B00),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ],

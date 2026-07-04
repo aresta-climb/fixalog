@@ -21,8 +21,9 @@ const AppConfigRecordSchema = CollectionSchema(
       id: 0,
       name: r'acceptedTermsVersion',
       type: IsarType.long,
-    )
+    ),
   },
+
   estimateSize: _appConfigRecordEstimateSize,
   serialize: _appConfigRecordSerialize,
   deserialize: _appConfigRecordDeserialize,
@@ -31,10 +32,11 @@ const AppConfigRecordSchema = CollectionSchema(
   indexes: {},
   links: {},
   embeddedSchemas: {},
+
   getId: _appConfigRecordGetId,
   getLinks: _appConfigRecordGetLinks,
   attach: _appConfigRecordAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _appConfigRecordEstimateSize(
@@ -90,7 +92,10 @@ List<IsarLinkBase<dynamic>> _appConfigRecordGetLinks(AppConfigRecord object) {
 }
 
 void _appConfigRecordAttach(
-    IsarCollection<dynamic> col, Id id, AppConfigRecord object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  AppConfigRecord object,
+) {
   object.id = id;
 }
 
@@ -106,17 +111,15 @@ extension AppConfigRecordQueryWhereSort
 extension AppConfigRecordQueryWhere
     on QueryBuilder<AppConfigRecord, AppConfigRecord, QWhereClause> {
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterWhereClause> idEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -139,7 +142,7 @@ extension AppConfigRecordQueryWhere
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -148,8 +151,9 @@ extension AppConfigRecordQueryWhere
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterWhereClause> idLessThan(
-      Id id,
-      {bool include = false}) {
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -164,12 +168,14 @@ extension AppConfigRecordQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -177,114 +183,115 @@ extension AppConfigRecordQueryWhere
 extension AppConfigRecordQueryFilter
     on QueryBuilder<AppConfigRecord, AppConfigRecord, QFilterCondition> {
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      acceptedTermsVersionEqualTo(int value) {
+  acceptedTermsVersionEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'acceptedTermsVersion',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'acceptedTermsVersion',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      acceptedTermsVersionGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  acceptedTermsVersionGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'acceptedTermsVersion',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'acceptedTermsVersion',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      acceptedTermsVersionLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  acceptedTermsVersionLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'acceptedTermsVersion',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'acceptedTermsVersion',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      acceptedTermsVersionBetween(
+  acceptedTermsVersionBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'acceptedTermsVersion',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'acceptedTermsVersion',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -298,14 +305,14 @@ extension AppConfigRecordQueryLinks
 extension AppConfigRecordQuerySortBy
     on QueryBuilder<AppConfigRecord, AppConfigRecord, QSortBy> {
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
-      sortByAcceptedTermsVersion() {
+  sortByAcceptedTermsVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'acceptedTermsVersion', Sort.asc);
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
-      sortByAcceptedTermsVersionDesc() {
+  sortByAcceptedTermsVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'acceptedTermsVersion', Sort.desc);
     });
@@ -315,14 +322,14 @@ extension AppConfigRecordQuerySortBy
 extension AppConfigRecordQuerySortThenBy
     on QueryBuilder<AppConfigRecord, AppConfigRecord, QSortThenBy> {
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
-      thenByAcceptedTermsVersion() {
+  thenByAcceptedTermsVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'acceptedTermsVersion', Sort.asc);
     });
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
-      thenByAcceptedTermsVersionDesc() {
+  thenByAcceptedTermsVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'acceptedTermsVersion', Sort.desc);
     });
@@ -344,7 +351,7 @@ extension AppConfigRecordQuerySortThenBy
 extension AppConfigRecordQueryWhereDistinct
     on QueryBuilder<AppConfigRecord, AppConfigRecord, QDistinct> {
   QueryBuilder<AppConfigRecord, AppConfigRecord, QDistinct>
-      distinctByAcceptedTermsVersion() {
+  distinctByAcceptedTermsVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'acceptedTermsVersion');
     });
@@ -360,7 +367,7 @@ extension AppConfigRecordQueryProperty
   }
 
   QueryBuilder<AppConfigRecord, int, QQueryOperations>
-      acceptedTermsVersionProperty() {
+  acceptedTermsVersionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'acceptedTermsVersion');
     });

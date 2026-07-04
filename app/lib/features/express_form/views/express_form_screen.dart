@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import '../viewmodels/express_form_view_model.dart';
-import '../../../core/services/express_pdf_generator.dart';
+import 'package:app/features/pdf_generation/providers/generation_provider.dart';
+import 'package:app/features/pdf_generation/models/generation_media.dart';
+import 'package:app/features/pdf_generation/ui/generation_progress_dialog.dart';
+import 'package:app/core/services/pdf_viewer_service.dart';
 
 class ExpressFormScreen extends ConsumerWidget {
   const ExpressFormScreen({super.key});
@@ -17,28 +22,28 @@ class ExpressFormScreen extends ConsumerWidget {
           if (entries.isNotEmpty)
             TextButton.icon(
               onPressed: () async {
+                final dir = await getApplicationDocumentsDirectory();
+                final outputPath = '${dir.path}/FixaLog_Expresso_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                  builder: (ctx) => const GenerationProgressDialog(),
                 );
+
+                final files = entries.map((e) => GenerationMedia(file: File(e.mediaPath), description: e.description)).toList();
                 
-                try {
-                  await ExpressPdfGenerator.generateAndPreviewPdf(entries, ref);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao gerar relatório: $e')),
-                    );
-                  }
-                } finally {
-                  if (context.mounted) {
-                    Navigator.of(context).pop(); // Close loading dialog
-                  }
-                }
+                ref.read(generationProvider.notifier).startGeneration(
+                  'Registro Expresso',
+                  files,
+                  outputPath,
+                );
               },
               icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-              label: const Text('Gerar Relatório', style: TextStyle(color: Colors.white)),
+              label: const Text(
+                'Gerar Relatório',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
         ],
       ),
@@ -58,15 +63,17 @@ class ExpressFormScreen extends ConsumerWidget {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 24),
                   clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   color: const Color(0xFF1E2124),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Stack(
                         children: [
-                          Image.memory(
-                            entry.imageBytes,
+                          Image.file(
+                            File(entry.mediaPath),
                             height: 250,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -75,10 +82,17 @@ class ExpressFormScreen extends ConsumerWidget {
                             top: 8,
                             right: 8,
                             child: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.white),
-                              style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black54,
+                              ),
                               onPressed: () {
-                                ref.read(expressFormViewModelProvider.notifier).removeEntry(index);
+                                ref
+                                    .read(expressFormViewModelProvider.notifier)
+                                    .removeEntry(index);
                               },
                             ),
                           ),
@@ -88,7 +102,9 @@ class ExpressFormScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(12.0),
                         child: TextField(
                           onChanged: (text) {
-                            ref.read(expressFormViewModelProvider.notifier).updateDescription(index, text);
+                            ref
+                                .read(expressFormViewModelProvider.notifier)
+                                .updateDescription(index, text);
                           },
                           decoration: const InputDecoration(
                             hintText: 'Descrição (opcional)',
@@ -105,9 +121,13 @@ class ExpressFormScreen extends ConsumerWidget {
             ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFFFF6B00),
-        onPressed: () => ref.read(expressFormViewModelProvider.notifier).takePhoto(),
+        onPressed: () =>
+            ref.read(expressFormViewModelProvider.notifier).takePhoto(),
         icon: const Icon(Icons.camera_alt),
-        label: const Text('Adicionar Foto', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Adicionar Foto',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

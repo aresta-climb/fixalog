@@ -7,13 +7,16 @@ import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:app/core/models/local/app_config_record.dart';
 
-class FakeAppConfigCollection extends Fake implements IsarCollection<AppConfigRecord> {
+class FakeAppConfigCollection extends Fake
+    implements IsarCollection<AppConfigRecord> {
   bool returnNullOnGet = true;
   int putCalls = 0;
-  
+
   @override
   Future<AppConfigRecord?> get(int id) async {
-    return returnNullOnGet ? null : (AppConfigRecord()..acceptedTermsVersion = 0);
+    return returnNullOnGet
+        ? null
+        : (AppConfigRecord()..acceptedTermsVersion = 0);
   }
 
   @override
@@ -25,7 +28,7 @@ class FakeAppConfigCollection extends Fake implements IsarCollection<AppConfigRe
 
 class FakeIsar extends Fake implements Isar {
   final FakeAppConfigCollection fakeCollection = FakeAppConfigCollection();
-  
+
   @override
   IsarCollection<T> collection<T>() {
     if (T == AppConfigRecord) {
@@ -44,25 +47,29 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('flutter.baseflow.com/permissions/methods'),
-      (MethodCall methodCall) async {
-        if (methodCall.method == 'requestPermissions') {
-          return {1: 1, 3: 1}; // Camera and Location granted
-        }
-        return null;
-      },
-    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter.baseflow.com/permissions/methods'),
+          (MethodCall methodCall) async {
+            if (methodCall.method == 'requestPermissions') {
+              return {1: 1, 3: 1}; // Camera and Location granted
+            }
+            return null;
+          },
+        );
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('flutter.baseflow.com/permissions/methods'),
-      null,
-    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter.baseflow.com/permissions/methods'),
+          null,
+        );
   });
 
-  testWidgets('Should display terms and handle accept flow (identity exists)', (WidgetTester tester) async {
+  testWidgets('Should display terms and handle accept flow (identity exists)', (
+    WidgetTester tester,
+  ) async {
     final fakeIsar = FakeIsar();
     fakeIsar.fakeCollection.returnNullOnGet = true;
 
@@ -90,7 +97,9 @@ void main() {
     expect(fakeIsar.fakeCollection.putCalls, 1);
   });
 
-  testWidgets('Should handle accept flow (no identity)', (WidgetTester tester) async {
+  testWidgets('Should handle accept flow (no identity)', (
+    WidgetTester tester,
+  ) async {
     final fakeIsar = FakeIsar();
     fakeIsar.fakeCollection.returnNullOnGet = false;
 
@@ -108,7 +117,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Since hasIdentity is false, it should navigate to IdentitySetupScreen
-    expect(find.byIcon(Icons.credit_card_outlined), findsOneWidget); // Identity setup screen icon
+    expect(
+      find.byIcon(Icons.credit_card_outlined),
+      findsOneWidget,
+    ); // Identity setup screen icon
     expect(fakeIsar.fakeCollection.putCalls, 1);
   });
 }

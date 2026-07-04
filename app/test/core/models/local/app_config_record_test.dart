@@ -5,7 +5,7 @@ void main() {
   group('AppConfigRecord Tests', () {
     test('Should construct with default parameters', () {
       final record = AppConfigRecord();
-      
+
       expect(record.id, 1);
       expect(record.acceptedTermsVersion, 0);
     });
@@ -14,7 +14,7 @@ void main() {
       final record = AppConfigRecord();
       record.id = 2;
       record.acceptedTermsVersion = 1;
-      
+
       expect(record.id, 2);
       expect(record.acceptedTermsVersion, 1);
     });

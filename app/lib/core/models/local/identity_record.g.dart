@@ -27,12 +27,9 @@ const IdentityRecordSchema = CollectionSchema(
       name: r'dataRegistro',
       type: IsarType.dateTime,
     ),
-    r'nome': PropertySchema(
-      id: 2,
-      name: r'nome',
-      type: IsarType.string,
-    )
+    r'nome': PropertySchema(id: 2, name: r'nome', type: IsarType.string),
   },
+
   estimateSize: _identityRecordEstimateSize,
   serialize: _identityRecordSerialize,
   deserialize: _identityRecordDeserialize,
@@ -41,10 +38,11 @@ const IdentityRecordSchema = CollectionSchema(
   indexes: {},
   links: {},
   embeddedSchemas: {},
+
   getId: _identityRecordGetId,
   getLinks: _identityRecordGetLinks,
   attach: _identityRecordAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _identityRecordEstimateSize(
@@ -110,7 +108,10 @@ List<IsarLinkBase<dynamic>> _identityRecordGetLinks(IdentityRecord object) {
 }
 
 void _identityRecordAttach(
-    IsarCollection<dynamic> col, Id id, IdentityRecord object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  IdentityRecord object,
+) {
   object.id = id;
 }
 
@@ -126,17 +127,16 @@ extension IdentityRecordQueryWhereSort
 extension IdentityRecordQueryWhere
     on QueryBuilder<IdentityRecord, IdentityRecord, QWhereClause> {
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterWhereClause> idEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterWhereClause> idNotEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -159,8 +159,9 @@ extension IdentityRecordQueryWhere
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterWhereClause> idGreaterThan(
-      Id id,
-      {bool include = false}) {
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -169,8 +170,9 @@ extension IdentityRecordQueryWhere
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterWhereClause> idLessThan(
-      Id id,
-      {bool include = false}) {
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -185,12 +187,14 @@ extension IdentityRecordQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -198,53 +202,56 @@ extension IdentityRecordQueryWhere
 extension IdentityRecordQueryFilter
     on QueryBuilder<IdentityRecord, IdentityRecord, QFilterCondition> {
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  clubeAssociacaoEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoLessThan(
+  clubeAssociacaoGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoBetween(
+  clubeAssociacaoLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
+  clubeAssociacaoBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -252,178 +259,177 @@ extension IdentityRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'clubeAssociacao',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'clubeAssociacao',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  clubeAssociacaoStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  clubeAssociacaoEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoContains(String value, {bool caseSensitive = true}) {
+  clubeAssociacaoContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'clubeAssociacao',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'clubeAssociacao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoMatches(String pattern, {bool caseSensitive = true}) {
+  clubeAssociacaoMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'clubeAssociacao',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'clubeAssociacao',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoIsEmpty() {
+  clubeAssociacaoIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'clubeAssociacao',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'clubeAssociacao', value: ''),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      clubeAssociacaoIsNotEmpty() {
+  clubeAssociacaoIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'clubeAssociacao',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'clubeAssociacao', value: ''),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      dataRegistroEqualTo(DateTime value) {
+  dataRegistroEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'dataRegistro',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'dataRegistro', value: value),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      dataRegistroGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dataRegistroGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'dataRegistro',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dataRegistro',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      dataRegistroLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dataRegistroLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'dataRegistro',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dataRegistro',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      dataRegistroBetween(
+  dataRegistroBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'dataRegistro',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dataRegistro',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition> idEqualTo(
-      Id value) {
+    Id value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -434,64 +440,69 @@ extension IdentityRecordQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeLessThan(
+  nomeGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeBetween(
+  nomeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
+  nomeBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -499,84 +510,86 @@ extension IdentityRecordQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'nome',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'nome',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  nomeEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeContains(String value, {bool caseSensitive = true}) {
+  nomeContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'nome',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'nome',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeMatches(String pattern, {bool caseSensitive = true}) {
+  nomeMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'nome',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'nome',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeIsEmpty() {
+  nomeIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nome',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'nome', value: ''),
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterFilterCondition>
-      nomeIsNotEmpty() {
+  nomeIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'nome',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'nome', value: ''),
+      );
     });
   }
 }
@@ -590,28 +603,28 @@ extension IdentityRecordQueryLinks
 extension IdentityRecordQuerySortBy
     on QueryBuilder<IdentityRecord, IdentityRecord, QSortBy> {
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      sortByClubeAssociacao() {
+  sortByClubeAssociacao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clubeAssociacao', Sort.asc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      sortByClubeAssociacaoDesc() {
+  sortByClubeAssociacaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clubeAssociacao', Sort.desc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      sortByDataRegistro() {
+  sortByDataRegistro() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataRegistro', Sort.asc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      sortByDataRegistroDesc() {
+  sortByDataRegistroDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataRegistro', Sort.desc);
     });
@@ -633,28 +646,28 @@ extension IdentityRecordQuerySortBy
 extension IdentityRecordQuerySortThenBy
     on QueryBuilder<IdentityRecord, IdentityRecord, QSortThenBy> {
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      thenByClubeAssociacao() {
+  thenByClubeAssociacao() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clubeAssociacao', Sort.asc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      thenByClubeAssociacaoDesc() {
+  thenByClubeAssociacaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clubeAssociacao', Sort.desc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      thenByDataRegistro() {
+  thenByDataRegistro() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataRegistro', Sort.asc);
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QAfterSortBy>
-      thenByDataRegistroDesc() {
+  thenByDataRegistroDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataRegistro', Sort.desc);
     });
@@ -688,22 +701,25 @@ extension IdentityRecordQuerySortThenBy
 extension IdentityRecordQueryWhereDistinct
     on QueryBuilder<IdentityRecord, IdentityRecord, QDistinct> {
   QueryBuilder<IdentityRecord, IdentityRecord, QDistinct>
-      distinctByClubeAssociacao({bool caseSensitive = true}) {
+  distinctByClubeAssociacao({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'clubeAssociacao',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(
+        r'clubeAssociacao',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
   QueryBuilder<IdentityRecord, IdentityRecord, QDistinct>
-      distinctByDataRegistro() {
+  distinctByDataRegistro() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'dataRegistro');
     });
   }
 
-  QueryBuilder<IdentityRecord, IdentityRecord, QDistinct> distinctByNome(
-      {bool caseSensitive = true}) {
+  QueryBuilder<IdentityRecord, IdentityRecord, QDistinct> distinctByNome({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'nome', caseSensitive: caseSensitive);
     });
@@ -719,14 +735,14 @@ extension IdentityRecordQueryProperty
   }
 
   QueryBuilder<IdentityRecord, String, QQueryOperations>
-      clubeAssociacaoProperty() {
+  clubeAssociacaoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'clubeAssociacao');
     });
   }
 
   QueryBuilder<IdentityRecord, DateTime, QQueryOperations>
-      dataRegistroProperty() {
+  dataRegistroProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dataRegistro');
     });

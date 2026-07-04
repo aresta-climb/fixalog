@@ -7,15 +7,17 @@ import 'package:app/core/models/local/identity_record.dart';
 
 void main() {
   group('HomeScreen Widget Tests', () {
-    testWidgets('Should render the main protocol cards', (WidgetTester tester) async {
+    testWidgets('Should render the main protocol cards', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            currentIdentityProvider.overrideWith((ref) => IdentityRecord()..nome = 'Renato Silva'),
+            currentIdentityProvider.overrideWith(
+              (ref) => IdentityRecord()..nome = 'Renato Silva',
+            ),
           ],
-          child: const MaterialApp(
-            home: HomeScreen(),
-          ),
+          child: const MaterialApp(home: HomeScreen()),
         ),
       );
 
@@ -32,11 +34,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            currentIdentityProvider.overrideWith((ref) => IdentityRecord()..nome = 'Renato Silva'),
+            currentIdentityProvider.overrideWith(
+              (ref) => IdentityRecord()..nome = 'Renato Silva',
+            ),
           ],
-          child: const MaterialApp(
-            home: HomeScreen(),
-          ),
+          child: const MaterialApp(home: HomeScreen()),
         ),
       );
 

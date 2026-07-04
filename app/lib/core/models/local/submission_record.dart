@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'submission_record.g.dart';
 
@@ -10,19 +10,19 @@ class SubmissionRecord {
   late String idSessao;
 
   late String idProtocolo;
-  
+
   late String nomeProtocolo;
 
   late DateTime dataInclusao;
-  
+
   // Hash completo para integridade
   late String hashAssinatura;
 
   // Caminho do arquivo PDF salvo em disco
   late String pdfPath;
-  
+
   // Caminho do arquivo YAML salvo em disco
   late String yamlPath;
-  
+
   bool enviadoNuvem = false;
 }

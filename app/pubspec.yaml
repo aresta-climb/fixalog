@@ -13,10 +13,8 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.6.1
   flutter_secure_storage: ^10.0.0
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
-  path_provider: ^2.1.5
-  pdf: ^3.12.0
+  path_provider: ^2.1.6
+  pdf: ^3.13.0
   pointycastle: ^4.0.0
   printing: ^5.14.3
   protobuf: ^6.0.0
@@ -27,15 +25,30 @@ dependencies:
   xml: ^7.0.1
   basic_utils: ^5.8.2
   local_auth: ^3.0.1
+  flutter_image_compress: ^2.4.0
+  rust_lib_app:
+    path: rust_builder
+  flutter_rust_bridge: 2.12.0
 
+  meta: any
+  shared_preferences: ^2.5.5
+  isar_community: ^3.3.2
+  isar_community_flutter_libs: ^3.3.2
+  ffmpeg_kit_flutter_new: ^4.3.2
+  share_plus: ^13.2.0
+  open_filex: ^4.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
-  isar_generator: ^3.1.0+1
   mocktail: ^1.0.5
+  integration_test:
+    sdk: flutter
 
+  geolocator_platform_interface: any
+  plugin_platform_interface: any
+  isar_community_generator: ^3.3.2
 flutter:
   uses-material-design: true
 

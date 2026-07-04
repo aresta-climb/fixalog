@@ -185,7 +185,10 @@ protocolo:
           tipo_inexistente:
             label: "Vai quebrar"
 ''';
-      expect(() => ProtocolParser.fromYaml(yaml), throwsA(isA<FormatException>()));
+      expect(
+        () => ProtocolParser.fromYaml(yaml),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

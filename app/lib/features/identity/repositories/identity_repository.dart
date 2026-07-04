@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../../core/models/local/identity_record.dart';
 import '../viewmodels/identity_form_view_model.dart' show isarProvider;
 
@@ -7,7 +7,7 @@ import '../viewmodels/identity_form_view_model.dart' show isarProvider;
 // Vamos defini-lo aqui temporariamente até termos um core/providers,
 // ou simplesmente importar do controller antigo por enquanto.
 // Como o isarProvider está no identity_form_controller.dart atualmente,
-// precisamos repensar onde ele mora. 
+// precisamos repensar onde ele mora.
 // O ideal é definir isarProvider em um arquivo no core.
 // Por hora, declararemos a interface e implementação.
 
@@ -25,21 +25,21 @@ class IsarIdentityRepository implements IdentityRepository {
   @override
   Future<bool> hasIdentity() async {
     if (_isar == null) return false;
-    final count = await _isar!.identityRecords.count();
+    final count = await _isar.identityRecords.count();
     return count > 0;
   }
 
   @override
   Future<IdentityRecord?> getCurrentIdentity() async {
     if (_isar == null) return null;
-    return await _isar!.identityRecords.where().findFirst();
+    return await _isar.identityRecords.where().findFirst();
   }
 
   @override
   Future<void> saveIdentity(IdentityRecord identity) async {
     if (_isar == null) throw Exception('Isar instance is null');
-    await _isar!.writeTxn(() async {
-      await _isar!.identityRecords.put(identity);
+    await _isar.writeTxn(() async {
+      await _isar.identityRecords.put(identity);
     });
   }
 }

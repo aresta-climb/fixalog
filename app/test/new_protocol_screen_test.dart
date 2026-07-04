@@ -27,14 +27,18 @@ void main() {
       expect(find.text('FIXALOG'), findsOneWidget);
     });
 
-    testWidgets('Exibe saudação genérica quando identidade está vazia', (tester) async {
+    testWidgets('Exibe saudação genérica quando identidade está vazia', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
       expect(find.text('Boa jornada.'), findsOneWidget);
     });
 
-    testWidgets('Exibe saudação com primeiro nome quando identidade tem nome', (tester) async {
+    testWidgets('Exibe saudação com primeiro nome quando identidade tem nome', (
+      tester,
+    ) async {
       final identity = IdentityRecord()..nome = 'Renato Silva';
       await tester.pumpWidget(_buildScreen(identity: identity));
       await tester.pump();
@@ -42,7 +46,9 @@ void main() {
       expect(find.text('Boa jornada, Renato.'), findsOneWidget);
     });
 
-    testWidgets('Exibe nome do clube quando preenchido e diferente de N/A', (tester) async {
+    testWidgets('Exibe nome do clube quando preenchido e diferente de N/A', (
+      tester,
+    ) async {
       final identity = IdentityRecord()
         ..nome = 'Ana'
         ..clubeAssociacao = 'Clube Alpino Paulista';
@@ -52,7 +58,9 @@ void main() {
       expect(find.text('CLUBE ALPINO PAULISTA'), findsOneWidget);
     });
 
-    testWidgets('Exibe fallback MANTENEDOR INDEPENDENTE quando clube é N/A', (tester) async {
+    testWidgets('Exibe fallback MANTENEDOR INDEPENDENTE quando clube é N/A', (
+      tester,
+    ) async {
       final identity = IdentityRecord()
         ..nome = 'Ana'
         ..clubeAssociacao = 'N/A';
@@ -92,7 +100,9 @@ void main() {
 
       expect(find.text('INICIAR'), findsNWidgets(4));
     });
-    testWidgets('Navega para Express Form ao tocar em Registro Expresso', (tester) async {
+    testWidgets('Navega para Express Form ao tocar em Registro Expresso', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
@@ -103,12 +113,18 @@ void main() {
       expect(find.byType(ExpressFormScreen), findsOneWidget);
     });
 
-    testWidgets('Tenta navegar para Manutenção de Proteções Fixas', (tester) async {
+    testWidgets('Tenta navegar para Manutenção de Proteções Fixas', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(1);
-      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(SingleChildScrollView),
+        const Offset(0, -500),
+      );
       await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pump();
@@ -119,7 +135,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(2);
-      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(SingleChildScrollView),
+        const Offset(0, -500),
+      );
       await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pump();
@@ -130,7 +150,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(3);
-      await tester.dragUntilVisible(finder, find.byType(SingleChildScrollView), const Offset(0, -500));
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(SingleChildScrollView),
+        const Offset(0, -500),
+      );
       await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pump();

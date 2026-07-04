@@ -48,7 +48,7 @@ class NewProtocolScreen extends ConsumerWidget {
             width: 600,
             height: 600,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.5),
+              color: const Color(0xFF1B3D2F).withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
           ),
@@ -60,7 +60,7 @@ class NewProtocolScreen extends ConsumerWidget {
             width: 800,
             height: 800,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withOpacity(0.4),
+              color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
           ),
@@ -78,7 +78,10 @@ class NewProtocolScreen extends ConsumerWidget {
 
         SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -91,8 +94,11 @@ class NewProtocolScreen extends ConsumerWidget {
                         color: const Color(0xFF121416),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.shield_outlined,
-                          color: Colors.blueAccent, size: 20),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        color: Colors.blueAccent,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -111,7 +117,9 @@ class NewProtocolScreen extends ConsumerWidget {
 
                 // Greeting
                 Text(
-                  firstName.isNotEmpty ? 'Boa jornada, $firstName.' : 'Boa jornada.',
+                  firstName.isNotEmpty
+                      ? 'Boa jornada, $firstName.'
+                      : 'Boa jornada.',
                   style: const TextStyle(
                     color: Colors.white,
                     fontFamily: 'SpaceGrotesk',
@@ -135,7 +143,7 @@ class NewProtocolScreen extends ConsumerWidget {
                     Text(
                       clubName,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.0,
@@ -149,7 +157,7 @@ class NewProtocolScreen extends ConsumerWidget {
                 Text(
                   'NOVO REGISTRO DE MANUTENÇÃO',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
@@ -166,9 +174,11 @@ class NewProtocolScreen extends ConsumerWidget {
                   iconData: Icons.bolt,
                   onTap: () {
                     // Navigate to Express Form Screen
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const ExpressFormScreen(),
-                    ));
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ExpressFormScreen(),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
@@ -179,12 +189,16 @@ class NewProtocolScreen extends ConsumerWidget {
                   title: 'Manutenção de\nProteções Fixas',
                   iconData: Icons.handyman,
                   onTap: () async {
-                    final yamlContent = await rootBundle
-                        .loadString('assets/protocols/manutencao_ferragens.yaml');
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/manutencao_ferragens.yaml',
+                    );
                     if (context.mounted) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => WizardScreen(initialYaml: yamlContent),
-                      ));
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -196,12 +210,16 @@ class NewProtocolScreen extends ConsumerWidget {
                   title: 'Inspeção Visual de\nProteções Fixas',
                   iconData: Icons.remove_red_eye,
                   onTap: () async {
-                    final yamlContent = await rootBundle
-                        .loadString('assets/protocols/inspecao_visual.yaml');
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/inspecao_visual.yaml',
+                    );
                     if (context.mounted) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => WizardScreen(initialYaml: yamlContent),
-                      ));
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -213,12 +231,16 @@ class NewProtocolScreen extends ConsumerWidget {
                   title: 'Abertura de Via',
                   iconData: Icons.terrain,
                   onTap: () async {
-                    final yamlContent = await rootBundle
-                        .loadString('assets/protocols/abertura_vias.yaml');
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/abertura_vias.yaml',
+                    );
                     if (context.mounted) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => WizardScreen(initialYaml: yamlContent),
-                      ));
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -243,17 +265,20 @@ class NewProtocolScreen extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF121416).withOpacity(0.9),
+        color: const Color(0xFF121416).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Stack(
         children: [
           Positioned(
             right: 0,
             top: 0,
-            child: Icon(iconData,
-                size: 54, color: Colors.white.withOpacity(0.12)),
+            child: Icon(
+              iconData,
+              size: 54,
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,9 +312,12 @@ class NewProtocolScreen extends ConsumerWidget {
                     backgroundColor: const Color(0xFFFF6B00),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6)),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                     elevation: 0,
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -297,9 +325,13 @@ class NewProtocolScreen extends ConsumerWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('INICIAR',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(
+                        'INICIAR',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward, size: 14),
                     ],

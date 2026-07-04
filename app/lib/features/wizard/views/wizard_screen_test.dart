@@ -16,12 +16,12 @@ protocolo:
 ''';
 
   group('WizardScreen Widget Tests', () {
-    testWidgets('Should render the first step from YAML', (WidgetTester tester) async {
+    testWidgets('Should render the first step from YAML', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(
-            home: WizardScreen(initialYaml: testYaml),
-          ),
+          child: MaterialApp(home: WizardScreen(initialYaml: testYaml)),
         ),
       );
 
@@ -34,30 +34,34 @@ protocolo:
       expect(find.byType(TextFormField), findsOneWidget);
     });
 
-    testWidgets('Next button should be grey when incomplete and orange when filled', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: WizardScreen(initialYaml: testYaml),
+    testWidgets(
+      'Next button should be grey when incomplete and orange when filled',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(home: WizardScreen(initialYaml: testYaml)),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final nextButtonFinder = find.widgetWithText(ElevatedButton, 'ASSINAR E CONCLUIR');
-      
-      // Verifica se o botão está presente
-      expect(nextButtonFinder, findsOneWidget);
+        final nextButtonFinder = find.widgetWithText(
+          ElevatedButton,
+          'ASSINAR E CONCLUIR',
+        );
 
-      // Digita algo no campo para ativar o botão
-      await tester.enterText(find.byType(TextFormField), 'Inox 316');
-      await tester.pumpAndSettle();
+        // Verifica se o botão está presente
+        expect(nextButtonFinder, findsOneWidget);
 
-      // Verifica se o botão ficou laranja (#FF6B00)
-      final button = tester.widget<ElevatedButton>(nextButtonFinder);
-      final color = button.style?.backgroundColor?.resolve({});
-      expect(color, equals(const Color(0xFFFF6B00)));
-    });
+        // Digita algo no campo para ativar o botão
+        await tester.enterText(find.byType(TextFormField), 'Inox 316');
+        await tester.pumpAndSettle();
+
+        // Verifica se o botão ficou laranja (#FF6B00)
+        final button = tester.widget<ElevatedButton>(nextButtonFinder);
+        final color = button.style?.backgroundColor?.resolve({});
+        expect(color, equals(const Color(0xFFFF6B00)));
+      },
+    );
   });
 }

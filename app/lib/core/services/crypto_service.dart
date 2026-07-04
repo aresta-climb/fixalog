@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -13,8 +12,8 @@ class CryptoService {
   CryptoService({
     FlutterSecureStorage? secureStorage,
     LocalAuthentication? localAuth,
-  })  : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
-        _localAuth = localAuth ?? LocalAuthentication();
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+       _localAuth = localAuth ?? LocalAuthentication();
 
   /// Gera as chaves ECDSA secp256r1 persistindo em Secure Storage
   Future<void> generateAndStoreKeysIfNeeded() async {
@@ -22,9 +21,13 @@ class CryptoService {
     if (existingKey == null) {
       // Gera ECDSA KeyPair (secp256r1 é o padrão prime256v1 em pointycastle)
       final keyPair = CryptoUtils.generateEcKeyPair();
-      
-      final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(keyPair.privateKey as ECPrivateKey);
-      final publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(keyPair.publicKey as ECPublicKey);
+
+      final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(
+        keyPair.privateKey as ECPrivateKey,
+      );
+      final publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(
+        keyPair.publicKey as ECPublicKey,
+      );
 
       await _secureStorage.write(key: 'private_key', value: privateKeyPem);
       await _secureStorage.write(key: 'public_key', value: publicKeyPem);
@@ -37,16 +40,15 @@ class CryptoService {
     final publicKeyPem = await _secureStorage.read(key: 'public_key');
 
     if (privateKeyPem == null || publicKeyPem == null) {
-      throw Exception("Chaves não encontradas no dispositivo. Gere as chaves primeiro.");
+      throw Exception(
+        "Chaves não encontradas no dispositivo. Gere as chaves primeiro.",
+      );
     }
 
     final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
     final publicKey = CryptoUtils.ecPublicKeyFromPem(publicKeyPem);
 
-    final subject = {
-      'CN': mantenedorName,
-      'O': 'FixaLog',
-    };
+    final subject = {'CN': mantenedorName, 'O': 'FixaLog'};
 
     final csr = X509Utils.generateEccCsrPem(subject, privateKey, publicKey);
 
@@ -99,9 +101,13 @@ class CryptoService {
     if (privateKeyPem == null) {
       throw Exception("Chaves não existem no dispositivo");
     }
-    
+
     final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
-    final sig = CryptoUtils.ecSign(privateKey, Uint8List.fromList(documentBytes), algorithmName: 'SHA-256/ECDSA');
+    final sig = CryptoUtils.ecSign(
+      privateKey,
+      Uint8List.fromList(documentBytes),
+      algorithmName: 'SHA-256/ECDSA',
+    );
     return CryptoUtils.ecSignatureToBase64(sig);
   }
 }

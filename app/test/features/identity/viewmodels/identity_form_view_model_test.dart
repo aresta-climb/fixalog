@@ -6,7 +6,7 @@ import 'package:app/core/services/crypto_service.dart';
 
 class MockIdentityRepository implements IdentityRepository {
   bool saveCalled = false;
-  
+
   @override
   Future<bool> hasIdentity() async => false;
 
@@ -38,21 +38,27 @@ void main() {
 
       await viewModel.submitIdentity('', 'Clube');
 
-      expect(viewModel.state.errorMessage, 'Atenção. O nome não pode estar vazio.');
+      expect(
+        viewModel.state.errorMessage,
+        'Atenção. O nome não pode estar vazio.',
+      );
       expect(repo.saveCalled, isFalse);
     });
 
-    test('submitIdentity com sucesso define isSuccess e salva no repo', () async {
-      final repo = MockIdentityRepository();
-      final crypto = MockCryptoService();
-      final viewModel = IdentityFormViewModel(repo, crypto);
+    test(
+      'submitIdentity com sucesso define isSuccess e salva no repo',
+      () async {
+        final repo = MockIdentityRepository();
+        final crypto = MockCryptoService();
+        final viewModel = IdentityFormViewModel(repo, crypto);
 
-      await viewModel.submitIdentity('Alex Honnold', 'Yosemite');
+        await viewModel.submitIdentity('Alex Honnold', 'Yosemite');
 
-      expect(viewModel.state.isSuccess, isTrue);
-      expect(viewModel.state.isLoading, isFalse);
-      expect(viewModel.state.errorMessage, isNull);
-      expect(repo.saveCalled, isTrue);
-    });
+        expect(viewModel.state.isSuccess, isTrue);
+        expect(viewModel.state.isLoading, isFalse);
+        expect(viewModel.state.errorMessage, isNull);
+        expect(repo.saveCalled, isTrue);
+      },
+    );
   });
 }

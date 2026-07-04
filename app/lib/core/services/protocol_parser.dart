@@ -82,19 +82,34 @@ class ProtocolParser {
     final id = m['id'] as String? ?? '';
 
     if (m.containsKey('instrucao')) {
-      return ConteudoStep(id: id, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
+      return ConteudoStep(
+        id: id,
+        instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap),
+      );
     }
     if (m.containsKey('campo_simples')) {
-      return ConteudoStep(id: id, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
+      return ConteudoStep(
+        id: id,
+        campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap),
+      );
     }
     if (m.containsKey('selecao_ramo')) {
-      return ConteudoStep(id: id, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
+      return ConteudoStep(
+        id: id,
+        selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap),
+      );
     }
     if (m.containsKey('lista_acoes')) {
-      return ConteudoStep(id: id, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
+      return ConteudoStep(
+        id: id,
+        listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap),
+      );
     }
     if (m.containsKey('ref_materiais')) {
-      return ConteudoStep(id: id, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
+      return ConteudoStep(
+        id: id,
+        refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap),
+      );
     }
 
     throw FormatException(
@@ -107,19 +122,34 @@ class ProtocolParser {
   /// Step e devolve um [ConteudoStep] com o mesmo id do Step.
   static ConteudoStep? _parseConteudoStepShorthand(String stepId, YamlMap m) {
     if (m.containsKey('instrucao')) {
-      return ConteudoStep(id: stepId, instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap));
+      return ConteudoStep(
+        id: stepId,
+        instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap),
+      );
     }
     if (m.containsKey('campo_simples')) {
-      return ConteudoStep(id: stepId, campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap));
+      return ConteudoStep(
+        id: stepId,
+        campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap),
+      );
     }
     if (m.containsKey('selecao_ramo')) {
-      return ConteudoStep(id: stepId, selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap));
+      return ConteudoStep(
+        id: stepId,
+        selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap),
+      );
     }
     if (m.containsKey('lista_acoes')) {
-      return ConteudoStep(id: stepId, listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap));
+      return ConteudoStep(
+        id: stepId,
+        listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap),
+      );
     }
     if (m.containsKey('ref_materiais')) {
-      return ConteudoStep(id: stepId, refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap));
+      return ConteudoStep(
+        id: stepId,
+        refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap),
+      );
     }
     return null;
   }
@@ -136,10 +166,10 @@ class ProtocolParser {
   }
 
   static StepInstrucao_NivelAlerta _parseNivelAlerta(String? s) => switch (s) {
-        'ATENCAO' => StepInstrucao_NivelAlerta.ATENCAO,
-        'PERIGO'  => StepInstrucao_NivelAlerta.PERIGO,
-        _         => StepInstrucao_NivelAlerta.INFO,
-      };
+    'ATENCAO' => StepInstrucao_NivelAlerta.ATENCAO,
+    'PERIGO' => StepInstrucao_NivelAlerta.PERIGO,
+    _ => StepInstrucao_NivelAlerta.INFO,
+  };
 
   static StepCampoSimples _parseStepCampoSimples(YamlMap m) {
     return StepCampoSimples(
@@ -148,28 +178,30 @@ class ProtocolParser {
       tipo: _parseTipoCampo(m['tipo'] as String?),
       uiHint: _parseUiHint(m['ui_hint'] as String?),
       obrigatorio: m['obrigatorio'] as bool? ?? false,
-      opcoes: (m['opcoes'] as YamlList? ?? YamlList.wrap([])).map(_parseOpcaoCampo),
+      opcoes: (m['opcoes'] as YamlList? ?? YamlList.wrap([])).map(
+        _parseOpcaoCampo,
+      ),
     );
   }
 
   static StepCampoSimples_TipoCampo _parseTipoCampo(String? s) => switch (s) {
-        'NUMBER'    => StepCampoSimples_TipoCampo.NUMBER,
-        'DROPDOWN'  => StepCampoSimples_TipoCampo.DROPDOWN,
-        'IMAGE'     => StepCampoSimples_TipoCampo.IMAGE,
-        'BOOLEAN'   => StepCampoSimples_TipoCampo.BOOLEAN,
-        'GPS'       => StepCampoSimples_TipoCampo.GPS,
-        'VIDEO'     => StepCampoSimples_TipoCampo.VIDEO,
-        'SIGNATURE' => StepCampoSimples_TipoCampo.SIGNATURE,
-        'DATE'      => StepCampoSimples_TipoCampo.DATE,
-        _           => StepCampoSimples_TipoCampo.TEXT,
-      };
+    'NUMBER' => StepCampoSimples_TipoCampo.NUMBER,
+    'DROPDOWN' => StepCampoSimples_TipoCampo.DROPDOWN,
+    'IMAGE' => StepCampoSimples_TipoCampo.IMAGE,
+    'BOOLEAN' => StepCampoSimples_TipoCampo.BOOLEAN,
+    'GPS' => StepCampoSimples_TipoCampo.GPS,
+    'VIDEO' => StepCampoSimples_TipoCampo.VIDEO,
+    'SIGNATURE' => StepCampoSimples_TipoCampo.SIGNATURE,
+    'DATE' => StepCampoSimples_TipoCampo.DATE,
+    _ => StepCampoSimples_TipoCampo.TEXT,
+  };
 
   static StepCampoSimples_UiHint _parseUiHint(String? s) => switch (s) {
-        'LARGE_TILES'   => StepCampoSimples_UiHint.LARGE_TILES,
-        'CAMERA_ACTION' => StepCampoSimples_UiHint.CAMERA_ACTION,
-        'TEXT_AREA'     => StepCampoSimples_UiHint.TEXT_AREA,
-        _               => StepCampoSimples_UiHint.DEFAULT,
-      };
+    'LARGE_TILES' => StepCampoSimples_UiHint.LARGE_TILES,
+    'CAMERA_ACTION' => StepCampoSimples_UiHint.CAMERA_ACTION,
+    'TEXT_AREA' => StepCampoSimples_UiHint.TEXT_AREA,
+    _ => StepCampoSimples_UiHint.DEFAULT,
+  };
 
   static OpcaoCampo _parseOpcaoCampo(dynamic o) {
     final m = o as YamlMap;
@@ -207,7 +239,10 @@ class ProtocolParser {
       sublabel: m['sublabel'] as String? ?? '',
       minimo: m['minimo'] as int? ?? 0,
       maximo: m['maximo'] as int? ?? 0,
-      tiposDisponiveis: (m['tipos_disponiveis'] as YamlList? ?? YamlList.wrap([])).map(_parseTipoAcao),
+      tiposDisponiveis:
+          (m['tipos_disponiveis'] as YamlList? ?? YamlList.wrap([])).map(
+            _parseTipoAcao,
+          ),
     );
   }
 

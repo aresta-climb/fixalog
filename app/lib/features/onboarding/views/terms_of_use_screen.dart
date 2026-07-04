@@ -23,10 +23,7 @@ class _TermsOfUseScreenState extends ConsumerState<TermsOfUseScreen> {
     setState(() => _isLoading = true);
 
     // Request permissions
-    await [
-      Permission.camera,
-      Permission.locationWhenInUse,
-    ].request();
+    await [Permission.camera, Permission.locationWhenInUse].request();
 
     // Save accepted version
     final isar = ref.read(isarProvider);
@@ -43,13 +40,13 @@ class _TermsOfUseScreenState extends ConsumerState<TermsOfUseScreen> {
 
     // Check if identity exists
     final hasIdentity = await ref.read(hasIdentityProvider.future);
-    
+
     if (!mounted) return;
 
     if (hasIdentity) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const IdentitySetupScreen()),
@@ -66,11 +63,17 @@ class _TermsOfUseScreenState extends ConsumerState<TermsOfUseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.privacy_tip_outlined, size: 64, color: Color(0xFFFF6B00)),
+            const Icon(
+              Icons.privacy_tip_outlined,
+              size: 64,
+              color: Color(0xFFFF6B00),
+            ),
             const SizedBox(height: 24),
             Text(
               'Por que precisamos da sua Câmera e do GPS?',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontFamily: 'SpaceGrotesk'),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontFamily: 'SpaceGrotesk'),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

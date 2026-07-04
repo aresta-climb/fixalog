@@ -1,11 +1,10 @@
-import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:app/features/express_form/viewmodels/express_form_view_model.dart';
-import 'package:cross_file/cross_file.dart';
 
 class MockImagePicker extends Mock implements ImagePicker {}
+
 class MockXFile extends Mock implements XFile {}
 
 void main() {
@@ -22,22 +21,28 @@ void main() {
       expect(viewModel.state, isEmpty);
     });
 
-    test('takePhoto should add an entry if photo is taken', () async {
+    test('takePhoto should add an entry with mediaPath if photo is taken', () async {
       final mockFile = MockXFile();
-      when(() => mockFile.readAsBytes()).thenAnswer((_) async => Uint8List.fromList([1, 2, 3]));
-      when(() => mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70))
-          .thenAnswer((_) async => mockFile);
+      when(() => mockFile.path).thenReturn('/tmp/foto.jpg');
+      
+      when(
+        () =>
+            mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70),
+      ).thenAnswer((_) async => mockFile);
 
       await viewModel.takePhoto();
 
       expect(viewModel.state.length, 1);
-      expect(viewModel.state.first.imageBytes, [1, 2, 3]);
+      expect(viewModel.state.first.mediaPath, '/tmp/foto.jpg');
       expect(viewModel.state.first.description, isEmpty);
+      expect(viewModel.state.first.isVideo, isFalse);
     });
 
     test('takePhoto should do nothing if photo is null (cancelled)', () async {
-      when(() => mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70))
-          .thenAnswer((_) async => null);
+      when(
+        () =>
+            mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70),
+      ).thenAnswer((_) async => null);
 
       await viewModel.takePhoto();
 
@@ -45,16 +50,20 @@ void main() {
     });
 
     test('updateDescription should update description if index is valid', () {
-      viewModel.state = [ExpressEntry(imageBytes: Uint8List.fromList([1]))];
-      
+      viewModel.state = [
+        ExpressEntry(mediaPath: '/tmp/foto1.jpg'),
+      ];
+
       viewModel.updateDescription(0, 'Nova descrição');
 
       expect(viewModel.state[0].description, 'Nova descrição');
     });
 
     test('updateDescription should do nothing if index is invalid', () {
-      viewModel.state = [ExpressEntry(imageBytes: Uint8List.fromList([1]))];
-      
+      viewModel.state = [
+        ExpressEntry(mediaPath: '/tmp/foto1.jpg'),
+      ];
+
       viewModel.updateDescription(1, 'Nova descrição');
 
       expect(viewModel.state[0].description, isEmpty);
@@ -62,30 +71,37 @@ void main() {
 
     test('removeEntry should remove entry if index is valid', () {
       viewModel.state = [
-        ExpressEntry(imageBytes: Uint8List.fromList([1])),
-        ExpressEntry(imageBytes: Uint8List.fromList([2])),
+        ExpressEntry(mediaPath: '/tmp/foto1.jpg'),
+        ExpressEntry(mediaPath: '/tmp/foto2.jpg'),
       ];
-      
+
       viewModel.removeEntry(0);
 
       expect(viewModel.state.length, 1);
-      expect(viewModel.state[0].imageBytes, [2]);
+      expect(viewModel.state[0].mediaPath, '/tmp/foto2.jpg');
     });
 
     test('removeEntry should do nothing if index is invalid', () {
-      viewModel.state = [ExpressEntry(imageBytes: Uint8List.fromList([1]))];
-      
+      viewModel.state = [
+        ExpressEntry(mediaPath: '/tmp/foto1.jpg'),
+      ];
+
       viewModel.removeEntry(1);
 
       expect(viewModel.state.length, 1);
     });
-    
+
     test('copyWith on ExpressEntry with no parameters returns same values', () {
-       final entry = ExpressEntry(imageBytes: Uint8List.fromList([1]), description: 'Test');
-       final copy = entry.copyWith();
-       
-       expect(copy.imageBytes, [1]);
-       expect(copy.description, 'Test');
+      final entry = ExpressEntry(
+        mediaPath: '/tmp/foto1.jpg',
+        description: 'Test',
+        isVideo: true,
+      );
+      final copy = entry.copyWith();
+
+      expect(copy.mediaPath, '/tmp/foto1.jpg');
+      expect(copy.description, 'Test');
+      expect(copy.isVideo, true);
     });
   });
 }

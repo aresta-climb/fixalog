@@ -19,7 +19,9 @@ Widget _buildTestApp({IdentityRecord? identity}) {
 
 void main() {
   group('HomeScreen Shell Tests', () {
-    testWidgets('Exibe o bottom navigation bar com os três itens', (tester) async {
+    testWidgets('Exibe o bottom navigation bar com os três itens', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pump();
 
@@ -28,7 +30,9 @@ void main() {
       expect(find.text('Configurações'), findsOneWidget);
     });
 
-    testWidgets('Navegar para aba Configurações exibe o conteúdo correto', (tester) async {
+    testWidgets('Navegar para aba Configurações exibe o conteúdo correto', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pump();
 
@@ -48,7 +52,9 @@ void main() {
       expect(find.text('HISTÓRICO RECENTE'), findsNothing);
     });
 
-    testWidgets('Trocar para aba Histórico exibe o conteúdo correto', (tester) async {
+    testWidgets('Trocar para aba Histórico exibe o conteúdo correto', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pump();
 

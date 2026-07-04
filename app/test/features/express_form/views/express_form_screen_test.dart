@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +16,9 @@ class MockGeolocatorPlatform extends Mock
     implements GeolocatorPlatform {}
 
 class MockImagePicker extends Mock implements ImagePicker {}
+
 class MockXFile extends Mock implements XFile {}
+
 class MockCryptoService extends Mock implements CryptoService {}
 
 void main() {
@@ -25,7 +26,9 @@ void main() {
   late MockImagePicker mockPicker;
   late MockCryptoService mockCryptoService;
 
-  final validImageBytes = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==');
+  final validImageBytes = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==',
+  );
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +41,7 @@ void main() {
     mockCryptoService = MockCryptoService();
   });
 
-  Widget _buildScreen({required List<ExpressEntry> initialEntries}) {
+  Widget buildScreen({required List<ExpressEntry> initialEntries}) {
     return ProviderScope(
       overrides: [
         expressFormViewModelProvider.overrideWith((ref) {
@@ -55,40 +58,52 @@ void main() {
 
   group('ExpressFormScreen Widget Tests', () {
     testWidgets('Shows empty state when no photos', (tester) async {
-      await tester.pumpWidget(_buildScreen(initialEntries: []));
+      await tester.pumpWidget(buildScreen(initialEntries: []));
 
-      expect(find.textContaining('Nenhuma foto adicionada ainda'), findsOneWidget);
+      expect(
+        find.textContaining('Nenhuma foto adicionada ainda'),
+        findsOneWidget,
+      );
       expect(find.text('Gerar Relatório'), findsNothing);
     });
 
     testWidgets('Tapping FAB takes photo', (tester) async {
-      await tester.pumpWidget(_buildScreen(initialEntries: []));
+      await tester.pumpWidget(buildScreen(initialEntries: []));
 
       final mockFile = MockXFile();
-      when(() => mockFile.readAsBytes()).thenAnswer((_) async => validImageBytes);
-      when(() => mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70))
-          .thenAnswer((_) async => mockFile);
+      when(
+        () => mockFile.readAsBytes(),
+      ).thenAnswer((_) async => validImageBytes);
+      when(
+        () =>
+            mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70),
+      ).thenAnswer((_) async => mockFile);
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      verify(() => mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70)).called(1);
+      verify(
+        () =>
+            mockPicker.pickImage(source: ImageSource.camera, imageQuality: 70),
+      ).called(1);
       // Now there is one photo
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('Shows photo list and allows deleting and typing description', (tester) async {
+    testWidgets('Shows photo list and allows deleting and typing description', (
+      tester,
+    ) async {
       final entries = [
-        ExpressEntry(imageBytes: validImageBytes, description: 'Initial')
+        ExpressEntry(imageBytes: validImageBytes, description: 'Initial'),
       ];
-      await tester.pumpWidget(_buildScreen(initialEntries: entries));
+      await tester.pumpWidget(buildScreen(initialEntries: entries));
 
       expect(find.byType(Card), findsOneWidget);
 
       // Type in description
       await tester.enterText(find.byType(TextField), 'Nova descrição');
       await tester.pump();
-      
+
       expect(find.text('Nova descrição'), findsOneWidget);
 
       // Tap delete
@@ -98,26 +113,28 @@ void main() {
       expect(find.byType(Card), findsNothing);
     });
 
-    testWidgets('Tapping Gerar Relatorio shows loading and handles success', (tester) async {
-      final entries = [
-        ExpressEntry(imageBytes: validImageBytes)
-      ];
-      await tester.pumpWidget(_buildScreen(initialEntries: entries));
+    testWidgets('Tapping Gerar Relatorio shows loading and handles success', (
+      tester,
+    ) async {
+      final entries = [ExpressEntry(imageBytes: validImageBytes)];
+      await tester.pumpWidget(buildScreen(initialEntries: entries));
 
       // Make generation throw an exception so we don't have to mock the whole PDF generation success flow
-      when(() => mockGeolocatorPlatform.isLocationServiceEnabled())
-          .thenAnswer((_) async {
-            await Future.delayed(const Duration(milliseconds: 100));
-            throw Exception('Simulated PDF Error');
-          });
+      when(() => mockGeolocatorPlatform.isLocationServiceEnabled()).thenAnswer((
+        _,
+      ) async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        throw Exception('Simulated PDF Error');
+      });
 
       await tester.tap(find.text('Gerar Relatório'));
       await tester.pump(); // Start dialog transition
       await tester.pump(); // Build dialog
-      
+
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      await tester.pumpAndSettle(); // Finishes delayed exception, dialog pop, and snackbar transition
+      await tester
+          .pumpAndSettle(); // Finishes delayed exception, dialog pop, and snackbar transition
 
       expect(find.textContaining('Simulated PDF Error'), findsOneWidget);
     });

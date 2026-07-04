@@ -1,25 +1,24 @@
-import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ExpressEntry {
-  final Uint8List imageBytes;
+  final String mediaPath;
   final String description;
   final bool isVideo;
 
   ExpressEntry({
-    required this.imageBytes,
+    required this.mediaPath,
     this.description = '',
     this.isVideo = false,
   });
 
   ExpressEntry copyWith({
-    Uint8List? imageBytes,
+    String? mediaPath,
     String? description,
     bool? isVideo,
   }) {
     return ExpressEntry(
-      imageBytes: imageBytes ?? this.imageBytes,
+      mediaPath: mediaPath ?? this.mediaPath,
       description: description ?? this.description,
       isVideo: isVideo ?? this.isVideo,
     );
@@ -29,20 +28,26 @@ class ExpressEntry {
 class ExpressFormViewModel extends StateNotifier<List<ExpressEntry>> {
   final ImagePicker _picker;
 
-  ExpressFormViewModel({ImagePicker? picker}) : _picker = picker ?? ImagePicker(), super([]);
+  ExpressFormViewModel({ImagePicker? picker})
+    : _picker = picker ?? ImagePicker(),
+      super([]);
 
   Future<void> takePhoto() async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+    );
     if (photo != null) {
-      final bytes = await photo.readAsBytes();
-      state = [...state, ExpressEntry(imageBytes: bytes)];
+      state = [...state, ExpressEntry(mediaPath: photo.path)];
     }
   }
 
   void updateDescription(int index, String newDescription) {
     if (index >= 0 && index < state.length) {
       final updatedList = List<ExpressEntry>.from(state);
-      updatedList[index] = updatedList[index].copyWith(description: newDescription);
+      updatedList[index] = updatedList[index].copyWith(
+        description: newDescription,
+      );
       state = updatedList;
     }
   }
@@ -56,6 +61,7 @@ class ExpressFormViewModel extends StateNotifier<List<ExpressEntry>> {
   }
 }
 
-final expressFormViewModelProvider = StateNotifierProvider<ExpressFormViewModel, List<ExpressEntry>>((ref) {
-  return ExpressFormViewModel();
-});
+final expressFormViewModelProvider =
+    StateNotifierProvider<ExpressFormViewModel, List<ExpressEntry>>((ref) {
+      return ExpressFormViewModel();
+    });

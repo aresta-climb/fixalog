@@ -28,10 +28,7 @@ void main() {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(
-        find.text('Registros de manutenção preenchidos'),
-        findsOneWidget,
-      );
+      expect(find.text('Registros de manutenção preenchidos'), findsOneWidget);
     });
 
     testWidgets('Exibe os dois stat cards', (tester) async {

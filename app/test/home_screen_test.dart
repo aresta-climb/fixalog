@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/views/home_screen.dart';
+import 'package:app/features/home/providers/history_provider.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:app/core/models/local/identity_record.dart';
 
@@ -11,6 +12,9 @@ Widget _buildTestApp({IdentityRecord? identity}) {
     overrides: [
       currentIdentityProvider.overrideWith(
         (ref) async => identity ?? IdentityRecord(),
+      ),
+      historyProvider.overrideWith(
+        (ref) => Stream.value([]),
       ),
     ],
     child: const MaterialApp(home: HomeScreen()),

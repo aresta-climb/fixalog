@@ -5,6 +5,9 @@ import 'package:app/src/rust/api/simple.dart' as rust_api;
 import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:app/features/media/services/media_compressor_service.dart';
 import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:isar_community/isar.dart';
+import 'package:app/core/models/local/submission_record.dart';
+import 'package:app/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 
 // Estado da Geração
 class GenerationState {
@@ -48,8 +51,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   final PdfDraftService _draftService;
   final MediaCompressorService _mediaService;
   final GenerationRecoveryService _recoveryService;
+  final Isar? _isar;
 
-  GenerationNotifier(this._draftService, this._mediaService, this._recoveryService) 
+  GenerationNotifier(this._draftService, this._mediaService, this._recoveryService, [this._isar]) 
       : super(GenerationState());
 
   Future<void> startGeneration(String title, List<GenerationMedia> medias, String outputPath) async {
@@ -121,6 +125,22 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       }
       await File(draftPath).copy(outputPath);
 
+      if (_isar != null) {
+        final record = SubmissionRecord()
+          ..idSessao = DateTime.now().millisecondsSinceEpoch.toString()
+          ..idProtocolo = DateTime.now().millisecondsSinceEpoch.toString()
+          ..nomeProtocolo = title
+          ..dataInclusao = DateTime.now()
+          ..hashAssinatura = ''
+          ..pdfPath = outputPath
+          ..yamlPath = ''
+          ..enviadoNuvem = false;
+
+        await _isar!.writeTxn(() async {
+          await _isar!.collection<SubmissionRecord>().put(record);
+        });
+      }
+
       state = state.copyWith(
         progress: 1.0, 
         status: 'Selo FixaLog aplicado com sucesso!', 
@@ -146,5 +166,6 @@ final generationProvider = StateNotifierProvider<GenerationNotifier, GenerationS
     ref.read(draftServiceProvider),
     ref.read(mediaCompressorProvider),
     ref.read(generationRecoveryProvider),
+    ref.read(isarProvider),
   );
 });

@@ -1,11 +1,23 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/features/home/providers/history_provider.dart';
+import 'package:app/core/services/pdf_viewer_service.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  int _limit = 10;
+
+  @override
   Widget build(BuildContext context) {
+    final historyAsync = ref.watch(historyProvider);
+
     return Stack(
       children: [
         // 1. Gradiente de Base
@@ -115,78 +127,133 @@ class HistoryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // Status Grid
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard('LOGS TOTAIS', '128', Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        'VIA MAIS ATIVA',
-                        'Via do Sol',
-                        Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
+                // Status Grid and History List
+                historyAsync.when(
+                  data: (history) {
+                    final totalLogs = history.length.toString();
 
-                // History Section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'HISTÓRICO RECENTE',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'VER TUDO',
-                        style: TextStyle(
-                          color: Color(0xFFFF6B00),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                    // Encontrar a data do último log
+                    String ultimoLog = '-';
+                    if (history.isNotEmpty) {
+                      final record =
+                          history.first; // Já vem ordenado desc pelo provider
+                      ultimoLog =
+                          "\${record.dataInclusao.day.toString().padLeft(2, '0')}/\${record.dataInclusao.month.toString().padLeft(2, '0')}/\${record.dataInclusao.year}";
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatCard(
+                                'LOGS TOTAIS',
+                                totalLogs,
+                                Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildStatCard(
+                                'ÚLTIMO LOG',
+                                ultimoLog,
+                                Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 40),
+                        const SizedBox(height: 16),
+                        if (history.isEmpty)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Text(
+                                'Nenhum relatório preenchido.',
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            ),
+                          )
+                        else ...[
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: history.length > _limit
+                                ? _limit
+                                : history.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final record = history[index];
+                              final dataFormatada =
+                                  "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
+
+                              return _buildHistoryItem(
+                                title: record.nomeProtocolo.isEmpty
+                                    ? 'Protocolo'
+                                    : record.nomeProtocolo,
+                                date: dataFormatada,
+                                tag: 'PREENCHIDO',
+                                tagColor: const Color(
+                                  0xFFFF6B00,
+                                ).withValues(alpha: 0.2),
+                                textColor: const Color(0xFFFF6B00),
+                                icon: Icons.cloud_outlined,
+                                onTap: () async {
+                                  try {
+                                    await ref
+                                        .read(pdfViewerServiceProvider)
+                                        .openPdf(record.pdfPath);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Erro ao abrir PDF: $e',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                          if (history.length > _limit) ...[
+                            const SizedBox(height: 24),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _limit += 10;
+                                });
+                              },
+                              child: const Text(
+                                'CARREGAR MAIS',
+                                style: TextStyle(
+                                  color: Color(0xFFFF6B00),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFFF6B00)),
+                  ),
+                  error: (e, st) => Center(
+                    child: Text(
+                      'Erro: $e',
+                      style: const TextStyle(color: Colors.red),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                _buildHistoryItem(
-                  title: 'Via do Sol',
-                  date: '12 OUT 2023',
-                  tag: 'QUÍMICO',
-                  tagColor: const Color(0xFFFF6B00).withValues(alpha: 0.2),
-                  textColor: const Color(0xFFFF6B00),
-                  icon: Icons.cloud_outlined,
-                ),
-                const SizedBox(height: 12),
-                _buildHistoryItem(
-                  title: 'Fenda do Pânico',
-                  date: '08 OUT 2023',
-                  tag: 'INSPEÇÃO',
-                  tagColor: Colors.white10,
-                  textColor: Colors.white70,
-                  icon: Icons.remove_red_eye_outlined,
-                ),
-                const SizedBox(height: 12),
-                _buildHistoryItem(
-                  title: 'Cristal Rock',
-                  date: '25 SET 2023',
-                  tag: 'QUÍMICO',
-                  tagColor: const Color(0xFFFF6B00).withValues(alpha: 0.2),
-                  textColor: const Color(0xFFFF6B00),
-                  icon: Icons.sync,
-                ),
-                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -236,83 +303,93 @@ class HistoryScreen extends StatelessWidget {
     required Color tagColor,
     required Color textColor,
     required IconData icon,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121416),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.history,
-              color: Color(0xFFFF6B00),
-              size: 18,
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121416),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                Row(
+                child: const Icon(
+                  Icons.history,
+                  color: Color(0xFFFF6B00),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      date,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 10,
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 15,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: tagColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          date,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tagColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const Icon(
+                Icons.cloud_done_outlined,
+                color: Color(0xFF4F6D44),
+                size: 16,
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.chevron_right, color: Colors.white24),
+            ],
           ),
-          const Icon(
-            Icons.cloud_done_outlined,
-            color: Color(0xFF4F6D44),
-            size: 16,
-          ),
-          const SizedBox(width: 12),
-          const Icon(Icons.chevron_right, color: Colors.white24),
-        ],
+        ),
       ),
     );
   }

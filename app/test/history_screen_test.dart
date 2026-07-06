@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/views/history_screen.dart';
+import 'package:app/features/home/providers/history_provider.dart';
+import 'package:app/core/models/local/submission_record.dart';
 
-// HistoryScreen não depende de providers — sem overrides necessários.
 Widget _buildScreen() {
-  return const MaterialApp(home: Scaffold(body: HistoryScreen()));
+  return ProviderScope(
+    overrides: [
+      historyProvider.overrideWith((ref) {
+        final logs = List.generate(15, (index) {
+          return SubmissionRecord()
+            ..nomeProtocolo = 'Protocolo $index'
+            ..dataInclusao = index == 0 ? DateTime(2023, 10, 12) : DateTime(2023, 9, 25);
+        });
+        return Stream.value(logs);
+      }),
+    ],
+    child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+  );
 }
 
 void main() {
@@ -20,7 +34,6 @@ void main() {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      // O texto "Histórico" aparece no título grande da página
       expect(find.text('Histórico'), findsOneWidget);
     });
 
@@ -31,62 +44,45 @@ void main() {
       expect(find.text('Registros de manutenção preenchidos'), findsOneWidget);
     });
 
-    testWidgets('Exibe os dois stat cards', (tester) async {
+    testWidgets('Exibe os dois stat cards com valores dinâmicos', (tester) async {
       await tester.pumpWidget(_buildScreen());
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('LOGS TOTAIS'), findsOneWidget);
-      expect(find.text('VIA MAIS ATIVA'), findsOneWidget);
+      expect(find.text('ÚLTIMO LOG'), findsOneWidget);
+      
+      expect(find.text('15'), findsOneWidget); // 15 total records
+      expect(find.text('12/10/2023'), findsOneWidget); // Data do último log (mais recente)
     });
 
-    testWidgets('Exibe valores dos stat cards', (tester) async {
+    testWidgets('Exibe apenas 10 itens inicialmente e pagina para 15', (tester) async {
       await tester.pumpWidget(_buildScreen());
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('128'), findsOneWidget);
-      // 'Via do Sol' aparece no stat card E como primeiro item do histórico
-      expect(find.text('Via do Sol'), findsNWidgets(2));
-    });
+      // "HISTÓRICO RECENTE" e "VER TUDO" não devem existir
+      expect(find.text('HISTÓRICO RECENTE'), findsNothing);
+      expect(find.text('VER TUDO'), findsNothing);
 
-    testWidgets('Exibe título da seção de histórico recente', (tester) async {
-      await tester.pumpWidget(_buildScreen());
-      await tester.pump();
+      // Deve mostrar 10 itens (index 0 a 9)
+      expect(find.text('Protocolo 0'), findsOneWidget);
+      expect(find.text('Protocolo 9'), findsOneWidget);
+      expect(find.text('Protocolo 10'), findsNothing);
 
-      expect(find.text('HISTÓRICO RECENTE'), findsOneWidget);
-    });
+      // Botão "Carregar mais" deve estar visível
+      final carregarMaisFinder = find.text('CARREGAR MAIS');
+      expect(carregarMaisFinder, findsOneWidget);
 
-    testWidgets('Exibe botão VER TUDO', (tester) async {
-      await tester.pumpWidget(_buildScreen());
-      await tester.pump();
+      // Toca para carregar mais
+      await tester.ensureVisible(carregarMaisFinder);
+      await tester.tap(carregarMaisFinder);
+      await tester.pumpAndSettle();
 
-      expect(find.text('VER TUDO'), findsOneWidget);
-    });
+      // Agora deve mostrar os 15
+      expect(find.text('Protocolo 10'), findsOneWidget);
+      expect(find.text('Protocolo 14'), findsOneWidget);
 
-    testWidgets('Exibe os três itens do histórico', (tester) async {
-      await tester.pumpWidget(_buildScreen());
-      await tester.pump();
-
-      // 'Via do Sol' aparece também no stat card "VIA MAIS ATIVA"
-      expect(find.text('Via do Sol'), findsNWidgets(2));
-      expect(find.text('Fenda do Pânico'), findsOneWidget);
-      expect(find.text('Cristal Rock'), findsOneWidget);
-    });
-
-    testWidgets('Exibe as datas dos itens de histórico', (tester) async {
-      await tester.pumpWidget(_buildScreen());
-      await tester.pump();
-
-      expect(find.text('12 OUT 2023'), findsOneWidget);
-      expect(find.text('08 OUT 2023'), findsOneWidget);
-      expect(find.text('25 SET 2023'), findsOneWidget);
-    });
-
-    testWidgets('Exibe as tags de tipo dos itens do histórico', (tester) async {
-      await tester.pumpWidget(_buildScreen());
-      await tester.pump();
-
-      expect(find.text('QUÍMICO'), findsNWidgets(2));
-      expect(find.text('INSPEÇÃO'), findsOneWidget);
+      // O botão "Carregar mais" deve sumir, pois 15 <= limit (20)
+      expect(carregarMaisFinder, findsNothing);
     });
   });
 }

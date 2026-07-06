@@ -7,10 +7,41 @@ import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:app/features/media/services/media_compressor_service.dart';
 import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
 
+import 'package:isar_community/isar.dart';
+import 'package:app/core/models/local/submission_record.dart';
+
 class MockPdfDraftService extends Mock implements PdfDraftService {}
 class MockMediaCompressorService extends Mock implements MediaCompressorService {}
 class MockGenerationRecoveryService extends Mock implements GenerationRecoveryService {}
 
+class FakeSubmissionCollection extends Fake implements IsarCollection<SubmissionRecord> {
+  int putCalls = 0;
+  SubmissionRecord? lastSavedRecord;
+
+  @override
+  Future<int> put(SubmissionRecord object) async {
+    putCalls++;
+    lastSavedRecord = object;
+    return 1;
+  }
+}
+
+class FakeIsar extends Fake implements Isar {
+  final FakeSubmissionCollection fakeCollection = FakeSubmissionCollection();
+
+  @override
+  IsarCollection<T> collection<T>() {
+    if (T == SubmissionRecord) {
+      return fakeCollection as IsarCollection<T>;
+    }
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<T> writeTxn<T>(Future<T> Function() callback, {bool silent = false}) {
+    return callback();
+  }
+}
 void main() {
   late MockPdfDraftService mockDraftService;
   late MockMediaCompressorService mockMediaService;
@@ -26,6 +57,7 @@ void main() {
       mockDraftService,
       mockMediaService,
       mockRecoveryService,
+      FakeIsar(),
     );
     
     registerFallbackValue(File(''));
@@ -112,4 +144,40 @@ void main() {
     
     fakeWorkspace.deleteSync(recursive: true);
   });
+  test('Deve gravar um SubmissionRecord no Isar após a geração do PDF', () async {
+    // Arrange
+    final fakeWorkspace = Directory.systemTemp.createTempSync('workspace');
+    when(() => mockRecoveryService.getWorkspaceDir()).thenAnswer((_) async => fakeWorkspace);
+    when(() => mockRecoveryService.markAsProcessing(any())).thenAnswer((_) async {});
+    
+    final fakeDraft = File('${fakeWorkspace.path}/draft.pdf');
+    await fakeDraft.writeAsString('draft fake');
+    when(() => mockDraftService.drawDraft(any(), any(), any())).thenAnswer((_) async => fakeDraft);
+    
+    when(() => mockMediaService.compressImage(any(), any()))
+        .thenAnswer((_) async => File(''));
+
+    final outPath = '${fakeWorkspace.path}/output_final.pdf';
+    
+    final fakeIsar = FakeIsar();
+    notifier = GenerationNotifier(
+      mockDraftService,
+      mockMediaService,
+      mockRecoveryService,
+      fakeIsar,
+    );
+
+    // Act
+    await notifier.startGeneration('Teste Protocolo', [GenerationMedia(file: File('/input.jpg'))], outPath);
+
+    // Assert
+    expect(fakeIsar.fakeCollection.putCalls, 1, reason: 'Deve chamar o put no IsarCollection<SubmissionRecord> exatamente 1 vez');
+    final savedRecord = fakeIsar.fakeCollection.lastSavedRecord!;
+    expect(savedRecord.nomeProtocolo, 'Teste Protocolo');
+    expect(savedRecord.pdfPath, outPath);
+    expect(savedRecord.idSessao, isNotEmpty);
+    
+    fakeWorkspace.deleteSync(recursive: true);
+  });
 }
+

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/providers/history_provider.dart';
 import 'package:app/core/services/pdf_viewer_service.dart';
+import 'package:app/features/express_form/views/express_form_screen.dart';
+import 'package:app/features/express_form/viewmodels/express_form_view_model.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -138,7 +140,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       final record =
                           history.first; // Já vem ordenado desc pelo provider
                       ultimoLog =
-                          "\${record.dataInclusao.day.toString().padLeft(2, '0')}/\${record.dataInclusao.month.toString().padLeft(2, '0')}/\${record.dataInclusao.year}";
+                          "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
                     }
 
                     return Column(
@@ -189,6 +191,26 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               final dataFormatada =
                                   "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
 
+                              final loadAndEdit = () async {
+                                try {
+                                  await ref.read(expressFormViewModelProvider.notifier).loadSession(record.idSessao);
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ExpressFormScreen(),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Erro ao carregar sessão: $e')),
+                                    );
+                                  }
+                                }
+                              };
+
                               return _buildHistoryItem(
                                 title: record.nomeProtocolo.isEmpty
                                     ? 'Protocolo'
@@ -201,22 +223,48 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 textColor: const Color(0xFFFF6B00),
                                 icon: Icons.cloud_outlined,
                                 onTap: () async {
+                                  if (record.pdfPath.isNotEmpty) {
+                                    try {
+                                      await ref.read(pdfViewerServiceProvider).openPdf(record.pdfPath);
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Erro ao abrir PDF: $e')),
+                                        );
+                                      }
+                                    }
+                                  } else {
+                                    loadAndEdit();
+                                  }
+                                },
+                                onEdit: loadAndEdit,
+                                onViewPdf: () async {
                                   try {
                                     await ref
                                         .read(pdfViewerServiceProvider)
                                         .openPdf(record.pdfPath);
                                   } catch (e) {
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Erro ao abrir PDF: $e',
-                                          ),
-                                        ),
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Erro ao abrir PDF: $e')),
                                       );
                                     }
+                                  }
+                                },
+                                onDelete: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Excluir Protocolo'),
+                                      content: const Text('Tem certeza que deseja excluir permanentemente este protocolo?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Excluir')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await ref.read(historyRepositoryProvider).deleteRecord(record);
                                   }
                                 },
                               );
@@ -304,6 +352,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required Color textColor,
     required IconData icon,
     VoidCallback? onTap,
+    VoidCallback? onEdit,
+    VoidCallback? onDelete,
+    VoidCallback? onViewPdf,
   }) {
     return Material(
       color: Colors.transparent,
@@ -386,7 +437,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 size: 16,
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.chevron_right, color: Colors.white24),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white54),
+                onSelected: (value) {
+                  if (value == 'edit' && onEdit != null) onEdit();
+                  if (value == 'viewPdf' && onViewPdf != null) onViewPdf();
+                  if (value == 'delete' && onDelete != null) onDelete();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Editar'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'viewPdf',
+                    child: Text('Abrir PDF'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Excluir'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

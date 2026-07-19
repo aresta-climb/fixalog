@@ -48,9 +48,9 @@ const SubmissionRecordSchema = CollectionSchema(
       type: IsarType.string,
     ),
     r'pdfPath': PropertySchema(id: 6, name: r'pdfPath', type: IsarType.string),
-    r'yamlPath': PropertySchema(
+    r'protobufPath': PropertySchema(
       id: 7,
-      name: r'yamlPath',
+      name: r'protobufPath',
       type: IsarType.string,
     ),
   },
@@ -95,7 +95,7 @@ int _submissionRecordEstimateSize(
   bytesCount += 3 + object.idSessao.length * 3;
   bytesCount += 3 + object.nomeProtocolo.length * 3;
   bytesCount += 3 + object.pdfPath.length * 3;
-  bytesCount += 3 + object.yamlPath.length * 3;
+  bytesCount += 3 + object.protobufPath.length * 3;
   return bytesCount;
 }
 
@@ -112,7 +112,7 @@ void _submissionRecordSerialize(
   writer.writeString(offsets[4], object.idSessao);
   writer.writeString(offsets[5], object.nomeProtocolo);
   writer.writeString(offsets[6], object.pdfPath);
-  writer.writeString(offsets[7], object.yamlPath);
+  writer.writeString(offsets[7], object.protobufPath);
 }
 
 SubmissionRecord _submissionRecordDeserialize(
@@ -130,7 +130,7 @@ SubmissionRecord _submissionRecordDeserialize(
   object.idSessao = reader.readString(offsets[4]);
   object.nomeProtocolo = reader.readString(offsets[5]);
   object.pdfPath = reader.readString(offsets[6]);
-  object.yamlPath = reader.readString(offsets[7]);
+  object.protobufPath = reader.readString(offsets[7]);
   return object;
 }
 
@@ -1195,11 +1195,11 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathEqualTo(String value, {bool caseSensitive = true}) {
+  protobufPathEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1208,7 +1208,7 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathGreaterThan(
+  protobufPathGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1217,7 +1217,7 @@ extension SubmissionRecordQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1226,7 +1226,7 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathLessThan(
+  protobufPathLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1235,7 +1235,7 @@ extension SubmissionRecordQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1244,7 +1244,7 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathBetween(
+  protobufPathBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1254,7 +1254,7 @@ extension SubmissionRecordQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'yamlPath',
+          property: r'protobufPath',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -1266,11 +1266,11 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathStartsWith(String value, {bool caseSensitive = true}) {
+  protobufPathStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1279,11 +1279,11 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathEndsWith(String value, {bool caseSensitive = true}) {
+  protobufPathEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1292,11 +1292,11 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathContains(String value, {bool caseSensitive = true}) {
+  protobufPathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'yamlPath',
+          property: r'protobufPath',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1305,11 +1305,11 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathMatches(String pattern, {bool caseSensitive = true}) {
+  protobufPathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'yamlPath',
+          property: r'protobufPath',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -1318,19 +1318,19 @@ extension SubmissionRecordQueryFilter
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathIsEmpty() {
+  protobufPathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'yamlPath', value: ''),
+        FilterCondition.equalTo(property: r'protobufPath', value: ''),
       );
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
-  yamlPathIsNotEmpty() {
+  protobufPathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'yamlPath', value: ''),
+        FilterCondition.greaterThan(property: r'protobufPath', value: ''),
       );
     });
   }
@@ -1443,16 +1443,16 @@ extension SubmissionRecordQuerySortBy
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-  sortByYamlPath() {
+  sortByProtobufPath() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'yamlPath', Sort.asc);
+      return query.addSortBy(r'protobufPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-  sortByYamlPathDesc() {
+  sortByProtobufPathDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'yamlPath', Sort.desc);
+      return query.addSortBy(r'protobufPath', Sort.desc);
     });
   }
 }
@@ -1571,16 +1571,16 @@ extension SubmissionRecordQuerySortThenBy
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-  thenByYamlPath() {
+  thenByProtobufPath() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'yamlPath', Sort.asc);
+      return query.addSortBy(r'protobufPath', Sort.asc);
     });
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
-  thenByYamlPathDesc() {
+  thenByProtobufPathDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'yamlPath', Sort.desc);
+      return query.addSortBy(r'protobufPath', Sort.desc);
     });
   }
 }
@@ -1643,9 +1643,9 @@ extension SubmissionRecordQueryWhereDistinct
   }
 
   QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
-  distinctByYamlPath({bool caseSensitive = true}) {
+  distinctByProtobufPath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'yamlPath', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'protobufPath', caseSensitive: caseSensitive);
     });
   }
 }
@@ -1705,9 +1705,10 @@ extension SubmissionRecordQueryProperty
     });
   }
 
-  QueryBuilder<SubmissionRecord, String, QQueryOperations> yamlPathProperty() {
+  QueryBuilder<SubmissionRecord, String, QQueryOperations>
+  protobufPathProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'yamlPath');
+      return query.addPropertyName(r'protobufPath');
     });
   }
 }

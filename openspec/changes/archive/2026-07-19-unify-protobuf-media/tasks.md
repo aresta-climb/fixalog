@@ -22,15 +22,15 @@
 
 ## 4. Integração de Auditoria (PDF e Rust)
 
-- [ ] 4.1 Escrever testes de integração (vermelhos) validando que o PDF final possui anexos e tamanho correspondente.
-- [ ] 4.2 Criar testes unitários (vermelhos) cobrindo a adaptação no `PdfDraftService` para tratar listas de arquivos originais/comprimidos com 100% de coverage.
-- [ ] 4.3 Implementar a passagem correta dos dados no `PdfDraftService` (verde).
-- [ ] 4.4 Atualizar os mocks e a FFI em Rust para simular o PDF/A-3 injetando o `registro.binarypb` e as mídias compactadas.
+- [x] 4.1 Escrever testes de integração (vermelhos) validando que o PDF final possui anexos e tamanho correspondente.
+- [x] 4.2 Criar testes unitários (vermelhos) cobrindo a adaptação no `PdfDraftService` para tratar listas de arquivos originais/comprimidos com 100% de coverage.
+- [x] 4.3 Implementar a passagem correta dos dados no `PdfDraftService` (verde).
+- [x] 4.4 Atualizar os mocks e a FFI em Rust para simular o PDF/A-3 injetando o `registro.binarypb` e as mídias compactadas.
 
 ## 5. Rastreamento e Histórico
 
-- [ ] 5.1 Escrever testes de integração End-to-End (vermelhos) verificando a exclusão de relatórios antigos e o fluxo de re-edição a partir do clique no card de Histórico.
-- [ ] 5.2 Criar testes unitários (vermelhos) para a lógica de UI de exclusão, garantindo deleção recursiva da pasta do Session Bundle.
-- [ ] 5.3 Implementar a deleção física integrada com a exclusão do Isar até os testes passarem.
-- [ ] 5.4 Criar testes unitários (vermelhos) garantindo a passagem do `id_sessao` via roteamento ao abrir o `ExpressFormScreen`.
-- [ ] 5.5 Implementar as correções de roteamento (verde).
+- [x] 5.1 Escrever testes de integração End-to-End (vermelhos) verificando a exclusão de relatórios antigos e o fluxo de re-edição a partir do clique no card de Histórico.
+- [x] 5.2 Criar testes unitários (vermelhos) para a lógica de UI de exclusão, garantindo deleção recursiva da pasta do Session Bundle.
+- [x] 5.3 Implementar a deleção física integrada com a exclusão do Isar até os testes passarem.
+- [x] 5.4 Criar testes unitários (vermelhos) garantindo a passagem do `id_sessao` via roteamento ao abrir o `ExpressFormScreen`.
+- [x] 5.5 Implementar as correções de roteamento (verde).

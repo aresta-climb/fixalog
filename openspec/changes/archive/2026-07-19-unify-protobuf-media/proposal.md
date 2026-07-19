@@ -5,8 +5,8 @@ Atualmente, o aplicativo mistura dados brutos (arquivos de imagem pesados) dentr
 ## What Changes
 
 - **BREAKING**: Refatoração do `registro.proto` para não armazenar mais `bytes` diretos para fotos e vídeos. A estrutura passará a adotar `ReferenciaMidia` (Imagem, Vídeo, Áudio) mantendo referências (UUIDs), e hashes da versão original e da versão comprimida, além da versão do algoritmo (`data_version`).
-- Organização do armazenamento local no conceito de "Session Bundle": cada relatório (Sessão) terá uma pasta dedicada (`/sessoes/<id_sessao>/`) que encapsulará o arquivo de manifesto (`.binarypb`), PDF final gerado e todas as mídias originais e de trabalho (comprimidas).
-- Atualização da geração de PDF (via Rust) para usar o modelo PDF/A-3 de verdade: embutir visualmente os dados necessários (comprimidos), mas anexar de forma oculta os arquivos binários (`.binarypb`) e todas as mídias compactadas (e possivelmente os originais sob demanda) para validação criptográfica.
+- Organização do armazenamento local no conceito de "Session Bundle": cada relatório (Sessão) terá uma pasta dedicada (`/sessoes/<id_sessao>/`) que encapsulará o arquivo de manifesto (`registro.binarypb`), PDF final gerado e todas as mídias originais e de trabalho (comprimidas).
+- Atualização da geração de PDF (via Rust) para usar o modelo PDF/A-3 de verdade: embutir visualmente os dados necessários (comprimidos), mas anexar de forma oculta os arquivos de metadado (protobuf convertido em `.json`) e todas as mídias compactadas (e possivelmente os originais sob demanda) para validação criptográfica.
 - O botão do Histórico passará a invocar a tela de edição recarregando os dados diretamente do arquivo `.binarypb` presente no bundle da sessão em vez de re-abrir apenas o PDF final.
 - Suporte nativo para vídeos de forma unificada com imagens, não correndo risco de inchar a memória.
 

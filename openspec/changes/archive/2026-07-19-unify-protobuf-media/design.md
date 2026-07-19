@@ -2,15 +2,15 @@
 
 O FixaLog gera relatórios de manutenção criptograficamente selados e independentes. Atualmente, os relatórios expressos e até certos fluxos antigos misturavam mídias cruas diretamente nos campos de `bytes` do Protobuf. Isso estava criando gargalos de memória (inflação no Dart ao serializar vídeos ou múltiplas fotos de alta resolução) e poluindo o Isar com blobs gigantescos de mídias que deveriam estar no File System. Além disso, a falta de uma estrutura clara dificultava a re-edição dos rascunhos.
 
-Para resolver, propomos uma arquitetura baseada em "Manifesto" (onde o `.binarypb` pesa apenas KBs, apenas referenciando IDs) acoplada a um "Session Bundle" local, permitindo que vídeos sejam suportados de forma natural e que as mídias fiquem encapsuladas.
+Para resolver, propomos uma arquitetura baseada em "Manifesto" (onde o `.binarypb` pesa apenas KBs, apenas referenciando IDs) acoplada a um "Session Bundle" local, permitindo que vídeos sejam suportados de forma natural e que as mídias fiquem encapsuladas. Na hora de exportar para PDF, convertemos o manifesto para JSON para garantir longevidade.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Desacoplar mídias brutas e comprimidas do corpo serializado do Protobuf.
 - Criar a camada `ReferenciaMidia` (Imagem, Áudio, Vídeo) no `.proto` com hashes independentes para garantir a integridade matemática da mídia na visão da auditoria.
-- Garantir que cada relatório gere um "Session Bundle" (pasta local baseada no `id_sessao` com as mídias originais e comprimidas e o arquivo `.binarypb`).
-- Injetar o manifesto `.binarypb` e os arquivos compactados como **anexos visíveis** em nível de máquina usando PDF/A-3.
+- Garantir que cada relatório gere um "Session Bundle" (pasta local baseada no `id_sessao` com as mídias originais e comprimidas e o arquivo de manifesto `.binarypb`).
+- Injetar o manifesto convertido para `.json` e os arquivos compactados como **anexos visíveis** em nível de máquina usando PDF/A-3.
 - Habilitar edição a partir do Histórico usando o `ExpressFormViewModel` lendo os manifestos armazenados no Bundle.
 
 **Non-Goals:**
@@ -21,9 +21,9 @@ Para resolver, propomos uma arquitetura baseada em "Manifesto" (onde o `.binaryp
 
 1. **Protobuf Manifest vs Blobs**:
    - **Decisão**: Mudar `bytes foto` e afins para `ReferenciaMidia`.
-   - **Justificativa**: Serializar 30MB de vídeos ou imagens de 12MP em memória num `build()` do Protobuf no Dart causava lentidão, quebra no formato Isar, e limitava a reutilização do arquivo `.pb`. Agora, o `.pb` carregará apenas a metadata criptograficamente validada e UUIDs.
+   - **Justificativa**: Serializar 30MB de vídeos ou imagens de 12MP em memória num `build()` do Protobuf no Dart causava lentidão, quebra no formato Isar, e limitava a reutilização do arquivo `.pb`. Agora, o `.binarypb` carregará apenas a metadata criptograficamente validada e UUIDs, o que o torna minúsculo. Na hora de gerar o PDF, esse manifesto será convertido para `.json` para garantir leitura universal no longo prazo.
 2. **Double-Hashing na Mídia**:
-   - **Decisão**: Cada arquivo de mídia terá 2 hashes guardados no `.pb`: `hash_original` (da versão HD tirada da câmera) e `hash_comprimido` (da versão de exportação final), junto com o `versao_compressao`.
+   - **Decisão**: Cada arquivo de mídia terá 2 hashes guardados no protobuf: `hash_original` (da versão HD tirada da câmera) e `hash_comprimido` (da versão de exportação final), junto com o `versao_compressao`.
    - **Justificativa**: Isso permite re-comprimir a imagem local posteriormente se atualizarmos o algoritmo (checa-se a validade matemática pelo hash_original para autorizar) e permite a futura exportação do PDF com mídias em High-Res se necessário.
 3. **Storage: O "Session Bundle"**:
    - **Decisão**: Os arquivos não ficarão mais "soltos". Cada relatório criará um diretório `app_docs/sessoes/<id_sessao>/` onde todas as mídias (originais e comprimidas) e o manifesto ficarão agrupados.

@@ -15,6 +15,52 @@ package fixalog;
 // REGISTRO COMPLETO DE UMA MANUTENÇÃO
 // ══════════════════════════════════════════════════════════════
 
+// Representa um arquivo de imagem armazenado isoladamente no diretório da sessão.
+// Esta estrutura guarda metadados essenciais de segurança para a auditoria criptográfica.
+message ArquivoImagem {
+  string uuid = 1;              // Identificador único correspondente ao nome do arquivo
+  string tipo_original = 2;     // MIME type do arquivo cru (ex: image/jpeg)
+  string hash_original = 3;     // SHA-256 do arquivo original para checagem de adulteração
+  string tipo_comprimido = 4;   // MIME type do arquivo pós-compressão WebP
+  string hash_comprimido = 5;   // SHA-256 do arquivo comprimido
+  int32  versao_compressao = 6; // Versão do algoritmo de compressão (ex: 1)
+}
+
+// Representa um arquivo de vídeo armazenado isoladamente.
+// Permite compressões em H.264/H.265 para PDF mantendo o rastro criptográfico.
+message ArquivoVideo {
+  string uuid = 1;              // Identificador único (nome do .mp4)
+  string tipo_original = 2;     // MIME type original capturado
+  string hash_original = 3;     // SHA-256 do arquivo original
+  string tipo_comprimido = 4;   // MIME type do vídeo após otimização
+  string hash_comprimido = 5;   // SHA-256 do vídeo comprimido
+  int32  versao_compressao = 6; // Versão do algoritmo de ffmpeg/compressão (ex: 1)
+}
+
+// Representa um arquivo de áudio (mensagens de voz ou laudos falados).
+message ArquivoAudio {
+  string uuid = 1;              // Identificador único (nome do arquivo de áudio)
+  string tipo_original = 2;     // MIME type original capturado pelo microfone (ex: audio/mp4 ou audio/aac)
+  string hash_original = 3;     // SHA-256 do áudio original para auditoria
+  string tipo_comprimido = 4;   // MIME type do áudio após compressão/conversão
+  string hash_comprimido = 5;   // SHA-256 do áudio comprimido
+  int32  versao_compressao = 6; // Versão do algoritmo de compressão de áudio
+}
+
+// Um contêiner polimórfico (`oneof`) que aponta para qualquer tipo de mídia no disco local.
+// Substitui a inclusão direta de bytes no Protobuf, delegando a mídia para o SessionBundleManager.
+message ReferenciaMidia {
+  oneof midia {
+    ArquivoImagem imagem = 1;
+    ArquivoVideo  video  = 2;
+    ArquivoAudio  audio  = 3;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// REGISTRO COMPLETO DE UMA MANUTENÇÃO
+// ══════════════════════════════════════════════════════════════
+
 message RegistroManutencao {
   string id_sessao            = 1;  // UUID gerado no início da sessão
   string id_protocolo         = 2;  // referencia DefinicaoProtocolo.id
@@ -52,7 +98,7 @@ message MaterialInstalado {
   string liga         = 5; // ex: "inox_316l"
   string validade     = 6; // ISO 8601 (YYYY-MM-DD)
   int32  quantidade   = 7;
-  bytes  foto         = 8; // foto da embalagem/lote (JPEG comprimido)
+  ReferenciaMidia foto = 8; // foto da embalagem/lote
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -66,7 +112,7 @@ message RegistroVia {
   double latitude               = 4;
   double longitude              = 5;
   double altitude_m             = 6;
-  bytes  permissao_conquistador = 7; // imagem digitalizada ou PDF
+  ReferenciaMidia permissao_conquistador = 7; // imagem digitalizada ou PDF
   string nome_conquistador      = 8;
 }
 
@@ -96,8 +142,8 @@ message AcaoManutencao {
 message DetalheInspecao {
   string tipo_ancoragem_original = 1; // "grampo_p", "parabolt", "outro"
   string material_original       = 2; // texto livre
-  bytes  foto_antes              = 3;
-  bytes  video_antes             = 4; // opcional
+  ReferenciaMidia foto_antes     = 3;
+  ReferenciaMidia video_antes    = 4; // opcional
 
   ResultadoInspecao resultado    = 5;
 
@@ -116,8 +162,8 @@ message DetalheSubstituicao {
   // Valores: "reusar_furo", "novo_local", "local_alternativo"
   string estrategia               = 1;
 
-  bytes  foto_durante             = 2; // durante a instalação
-  bytes  foto_depois              = 3; // resultado final (obrigatória)
+  ReferenciaMidia foto_durante    = 2; // durante a instalação
+  ReferenciaMidia foto_depois     = 3; // resultado final (obrigatória)
 
   // Lista de id_instancia de MaterialInstalado usados nesta substituição.
   // Gerados pelo wizard no Bloco 1 e selecionados via StepRefMateriais.
@@ -141,8 +187,8 @@ message DetalheNovoPonto {
   bool   autorizacao_confirmada        = 1;
   double latitude                      = 2;
   double longitude                     = 3;
-  bytes  foto_local_escolhido          = 4;
-  bytes  foto_instalado                = 5;
+  ReferenciaMidia foto_local_escolhido = 4;
+  ReferenciaMidia foto_instalado       = 5;
   repeated string ids_materiais_usados = 6; // refs para MaterialInstalado.id_instancia
   string observacoes                   = 7;
 }
@@ -152,8 +198,8 @@ message DetalheNovoPonto {
 // ──────────────────────────────────────────────────────────────
 
 message DetalheRemocaoBloco {
-  bytes  foto_antes  = 1;
-  bytes  foto_depois = 2;
+  ReferenciaMidia foto_antes  = 1;
+  ReferenciaMidia foto_depois = 2;
   string observacoes = 3;
 }
 
@@ -162,8 +208,8 @@ message DetalheRemocaoBloco {
 // ──────────────────────────────────────────────────────────────
 
 message DetalheLimpeza {
-  bytes  foto_antes  = 1;
-  bytes  foto_depois = 2;
+  ReferenciaMidia foto_antes  = 1;
+  ReferenciaMidia foto_depois = 2;
   string observacoes = 3;
 }
 
@@ -172,9 +218,9 @@ message DetalheLimpeza {
 // ──────────────────────────────────────────────────────────────
 
 message DetalheAcaoCustomizada {
-  string descricao   = 1;
-  bytes  foto        = 2;
-  bytes  video       = 3;
+  string descricao           = 1;
+  ReferenciaMidia foto       = 2;
+  ReferenciaMidia video      = 3;
   string observacoes = 4;
 }
 

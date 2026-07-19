@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import '../viewmodels/express_form_view_model.dart';
+import 'package:app/core/services/session_bundle_manager.dart';
 import 'package:app/features/pdf_generation/providers/generation_provider.dart';
 import 'package:app/features/pdf_generation/models/generation_media.dart';
 import 'package:app/features/pdf_generation/ui/generation_progress_dialog.dart';
@@ -22,9 +22,12 @@ class ExpressFormScreen extends ConsumerWidget {
           if (entries.isNotEmpty)
             TextButton.icon(
               onPressed: () async {
-                final dir = await getApplicationDocumentsDirectory();
-                final outputPath = '${dir.path}/FixaLog_Expresso_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                final sessionId = await ref.read(expressFormViewModelProvider.notifier).saveSession();
                 
+                final sessionManager = ref.read(sessionBundleManagerProvider);
+                final outputPath = await sessionManager.getReportFilePath(sessionId: sessionId);
+                
+                if (!context.mounted) return;
                 showDialog(
                   context: context,
                   barrierDismissible: false,
@@ -33,10 +36,12 @@ class ExpressFormScreen extends ConsumerWidget {
 
                 final files = entries.map((e) => GenerationMedia(file: File(e.mediaPath), description: e.description)).toList();
                 
+                // startGeneration also needs to receive the sessionId to attach the manifest
                 ref.read(generationProvider.notifier).startGeneration(
                   'Registro Expresso',
                   files,
                   outputPath,
+                  sessionId: sessionId,
                 );
               },
               icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
@@ -100,7 +105,9 @@ class ExpressFormScreen extends ConsumerWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.all(12.0),
-                        child: TextField(
+                        child: TextFormField(
+                          key: ValueKey(entries[index].uuid),
+                          initialValue: entries[index].description,
                           onChanged: (text) {
                             ref
                                 .read(expressFormViewModelProvider.notifier)

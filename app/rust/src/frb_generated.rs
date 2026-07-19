@@ -70,6 +70,7 @@ fn wire__crate__api__simple__generate_sealed_report_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_draft_path = <String>::sse_decode(&mut deserializer);
             let api_media_paths = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_manifest_path = <String>::sse_decode(&mut deserializer);
             let api_output_path = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
@@ -77,6 +78,7 @@ fn wire__crate__api__simple__generate_sealed_report_impl(
                     let output_ok = crate::api::simple::generate_sealed_report(
                         api_draft_path,
                         api_media_paths,
+                        api_manifest_path,
                         api_output_path,
                     )?;
                     Ok(output_ok)

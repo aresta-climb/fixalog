@@ -94,7 +94,7 @@ void main() {
       tester,
     ) async {
       final entries = [
-        ExpressEntry(imageBytes: validImageBytes, description: 'Initial'),
+        ExpressEntry(mediaPath: '/tmp/foto.jpg', description: 'Initial'),
       ];
       await tester.pumpWidget(buildScreen(initialEntries: entries));
 
@@ -116,7 +116,7 @@ void main() {
     testWidgets('Tapping Gerar Relatorio shows loading and handles success', (
       tester,
     ) async {
-      final entries = [ExpressEntry(imageBytes: validImageBytes)];
+      final entries = [ExpressEntry(mediaPath: '/tmp/foto.jpg')];
       await tester.pumpWidget(buildScreen(initialEntries: entries));
 
       // Make generation throw an exception so we don't have to mock the whole PDF generation success flow

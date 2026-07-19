@@ -11,6 +11,7 @@ pub fn init_app() {
 pub fn generate_sealed_report(
     draft_path: String,
     media_paths: Vec<String>,
+    manifest_path: String,
     output_path: String,
     // progress_sink: crate::frb_generated::StreamSink<GenerationProgress>, // Descomentar quando o FRB estiver ajustado para Streams
 ) -> Result<(), String> {

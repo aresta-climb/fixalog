@@ -81,6 +81,7 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiSimpleGenerateSealedReport({
     required String draftPath,
     required List<String> mediaPaths,
+    required String manifestPath,
     required String outputPath,
   });
 
@@ -99,6 +100,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<void> crateApiSimpleGenerateSealedReport({
     required String draftPath,
     required List<String> mediaPaths,
+    required String manifestPath,
     required String outputPath,
   }) {
     return handler.executeNormal(
@@ -107,6 +109,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(draftPath, serializer);
           sse_encode_list_String(mediaPaths, serializer);
+          sse_encode_String(manifestPath, serializer);
           sse_encode_String(outputPath, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
@@ -120,7 +123,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiSimpleGenerateSealedReportConstMeta,
-        argValues: [draftPath, mediaPaths, outputPath],
+        argValues: [draftPath, mediaPaths, manifestPath, outputPath],
         apiImpl: this,
       ),
     );
@@ -129,7 +132,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleGenerateSealedReportConstMeta =>
       const TaskConstMeta(
         debugName: "generate_sealed_report",
-        argNames: ["draftPath", "mediaPaths", "outputPath"],
+        argNames: ["draftPath", "mediaPaths", "manifestPath", "outputPath"],
       );
 
   @override

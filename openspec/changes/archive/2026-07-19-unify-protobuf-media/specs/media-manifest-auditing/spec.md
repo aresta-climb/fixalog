@@ -4,7 +4,7 @@
 O sistema DEVE utilizar o esquema `ReferenciaMidia` (contendo UUID, tipo original, hash original, tipo comprimido, hash comprimido e versão da compressão) ao invés de armazenar o binário diretamente nos campos do Protobuf.
 
 #### Scenario: Construção do Protobuf
-- **WHEN** o sistema for gerar o arquivo de manifesto (registro.binarypb)
+- **WHEN** o sistema for gerar o arquivo de manifesto (registro.json)
 - **THEN** o sistema preenche as propriedades de `ReferenciaMidia` com os dados criptográficos da mídia (hash SHA-256) em vez do seu conteúdo binário
 
 ### Requirement: Validação Matemática (Dual-Hash)

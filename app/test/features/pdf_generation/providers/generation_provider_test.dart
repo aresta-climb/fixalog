@@ -6,6 +6,7 @@ import 'package:app/features/pdf_generation/providers/generation_provider.dart';
 import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:app/features/media/services/media_compressor_service.dart';
 import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:app/core/services/session_bundle_manager.dart';
 
 import 'package:isar_community/isar.dart';
 import 'package:app/core/models/local/submission_record.dart';
@@ -13,6 +14,7 @@ import 'package:app/core/models/local/submission_record.dart';
 class MockPdfDraftService extends Mock implements PdfDraftService {}
 class MockMediaCompressorService extends Mock implements MediaCompressorService {}
 class MockGenerationRecoveryService extends Mock implements GenerationRecoveryService {}
+class MockSessionBundleManager extends Mock implements SessionBundleManager {}
 
 class FakeSubmissionCollection extends Fake implements IsarCollection<SubmissionRecord> {
   int putCalls = 0;
@@ -46,17 +48,20 @@ void main() {
   late MockPdfDraftService mockDraftService;
   late MockMediaCompressorService mockMediaService;
   late MockGenerationRecoveryService mockRecoveryService;
+  late MockSessionBundleManager mockSessionManager;
   late GenerationNotifier notifier;
 
   setUp(() {
     mockDraftService = MockPdfDraftService();
     mockMediaService = MockMediaCompressorService();
     mockRecoveryService = MockGenerationRecoveryService();
+    mockSessionManager = MockSessionBundleManager();
 
     notifier = GenerationNotifier(
       mockDraftService,
       mockMediaService,
       mockRecoveryService,
+      mockSessionManager,
       FakeIsar(),
     );
     
@@ -164,6 +169,7 @@ void main() {
       mockDraftService,
       mockMediaService,
       mockRecoveryService,
+      mockSessionManager,
       fakeIsar,
     );
 

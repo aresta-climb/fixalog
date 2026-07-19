@@ -21,8 +21,8 @@ class SubmissionRecord {
   // Caminho do arquivo PDF salvo em disco
   late String pdfPath;
 
-  // Caminho do arquivo YAML salvo em disco
-  late String yamlPath;
+  // Caminho do arquivo Protobuf (binarypb) salvo em disco
+  late String protobufPath;
 
   bool enviadoNuvem = false;
 }

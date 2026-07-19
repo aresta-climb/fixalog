@@ -5,6 +5,7 @@ import 'package:app/src/rust/api/simple.dart' as rust_api;
 import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:app/features/media/services/media_compressor_service.dart';
 import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:app/core/services/session_bundle_manager.dart';
 import 'package:isar_community/isar.dart';
 import 'package:app/core/models/local/submission_record.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
@@ -47,16 +48,34 @@ class GenerationState {
 }
 
 // Notifier do Riverpod
+/// Orquestra a linha de montagem da geração do PDF (Drafting, Compressão, Geração e Gravação).
+///
+/// Esta classe une várias responsabilidades do aplicativo para compor o artefato final:
+/// - Comprime as fotos/vídeos pelo `MediaCompressorService`.
+/// - Prepara a lista de páginas através do `PdfDraftService`.
+/// - Aciona o core do Rust via FFI (`generate_sealed_report`) passando o manifesto e mídias.
+/// - Grava o arquivo físico PDF e salva o registro na lixeira do banco de dados (Isar).
 class GenerationNotifier extends StateNotifier<GenerationState> {
   final PdfDraftService _draftService;
   final MediaCompressorService _mediaService;
   final GenerationRecoveryService _recoveryService;
+  final SessionBundleManager _sessionManager;
   final Isar? _isar;
 
-  GenerationNotifier(this._draftService, this._mediaService, this._recoveryService, [this._isar]) 
-      : super(GenerationState());
+  GenerationNotifier(
+    this._draftService, 
+    this._mediaService, 
+    this._recoveryService, 
+    this._sessionManager,
+    [this._isar]
+  ) : super(GenerationState());
 
-  Future<void> startGeneration(String title, List<GenerationMedia> medias, String outputPath) async {
+  /// Inicia a esteira de geração de PDF assíncrona exibida pelo `GenerationProgressDialog`.
+  ///
+  /// O processo passa por N fases e emite eventos de progresso em porcentagem (`state.progress`).
+  /// Caso a geração for bem-sucedida, o `SubmissionRecord` é persistido no Isar. Se houver falha,
+  /// o estado de erro é registrado sem abortar a aplicação brutalmente.
+  Future<void> startGeneration(String title, List<GenerationMedia> medias, String outputPath, {String? sessionId}) async {
     try {
       await _recoveryService.markAsProcessing(true);
       state = state.copyWith(progress: 0.1, status: 'Comprimindo mídias...');
@@ -106,9 +125,16 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       // 3. Chamar Rust Core FFI
       // Como optamos por uma FFI assíncrona simples no rust para MVP (sem sink neste mock):
       try {
+        String manifestPath = '';
+        if (sessionId != null) {
+          // get the json path from the session bundle
+          manifestPath = await _sessionManager.getMediaFilePath(sessionId: sessionId, mediaUuid: 'registro', extension: '.json');
+        }
+
         await rust_api.generateSealedReport(
           draftPath: draftPath,
           mediaPaths: compressedMedias.map((e) => e.file.path).toList(),
+          manifestPath: manifestPath,
           outputPath: outputPath,
         );
       } catch (e) {
@@ -126,15 +152,19 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       await File(draftPath).copy(outputPath);
 
       if (_isar != null) {
-        final record = SubmissionRecord()
-          ..idSessao = DateTime.now().millisecondsSinceEpoch.toString()
-          ..idProtocolo = DateTime.now().millisecondsSinceEpoch.toString()
+        final sid = sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final existingRecord = await _isar!.submissionRecords.filter().idSessaoEqualTo(sid).findFirst();
+        final record = existingRecord ?? SubmissionRecord()
+          ..idSessao = sid
+          ..idProtocolo = sid
           ..nomeProtocolo = title
           ..dataInclusao = DateTime.now()
-          ..hashAssinatura = ''
-          ..pdfPath = outputPath
-          ..yamlPath = ''
+          ..protobufPath = ''
           ..enviadoNuvem = false;
+
+        record
+          ..pdfPath = outputPath
+          ..hashAssinatura = '';
 
         await _isar!.writeTxn(() async {
           await _isar!.collection<SubmissionRecord>().put(record);
@@ -162,10 +192,17 @@ final mediaCompressorProvider = Provider((ref) => MediaCompressorService());
 final generationRecoveryProvider = Provider((ref) => GenerationRecoveryService());
 
 final generationProvider = StateNotifierProvider<GenerationNotifier, GenerationState>((ref) {
+  final sessionManager = SessionBundleManager();
+  Isar? isar;
+  try {
+    isar = ref.watch(isarProvider);
+  } catch (_) {}
+
   return GenerationNotifier(
     ref.read(draftServiceProvider),
     ref.read(mediaCompressorProvider),
     ref.read(generationRecoveryProvider),
-    ref.read(isarProvider),
+    sessionManager,
+    isar,
   );
 });

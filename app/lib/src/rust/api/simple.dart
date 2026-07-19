@@ -11,9 +11,11 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<void> generateSealedReport({
   required String draftPath,
   required List<String> mediaPaths,
+  required String manifestPath,
   required String outputPath,
 }) => RustLib.instance.api.crateApiSimpleGenerateSealedReport(
   draftPath: draftPath,
   mediaPaths: mediaPaths,
+  manifestPath: manifestPath,
   outputPath: outputPath,
 );

@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/core/models/proto/protos/wizard.pb.dart';
 import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:app/core/models/proto/protos/registro.pb.dart';
+import 'package:fixnum/fixnum.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Builders para construir protos de teste sem YAML
@@ -182,7 +184,7 @@ void main() {
 
       container
           .read(wizardControllerProvider.notifier)
-          .answerConteudo('c1', 'resposta');
+          .answerConteudoString('c1', 'resposta');
       final success = container
           .read(wizardControllerProvider.notifier)
           .nextStep();
@@ -210,7 +212,7 @@ void main() {
         // Preenche apenas c2 (não obrigatório) — c3 still empty
         container
             .read(wizardControllerProvider.notifier)
-            .answerConteudo('c2', 'ok');
+            .answerConteudoString('c2', 'ok');
 
         final success = container
             .read(wizardControllerProvider.notifier)
@@ -238,10 +240,10 @@ void main() {
 
         container
             .read(wizardControllerProvider.notifier)
-            .answerConteudo('c2', 'v1');
+            .answerConteudoString('c2', 'v1');
         container
             .read(wizardControllerProvider.notifier)
-            .answerConteudo('c3', 'v2');
+            .answerConteudoString('c3', 'v2');
         final success = container
             .read(wizardControllerProvider.notifier)
             .nextStep();
@@ -322,7 +324,7 @@ void main() {
           .chooseRamo('selecao', 'ramo_a');
       final state = container.read(wizardControllerProvider);
 
-      expect(state.answers['selecao'], equals('ramo_a'));
+      expect(state.answers['selecao']?.texto, equals('ramo_a'));
       expect(state.queue.length, 3); // s1 + ra_s1 + s2
       expect(state.currentIndex, 0); // NÃO avançou
     });
@@ -342,7 +344,7 @@ void main() {
           .chooseRamo('selecao', 'ramo_b');
       final state = container.read(wizardControllerProvider);
 
-      expect(state.answers['selecao'], equals('ramo_b'));
+      expect(state.answers['selecao']?.texto, equals('ramo_b'));
       expect(state.queue.length, 3);
       expect(state.queue[1].step.id, equals('rb_s1'));
     });
@@ -470,7 +472,7 @@ void main() {
       // Preenche o campo obrigatório (key = "to_c1__itemId")
       container
           .read(wizardControllerProvider.notifier)
-          .answerInlineConteudo('to_c1', 'valor', itemId);
+          .answerInlineConteudoString('to_c1', 'valor', itemId);
 
       final ok = container
           .read(wizardControllerProvider.notifier)
@@ -597,7 +599,10 @@ void main() {
       final state = container.read(wizardControllerProvider);
 
       expect(state.refSelections['ref_c1'], equals(['id1', 'id2', 'id3']));
-      expect(state.answers['ref_c1'], equals('id1,id2,id3'));
+      expect(
+        state.answers['ref_c1']?.lista.valores.map((e) => e.texto).toList(),
+        equals(['id1', 'id2', 'id3']),
+      );
     });
 
     test('setRefMateriais com listItemId usa chave composta', () {
@@ -618,7 +623,10 @@ void main() {
       final state = container.read(wizardControllerProvider);
 
       expect(state.refSelections['ref_c1__item_abc'], equals(['m1']));
-      expect(state.answers['ref_c1__item_abc'], equals('m1'));
+      expect(
+        state.answers['ref_c1__item_abc']?.lista.valores.map((e) => e.texto).toList(),
+        equals(['m1']),
+      );
     });
 
     test('getMaterialItems retorna itens da lista correta', () {
@@ -659,10 +667,10 @@ void main() {
 
       container
           .read(wizardControllerProvider.notifier)
-          .answerInlineConteudo('campo_marca', 'Petzl', 'item_xyz');
+          .answerInlineConteudoString('campo_marca', 'Petzl', 'item_xyz');
       final state = container.read(wizardControllerProvider);
 
-      expect(state.answers['campo_marca__item_xyz'], equals('Petzl'));
+      expect(state.answers['campo_marca__item_xyz']?.texto, equals('Petzl'));
       expect(state.answers.containsKey('campo_marca'), isFalse);
     });
 
@@ -678,10 +686,45 @@ void main() {
 
       container
           .read(wizardControllerProvider.notifier)
-          .answerConteudo('via_nome', 'Via Teste');
+          .answerConteudoString('via_nome', 'Via Teste');
       final state = container.read(wizardControllerProvider);
 
-      expect(state.answers['via_nome'], equals('Via Teste'));
+      expect(state.answers['via_nome']?.texto, equals('Via Teste'));
+    });
+    test('answerConteudo armazena instâncias corretas de Resposta (Test-First)', () {
+      final container = makeContainer();
+      container
+          .read(wizardControllerProvider.notifier)
+          .loadProtocol(
+            makeProtocol([
+              makeStep('s1', [
+                campoConteudo(id: 'c_text'),
+                campoConteudo(id: 'c_int'),
+                campoConteudo(id: 'c_double'),
+                campoConteudo(id: 'c_bool'),
+              ]),
+            ]),
+          );
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+
+      notifier.answerConteudo('c_text', Resposta(texto: 'hello'));
+      notifier.answerConteudo('c_int', Resposta(inteiro: Int64(42)));
+      notifier.answerConteudo('c_double', Resposta(numero: 3.14));
+      notifier.answerConteudo('c_bool', Resposta(booleano: true));
+
+      final state = container.read(wizardControllerProvider);
+
+      expect(state.answers['c_text']?.texto, equals('hello'));
+      expect(state.answers['c_int']?.inteiro, equals(Int64(42)));
+      expect(state.answers['c_double']?.numero, equals(3.14));
+      expect(state.answers['c_bool']?.booleano, equals(true));
+      
+      // Valida o whichValor
+      expect(state.answers['c_text']?.whichValor(), equals(Resposta_Valor.texto));
+      expect(state.answers['c_int']?.whichValor(), equals(Resposta_Valor.inteiro));
+      expect(state.answers['c_double']?.whichValor(), equals(Resposta_Valor.numero));
+      expect(state.answers['c_bool']?.whichValor(), equals(Resposta_Valor.booleano));
     });
   });
 }

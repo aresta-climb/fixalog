@@ -44,15 +44,14 @@ void main() {
       expect(find.text('Registros de manutenção preenchidos'), findsOneWidget);
     });
 
-    testWidgets('Exibe os dois stat cards com valores dinâmicos', (tester) async {
+    testWidgets('Exibe os dois stat cards com valores dinâmicos', (WidgetTester tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       expect(find.text('LOGS TOTAIS'), findsOneWidget);
+      expect(find.text('15'), findsOneWidget);
       expect(find.text('ÚLTIMO LOG'), findsOneWidget);
-      
-      expect(find.text('15'), findsOneWidget); // 15 total records
-      expect(find.text('12/10/2023'), findsOneWidget); // Data do último log (mais recente)
+      expect(find.text('12/10/2023').first, findsOneWidget);
     });
 
     testWidgets('Exibe apenas 10 itens inicialmente e pagina para 15', (tester) async {

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/providers/history_provider.dart';
 import 'package:app/core/services/pdf_viewer_service.dart';
-import 'package:app/features/express_form/views/express_form_screen.dart';
-import 'package:app/features/express_form/viewmodels/express_form_view_model.dart';
+import 'package:app/features/wizard/views/wizard_screen.dart';
+import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
+
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -193,12 +194,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
                               final loadAndEdit = () async {
                                 try {
-                                  await ref.read(expressFormViewModelProvider.notifier).loadSession(record.idSessao);
+                                  final controller = ref.read(wizardControllerProvider.notifier);
+                                  await controller.loadSession(record.idSessao);
+                                  
+                                  // Pegar o YAML recuperado para passar pro WizardScreen
+                                  final state = ref.read(wizardControllerProvider);
+                                  final yamlStr = state.protocolRawYaml;
+
                                   if (context.mounted) {
-                                    Navigator.push(
-                                      context,
+                                    Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => const ExpressFormScreen(),
+                                        builder: (_) => WizardScreen(initialYaml: yamlStr),
                                       ),
                                     );
                                   }

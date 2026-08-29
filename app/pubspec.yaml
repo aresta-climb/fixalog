@@ -24,6 +24,8 @@ dependencies:
   permission_handler: ^12.0.3
   xml: ^7.0.1
   basic_utils: ^5.8.2
+  path: ^1.9.0
+  uuid: ^4.3.0
   local_auth: ^3.0.1
   flutter_image_compress: ^2.4.0
   rust_lib_app:
@@ -37,6 +39,7 @@ dependencies:
   ffmpeg_kit_flutter_new: ^4.3.2
   share_plus: ^13.2.0
   open_filex: ^4.7.0
+  signature: ^6.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

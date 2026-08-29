@@ -2,9 +2,9 @@
 //
 // Schema de SAÍDA — o registro gerado pelo mantenedor.
 //
-// Este schema define a estrutura dos dados coletados durante a execução
-// de um protocolo. É o que é armazenado no Isar, assinado criptograficamente
-// e exportado como PDF/YAML auditável.
+// Este schema adota um modelo HÍBRIDO: 
+// 1. O ENVELOPE (segurança, mídias, assinaturas) é estritamente tipado.
+// 2. O PAYLOAD (dados do formulário) é dinâmico e guiado pelo YAML.
 //
 // A ESTRUTURA DO FORMULÁRIO é descrita em wizard.proto.
 
@@ -12,7 +12,7 @@ syntax = "proto3";
 package fixalog;
 
 // ══════════════════════════════════════════════════════════════
-// REGISTRO COMPLETO DE UMA MANUTENÇÃO
+// MÍDIAS E METADADOS
 // ══════════════════════════════════════════════════════════════
 
 // Representa um arquivo de imagem armazenado isoladamente no diretório da sessão.
@@ -58,183 +58,58 @@ message ReferenciaMidia {
 }
 
 // ══════════════════════════════════════════════════════════════
-// REGISTRO COMPLETO DE UMA MANUTENÇÃO
+// PAYLOAD DINÂMICO
 // ══════════════════════════════════════════════════════════════
 
-message RegistroManutencao {
+// Wrapper para permitir listas de respostas dentro do oneof (ex: checkboxes, seleções múltiplas)
+message ListaRespostas {
+  repeated Resposta valores = 1;
+}
+
+// Tipo de dado dinâmico para os campos do formulário
+message Resposta {
+  oneof valor {
+    string texto = 1;
+    double numero = 2;
+    int64 inteiro = 3;
+    bool booleano = 4;
+    ReferenciaMidia midia = 5;
+    ListaRespostas lista = 6;
+  }
+}
+
+// Representa um item gerado dinamicamente dentro de uma ListaAcoes ou similar no YAML
+message GrupoRepetido {
+  string id_lista = 1; // ID do ConteudoStep do tipo lista (ex: "lista_acoes_c")
+  string id_item = 2;  // UUID único do item da lista
+  string id_tipo = 3;  // ID do TipoAcao correspondente ao item escolhido
+  map<string, Resposta> respostas_item = 4; // Respostas contidas dentro deste item específico
+}
+
+// ══════════════════════════════════════════════════════════════
+// REGISTRO UNIFICADO
+// ══════════════════════════════════════════════════════════════
+
+message Registro {
+  // --- ENVELOPE ESTRITO DE SEGURANÇA E CONTEXTO ---
   string id_sessao            = 1;  // UUID gerado no início da sessão
-  string id_protocolo         = 2;  // referencia DefinicaoProtocolo.id
-  string versao_protocolo     = 3;  // referencia DefinicaoProtocolo.versao
-  int64  utc_timestamp_inicio = 4;  // timestamp GPS de início (segundos)
-  int64  utc_timestamp_fim    = 5;  // timestamp GPS de conclusão
+  string id_protocolo         = 2;  // ID do YAML (ex: "expresso", "manutencao")
+  string versao_protocolo     = 3;  // Hash ou versão do YAML no momento
+  int64  utc_timestamp_inicio = 4;  // timestamp de início (segundos)
+  int64  utc_timestamp_fim    = 5;  // timestamp de conclusão
+  
+  bytes assinatura_visual   = 6;  // PNG do canvas de assinatura
+  bytes assinatura_digital  = 7;  // JWS do hash do registro completo
+  string id_mantenedor      = 8;  // hash da chave pública do mantenedor
+  string attestation_token  = 9;  // Futuro uso com Play Integrity / App Attest
 
-  RegistroMateriais        materiais  = 6;  // Bloco 1
-  RegistroVia              via        = 7;  // Bloco 2
-  repeated AcaoManutencao  acoes      = 8;  // Bloco 3 (N ações)
-  AvaliacaoFinal           avaliacao  = 9;  // Bloco 4
+  // --- PAYLOAD DINÂMICO ---
+  // Respostas planas e campos simples do fluxo principal. A chave é o ID definido no YAML.
+  map<string, Resposta> respostas = 10;
 
-  bytes assinatura_visual   = 10; // PNG do canvas de assinatura
-  bytes assinatura_digital  = 11; // JWS do hash do registro completo
-  string id_mantenedor      = 12; // hash da chave pública do mantenedor
-  string attestation_token  = 99; // Futuro uso com Play Integrity / App Attest
-}
-
-// ══════════════════════════════════════════════════════════════
-// BLOCO 1 — Materiais
-// ══════════════════════════════════════════════════════════════
-
-message RegistroMateriais {
-  repeated MaterialInstalado itens = 1;
-}
-
-// Representa uma entrada de material registrada no wizard.
-// O id_instancia é gerado automaticamente pelo wizard ao adicionar o item
-// e é usado para referência em AcaoManutencao.ids_materiais_usados.
-message MaterialInstalado {
-  string id_instancia = 1; // UUID auto-gerado — chave de referência cruzada
-  string tipo         = 2; // "parabolt", "chapeleta", "argola", etc.
-  string marca        = 3;
-  string lote         = 4;
-  string liga         = 5; // ex: "inox_316l"
-  string validade     = 6; // ISO 8601 (YYYY-MM-DD)
-  int32  quantidade   = 7;
-  ReferenciaMidia foto = 8; // foto da embalagem/lote
-}
-
-// ══════════════════════════════════════════════════════════════
-// BLOCO 2 — Identificação da Via
-// ══════════════════════════════════════════════════════════════
-
-message RegistroVia {
-  string nome_via               = 1;
-  string pico                   = 2;
-  string setor                  = 3;
-  double latitude               = 4;
-  double longitude              = 5;
-  double altitude_m             = 6;
-  ReferenciaMidia permissao_conquistador = 7; // imagem digitalizada ou PDF
-  string nome_conquistador      = 8;
-}
-
-// ══════════════════════════════════════════════════════════════
-// BLOCO 3 — Ações de Manutenção
-// ══════════════════════════════════════════════════════════════
-
-// Cada instância de ação adicionada pelo mantenedor no wizard
-message AcaoManutencao {
-  string id_instancia  = 1; // UUID auto-gerado (mesmo esquema do MaterialInstalado)
-  string id_tipo_acao  = 2; // referencia TipoAcao.id no wizard schema
-  int64  utc_timestamp = 3; // quando essa ação foi concluída
-
-  oneof detalhes {
-    DetalheInspecao        inspecao      = 10;
-    DetalheNovoPonto       novo_ponto    = 11;
-    DetalheRemocaoBloco    remocao_bloco = 12;
-    DetalheLimpeza         limpeza       = 13;
-    DetalheAcaoCustomizada outro         = 14;
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Ação 1: Inspeção de Ancoragem
-// ──────────────────────────────────────────────────────────────
-
-message DetalheInspecao {
-  string tipo_ancoragem_original = 1; // "grampo_p", "parabolt", "outro"
-  string material_original       = 2; // texto livre
-  ReferenciaMidia foto_antes     = 3;
-  ReferenciaMidia video_antes    = 4; // opcional
-
-  ResultadoInspecao resultado    = 5;
-
-  // Preenchido apenas quando resultado == SUBSTITUIR
-  DetalheSubstituicao substituicao = 6;
-
-  enum ResultadoInspecao {
-    APROVADO           = 0;
-    REAPERTO_REALIZADO = 1; // parabolt: desapertou, inspecionou, reapertou
-    SUBSTITUIR         = 2;
-  }
-}
-
-message DetalheSubstituicao {
-  // Qual estratégia foi usada: ramo escolhido pelo mantenedor
-  // Valores: "reusar_furo", "novo_local", "local_alternativo"
-  string estrategia               = 1;
-
-  ReferenciaMidia foto_durante    = 2; // durante a instalação
-  ReferenciaMidia foto_depois     = 3; // resultado final (obrigatória)
-
-  // Lista de id_instancia de MaterialInstalado usados nesta substituição.
-  // Gerados pelo wizard no Bloco 1 e selecionados via StepRefMateriais.
-  repeated string ids_materiais_usados = 4;
-
-  // Dados extras para substituição com reaperto (ramo reaperto_realizado)
-  float  torque_nm                = 5; // opcional
-
-  // Dados extras para novo local
-  bool   autorizacao_confirmada   = 6;
-  string justificativa_novo_local = 7;
-
-  string observacoes              = 8;
-}
-
-// ──────────────────────────────────────────────────────────────
-// Ação 2: Novo Ponto de Ancoragem
-// ──────────────────────────────────────────────────────────────
-
-message DetalheNovoPonto {
-  bool   autorizacao_confirmada        = 1;
-  double latitude                      = 2;
-  double longitude                     = 3;
-  ReferenciaMidia foto_local_escolhido = 4;
-  ReferenciaMidia foto_instalado       = 5;
-  repeated string ids_materiais_usados = 6; // refs para MaterialInstalado.id_instancia
-  string observacoes                   = 7;
-}
-
-// ──────────────────────────────────────────────────────────────
-// Ação 3: Remoção de Bloco Solto
-// ──────────────────────────────────────────────────────────────
-
-message DetalheRemocaoBloco {
-  ReferenciaMidia foto_antes  = 1;
-  ReferenciaMidia foto_depois = 2;
-  string observacoes = 3;
-}
-
-// ──────────────────────────────────────────────────────────────
-// Ação 4: Limpeza de Vegetação
-// ──────────────────────────────────────────────────────────────
-
-message DetalheLimpeza {
-  ReferenciaMidia foto_antes  = 1;
-  ReferenciaMidia foto_depois = 2;
-  string observacoes = 3;
-}
-
-// ──────────────────────────────────────────────────────────────
-// Ação 5: Outro (ação customizada)
-// ──────────────────────────────────────────────────────────────
-
-message DetalheAcaoCustomizada {
-  string descricao           = 1;
-  ReferenciaMidia foto       = 2;
-  ReferenciaMidia video      = 3;
-  string observacoes = 4;
-}
-
-// ══════════════════════════════════════════════════════════════
-// BLOCO 4 — Avaliação Final
-// ══════════════════════════════════════════════════════════════
-
-message AvaliacaoFinal {
-  ResultadoGeral resultado  = 1;
-  string observacoes        = 2;
-
-  enum ResultadoGeral {
-    APROVADO               = 0;
-    APROVADO_COM_RESSALVAS = 1;
-    REQUER_NOVA_VISITA     = 2;
-  }
+  // Listas de itens criados dinamicamente no formulário (Blocos que podem repetir infinitamente).
+  repeated GrupoRepetido listas = 11;
+  
+  // Conteúdo raw do YAML usado para gerar este registro (garante recriação perfeita do layout original)
+  string yaml_conteudo = 12;
 }

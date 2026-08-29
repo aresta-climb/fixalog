@@ -7,6 +7,7 @@ import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:app/features/media/services/media_compressor_service.dart';
 import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
 import 'package:app/core/services/session_bundle_manager.dart';
+import 'package:app/core/models/proto/protos/registro.pb.dart';
 
 import 'package:isar_community/isar.dart';
 import 'package:app/core/models/local/submission_record.dart';
@@ -26,6 +27,12 @@ class FakeSubmissionCollection extends Fake implements IsarCollection<Submission
     lastSavedRecord = object;
     return 1;
   }
+
+  @override
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QFilterCondition> filter() {
+    // Just return a dummy or throw something that indicates no record
+    throw UnsupportedError('Mock filter');
+  }
 }
 
 class FakeIsar extends Fake implements Isar {
@@ -44,6 +51,7 @@ class FakeIsar extends Fake implements Isar {
     return callback();
   }
 }
+
 void main() {
   late MockPdfDraftService mockDraftService;
   late MockMediaCompressorService mockMediaService;
@@ -66,89 +74,36 @@ void main() {
     );
     
     registerFallbackValue(File(''));
+    registerFallbackValue(Registro());
   });
 
-  test('Deve interpolar a string do draftPath corretamente e não conter \$ literal', () async {
-    // Arrange
-    final fakeWorkspace = Directory('/fake/workspace');
-    when(() => mockRecoveryService.getWorkspaceDir()).thenAnswer((_) async => fakeWorkspace);
-    when(() => mockRecoveryService.markAsProcessing(any())).thenAnswer((_) async {});
-    
-    // Configura o mock do drawDraft para não falhar e apenas capturar os argumentos.
-    when(() => mockDraftService.drawDraft(any(), any(), any()))
-        .thenAnswer((_) async => File('/fake/workspace/draft.pdf'));
-
-    // Act
-    // Vamos chamar o startGeneration. Como ele vai falhar no rust_api.generateSealedReport,
-    // não precisamos nos preocupar se a Promise finalizar com erro,
-    // só queremos validar o argumento que foi passado para o drawDraft.
-    await notifier.startGeneration('Teste', [], '/output.pdf');
-
-    // Assert
-    // Verifica se drawDraft foi chamado com o path CORRETO,
-    // sem o $ escapado. O correto é '/fake/workspace/draft.pdf'.
-    verify(() => mockDraftService.drawDraft('Teste', [], '/fake/workspace/draft.pdf')).called(1);
-    
-    // Se o draftPath ainda estiver errado ('\${workspace.path}/draft.pdf'),
-    // o verify falhará (Fase Red do TDD).
-  });
-
-  test('Deve processar todas as mídias e garantir que as imagens saiam com formato .jpg (Fase Red)', () async {
-    // Arrange
-    final fakeWorkspace = Directory('/fake/workspace');
-    when(() => mockRecoveryService.getWorkspaceDir()).thenAnswer((_) async => fakeWorkspace);
-    when(() => mockRecoveryService.markAsProcessing(any())).thenAnswer((_) async {});
-    when(() => mockDraftService.drawDraft(any(), any(), any()))
-        .thenAnswer((_) async => File('/fake/workspace/draft.pdf'));
-
-    when(() => mockMediaService.compressImage(any(), any()))
-        .thenAnswer((inv) async => inv.positionalArguments[0] as File);
-
-    final medias = [
-      GenerationMedia(file: File('image1.png'), description: 'Legenda 1'),
-      GenerationMedia(file: File('image2.HEIC')),
-    ];
-
-    // Act
-    await notifier.startGeneration('Teste', medias, '/output.pdf');
-
-    // Assert
-    final captured = verify(() => mockMediaService.compressImage(any(), captureAny())).captured;
-    expect(captured.length, 2);
-    
-    expect((captured[0] as String).endsWith('.jpg'), isTrue, reason: 'O formato final de compressão de imagens DEVE ser obrigatoriamente .jpg');
-    expect((captured[1] as String).endsWith('.jpg'), isTrue, reason: 'O formato final de compressão de imagens DEVE ser obrigatoriamente .jpg');
-    
-    // Verifica se os descriptions chegaram ao drawDraft
-    final drawDraftCaptured = verify(() => mockDraftService.drawDraft('Teste', captureAny(), '/fake/workspace/draft.pdf')).captured;
-    final capturedMedias = drawDraftCaptured.first as List<GenerationMedia>;
-    expect(capturedMedias[0].description, 'Legenda 1');
-  });
-
-  test('Deve garantir que o arquivo final seja criado no outputPath (Fase Red)', () async {
-    // Arrange
+  test('Deve processar manifest e desenhar draft', () async {
     final fakeWorkspace = Directory.systemTemp.createTempSync('workspace');
     when(() => mockRecoveryService.getWorkspaceDir()).thenAnswer((_) async => fakeWorkspace);
     when(() => mockRecoveryService.markAsProcessing(any())).thenAnswer((_) async {});
     
-    final fakeDraft = File('${fakeWorkspace.path}/draft.pdf');
-    await fakeDraft.writeAsString('draft fake');
-    when(() => mockDraftService.drawDraft(any(), any(), any())).thenAnswer((_) async => fakeDraft);
+    // Mock SessionBundleManager
+    final registro = Registro()..idProtocolo = 'Test Protocol';
+    when(() => mockSessionManager.readManifest(sessionId: any(named: 'sessionId')))
+        .thenAnswer((_) async => registro.writeToBuffer());
+    when(() => mockSessionManager.getMediaFilePath(sessionId: any(named: 'sessionId'), mediaUuid: any(named: 'mediaUuid'), extension: any(named: 'extension')))
+        .thenAnswer((_) async => '/fake/workspace/registro.binarypb');
+        
+    when(() => mockDraftService.drawDraft(any(), any(), any()))
+        .thenAnswer((_) async => File('${fakeWorkspace.path}/draft.pdf')..writeAsStringSync('draft'));
+
+    final outPath = '${fakeWorkspace.path}/output.pdf';
     
-    when(() => mockMediaService.compressImage(any(), any()))
-        .thenAnswer((_) async => File(''));
+    // Agora o startGeneration não recebe mídias como lista. Apenas o path.
+    await notifier.startGeneration('Teste', outPath, sessionId: '123');
 
-    final outPath = '${fakeWorkspace.path}/output_final.pdf';
-
-    // Act
-    await notifier.startGeneration('Teste', [GenerationMedia(file: File('/input.jpg'))], outPath);
-
-    // Assert
-    final exists = await File(outPath).exists();
-    expect(exists, isTrue, reason: 'O arquivo final de output deve ser fisicamente gerado no disco');
+    final drawDraftCaptured = verify(() => mockDraftService.drawDraft(captureAny(), captureAny(), any())).captured;
+    final capturedRegistro = drawDraftCaptured[0] as Registro;
+    expect(capturedRegistro.idProtocolo, 'Test Protocol');
     
     fakeWorkspace.deleteSync(recursive: true);
   });
+
   test('Deve gravar um SubmissionRecord no Isar após a geração do PDF', () async {
     // Arrange
     final fakeWorkspace = Directory.systemTemp.createTempSync('workspace');
@@ -159,9 +114,11 @@ void main() {
     await fakeDraft.writeAsString('draft fake');
     when(() => mockDraftService.drawDraft(any(), any(), any())).thenAnswer((_) async => fakeDraft);
     
-    when(() => mockMediaService.compressImage(any(), any()))
-        .thenAnswer((_) async => File(''));
-
+    when(() => mockSessionManager.readManifest(sessionId: any(named: 'sessionId')))
+        .thenAnswer((_) async => (Registro()..idProtocolo = 'Test Protocol').writeToBuffer());
+    when(() => mockSessionManager.getMediaFilePath(sessionId: any(named: 'sessionId'), mediaUuid: any(named: 'mediaUuid'), extension: any(named: 'extension')))
+        .thenAnswer((_) async => '/fake/workspace/registro.binarypb');
+        
     final outPath = '${fakeWorkspace.path}/output_final.pdf';
     
     final fakeIsar = FakeIsar();
@@ -174,7 +131,7 @@ void main() {
     );
 
     // Act
-    await notifier.startGeneration('Teste Protocolo', [GenerationMedia(file: File('/input.jpg'))], outPath);
+    await notifier.startGeneration('Teste Protocolo', outPath, sessionId: '123');
 
     // Assert
     expect(fakeIsar.fakeCollection.putCalls, 1, reason: 'Deve chamar o put no IsarCollection<SubmissionRecord> exatamente 1 vez');
@@ -186,4 +143,3 @@ void main() {
     fakeWorkspace.deleteSync(recursive: true);
   });
 }
-

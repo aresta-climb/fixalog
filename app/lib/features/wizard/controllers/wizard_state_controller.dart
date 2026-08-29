@@ -1,5 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
+import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as p;
+import 'package:fixnum/fixnum.dart';
+import '../../../core/services/session_bundle_manager.dart';
+import '../../../core/services/protocol_parser.dart';
+import '../../../core/models/local/submission_record.dart';
+import '../../identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import '../../../core/models/proto/protos/wizard.pb.dart';
+import '../../../core/models/proto/protos/registro.pb.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Modelos imutáveis de domínio
@@ -34,7 +45,9 @@ class FlowStep {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class WizardState {
+  final String sessionId;
   final DefinicaoProtocolo? protocol;
+  final String protocolRawYaml;
 
   /// Fila de cards (FlowStep). Pode crescer dinamicamente via chooseRamo.
   final List<FlowStep> queue;
@@ -44,7 +57,7 @@ class WizardState {
 
   /// Respostas keyed por ConteudoStep.id.
   /// Para conteúdos dentro de itens de lista: "${conteudoId}__${listItemId}".
-  final Map<String, String> answers;
+  final Map<String, Resposta> answers;
 
   /// Itens de lista keyed por ConteudoStep.id (do StepListaAcoes).
   final Map<String, List<ListItemRecord>> lists;
@@ -62,7 +75,9 @@ class WizardState {
   final Map<String, List<String>> ramoInjectedStepIds;
 
   const WizardState({
+    this.sessionId = '',
     this.protocol,
+    this.protocolRawYaml = '',
     this.queue = const [],
     this.currentIndex = 0,
     this.answers = const {},
@@ -73,17 +88,21 @@ class WizardState {
   });
 
   WizardState copyWith({
+    String? sessionId,
     DefinicaoProtocolo? protocol,
+    String? protocolRawYaml,
     List<FlowStep>? queue,
     int? currentIndex,
-    Map<String, String>? answers,
+    Map<String, Resposta>? answers,
     Map<String, List<ListItemRecord>>? lists,
     Map<String, String?>? expandedListItems,
     Map<String, List<String>>? refSelections,
     Map<String, List<String>>? ramoInjectedStepIds,
   }) {
     return WizardState(
+      sessionId: sessionId ?? this.sessionId,
       protocol: protocol ?? this.protocol,
+      protocolRawYaml: protocolRawYaml ?? this.protocolRawYaml,
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
       answers: answers ?? this.answers,
@@ -116,13 +135,97 @@ class WizardStateController extends Notifier<WizardState> {
 
   // ── Carregamento ────────────────────────────────────────────────────────────
 
-  void loadProtocol(DefinicaoProtocolo protocol) {
+  void loadProtocol(DefinicaoProtocolo protocol, {String rawYaml = ''}) {
     final queue = protocol.blocos
         .expand((b) => b.steps)
         .map((s) => FlowStep(step: s))
         .toList();
 
-    state = WizardState(protocol: protocol, queue: queue, currentIndex: 0);
+    state = WizardState(
+      sessionId: const Uuid().v4(),
+      protocol: protocol,
+      protocolRawYaml: rawYaml,
+      queue: queue,
+      currentIndex: 0,
+    );
+  }
+
+  Future<void> loadSession(String sessionId) async {
+    final sessionManager = ref.read(sessionBundleManagerProvider);
+    final bytes = await sessionManager.readManifest(sessionId: sessionId);
+    final registro = Registro.fromBuffer(bytes);
+
+    final yamlStr = registro.yamlConteudo;
+    if (yamlStr.isEmpty) {
+      throw Exception("O registro antigo não contém o YAML original salvo. Não é possível recriar a interface.");
+    }
+
+    final protocol = ProtocolParser.fromYaml(yamlStr);
+    
+    final queue = protocol.blocos
+        .expand((b) => b.steps)
+        .map((s) => FlowStep(step: s))
+        .toList();
+
+    // Reconstruct lists map from GrupoRepetido
+    final reconstructedLists = <String, List<ListItemRecord>>{};
+    
+    // We need to find the labels/icons for each list item from the protocol definition
+    for (final grupo in registro.listas) {
+      final listId = grupo.idLista;
+      final tipoId = grupo.idTipo;
+      
+      // Find the StepListaAcoes in the protocol that matches listId
+      StepListaAcoes? stepLista;
+      for (final bloco in protocol.blocos) {
+        for (final step in bloco.steps) {
+          for (final conteudo in step.conteudos) {
+            if (conteudo.id == listId && conteudo.hasListaAcoes()) {
+              stepLista = conteudo.listaAcoes;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (stepLista != null) {
+        // Find the TipoAcao
+        final tipoAcao = stepLista.tiposDisponiveis.firstWhere(
+          (t) => t.id == tipoId,
+          orElse: () => TipoAcao()..id = tipoId..label = 'Item'..iconName = 'list',
+        );
+        
+        final record = ListItemRecord(
+          id: grupo.idItem,
+          tipoId: tipoId,
+          tipoLabel: tipoAcao.label,
+          tipoIconName: tipoAcao.iconName,
+          tipo: tipoAcao,
+        );
+        
+        reconstructedLists.putIfAbsent(listId, () => []).add(record);
+      }
+    }
+
+    // Flatten all answers
+    final allAnswers = <String, Resposta>{};
+    allAnswers.addAll(registro.respostas);
+    
+    for (final grupo in registro.listas) {
+      for (final entry in grupo.respostasItem.entries) {
+        allAnswers['${entry.key}__${grupo.idItem}'] = entry.value;
+      }
+    }
+
+    state = WizardState(
+      sessionId: sessionId,
+      protocol: protocol,
+      protocolRawYaml: yamlStr,
+      queue: queue,
+      currentIndex: 0,
+      answers: allAnswers,
+      lists: reconstructedLists,
+    );
   }
 
   // ── Navegação principal ──────────────────────────────────────────────────────
@@ -159,21 +262,92 @@ class WizardStateController extends Notifier<WizardState> {
   // ── Respostas — conteúdos do fluxo principal ─────────────────────────────────
 
   /// Registra uma resposta para um [ConteudoStep] no fluxo principal.
-  void answerConteudo(String conteudoId, String value) {
-    final updated = Map<String, String>.from(state.answers)
+  void answerConteudo(String conteudoId, Resposta value) {
+    final updated = Map<String, Resposta>.from(state.answers)
       ..[conteudoId] = value;
     state = state.copyWith(answers: updated);
+  }
+
+  /// Registra uma resposta em string (utilitário para UI) e tenta converter se necessário,
+  /// assumindo texto como default. Para tipos específicos UI deve usar answerConteudo direto.
+  void answerConteudoString(String conteudoId, String value) {
+    answerConteudo(conteudoId, Resposta(texto: value));
   }
 
   /// Registra uma resposta para um [ConteudoStep] dentro de um item de lista.
   void answerInlineConteudo(
     String conteudoId,
-    String value,
+    Resposta value,
     String listItemId,
   ) {
     final key = '${conteudoId}__$listItemId';
-    final updated = Map<String, String>.from(state.answers)..[key] = value;
+    final updated = Map<String, Resposta>.from(state.answers)..[key] = value;
     state = state.copyWith(answers: updated);
+  }
+
+  void answerInlineConteudoString(
+    String conteudoId,
+    String value,
+    String listItemId,
+  ) {
+    answerInlineConteudo(conteudoId, Resposta(texto: value), listItemId);
+  }
+
+  // ── Mídias ───────────────────────────────────────────────────────────────────
+
+  /// Salva uma mídia no SessionBundle, calcula o hash e já armazena como ReferenciaMidia.
+  Future<void> saveMediaAnswerBytes(
+    String conteudoId,
+    Uint8List bytes,
+    String extension,
+    StepCampoSimples_TipoCampo tipo, {
+    String? listItemId,
+  }) async {
+    final sessionManager = ref.read(sessionBundleManagerProvider);
+    final mediaUuid = const Uuid().v4();
+    final hash = sha256.convert(bytes).toString();
+
+    await sessionManager.saveOriginalMedia(
+      sessionId: state.sessionId,
+      mediaUuid: mediaUuid,
+      extension: extension,
+      bytes: bytes,
+    );
+
+    final refMidia = ReferenciaMidia();
+    final mimeExt = extension.replaceAll('.', '');
+    if (tipo == StepCampoSimples_TipoCampo.IMAGE || tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
+      refMidia.imagem = ArquivoImagem(
+        uuid: mediaUuid,
+        hashOriginal: hash,
+        tipoOriginal: 'image/$mimeExt',
+      );
+    } else if (tipo == StepCampoSimples_TipoCampo.VIDEO) {
+      refMidia.video = ArquivoVideo(
+        uuid: mediaUuid,
+        hashOriginal: hash,
+        tipoOriginal: 'video/$mimeExt',
+      );
+    }
+
+    final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+    final updated = Map<String, Resposta>.from(state.answers)..[key] = Resposta(midia: refMidia);
+    state = state.copyWith(answers: updated);
+  }
+
+  /// Lê o arquivo de mídia, salva no SessionBundle, calcula hash e armazena como ReferenciaMidia.
+  Future<void> saveMediaAnswer(
+    String conteudoId,
+    String filePath,
+    StepCampoSimples_TipoCampo tipo, {
+    String? listItemId,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) return;
+
+    final bytes = await file.readAsBytes();
+    final ext = p.extension(filePath);
+    await saveMediaAnswerBytes(conteudoId, bytes, ext, tipo, listItemId: listItemId);
   }
 
   // ── SelecaoRamo — fluxo principal ────────────────────────────────────────────
@@ -206,9 +380,9 @@ class WizardStateController extends Notifier<WizardState> {
         .where((fs) => !previousIds.contains(fs.step.id))
         .toList();
 
-    // Registrar resposta
-    final updatedAnswers = Map<String, String>.from(state.answers)
-      ..[conteudoId] = ramoId;
+    // Registrar resposta (ramo selecionado é uma string)
+    final updatedAnswers = Map<String, Resposta>.from(state.answers)
+      ..[conteudoId] = Resposta(texto: ramoId);
 
     // Injetar sub-steps do ramo após o card atual
     final ramoFlowSteps = ramo.steps.map((s) => FlowStep(step: s)).toList();
@@ -311,8 +485,15 @@ class WizardStateController extends Notifier<WizardState> {
     final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
     final updatedRefs = Map<String, List<String>>.from(state.refSelections)
       ..[key] = selectedIds;
-    final updatedAnswers = Map<String, String>.from(state.answers)
-      ..[key] = selectedIds.join(',');
+    
+    // Converte a lista de strings para uma lista de respostas em string
+    final respostasLista = ListaRespostas(
+      valores: selectedIds.map((id) => Resposta(texto: id)).toList()
+    );
+    
+    final updatedAnswers = Map<String, Resposta>.from(state.answers)
+      ..[key] = Resposta(lista: respostasLista);
+      
     state = state.copyWith(refSelections: updatedRefs, answers: updatedAnswers);
   }
 
@@ -362,7 +543,8 @@ class WizardStateController extends Notifier<WizardState> {
           return false;
         }
         // Valida recursivamente o ramo escolhido
-        final chosenRamoId = state.answers[key];
+        final chosenRamo = state.answers[key];
+        final chosenRamoId = chosenRamo?.texto;
         if (chosenRamoId != null) {
           final ramo = conteudo.selecaoRamo.ramos.cast<Ramo?>().firstWhere(
             (r) => r?.id == chosenRamoId,
@@ -386,6 +568,83 @@ class WizardStateController extends Notifier<WizardState> {
   static String _generateId() {
     _idCounter++;
     return '${DateTime.now().millisecondsSinceEpoch}_$_idCounter';
+  }
+
+  // ── Persistência ──────────────────────────────────────────────────────────────
+
+  /// Instancia o Registro Híbrido, persiste no disco
+  /// através do SessionBundleManager e registra no Isar. Retorna o sessionId.
+  Future<String> saveSession() async {
+    final sessionId = state.sessionId;
+    final protocol = state.protocol;
+    if (protocol == null) throw Exception('Protocolo não carregado.');
+
+    final sessionManager = ref.read(sessionBundleManagerProvider);
+    final isar = ref.read(isarProvider);
+    final finalAnswers = Map<String, Resposta>.from(state.answers);
+
+    // 1. Construir o Registro unificado
+    final registro = Registro(
+      idSessao: sessionId,
+      idProtocolo: protocol.id,
+      versaoProtocolo: protocol.versao,
+      utcTimestampInicio: Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      utcTimestampFim: Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+    );
+
+    // 2. Separar flat root answers
+    final rootAnswers = <String, Resposta>{};
+    for (final entry in finalAnswers.entries) {
+      if (!entry.key.contains('__')) {
+        rootAnswers[entry.key] = entry.value;
+      }
+    }
+    registro.respostas.addAll(rootAnswers);
+
+    // Salvar o YAML no manifesto
+    registro.yamlConteudo = state.protocolRawYaml;
+
+    // 3. Mapear grupos repetidos para 'listas'
+    for (final entry in state.lists.entries) {
+      final listId = entry.key;
+      for (final item in entry.value) {
+        final grupo = GrupoRepetido(
+          idLista: listId,
+          idItem: item.id,
+          idTipo: item.tipoId,
+        );
+
+        for (final ansEntry in finalAnswers.entries) {
+          if (ansEntry.key.endsWith('__${item.id}')) {
+            final pureKey = ansEntry.key.split('__')[0];
+            grupo.respostasItem[pureKey] = ansEntry.value;
+          }
+        }
+        registro.listas.add(grupo);
+      }
+    }
+
+    // 4. Salvar binarypb e atualizar Isar
+    final binarypb = registro.writeToBuffer();
+    await sessionManager.saveManifest(sessionId: sessionId, binarypb: binarypb);
+
+    if (isar != null) {
+      final sessionDir = await sessionManager.getSessionDirectory(sessionId);
+      final record = SubmissionRecord()
+        ..idSessao = sessionId
+        ..idProtocolo = protocol.id
+        ..nomeProtocolo = protocol.nome
+        ..dataInclusao = DateTime.now()
+        ..hashAssinatura = ''
+        ..pdfPath = ''
+        ..protobufPath = p.join(sessionDir.path, 'registro.binarypb');
+
+      await isar.writeTxn(() async {
+        await isar.submissionRecords.put(record);
+      });
+    }
+
+    return sessionId;
   }
 }
 

@@ -1,0 +1,61 @@
+id: "registro_expresso"
+nome: "Registro Expresso"
+versao: "1.0.0"
+blocos:
+  - id: "bloco_evidencias"
+    titulo: "Evidências"
+    steps:
+      - conteudos:
+          - id: "lista_fotos"
+            lista_acoes:
+              label: "Fotos e Vídeos"
+              sublabel: "Adicione fotos ou vídeos com breves descrições sobre o que encontrou na via."
+              minimo: 0
+              maximo: 0
+              tipos_disponiveis:
+                - id: "acao_foto"
+                  label: "Adicionar Foto"
+                  sublabel: ""
+                  icon_name: "camera"
+                  steps:
+                    - conteudos:
+                        - id: "foto"
+                          campo_simples:
+                            label: "Foto"
+                            tipo: "IMAGE"
+                            ui_hint: "CAMERA_ACTION"
+                            obrigatorio: true
+                        - id: "descricao"
+                          campo_simples:
+                            label: "Descrição (opcional)"
+                            tipo: "TEXT"
+                            ui_hint: "TEXT_AREA"
+                            obrigatorio: false
+                - id: "acao_video"
+                  label: "Gravar Vídeo"
+                  sublabel: ""
+                  icon_name: "video"
+                  steps:
+                    - conteudos:
+                        - id: "video"
+                          campo_simples:
+                            label: "Vídeo"
+                            tipo: "VIDEO"
+                            ui_hint: "CAMERA_ACTION"
+                            obrigatorio: true
+                        - id: "descricao"
+                          campo_simples:
+                            label: "Descrição (opcional)"
+                            tipo: "TEXT"
+                            ui_hint: "TEXT_AREA"
+                            obrigatorio: false
+  - id: "bloco_localizacao"
+    titulo: "Localização"
+    steps:
+      - conteudos:
+          - id: "gps"
+            campo_simples:
+              label: "Coordenadas GPS"
+              sublabel: "Capture a localização atual."
+              tipo: "GPS"
+              obrigatorio: false

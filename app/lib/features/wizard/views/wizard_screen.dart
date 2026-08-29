@@ -6,6 +6,15 @@ import '../controllers/wizard_state_controller.dart';
 import '../../../core/models/proto/protos/wizard.pb.dart';
 import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path/path.dart' as p;
+import 'widgets/signature_modal.dart';
+import '../../pdf_generation/providers/generation_provider.dart';
+import '../../pdf_generation/ui/generation_progress_dialog.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tela principal
@@ -29,7 +38,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final protocol = ProtocolParser.fromYaml(widget.initialYaml);
-      ref.read(wizardControllerProvider.notifier).loadProtocol(protocol);
+      ref.read(wizardControllerProvider.notifier).loadProtocol(protocol, rawYaml: widget.initialYaml);
     });
   }
 
@@ -560,11 +569,26 @@ class CampoSimplesWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final campo = conteudo.campoSimples;
-    final answer = ref.watch(wizardControllerProvider).answers[conteudo.id];
-    void save(String v) => ref
-        .read(wizardControllerProvider.notifier)
-        .answerConteudo(conteudo.id, v);
-    return _CampoSimplesContent(campo: campo, answer: answer, onSave: save);
+    final answerObj = ref.watch(wizardControllerProvider).answers[conteudo.id];
+    
+    String? answer;
+    if (answerObj != null) {
+      if (answerObj.hasMidia()) {
+        answer = 'media';
+      } else if (answerObj.hasTexto() && answerObj.texto.isNotEmpty) {
+        answer = answerObj.texto;
+      } else if (answerObj.hasInteiro()) {
+        answer = answerObj.inteiro.toString();
+      } else if (answerObj.hasNumero()) {
+        answer = answerObj.numero.toString();
+      }
+    }
+
+    return _CampoSimplesContent(
+      conteudoId: conteudo.id,
+      campo: campo,
+      answer: answer,
+    );
   }
 }
 
@@ -579,7 +603,8 @@ class SelecaoRamoWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selecao = conteudo.selecaoRamo;
-    final selected = ref.watch(wizardControllerProvider).answers[conteudo.id];
+    final selectedObj = ref.watch(wizardControllerProvider).answers[conteudo.id];
+    final selected = selectedObj?.texto;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1126,20 +1151,35 @@ class InlineConteudoRenderer extends ConsumerWidget {
 
       case ConteudoStep_Tipo.campoSimples:
         final campo = conteudo.campoSimples;
-        final answer = ref.watch(wizardControllerProvider).answers[answerKey];
+        final answerKey = '${conteudo.id}__$itemId';
+        final answerObj = ref.watch(wizardControllerProvider).answers[answerKey];
+        
+        String? answer;
+        if (answerObj != null) {
+          if (answerObj.hasMidia()) {
+            answer = 'media';
+          } else if (answerObj.hasTexto() && answerObj.texto.isNotEmpty) {
+            answer = answerObj.texto;
+          } else if (answerObj.hasInteiro()) {
+            answer = answerObj.inteiro.toString();
+          } else if (answerObj.hasNumero()) {
+            answer = answerObj.numero.toString();
+          }
+        }
+
         return _CampoSimplesContent(
+          conteudoId: conteudo.id,
+          listItemId: itemId,
           campo: campo,
           answer: answer,
-          onSave: (v) => ref
-              .read(wizardControllerProvider.notifier)
-              .answerInlineConteudo(conteudo.id, v, itemId),
         );
 
       case ConteudoStep_Tipo.selecaoRamo:
         final selecao = conteudo.selecaoRamo;
-        final selectedRamoId = ref
+        final selectedRamoObj = ref
             .watch(wizardControllerProvider)
             .answers[answerKey];
+        final selectedRamoId = selectedRamoObj?.texto;
         final selectedRamo = selectedRamoId != null
             ? selecao.ramos.cast<Ramo?>().firstWhere(
                 (r) => r?.id == selectedRamoId,
@@ -1156,7 +1196,7 @@ class InlineConteudoRenderer extends ConsumerWidget {
               selectedId: selectedRamoId,
               onChoose: (ramoId) => ref
                   .read(wizardControllerProvider.notifier)
-                  .answerInlineConteudo(conteudo.id, ramoId, itemId),
+                  .answerInlineConteudoString(conteudo.id, ramoId, itemId),
             ),
             // Sub-steps do ramo escolhido (recursivo)
             if (selectedRamo != null) ...[
@@ -1257,79 +1297,97 @@ class _InlineSelecaoRamoWidget extends StatelessWidget {
 // CampoSimples — conteúdo compartilhado entre inline e principal
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _CampoSimplesContent extends StatelessWidget {
+class _CampoSimplesContent extends ConsumerWidget {
+  final String conteudoId;
+  final String? listItemId;
   final StepCampoSimples campo;
   final String? answer;
-  final void Function(String) onSave;
 
   const _CampoSimplesContent({
+    required this.conteudoId,
+    this.listItemId,
     required this.campo,
     required this.answer,
-    required this.onSave,
   });
 
+  void _saveString(WidgetRef ref, String v) {
+    if (listItemId != null) {
+      ref.read(wizardControllerProvider.notifier).answerInlineConteudoString(conteudoId, v, listItemId!);
+    } else {
+      ref.read(wizardControllerProvider.notifier).answerConteudoString(conteudoId, v);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                campo.label,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  campo.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-            ),
-            if (campo.obrigatorio)
-              Text(
-                ' *',
-                style: const TextStyle(color: Color(0xFFFF6B00), fontSize: 14),
-              ),
-          ],
-        ),
-        if (campo.sublabel.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            campo.sublabel,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 12,
-            ),
+              if (campo.obrigatorio)
+                const Text(
+                  '*',
+                  style: TextStyle(color: Color(0xFFFF6B00), fontSize: 20),
+                ),
+            ],
           ),
+          if (campo.sublabel.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              campo.sublabel,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _buildInput(context, ref, campo, answer),
         ],
-        const SizedBox(height: 10),
-        _buildInput(campo, answer, onSave),
-      ],
+      ),
     );
   }
 
   Widget _buildInput(
+    BuildContext context,
+    WidgetRef ref,
     StepCampoSimples campo,
     String? answer,
-    void Function(String) save,
   ) {
     switch (campo.tipo) {
       case StepCampoSimples_TipoCampo.TEXT:
-      case StepCampoSimples_TipoCampo.NUMBER:
       case StepCampoSimples_TipoCampo.DATE:
         return TextFormField(
           initialValue: answer,
+          keyboardType: TextInputType.text,
+          onChanged: (v) => _saveString(ref, v),
           maxLines: campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA ? 4 : 1,
-          keyboardType: campo.tipo == StepCampoSimples_TipoCampo.NUMBER
-              ? TextInputType.number
-              : TextInputType.text,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
-          decoration: _inputDec(
-            campo.tipo == StepCampoSimples_TipoCampo.DATE
-                ? 'DD/MM/AAAA'
-                : 'DIGITAR...',
+          decoration: const InputDecoration(
+            hintText: 'Digite aqui...',
           ),
-          onChanged: save,
+        );
+
+      case StepCampoSimples_TipoCampo.NUMBER:
+        return TextFormField(
+          initialValue: answer,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (v) => _saveString(ref, v),
+          decoration: const InputDecoration(
+            hintText: 'Apenas números',
+          ),
         );
 
       case StepCampoSimples_TipoCampo.BOOLEAN:
@@ -1337,59 +1395,76 @@ class _CampoSimplesContent extends StatelessWidget {
           children: [
             Expanded(
               child: _SelectionTile(
-                title: 'SIM',
+                title: 'Sim',
                 subtitle: '',
                 icon: Icons.check_circle_outline,
                 isSelected: answer == 'true',
-                onTap: () => save('true'),
+                onTap: () => _saveString(ref, 'true'),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: _SelectionTile(
-                title: 'NÃO',
+                title: 'Não',
                 subtitle: '',
                 icon: Icons.cancel_outlined,
                 isSelected: answer == 'false',
-                onTap: () => save('false'),
+                onTap: () => _saveString(ref, 'false'),
               ),
             ),
           ],
         );
 
       case StepCampoSimples_TipoCampo.DROPDOWN:
-        if (campo.uiHint == StepCampoSimples_UiHint.LARGE_TILES) {
-          return Column(
-            children: campo.opcoes
-                .map(
-                  (o) => _SelectionTile(
-                    title: o.label,
-                    subtitle: o.sublabel,
-                    icon: ProtocolIcons.get(o.iconName),
-                    isSelected: answer == o.valor,
-                    onTap: () => save(o.valor),
-                  ),
-                )
-                .toList(),
-          );
-        }
-        return DropdownButtonFormField<String>(
-          initialValue: answer,
-          dropdownColor: const Color(0xFF1A1C1E),
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputDec('SELECIONAR...'),
-          items: campo.opcoes
-              .map(
-                (o) => DropdownMenuItem(value: o.valor, child: Text(o.label)),
-              )
-              .toList(),
-          onChanged: (v) => save(v ?? ''),
+        return Column(
+          children: campo.opcoes.map((o) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _SelectionTile(
+                title: o.label,
+                subtitle: o.sublabel,
+                icon: ProtocolIcons.get(o.iconName),
+                isSelected: answer == o.valor,
+                onTap: () => _saveString(ref, o.valor),
+              ),
+            );
+          }).toList(),
         );
 
       case StepCampoSimples_TipoCampo.GPS:
         final has = answer != null && answer.isNotEmpty;
         return GestureDetector(
-          onTap: () => save('-19.9218, -43.9366'),
+          onTap: () async {
+            bool serviceEnabled;
+            LocationPermission permission;
+
+            serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (!serviceEnabled) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Serviço de localização desativado.')),
+                );
+              }
+              return;
+            }
+
+            permission = await Geolocator.checkPermission();
+            if (permission == LocationPermission.denied) {
+              permission = await Geolocator.requestPermission();
+              if (permission == LocationPermission.denied) {
+                return;
+              }
+            }
+
+            if (permission == LocationPermission.deniedForever) {
+              return;
+            }
+
+            final position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+            );
+            _saveString(ref, '${position.latitude}, ${position.longitude}');
+          },
           child: _actionTile(
             icon: has ? Icons.location_on : Icons.gps_fixed,
             label: has ? 'COORDENADAS CAPTURADAS' : 'CAPTURAR POSIÇÃO GPS',
@@ -1403,7 +1478,30 @@ class _CampoSimplesContent extends StatelessWidget {
         final has = answer != null && answer.isNotEmpty;
         final isVid = campo.tipo == StepCampoSimples_TipoCampo.VIDEO;
         return GestureDetector(
-          onTap: () => save(isVid ? 'video.mp4' : 'photo.jpg'),
+          onTap: () async {
+            final picker = ImagePicker();
+            if (isVid) {
+              final video = await picker.pickVideo(source: ImageSource.camera);
+              if (video != null) {
+                await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
+                      conteudoId,
+                      video.path,
+                      campo.tipo,
+                      listItemId: listItemId,
+                    );
+              }
+            } else {
+              final image = await picker.pickImage(source: ImageSource.camera);
+              if (image != null) {
+                await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
+                      conteudoId,
+                      image.path,
+                      campo.tipo,
+                      listItemId: listItemId,
+                    );
+              }
+            }
+          },
           child: _actionTile(
             icon: has
                 ? Icons.check_circle
@@ -1419,7 +1517,22 @@ class _CampoSimplesContent extends StatelessWidget {
       case StepCampoSimples_TipoCampo.SIGNATURE:
         final has = answer != null && answer.isNotEmpty;
         return GestureDetector(
-          onTap: () => save('signature_data'),
+          onTap: () async {
+            final Uint8List? signatureBytes = await showDialog<Uint8List>(
+              context: context,
+              builder: (ctx) => const SignatureModal(),
+            );
+
+            if (signatureBytes != null) {
+              await ref.read(wizardControllerProvider.notifier).saveMediaAnswerBytes(
+                    conteudoId,
+                    signatureBytes,
+                    '.png',
+                    campo.tipo,
+                    listItemId: listItemId,
+                  );
+            }
+          },
           child: Container(
             height: 160,
             decoration: BoxDecoration(
@@ -1790,11 +1903,11 @@ class _SelectionTile extends StatelessWidget {
 // Tela de conclusão
 // ─────────────────────────────────────────────────────────────────────────────
 
-class SummaryConclusionCard extends StatelessWidget {
+class SummaryConclusionCard extends ConsumerWidget {
   const SummaryConclusionCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       height: 400,
       margin: const EdgeInsets.all(16),
@@ -1832,10 +1945,36 @@ class SummaryConclusionCard extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.check),
+            onPressed: () async {
+              // 1. Salvar sessão
+              final controller = ref.read(wizardControllerProvider.notifier);
+              final sessionId = await controller.saveSession();
+
+              if (!context.mounted) return;
+
+              // 2. Mostrar loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => const GenerationProgressDialog(),
+              );
+
+              // 3. Iniciar geração
+              final appDir = await getApplicationDocumentsDirectory();
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final outputPath = p.join(appDir.path, 'fixalog_report_$timestamp.pdf');
+
+              final protocol = ref.read(wizardControllerProvider).protocol;
+
+              await ref.read(generationProvider.notifier).startGeneration(
+                protocol?.nome ?? 'Relatório FixaLog',
+                outputPath,
+                sessionId: sessionId,
+              );
+            },
+            icon: const Icon(Icons.picture_as_pdf),
             label: const Text(
-              'FECHAR',
+              'GERAR RELATÓRIO',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(

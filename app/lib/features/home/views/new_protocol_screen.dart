@@ -4,8 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../wizard/views/wizard_screen.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
-import '../../express_form/views/express_form_screen.dart';
-import '../../express_form/viewmodels/express_form_view_model.dart';
+
 
 class NewProtocolScreen extends ConsumerWidget {
   const NewProtocolScreen({super.key});
@@ -173,14 +172,18 @@ class NewProtocolScreen extends ConsumerWidget {
                   tagColor: const Color(0xFF00FF00), // Verde pra destacar
                   title: 'Registro Expresso\n(Fotos + Local)',
                   iconData: Icons.bolt,
-                  onTap: () {
-                    // Navigate to Express Form Screen
-                    ref.read(expressFormViewModelProvider.notifier).clearSession();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ExpressFormScreen(),
-                      ),
+                  onTap: () async {
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/registro_expresso.yaml',
                     );
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
+                    }
                   },
                 ),
                 const SizedBox(height: 16),

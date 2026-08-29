@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart';
 import '../../../core/services/session_bundle_manager.dart';
 import '../../../core/services/protocol_parser.dart';
+import 'package:isar_community/isar.dart';
 import '../../../core/models/local/submission_record.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import '../../../core/models/proto/protos/wizard.pb.dart';
@@ -630,13 +631,20 @@ class WizardStateController extends Notifier<WizardState> {
 
     if (isar != null) {
       final sessionDir = await sessionManager.getSessionDirectory(sessionId);
-      final record = SubmissionRecord()
+      
+      SubmissionRecord? existingRecord;
+      try {
+        existingRecord = await isar.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
+      } catch (_) {}
+
+      final record = existingRecord ?? SubmissionRecord();
+      record
         ..idSessao = sessionId
         ..idProtocolo = protocol.id
         ..nomeProtocolo = protocol.nome
         ..dataInclusao = DateTime.now()
-        ..hashAssinatura = ''
-        ..pdfPath = ''
+        ..hashAssinatura = existingRecord?.hashAssinatura ?? ''
+        ..pdfPath = existingRecord?.pdfPath ?? ''
         ..protobufPath = p.join(sessionDir.path, 'registro.binarypb');
 
       await isar.writeTxn(() async {

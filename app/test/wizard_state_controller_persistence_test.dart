@@ -147,5 +147,43 @@ void main() {
       expect(state.answers['c1']?.texto, 'Restored Text');
       expect(state.queue.length, 1);
     });
+
+    test('saveSession on edited session should update manifest preserving same sessionId', () async {
+      final notifier = container.read(wizardControllerProvider.notifier);
+      final sessionId = 'test_session_id_edit';
+      
+      final rawYaml = 'id: "test_protocol"\nnome: "Test Protocol"\nversao: "1.0.0"\nblocos:\n  - id: "b1"\n    steps:\n      - conteudos:\n          - id: "c1"\n            campo_simples:\n              tipo: "TEXT"';
+      
+      final registro = Registro(
+        idSessao: sessionId,
+        idProtocolo: 'test_protocol',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: rawYaml,
+      );
+      registro.respostas['c1'] = Resposta(texto: 'Old Value');
+      
+      when(() => mockSessionManager.readManifest(sessionId: sessionId))
+          .thenAnswer((_) async => registro.writeToBuffer());
+          
+      // 1. Carrega sessão pré-existente
+      await notifier.loadSession(sessionId);
+      
+      // 2. Altera resposta
+      notifier.answerConteudo('c1', Resposta(texto: 'Updated Value'));
+      
+      // 3. Salva sessão novamente
+      final savedId = await notifier.saveSession();
+      expect(savedId, equals(sessionId));
+      
+      final captured = verify(() => mockSessionManager.saveManifest(
+            sessionId: sessionId,
+            binarypb: captureAny(named: 'binarypb'),
+          )).captured;
+          
+      final bytes = captured.last as Uint8List;
+      final updatedRegistro = Registro.fromBuffer(bytes);
+      expect(updatedRegistro.idSessao, sessionId);
+      expect(updatedRegistro.respostas['c1']?.texto, 'Updated Value');
+    });
   });
 }

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/home/views/new_protocol_screen.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:app/core/models/local/identity_record.dart';
-import 'package:app/features/express_form/views/express_form_screen.dart';
+import 'package:app/features/wizard/views/wizard_screen.dart';
 
 // Helper: monta a tela com um provider de identidade mockado.
 Widget _buildScreen({IdentityRecord? identity}) {
@@ -110,7 +110,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ExpressFormScreen is shown
-      expect(find.byType(ExpressFormScreen), findsOneWidget);
+      expect(find.byType(WizardScreen), findsOneWidget);
     });
 
     testWidgets('Tenta navegar para Manutenção de Proteções Fixas', (

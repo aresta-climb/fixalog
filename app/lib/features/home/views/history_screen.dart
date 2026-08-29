@@ -204,7 +204,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   if (context.mounted) {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => WizardScreen(initialYaml: yamlStr),
+                                        builder: (_) => WizardScreen(
+                                          initialYaml: yamlStr,
+                                          isEditing: true,
+                                        ),
                                       ),
                                     );
                                   }

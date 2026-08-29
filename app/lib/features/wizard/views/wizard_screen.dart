@@ -22,7 +22,8 @@ import '../../pdf_generation/ui/generation_progress_dialog.dart';
 
 class WizardScreen extends ConsumerStatefulWidget {
   final String initialYaml;
-  const WizardScreen({super.key, required this.initialYaml});
+  final bool isEditing;
+  const WizardScreen({super.key, required this.initialYaml, this.isEditing = false});
 
   @override
   ConsumerState<WizardScreen> createState() => _WizardScreenState();
@@ -37,8 +38,10 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final protocol = ProtocolParser.fromYaml(widget.initialYaml);
-      ref.read(wizardControllerProvider.notifier).loadProtocol(protocol, rawYaml: widget.initialYaml);
+      if (!widget.isEditing) {
+        final protocol = ProtocolParser.fromYaml(widget.initialYaml);
+        ref.read(wizardControllerProvider.notifier).loadProtocol(protocol, rawYaml: widget.initialYaml);
+      }
     });
   }
 
@@ -1946,31 +1949,39 @@ class SummaryConclusionCard extends ConsumerWidget {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () async {
-              // 1. Salvar sessão
-              final controller = ref.read(wizardControllerProvider.notifier);
-              final sessionId = await controller.saveSession();
+              try {
+                // 1. Salvar sessão
+                final controller = ref.read(wizardControllerProvider.notifier);
+                final sessionId = await controller.saveSession();
 
-              if (!context.mounted) return;
+                if (!context.mounted) return;
 
-              // 2. Mostrar loading dialog
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (ctx) => const GenerationProgressDialog(),
-              );
+                // 2. Mostrar loading dialog
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) => const GenerationProgressDialog(),
+                );
 
-              // 3. Iniciar geração
-              final appDir = await getApplicationDocumentsDirectory();
-              final timestamp = DateTime.now().millisecondsSinceEpoch;
-              final outputPath = p.join(appDir.path, 'fixalog_report_$timestamp.pdf');
+                // 3. Iniciar geração
+                final appDir = await getApplicationDocumentsDirectory();
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                final outputPath = p.join(appDir.path, 'fixalog_report_$timestamp.pdf');
 
-              final protocol = ref.read(wizardControllerProvider).protocol;
+                final protocol = ref.read(wizardControllerProvider).protocol;
 
-              await ref.read(generationProvider.notifier).startGeneration(
-                protocol?.nome ?? 'Relatório FixaLog',
-                outputPath,
-                sessionId: sessionId,
-              );
+                await ref.read(generationProvider.notifier).startGeneration(
+                  protocol?.nome ?? 'Relatório FixaLog',
+                  outputPath,
+                  sessionId: sessionId,
+                );
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erro ao gerar relatório: $e')),
+                  );
+                }
+              }
             },
             icon: const Icon(Icons.picture_as_pdf),
             label: const Text(

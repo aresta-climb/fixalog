@@ -79,7 +79,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   Future<void> startGeneration(String title, String outputPath, {String? sessionId}) async {
     try {
       await _recoveryService.markAsProcessing(true);
-      state = state.copyWith(progress: 0.1, status: 'Lendo dados da sessão...');
+      state = GenerationState(progress: 0.1, status: 'Lendo dados da sessão...');
       
       final workspace = await _recoveryService.getWorkspaceDir();
       
@@ -118,13 +118,22 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       for (int i = 0; i < mediaUuids.length; i++) {
         final uuid = mediaUuids[i];
         if (sessionId != null) {
-          final originalPath = await _sessionManager.getMediaFilePath(
+          String originalPath = await _sessionManager.getMediaFilePath(
             sessionId: sessionId, 
-            mediaUuid: '${uuid}_original', // assuming _original suffix for the raw capture
+            mediaUuid: '${uuid}_original',
             extension: '.jpg'
           );
           
-          final m = File(originalPath);
+          var m = File(originalPath);
+          if (!await m.exists()) {
+            originalPath = await _sessionManager.getMediaFilePath(
+              sessionId: sessionId, 
+              mediaUuid: '${uuid}_original',
+              extension: '.png'
+            );
+            m = File(originalPath);
+          }
+
           if (await m.exists()) {
             final outPath = '${workspace.path}/$uuid.jpg';
             final compressedFile = await _mediaService.compressImage(m, outPath);

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/onboarding/views/terms_of_use_screen.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:flutter/services.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:app/core/models/local/app_config_record.dart';
 
 class FakeAppConfigCollection extends Fake

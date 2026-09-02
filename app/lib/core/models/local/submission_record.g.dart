@@ -53,6 +53,7 @@ const SubmissionRecordSchema = CollectionSchema(
       name: r'protobufPath',
       type: IsarType.string,
     ),
+    r'status': PropertySchema(id: 8, name: r'status', type: IsarType.string),
   },
 
   estimateSize: _submissionRecordEstimateSize,
@@ -96,6 +97,7 @@ int _submissionRecordEstimateSize(
   bytesCount += 3 + object.nomeProtocolo.length * 3;
   bytesCount += 3 + object.pdfPath.length * 3;
   bytesCount += 3 + object.protobufPath.length * 3;
+  bytesCount += 3 + object.status.length * 3;
   return bytesCount;
 }
 
@@ -113,6 +115,7 @@ void _submissionRecordSerialize(
   writer.writeString(offsets[5], object.nomeProtocolo);
   writer.writeString(offsets[6], object.pdfPath);
   writer.writeString(offsets[7], object.protobufPath);
+  writer.writeString(offsets[8], object.status);
 }
 
 SubmissionRecord _submissionRecordDeserialize(
@@ -131,6 +134,7 @@ SubmissionRecord _submissionRecordDeserialize(
   object.nomeProtocolo = reader.readString(offsets[5]);
   object.pdfPath = reader.readString(offsets[6]);
   object.protobufPath = reader.readString(offsets[7]);
+  object.status = reader.readString(offsets[8]);
   return object;
 }
 
@@ -156,6 +160,8 @@ P _submissionRecordDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1334,6 +1340,147 @@ extension SubmissionRecordQueryFilter
       );
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'status',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'status',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'status',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'status', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  statusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'status', value: ''),
+      );
+    });
+  }
 }
 
 extension SubmissionRecordQueryObject
@@ -1453,6 +1600,20 @@ extension SubmissionRecordQuerySortBy
   sortByProtobufPathDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'protobufPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.desc);
     });
   }
 }
@@ -1583,6 +1744,20 @@ extension SubmissionRecordQuerySortThenBy
       return query.addSortBy(r'protobufPath', Sort.desc);
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.desc);
+    });
+  }
 }
 
 extension SubmissionRecordQueryWhereDistinct
@@ -1648,6 +1823,14 @@ extension SubmissionRecordQueryWhereDistinct
       return query.addDistinctBy(r'protobufPath', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct> distinctByStatus({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'status', caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension SubmissionRecordQueryProperty
@@ -1709,6 +1892,12 @@ extension SubmissionRecordQueryProperty
   protobufPathProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'protobufPath');
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, String, QQueryOperations> statusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'status');
     });
   }
 }

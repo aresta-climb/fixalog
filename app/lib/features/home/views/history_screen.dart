@@ -220,19 +220,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 }
                               };
 
+                              final isEmProgresso = record.isEmProgresso;
+                              final tag = isEmProgresso ? 'EM PROGRESSO' : 'GERADO';
+                              final tagColor = isEmProgresso
+                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+                                  : const Color(0xFF10B981).withValues(alpha: 0.2);
+                              final textColor = isEmProgresso
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFF10B981);
+                              final cloudIcon = isEmProgresso
+                                  ? Icons.pending_actions_outlined
+                                  : Icons.cloud_done_outlined;
+                              final cloudIconColor = isEmProgresso
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFF4F6D44);
+
                               return _buildHistoryItem(
                                 title: record.nomeProtocolo.isEmpty
                                     ? 'Protocolo'
                                     : record.nomeProtocolo,
                                 date: dataFormatada,
-                                tag: 'PREENCHIDO',
-                                tagColor: const Color(
-                                  0xFFFF6B00,
-                                ).withValues(alpha: 0.2),
-                                textColor: const Color(0xFFFF6B00),
-                                icon: Icons.cloud_outlined,
+                                tag: tag,
+                                tagColor: tagColor,
+                                textColor: textColor,
+                                icon: Icons.history,
+                                cloudIcon: cloudIcon,
+                                cloudIconColor: cloudIconColor,
+                                isEmProgresso: isEmProgresso,
                                 onTap: () async {
-                                  if (record.pdfPath.isNotEmpty) {
+                                  if (!isEmProgresso && record.pdfPath.isNotEmpty) {
                                     try {
                                       await ref.read(pdfViewerServiceProvider).openPdf(record.pdfPath);
                                     } catch (e) {
@@ -360,37 +376,41 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required Color tagColor,
     required Color textColor,
     required IconData icon,
+    required IconData cloudIcon,
+    required Color cloudIconColor,
+    required bool isEmProgresso,
     VoidCallback? onTap,
     VoidCallback? onEdit,
     VoidCallback? onDelete,
     VoidCallback? onViewPdf,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF121416),
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF121416),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.history,
+                    color: Color(0xFFFF6B00),
+                    size: 18,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.history,
-                  color: Color(0xFFFF6B00),
-                  size: 18,
-                ),
-              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -440,10 +460,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.cloud_done_outlined,
-                color: Color(0xFF4F6D44),
-                size: 16,
+              Icon(
+                cloudIcon,
+                color: cloudIconColor,
+                size: 18,
               ),
               const SizedBox(width: 12),
               PopupMenuButton<String>(
@@ -454,24 +474,36 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   if (value == 'delete' && onDelete != null) onDelete();
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Editar'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'viewPdf',
-                    child: Text('Abrir PDF'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Excluir'),
-                  ),
+                  if (isEmProgresso) ...[
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Continuar preenchimento'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Excluir'),
+                    ),
+                  ] else ...[
+                    const PopupMenuItem(
+                      value: 'viewPdf',
+                      child: Text('Abrir PDF'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Editar'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Excluir'),
+                    ),
+                  ],
                 ],
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

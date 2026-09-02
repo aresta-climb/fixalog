@@ -3,9 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:app/core/models/proto/protos/wizard.pb.dart';
 import 'package:app/core/models/proto/protos/registro.pb.dart';
+import 'package:app/core/models/local/submission_record.dart';
 import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:app/core/services/session_bundle_manager.dart';
 import 'package:app/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
@@ -15,18 +17,25 @@ class MockSessionBundleManager extends Mock implements SessionBundleManager {}
 void main() {
   late MockSessionBundleManager mockSessionManager;
   late ProviderContainer container;
+  late Isar isar;
+  late Directory tempDir;
 
-  setUpAll(() {
+  setUpAll(() async {
     registerFallbackValue(Uint8List(0));
+    await Isar.initializeIsarCore(download: true);
   });
 
-  setUp(() {
+  setUp(() async {
     mockSessionManager = MockSessionBundleManager();
+    tempDir = await Directory.systemTemp.createTemp('wizard_isar_test');
 
-    // Setup dummy Directory for SessionBundleManager
-    final dummyDir = Directory.systemTemp.createTempSync('dummy_session_');
+    isar = await Isar.open(
+      [SubmissionRecordSchema],
+      directory: tempDir.path,
+    );
+
     when(() => mockSessionManager.getSessionDirectory(any()))
-        .thenAnswer((_) async => dummyDir);
+        .thenAnswer((_) async => tempDir);
     
     when(() => mockSessionManager.saveOriginalMedia(
           sessionId: any(named: 'sessionId'),
@@ -43,21 +52,24 @@ void main() {
     container = ProviderContainer(
       overrides: [
         sessionBundleManagerProvider.overrideWithValue(mockSessionManager),
-        isarProvider.overrideWithValue(null), // Provide null since we're not testing DB writes
+        isarProvider.overrideWithValue(isar),
       ],
     );
   });
 
-  tearDown(() {
+  tearDown(() async {
     container.dispose();
+    await isar.close(deleteFromDisk: true);
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
   });
 
-  group('WizardStateController Persistence & Media Tests', () {
-    test('saveMediaAnswerBytes should save original media and store ReferenciaMidia', () async {
+  group('WizardStateController Persistence & Auto-Save Tests (TDD)', () {
+    test('saveMediaAnswerBytes deve salvar mídia original, calcular hash e disparar auto-save', () async {
       final notifier = container.read(wizardControllerProvider.notifier);
       
-      // Load protocol to get a valid sessionId
-      notifier.loadProtocol(DefinicaoProtocolo(id: 'test_proto'));
+      notifier.loadProtocol(DefinicaoProtocolo(id: 'test_proto', nome: 'Proto Teste'));
       final stateAntes = container.read(wizardControllerProvider);
       expect(stateAntes.sessionId, isNotEmpty);
 
@@ -76,7 +88,7 @@ void main() {
       expect(resposta, isNotNull);
       expect(resposta!.hasMidia(), isTrue);
       expect(resposta.midia.hasImagem(), isTrue);
-      expect(resposta.midia.imagem.hashOriginal, isNotEmpty, reason: 'Deve calcular o hash SHA-256');
+      expect(resposta.midia.imagem.hashOriginal, isNotEmpty);
       expect(resposta.midia.imagem.tipoOriginal, equals('image/jpg'));
 
       verify(() => mockSessionManager.saveOriginalMedia(
@@ -85,43 +97,127 @@ void main() {
             extension: '.jpg',
             bytes: dummyBytes,
           )).called(1);
+
+      // Verifica se o auto-save gravou no Isar como EM_PROGRESSO
+      final isarRecord = await isar.submissionRecords.where().idSessaoEqualTo(stateAntes.sessionId).findFirst();
+      expect(isarRecord, isNotNull);
+      expect(isarRecord!.status, equals(SubmissionStatus.emProgresso));
+      expect(isarRecord.isEmProgresso, isTrue);
     });
-    test('saveSession should build Registro and save manifest with yaml_conteudo', () async {
+
+    test('answerConteudo deve disparar auto-save e registrar status EM_PROGRESSO no Isar', () async {
       final notifier = container.read(wizardControllerProvider.notifier);
       
-      final rawYaml = 'id: test_proto_2\nversao: 1.0.0';
-      notifier.loadProtocol(DefinicaoProtocolo(
-        id: 'test_proto_2',
-        nome: 'Proto 2',
-        versao: '1.0.0',
-      ), rawYaml: rawYaml);
-      
-      final dummyBytes = Uint8List.fromList([1, 2, 3]);
-      await notifier.saveMediaAnswerBytes(
-        'conteudo_foto_1',
-        dummyBytes,
-        '.jpg',
-        StepCampoSimples_TipoCampo.IMAGE,
-      );
-      
-      final sessionId = await notifier.saveSession();
-      expect(sessionId, isNotEmpty);
-      
-      final captured = verify(() => mockSessionManager.saveManifest(
+      notifier.loadProtocol(DefinicaoProtocolo(id: 'proto_auto', nome: 'Auto Save Proto'));
+      final sessionId = container.read(wizardControllerProvider).sessionId;
+
+      notifier.answerConteudo('campo_texto', Resposta(texto: 'Texto Preenchido'));
+      await notifier.flushAutoSave();
+
+      verify(() => mockSessionManager.saveManifest(
             sessionId: sessionId,
             binarypb: captureAny(named: 'binarypb'),
-          )).captured;
+          )).called(greaterThanOrEqualTo(1));
 
-      expect(captured.length, 1);
-      final bytes = captured.first as Uint8List;
-      final registro = Registro.fromBuffer(bytes);
-
-      expect(registro.idSessao, sessionId);
-      expect(registro.idProtocolo, 'test_proto_2');
-      expect(registro.yamlConteudo, rawYaml);
+      final record = await isar.submissionRecords.where().idSessaoEqualTo(sessionId).findFirst();
+      expect(record, isNotNull);
+      expect(record!.status, equals(SubmissionStatus.emProgresso));
     });
 
-    test('loadSession should reconstruct state from binarypb', () async {
+    test('Modificar resposta em sessão anteriormente GERADA deve transicionar status de volta para EM_PROGRESSO', () async {
+      final sessionId = 'sessao_gerada_123';
+      
+      // Cria registro pré-existente no Isar com status GERADO
+      await isar.writeTxn(() async {
+        await isar.submissionRecords.put(
+          SubmissionRecord()
+            ..idSessao = sessionId
+            ..idProtocolo = 'proto_gerado'
+            ..nomeProtocolo = 'Proto Gerado'
+            ..dataInclusao = DateTime.now()
+            ..hashAssinatura = 'hash'
+            ..pdfPath = '/caminho/relatorio.pdf'
+            ..protobufPath = '${tempDir.path}/registro.binarypb'
+            ..status = SubmissionStatus.gerado,
+        );
+      });
+
+      final rawYaml = 'id: "proto_gerado"\nnome: "Proto Gerado"\nversao: "1.0.0"\nblocos:\n  - id: "b1"\n    steps:\n      - conteudos:\n          - id: "c1"\n            campo_simples:\n              tipo: "TEXT"';
+      final registro = Registro(
+        idSessao: sessionId,
+        idProtocolo: 'proto_gerado',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: rawYaml,
+      );
+      registro.respostas['c1'] = Resposta(texto: 'Valor Original');
+      
+      when(() => mockSessionManager.readManifest(sessionId: sessionId))
+          .thenAnswer((_) async => registro.writeToBuffer());
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      await notifier.loadSession(sessionId);
+
+      // Verifica que carregou o valor original
+      expect(container.read(wizardControllerProvider).answers['c1']?.texto, 'Valor Original');
+
+      // Modifica o campo
+      notifier.answerConteudo('c1', Resposta(texto: 'Valor Modificado'));
+      await notifier.flushAutoSave();
+
+      // Verifica que no Isar o status transicionou para EM_PROGRESSO
+      final updatedRecord = await isar.submissionRecords.where().idSessaoEqualTo(sessionId).findFirst();
+      expect(updatedRecord, isNotNull);
+      expect(updatedRecord!.status, equals(SubmissionStatus.emProgresso));
+      expect(updatedRecord.isEmProgresso, isTrue);
+    });
+
+    test('Abrir sessão GERADA e sair sem modificar respostas NÃO deve alterar status nem apagar pdfPath', () async {
+      final sessionId = 'sessao_gerada_sem_edicao';
+      
+      await isar.writeTxn(() async {
+        await isar.submissionRecords.put(
+          SubmissionRecord()
+            ..idSessao = sessionId
+            ..idProtocolo = 'proto_gerado'
+            ..nomeProtocolo = 'Proto Gerado'
+            ..dataInclusao = DateTime.now()
+            ..hashAssinatura = 'hash'
+            ..pdfPath = '/caminho/relatorio_gerado.pdf'
+            ..protobufPath = '${tempDir.path}/registro.binarypb'
+            ..status = SubmissionStatus.gerado,
+        );
+      });
+
+      final rawYaml = 'id: "proto_gerado"\nnome: "Proto Gerado"\nversao: "1.0.0"\nblocos:\n  - id: "b1"\n    steps:\n      - conteudos:\n          - id: "c1"\n            campo_simples:\n              tipo: "TEXT"';
+      final registro = Registro(
+        idSessao: sessionId,
+        idProtocolo: 'proto_gerado',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: rawYaml,
+      );
+      registro.respostas['c1'] = Resposta(texto: 'Valor Intacto');
+      
+      when(() => mockSessionManager.readManifest(sessionId: sessionId))
+          .thenAnswer((_) async => registro.writeToBuffer());
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      await notifier.loadSession(sessionId);
+
+      // Usuário apenas navega pelos steps sem modificar respostas
+      notifier.goToStep(0);
+
+      // Executa flush de auto-save (como ocorre ao sair da tela no PopScope)
+      await notifier.flushAutoSave();
+
+      // Registro no Isar DEVE continuar GERADO com o mesmo pdfPath
+      final record = await isar.submissionRecords.where().idSessaoEqualTo(sessionId).findFirst();
+      expect(record, isNotNull);
+      expect(record!.status, equals(SubmissionStatus.gerado));
+      expect(record.isGerado, isTrue);
+      expect(record.pdfPath, equals('/caminho/relatorio_gerado.pdf'));
+    });
+
+    test('loadSession deve reconstruir o estado a partir do binarypb', () async {
       final notifier = container.read(wizardControllerProvider.notifier);
       final sessionId = 'test_session_id';
       
@@ -146,44 +242,6 @@ void main() {
       expect(state.protocolRawYaml, rawYaml);
       expect(state.answers['c1']?.texto, 'Restored Text');
       expect(state.queue.length, 1);
-    });
-
-    test('saveSession on edited session should update manifest preserving same sessionId', () async {
-      final notifier = container.read(wizardControllerProvider.notifier);
-      final sessionId = 'test_session_id_edit';
-      
-      final rawYaml = 'id: "test_protocol"\nnome: "Test Protocol"\nversao: "1.0.0"\nblocos:\n  - id: "b1"\n    steps:\n      - conteudos:\n          - id: "c1"\n            campo_simples:\n              tipo: "TEXT"';
-      
-      final registro = Registro(
-        idSessao: sessionId,
-        idProtocolo: 'test_protocol',
-        versaoProtocolo: '1.0.0',
-        yamlConteudo: rawYaml,
-      );
-      registro.respostas['c1'] = Resposta(texto: 'Old Value');
-      
-      when(() => mockSessionManager.readManifest(sessionId: sessionId))
-          .thenAnswer((_) async => registro.writeToBuffer());
-          
-      // 1. Carrega sessão pré-existente
-      await notifier.loadSession(sessionId);
-      
-      // 2. Altera resposta
-      notifier.answerConteudo('c1', Resposta(texto: 'Updated Value'));
-      
-      // 3. Salva sessão novamente
-      final savedId = await notifier.saveSession();
-      expect(savedId, equals(sessionId));
-      
-      final captured = verify(() => mockSessionManager.saveManifest(
-            sessionId: sessionId,
-            binarypb: captureAny(named: 'binarypb'),
-          )).captured;
-          
-      final bytes = captured.last as Uint8List;
-      final updatedRegistro = Registro.fromBuffer(bytes);
-      expect(updatedRegistro.idSessao, sessionId);
-      expect(updatedRegistro.respostas['c1']?.texto, 'Updated Value');
     });
   });
 }

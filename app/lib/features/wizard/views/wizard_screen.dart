@@ -117,66 +117,78 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       _cardKeys.add(GlobalKey());
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF060908),
-      body: Stack(
-        children: [
-          // Fundo decorativo
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0A1F16), Color(0xFF060908)],
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          ref.read(wizardControllerProvider.notifier).flushAutoSave();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF060908),
+        body: Stack(
+          children: [
+            // Fundo decorativo
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0A1F16), Color(0xFF060908)],
+                ),
               ),
             ),
-          ),
-          Positioned(
-            top: -150,
-            left: -100,
-            child: Container(
-              width: 700,
-              height: 700,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
-                shape: BoxShape.circle,
+            Positioned(
+              top: -150,
+              left: -100,
+              child: Container(
+                width: 700,
+                height: 700,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-          ),
-          Positioned.fill(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
-                child: Container(color: Colors.transparent),
+            Positioned.fill(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
+                  child: Container(color: Colors.transparent),
+                ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'FIXALOG',
-                        style: TextStyle(
-                          color: Color(0xFFFF6B00),
-                          fontFamily: 'SpaceGrotesk',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 2.0,
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () async {
+                            await ref.read(wizardControllerProvider.notifier).flushAutoSave();
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'FIXALOG',
+                          style: TextStyle(
+                            color: Color(0xFFFF6B00),
+                            fontFamily: 'SpaceGrotesk',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
                       const Spacer(),
                       if (state.queue.isNotEmpty)
                         Text(
@@ -240,8 +252,9 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1975,6 +1988,7 @@ class SummaryConclusionCard extends ConsumerWidget {
                   outputPath,
                   sessionId: sessionId,
                 );
+                ref.read(wizardControllerProvider.notifier).marcarComoSalvo();
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

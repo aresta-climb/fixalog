@@ -204,7 +204,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
         record
           ..pdfPath = outputPath
-          ..hashAssinatura = '';
+          ..hashAssinatura = ''
+          ..status = SubmissionStatus.gerado;
 
         await _isar!.writeTxn(() async {
           await _isar!.collection<SubmissionRecord>().put(record);

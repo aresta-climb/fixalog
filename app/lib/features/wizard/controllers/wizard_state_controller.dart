@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
@@ -75,6 +76,9 @@ class WizardState {
   /// Usado para remover steps ao re-escolher um ramo.
   final Map<String, List<String>> ramoInjectedStepIds;
 
+  /// Indica se houve alteração nos dados do formulário desde o carregamento ou última geração de relatório.
+  final bool possuiAlteracoesPendentes;
+
   const WizardState({
     this.sessionId = '',
     this.protocol,
@@ -86,6 +90,7 @@ class WizardState {
     this.expandedListItems = const {},
     this.refSelections = const {},
     this.ramoInjectedStepIds = const {},
+    this.possuiAlteracoesPendentes = false,
   });
 
   WizardState copyWith({
@@ -99,6 +104,7 @@ class WizardState {
     Map<String, String?>? expandedListItems,
     Map<String, List<String>>? refSelections,
     Map<String, List<String>>? ramoInjectedStepIds,
+    bool? possuiAlteracoesPendentes,
   }) {
     return WizardState(
       sessionId: sessionId ?? this.sessionId,
@@ -111,6 +117,8 @@ class WizardState {
       expandedListItems: expandedListItems ?? this.expandedListItems,
       refSelections: refSelections ?? this.refSelections,
       ramoInjectedStepIds: ramoInjectedStepIds ?? this.ramoInjectedStepIds,
+      possuiAlteracoesPendentes:
+          possuiAlteracoesPendentes ?? this.possuiAlteracoesPendentes,
     );
   }
 
@@ -131,8 +139,38 @@ class WizardState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class WizardStateController extends Notifier<WizardState> {
+  Timer? _autoSaveTimer;
+
   @override
-  WizardState build() => const WizardState();
+  WizardState build() {
+    ref.onDispose(() {
+      _autoSaveTimer?.cancel();
+    });
+    return const WizardState();
+  }
+
+  void _scheduleAutoSave({bool immediate = false}) {
+    _autoSaveTimer?.cancel();
+    if (immediate) {
+      saveSession().catchError((_) => '');
+    } else {
+      _autoSaveTimer = Timer(const Duration(milliseconds: 400), () {
+        saveSession().catchError((_) => '');
+      });
+    }
+  }
+
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    if (state.protocol != null && state.sessionId.isNotEmpty) {
+      await saveSession();
+    }
+  }
+
+  /// Marca que o estado atual foi salvo/gerado e não possui alterações pendentes.
+  void marcarComoSalvo() {
+    state = state.copyWith(possuiAlteracoesPendentes: false);
+  }
 
   // ── Carregamento ────────────────────────────────────────────────────────────
 
@@ -148,7 +186,9 @@ class WizardStateController extends Notifier<WizardState> {
       protocolRawYaml: rawYaml,
       queue: queue,
       currentIndex: 0,
+      possuiAlteracoesPendentes: true,
     );
+    _scheduleAutoSave(immediate: true);
   }
 
   Future<void> loadSession(String sessionId) async {
@@ -226,6 +266,7 @@ class WizardStateController extends Notifier<WizardState> {
       currentIndex: 0,
       answers: allAnswers,
       lists: reconstructedLists,
+      possuiAlteracoesPendentes: false,
     );
   }
 
@@ -266,7 +307,8 @@ class WizardStateController extends Notifier<WizardState> {
   void answerConteudo(String conteudoId, Resposta value) {
     final updated = Map<String, Resposta>.from(state.answers)
       ..[conteudoId] = value;
-    state = state.copyWith(answers: updated);
+    state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
+    _scheduleAutoSave(immediate: false);
   }
 
   /// Registra uma resposta em string (utilitário para UI) e tenta converter se necessário,
@@ -283,7 +325,8 @@ class WizardStateController extends Notifier<WizardState> {
   ) {
     final key = '${conteudoId}__$listItemId';
     final updated = Map<String, Resposta>.from(state.answers)..[key] = value;
-    state = state.copyWith(answers: updated);
+    state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
+    _scheduleAutoSave(immediate: false);
   }
 
   void answerInlineConteudoString(
@@ -333,7 +376,8 @@ class WizardStateController extends Notifier<WizardState> {
 
     final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
     final updated = Map<String, Resposta>.from(state.answers)..[key] = Resposta(midia: refMidia);
-    state = state.copyWith(answers: updated);
+    state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
+    await saveSession(status: SubmissionStatus.emProgresso);
   }
 
   /// Lê o arquivo de mídia, salva no SessionBundle, calcula hash e armazena como ReferenciaMidia.
@@ -399,7 +443,9 @@ class WizardStateController extends Notifier<WizardState> {
       queue: newQueue,
       answers: updatedAnswers,
       ramoInjectedStepIds: updatedInjected,
+      possuiAlteracoesPendentes: true,
     );
+    _scheduleAutoSave(immediate: true);
     // Não avança — o card pode ter outros conteudos a preencher
   }
 
@@ -428,7 +474,9 @@ class WizardStateController extends Notifier<WizardState> {
     state = state.copyWith(
       lists: updatedLists,
       expandedListItems: updatedExpanded,
+      possuiAlteracoesPendentes: true,
     );
+    _scheduleAutoSave(immediate: true);
   }
 
   /// Valida os conteúdos do item e, se completo, o colapsa.
@@ -445,7 +493,11 @@ class WizardStateController extends Notifier<WizardState> {
 
     final updatedExpanded = Map<String, String?>.from(state.expandedListItems)
       ..[listConteudoId] = null;
-    state = state.copyWith(expandedListItems: updatedExpanded);
+    state = state.copyWith(
+      expandedListItems: updatedExpanded,
+      possuiAlteracoesPendentes: true,
+    );
+    _scheduleAutoSave(immediate: true);
     return true;
   }
 
@@ -473,7 +525,9 @@ class WizardStateController extends Notifier<WizardState> {
     state = state.copyWith(
       lists: updatedLists,
       expandedListItems: updatedExpanded,
+      possuiAlteracoesPendentes: true,
     );
+    _scheduleAutoSave(immediate: true);
   }
 
   // ── RefMateriais ──────────────────────────────────────────────────────────────
@@ -495,7 +549,12 @@ class WizardStateController extends Notifier<WizardState> {
     final updatedAnswers = Map<String, Resposta>.from(state.answers)
       ..[key] = Resposta(lista: respostasLista);
       
-    state = state.copyWith(refSelections: updatedRefs, answers: updatedAnswers);
+    state = state.copyWith(
+      refSelections: updatedRefs,
+      answers: updatedAnswers,
+      possuiAlteracoesPendentes: true,
+    );
+    _scheduleAutoSave(immediate: true);
   }
 
   List<ListItemRecord> getMaterialItems(String idStepMateriais) =>
@@ -573,15 +632,46 @@ class WizardStateController extends Notifier<WizardState> {
 
   // ── Persistência ──────────────────────────────────────────────────────────────
 
+  Future<void>? _activeSaveFuture;
+
   /// Instancia o Registro Híbrido, persiste no disco
   /// através do SessionBundleManager e registra no Isar. Retorna o sessionId.
-  Future<String> saveSession() async {
+  Future<String> saveSession({String? status}) async {
+    while (_activeSaveFuture != null) {
+      try {
+        await _activeSaveFuture;
+      } catch (_) {}
+    }
+    final completer = Completer<void>();
+    _activeSaveFuture = completer.future;
+    try {
+      final result = await _performSaveSession(status: status);
+      return result;
+    } finally {
+      completer.complete();
+      _activeSaveFuture = null;
+    }
+  }
+
+  Future<String> _performSaveSession({String? status}) async {
     final sessionId = state.sessionId;
     final protocol = state.protocol;
-    if (protocol == null) throw Exception('Protocolo não carregado.');
+    if (protocol == null || sessionId.isEmpty) return sessionId;
 
-    final sessionManager = ref.read(sessionBundleManagerProvider);
-    final isar = ref.read(isarProvider);
+    SessionBundleManager sessionManager;
+    try {
+      sessionManager = ref.read(sessionBundleManagerProvider);
+    } catch (_) {
+      sessionManager = SessionBundleManager();
+    }
+
+    Isar? isar;
+    try {
+      isar = ref.read(isarProvider);
+    } catch (_) {
+      isar = null;
+    }
+
     final finalAnswers = Map<String, Resposta>.from(state.answers);
 
     // 1. Construir o Registro unificado
@@ -630,25 +720,36 @@ class WizardStateController extends Notifier<WizardState> {
     await sessionManager.saveManifest(sessionId: sessionId, binarypb: binarypb);
 
     if (isar != null) {
+      final isarDb = isar;
       final sessionDir = await sessionManager.getSessionDirectory(sessionId);
       
       SubmissionRecord? existingRecord;
       try {
-        existingRecord = await isar.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
+        existingRecord = await isarDb.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
       } catch (_) {}
 
       final record = existingRecord ?? SubmissionRecord();
+      final String targetStatus;
+      if (status != null) {
+        targetStatus = status;
+      } else if (existingRecord != null && existingRecord.isGerado && !state.possuiAlteracoesPendentes) {
+        targetStatus = SubmissionStatus.gerado;
+      } else {
+        targetStatus = SubmissionStatus.emProgresso;
+      }
+
       record
         ..idSessao = sessionId
         ..idProtocolo = protocol.id
         ..nomeProtocolo = protocol.nome
-        ..dataInclusao = DateTime.now()
+        ..dataInclusao = existingRecord?.dataInclusao ?? DateTime.now()
         ..hashAssinatura = existingRecord?.hashAssinatura ?? ''
-        ..pdfPath = existingRecord?.pdfPath ?? ''
-        ..protobufPath = p.join(sessionDir.path, 'registro.binarypb');
+        ..pdfPath = (targetStatus == SubmissionStatus.emProgresso ? '' : (existingRecord?.pdfPath ?? ''))
+        ..protobufPath = p.join(sessionDir.path, 'registro.binarypb')
+        ..status = targetStatus;
 
-      await isar.writeTxn(() async {
-        await isar.submissionRecords.put(record);
+      await isarDb.writeTxn(() async {
+        await isarDb.submissionRecords.put(record);
       });
     }
 

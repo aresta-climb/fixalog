@@ -46,58 +46,86 @@ class _SignatureModalState extends State<SignatureModal> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final dialogWidth = (screenWidth - 48).clamp(280.0, 500.0);
+
     return Dialog(
       backgroundColor: const Color(0xFF181A1C),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'ASSINATURA DIGITAL',
-              style: TextStyle(
-                color: Color(0xFFFF6B00),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                letterSpacing: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Signature(
-                  controller: _controller,
-                  height: 200,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: 280,
+          maxWidth: 500,
+        ),
+        child: SizedBox(
+          width: dialogWidth,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextButton(
-                  onPressed: _clear,
-                  child: const Text('LIMPAR', style: TextStyle(color: Colors.white54)),
-                ),
-                ElevatedButton(
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B00),
-                    foregroundColor: Colors.white,
+                const Text(
+                  'ASSINATURA DIGITAL',
+                  style: TextStyle(
+                    color: Color(0xFFFF6B00),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    letterSpacing: 1.5,
                   ),
-                  child: const Text('SALVAR ASSINATURA', style: TextStyle(fontWeight: FontWeight.bold)),
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double canvasWidth;
+                        if (constraints.maxWidth.isFinite && constraints.maxWidth > 0) {
+                          canvasWidth = constraints.maxWidth;
+                        } else {
+                          canvasWidth = (dialogWidth - 32).clamp(200.0, 500.0);
+                        }
+                        return SizedBox(
+                          width: canvasWidth,
+                          height: 200,
+                          child: Signature(
+                            controller: _controller,
+                            width: canvasWidth,
+                            height: 200,
+                            backgroundColor: Colors.white,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: _clear,
+                      child: const Text('LIMPAR', style: TextStyle(color: Colors.white54)),
+                    ),
+                    ElevatedButton(
+                      onPressed: _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF6B00),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('SALVAR ASSINATURA', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                )
               ],
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );

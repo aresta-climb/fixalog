@@ -4,12 +4,15 @@ import 'package:open_filex/open_filex.dart';
 
 class PdfViewerService {
   final Future<OpenResult> Function(String filePath)? openProxy;
+  final Future<bool> Function(String filePath)? fileExistsProxy;
 
-  PdfViewerService({this.openProxy});
+  PdfViewerService({this.openProxy, this.fileExistsProxy});
 
   Future<void> openPdf(String path) async {
-    final file = File(path);
-    if (!await file.exists()) {
+    final exists = fileExistsProxy != null
+        ? await fileExistsProxy!(path)
+        : await File(path).exists();
+    if (!exists) {
       throw Exception('Arquivo PDF não encontrado para abrir.');
     }
     

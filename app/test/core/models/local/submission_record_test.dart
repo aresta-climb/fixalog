@@ -8,14 +8,8 @@ void main() {
   late Directory tempDir;
 
   setUp(() async {
-    // Isar is already initialized in tests via a mock or temporary directory.
     tempDir = await Directory.systemTemp.createTemp('isar_test');
-    
-    // We must ensure the Isar core is downloaded if testing natively.
-    // For unit tests without flutter test environment, Isar.open might need core library.
-    // Assuming Isar is mocked or we can just test the model fields.
     await Isar.initializeIsarCore(download: true);
-    
     isar = await Isar.open(
       [SubmissionRecordSchema],
       directory: tempDir.path,
@@ -29,15 +23,15 @@ void main() {
     }
   });
 
-  group('SubmissionRecord', () {
-    test('Should save and retrieve protobufPath (replacing yamlPath)', () async {
+  group('SubmissionRecord (TDD)', () {
+    test('Deve salvar e recuperar status padrão EM_PROGRESSO', () async {
       final record = SubmissionRecord()
         ..idSessao = 'session-123'
         ..idProtocolo = 'proto-1'
         ..nomeProtocolo = 'Protocolo Teste'
         ..dataInclusao = DateTime.now()
         ..hashAssinatura = 'hash123'
-        ..pdfPath = '/path/to/pdf.pdf'
+        ..pdfPath = ''
         ..protobufPath = '/path/to/registro.binarypb'
         ..enviadoNuvem = false;
 
@@ -49,8 +43,49 @@ void main() {
       
       expect(retrieved, isNotNull);
       expect(retrieved!.protobufPath, '/path/to/registro.binarypb');
-      // Ensure yamlPath doesn't exist by accessing protobufPath
-      // if yamlPath existed, we wouldn't test its absence directly, but it should not compile.
+      expect(retrieved.status, equals(SubmissionStatus.emProgresso));
+      expect(retrieved.isEmProgresso, isTrue);
+      expect(retrieved.isGerado, isFalse);
+    });
+
+    test('Deve permitir definir status como GERADO e validar getters', () async {
+      final record = SubmissionRecord()
+        ..idSessao = 'session-456'
+        ..idProtocolo = 'proto-1'
+        ..nomeProtocolo = 'Protocolo Concluído'
+        ..dataInclusao = DateTime.now()
+        ..hashAssinatura = 'hash123'
+        ..pdfPath = '/path/to/pdf.pdf'
+        ..protobufPath = '/path/to/registro.binarypb'
+        ..status = SubmissionStatus.gerado
+        ..enviadoNuvem = false;
+
+      await isar.writeTxn(() async {
+        await isar.submissionRecords.put(record);
+      });
+
+      final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('session-456').findFirst();
+      
+      expect(retrieved, isNotNull);
+      expect(retrieved!.status, equals(SubmissionStatus.gerado));
+      expect(retrieved.isGerado, isTrue);
+      expect(retrieved.isEmProgresso, isFalse);
+    });
+
+    test('Compatibilidade retroativa: status vazio com pdfPath presente deve ser considerado GERADO', () {
+      final legacyGerado = SubmissionRecord()
+        ..status = ''
+        ..pdfPath = '/caminho/relatorio.pdf';
+
+      expect(legacyGerado.isGerado, isTrue);
+      expect(legacyGerado.isEmProgresso, isFalse);
+
+      final legacyRascunho = SubmissionRecord()
+        ..status = ''
+        ..pdfPath = '';
+
+      expect(legacyRascunho.isEmProgresso, isTrue);
+      expect(legacyRascunho.isGerado, isFalse);
     });
   });
 }

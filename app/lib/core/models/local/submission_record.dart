@@ -2,6 +2,12 @@ import 'package:isar_community/isar.dart';
 
 part 'submission_record.g.dart';
 
+/// Constantes de status para o ciclo de vida do relatório/protocolo.
+class SubmissionStatus {
+  static const String emProgresso = 'EM_PROGRESSO';
+  static const String gerado = 'GERADO';
+}
+
 @collection
 class SubmissionRecord {
   Id id = Isar.autoIncrement;
@@ -25,4 +31,15 @@ class SubmissionRecord {
   late String protobufPath;
 
   bool enviadoNuvem = false;
+
+  /// Status do preenchimento: 'EM_PROGRESSO' ou 'GERADO'
+  String status = SubmissionStatus.emProgresso;
+
+  @ignore
+  bool get isEmProgresso =>
+      status == SubmissionStatus.emProgresso || (status.isEmpty && pdfPath.isEmpty);
+
+  @ignore
+  bool get isGerado =>
+      status == SubmissionStatus.gerado || (status.isEmpty && pdfPath.isNotEmpty);
 }

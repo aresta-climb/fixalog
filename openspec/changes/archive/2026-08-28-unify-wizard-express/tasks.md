@@ -22,6 +22,6 @@
 
 - [x] 4.1 Criar o arquivo de especificação `assets/protocols/registro_expresso.yaml` com o formato dinâmico (lista infinita de ações de captura de fotos com descrições).
 - [x] 4.2 Alterar a `HomeScreen` para que o botão "Novo Registro Expresso" abra a `WizardScreen` injetando o YAML do expresso.
-- [ ] 4.3 Testar o fluxo ponta-a-ponta do expresso usando a nova infraestrutura unificada.
+- [x] 4.3 Testar o fluxo ponta-a-ponta do expresso usando a nova infraestrutura unificada.
 - [x] 4.4 Excluir completamente os arquivos legados: `express_form_screen.dart`, `express_form_view_model.dart` e remover a dependência de sua feature antiga.
 - [x] 4.5 Adaptar o script do gerador PDF em Rust para ler os campos mapeados do JSON Híbrido, utilizando as chaves extraídas do YAML (ao invés de properties estritas).

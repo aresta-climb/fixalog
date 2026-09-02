@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter/services.dart';

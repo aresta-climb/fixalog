@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 import 'package:isar_community/isar.dart';
 
 part 'submission_record.g.dart';

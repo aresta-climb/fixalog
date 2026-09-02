@@ -1,21 +1,31 @@
-# History Tracking
 ## Requirements
-### Requirement: Save Express Report to History
-The system SHALL persist a local database record (SubmissionRecord) immediately after an express report PDF is successfully generated and signed.
 
-### Scenario: Successful generation triggers persistence
-- **WHEN** the generation process finishes successfully and the PDF file is written to the output path
-- **THEN** a new record is saved to the Isar database containing the protocol ID, name, date, and file paths
+### Requirement: Salvar Registros e Rascunhos no Histórico
+O sistema DEVE persistir e gerenciar registros locais (`SubmissionRecord`) no banco Isar ao longo de todo o ciclo de vida do protocolo, representando tanto rascunhos em preenchimento (`EM_PROGRESSO`) quanto relatórios finalizados e gerados (`GERADO`).
 
-### Requirement: Display Real History Data
-The system SHALL present a list of previously generated and persisted records on the 'History' tab of the application, ordered by most recent first. A click on any item SHALL initiate an edit session instead of just opening the PDF.
+#### Scenario: Persistência contínua de rascunhos
+- **WHEN** um protocolo estiver sendo preenchido ou editado
+- **THEN** um registro no Isar com status `EM_PROGRESSO` é salvo ou atualizado no banco local
 
-#### Scenario: User navigates to the History screen
-- **WHEN** the user opens the History tab
-- **THEN** the system fetches records from the local Isar database and displays them dynamically in the UI instead of placeholder data
+#### Scenario: Geração bem-sucedida atualiza status para gerado
+- **WHEN** o processo de geração do PDF finalizar com sucesso e o arquivo for gravado em disco
+- **THEN** o registro correspondente no banco Isar é atualizado para status `GERADO`, contendo o ID do protocolo, nome, data, caminho do PDF e caminho do arquivo Protobuf
 
-#### Scenario: User clicks on a history item
-- **WHEN** the user clicks on a history record card
-- **THEN** the system reads the `protobufPath` from the Isar record
-- **THEN** the system opens the `ExpressFormScreen` passing the `id_sessao` to allow restoring the edit mode from the session bundle
+### Requirement: Exibição de Dados Reais do Histórico
+O sistema DEVE apresentar a lista de registros persistidos na aba 'Histórico' do aplicativo, ordenados do mais recente para o mais antigo. A interface DEVE distinguir visualmente os registros em progresso (`EM_PROGRESSO`) dos relatórios gerados (`GERADO`), adaptando o toque no card de acordo com o contexto.
 
+#### Scenario: Usuário navega para a tela de histórico
+- **WHEN** o usuário abre a aba Histórico
+- **THEN** o sistema busca os registros do banco local Isar e os exibe dinamicamente com as respectivas tags de status (`EM PROGRESSO` ou `GERADO`)
+
+#### Scenario: Usuário toca em um item em progresso
+- **WHEN** o usuário clica em um card de registro com status `EM_PROGRESSO`
+- **THEN** o sistema lê o manifesto Protobuf do Session Bundle e abre o `WizardScreen` para retomar o preenchimento exatamente de onde parou
+
+#### Scenario: Usuário toca em um item gerado
+- **WHEN** o usuário clica em um card de registro com status `GERADO`
+- **THEN** o sistema abre diretamente o PDF gerado utilizando o serviço `PdfViewerService`
+
+#### Scenario: Usuário modifica um relatório previamente gerado
+- **WHEN** o usuário abre um relatório gerado para edição e realiza qualquer alteração
+- **THEN** o status do registro é atualizado para `EM_PROGRESSO` no banco e na lista do histórico até que um novo relatório PDF seja gerado

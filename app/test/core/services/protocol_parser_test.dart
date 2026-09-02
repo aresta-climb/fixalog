@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 // test/validate_protocols_test.dart
 //
 // Testa que todos os protocolos YAML em assets/protocols/ são válidos segundo

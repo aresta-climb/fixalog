@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 // test/wizard_state_controller_test.dart
 //
 // Testa o WizardStateController com o novo schema (Step.conteudos).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use sha2::{Sha256, Digest};

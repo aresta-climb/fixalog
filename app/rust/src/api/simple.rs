@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// Copyright (c) 2026 FixLog Contributors
+
 pub struct GenerationProgress {
     pub percent: f64,
     pub status: String,

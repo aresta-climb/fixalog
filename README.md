@@ -57,3 +57,7 @@ as pontes de comunicação novamente antes de compilar o app Flutter:
 flutter_rust_bridge_codegen generate
 flutter run
 ```
+
+## 📄 Licença
+
+Este projeto é distribuído sob os termos da **Mozilla Public License Version 2.0 (MPL-2.0)**. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.

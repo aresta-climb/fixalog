@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:app/features/pdf_generation/providers/generation_provider.dart';
-import 'package:app/core/services/pdf_viewer_service.dart';
+import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixlog/core/services/pdf_viewer_service.dart';
 
 class GenerationProgressDialog extends ConsumerWidget {
   const GenerationProgressDialog({super.key});
@@ -13,7 +13,7 @@ class GenerationProgressDialog extends ConsumerWidget {
     return PopScope(
       canPop: state.isComplete || state.hasError,
       child: AlertDialog(
-        title: const Text('Selando Laudo FixaLog'),
+        title: const Text('Selando Laudo FixLog'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

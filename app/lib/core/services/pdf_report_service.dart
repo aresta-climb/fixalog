@@ -19,7 +19,7 @@ class PdfReportService {
             pw.Header(
               level: 0,
               child: pw.Text(
-                "Relatório de Manutenção - FixaLog",
+                "Relatório de Manutenção - FixLog",
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,

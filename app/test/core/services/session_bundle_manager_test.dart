@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:app/core/services/session_bundle_manager.dart';
+import 'package:fixlog/core/services/session_bundle_manager.dart';
 
 // Mock path_provider
 class FakePathProviderPlatform extends Fake

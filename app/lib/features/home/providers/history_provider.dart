@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
-import 'package:app/core/models/local/submission_record.dart';
-import 'package:app/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
-import 'package:app/core/services/session_bundle_manager.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
+import 'package:fixlog/core/services/session_bundle_manager.dart';
 import 'dart:io';
 
 /// Repositório central para gerenciar o Histórico de Registros Expresso já concluídos.

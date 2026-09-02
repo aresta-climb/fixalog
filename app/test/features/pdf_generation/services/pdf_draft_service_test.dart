@@ -2,9 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:pdf/pdf.dart';
-import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:app/core/models/proto/protos/registro.pb.dart';
+import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
 
 void main() {
   group('PdfDraftService', () {

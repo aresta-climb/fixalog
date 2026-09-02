@@ -1,0 +1,138 @@
+name: Unified App Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      new_version:
+        description: 'Número da Nova Versão (ex: 1.0.0)'
+        required: true
+        type: string
+      deploy_android:
+        description: 'Deploy para Android?'
+        required: true
+        type: boolean
+        default: true
+      deploy_ios:
+        description: 'Deploy para iOS?'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  prepare_release:
+    name: Preparar Versão de Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permissão necessária para fazer commit e criar tags
+    outputs:
+      tag_name: ${{ steps.bump.outputs.tag_name }}
+    steps:
+      - name: Gerar GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout do Código
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          submodules: 'recursive'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          
+      - name: Incrementar Versão e Criar Tag
+        id: bump
+        run: |
+          NEW_VERSION="${{ inputs.new_version }}"
+          PUBSPEC="app/pubspec.yaml"
+          
+          # Obter a versão atual do pubspec.yaml
+          CURRENT_FULL_VERSION=$(grep "^version:" $PUBSPEC | awk '{print $2}')
+          CURRENT_VERSION=$(echo $CURRENT_FULL_VERSION | cut -d'+' -f1)
+          CURRENT_BUILD=$(echo $CURRENT_FULL_VERSION | cut -d'+' -f2)
+          
+          echo "Versão atual: $CURRENT_VERSION, Build atual: $CURRENT_BUILD"
+          echo "Nova versão solicitada: $NEW_VERSION"
+          
+          # Validação: A nova versão deve ser estritamente maior que a atual
+          HIGHEST=$(printf "%s\n%s" "$CURRENT_VERSION" "$NEW_VERSION" | sort -V | tail -n1)
+          
+          if [ "$HIGHEST" != "$NEW_VERSION" ] || [ "$CURRENT_VERSION" == "$NEW_VERSION" ]; then
+            echo "::error::A nova versão ($NEW_VERSION) deve ser estritamente maior que a versão atual ($CURRENT_VERSION)."
+            exit 1
+          fi
+          
+          # Incrementa o número de build
+          NEW_BUILD=$((CURRENT_BUILD + 1))
+          FINAL_VERSION="${NEW_VERSION}+${NEW_BUILD}"
+          TAG_NAME="v${FINAL_VERSION}"
+          
+          echo "Versão final alvo: $FINAL_VERSION"
+          echo "Tag alvo: $TAG_NAME"
+          
+          # Atualiza o arquivo pubspec.yaml substituindo a linha
+          sed -i "s/^version: .*/version: ${FINAL_VERSION}/" $PUBSPEC
+          
+          # Configura a identidade do robô no git
+          git config --global user.name "aresta-climb-bot[bot]"
+          git config --global user.email "281080576+aresta-climb-bot[bot]@users.noreply.github.com"
+          
+          DEPLOY_MSG=""
+          if [ "${{ inputs.deploy_android }}" == "true" ] && [ "${{ inputs.deploy_ios }}" == "true" ]; then
+            DEPLOY_MSG="Android e iOS"
+          elif [ "${{ inputs.deploy_android }}" == "true" ]; then
+            DEPLOY_MSG="só Android"
+          elif [ "${{ inputs.deploy_ios }}" == "true" ]; then
+            DEPLOY_MSG="só iOS"
+          else
+            DEPLOY_MSG="nenhuma plataforma"
+          fi
+          
+          # Commita as alterações
+          git add $PUBSPEC
+          git commit -m "Lançar versão $FINAL_VERSION nas lojas de aplicativo ($DEPLOY_MSG)"
+          
+          # Cria a tag apontando para este exato commit
+          git tag $TAG_NAME
+          
+          # Envia tudo de volta para a branch que chamou a esteira (geralmente main)
+          git push origin HEAD
+          git push origin $TAG_NAME
+          
+          # Cria a versão de desenvolvimento (-dev) para o próximo ciclo
+          NEXT_DEV_BUILD=$((NEW_BUILD + 1))
+          DEV_VERSION="${NEW_VERSION}-dev+${NEXT_DEV_BUILD}"
+          
+          echo "Configurando versão de desenvolvimento: $DEV_VERSION"
+          
+          sed -i "s/^version: .*/version: ${DEV_VERSION}/" $PUBSPEC
+          git add $PUBSPEC
+          git commit -m "chore: iniciar ciclo de desenvolvimento ($DEV_VERSION)"
+          git push origin HEAD
+          
+          # Exporta a variável tag_name para os outros jobs do GitHub Actions usarem
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+  build_android:
+    name: Build Android
+    needs: prepare_release
+    if: ${{ inputs.deploy_android }}
+    uses: ./.github/workflows/build_android.yml
+    with:
+      tag_name: ${{ needs.prepare_release.outputs.tag_name }}
+    secrets: inherit
+
+  build_ios:
+    name: Build iOS
+    needs: prepare_release
+    if: ${{ inputs.deploy_ios }}
+    uses: ./.github/workflows/build_ios.yml
+    with:
+      tag_name: ${{ needs.prepare_release.outputs.tag_name }}
+    secrets: inherit

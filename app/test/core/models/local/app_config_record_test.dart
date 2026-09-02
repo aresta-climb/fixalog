@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app/core/models/local/app_config_record.dart';
+import 'package:fixlog/core/models/local/app_config_record.dart';
 
 void main() {
   group('AppConfigRecord Tests', () {

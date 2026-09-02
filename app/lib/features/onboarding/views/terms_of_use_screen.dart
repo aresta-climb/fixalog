@@ -78,7 +78,7 @@ class _TermsOfUseScreenState extends ConsumerState<TermsOfUseScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'O FixaLog é uma ferramenta de auditoria de manutenções em vias de escalada. '
+              'O FixLog é uma ferramenta de auditoria de manutenções em vias de escalada. '
               'Para gerar relatórios confiáveis e úteis para a comunidade, este aplicativo coleta evidências '
               'fotográficas de cada ancoragem modificada, além de registrar a exata localização (GPS) onde a foto foi tirada.\n\n'
               'Sua câmera e localização são usadas exclusivamente para a montagem deste relatório (exportado em PDF).',

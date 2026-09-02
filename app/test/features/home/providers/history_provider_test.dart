@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app/features/home/providers/history_provider.dart';
-import 'package:app/core/models/local/submission_record.dart';
+import 'package:fixlog/features/home/providers/history_provider.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
 
 import 'dart:io';
-import 'package:app/core/services/session_bundle_manager.dart';
+import 'package:fixlog/core/services/session_bundle_manager.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mocktail/mocktail.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:app/core/services/crypto_service.dart';
+import 'package:fixlog/core/services/crypto_service.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -128,7 +128,7 @@ void main() {
       // Parse the cert to verify its subject
       final x509 = X509Utils.x509CertificateFromPem(certPem);
       expect(x509.subject, containsPair('2.5.4.3', 'Renato')); // CN
-      expect(x509.subject, containsPair('2.5.4.10', 'FixaLog')); // O
+      expect(x509.subject, containsPair('2.5.4.10', 'FixLog')); // O
       when(
         () => mockSecureStorage.read(key: 'public_key'),
       ).thenAnswer((_) async => null);

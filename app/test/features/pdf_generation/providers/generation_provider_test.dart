@@ -1,16 +1,15 @@
 import 'dart:io';
-import 'package:app/features/pdf_generation/models/generation_media.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:app/features/pdf_generation/providers/generation_provider.dart';
-import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:app/features/media/services/media_compressor_service.dart';
-import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
-import 'package:app/core/services/session_bundle_manager.dart';
-import 'package:app/core/models/proto/protos/registro.pb.dart';
+import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixlog/features/media/services/media_compressor_service.dart';
+import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:fixlog/core/services/session_bundle_manager.dart';
+import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
 
 import 'package:isar_community/isar.dart';
-import 'package:app/core/models/local/submission_record.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
 
 class MockPdfDraftService extends Mock implements PdfDraftService {}
 class MockMediaCompressorService extends Mock implements MediaCompressorService {}

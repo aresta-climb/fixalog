@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:app/features/onboarding/views/terms_of_use_screen.dart';
-import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixlog/features/onboarding/views/terms_of_use_screen.dart';
+import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:flutter/services.dart';
 import 'package:isar_community/isar.dart';
-import 'package:app/core/models/local/app_config_record.dart';
+import 'package:fixlog/core/models/local/app_config_record.dart';
 
 class FakeAppConfigCollection extends Fake
     implements IsarCollection<AppConfigRecord> {

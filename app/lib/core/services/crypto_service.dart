@@ -34,7 +34,7 @@ class CryptoService {
     }
   }
 
-  /// Gera um Certificado X.509 Autoassinado com CN=Nome, O=FixaLog
+  /// Gera um Certificado X.509 Autoassinado com CN=Nome, O=FixLog
   Future<String> generateX509Certificate(String mantenedorName) async {
     final privateKeyPem = await _secureStorage.read(key: 'private_key');
     final publicKeyPem = await _secureStorage.read(key: 'public_key');
@@ -48,7 +48,7 @@ class CryptoService {
     final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
     final publicKey = CryptoUtils.ecPublicKeyFromPem(publicKeyPem);
 
-    final subject = {'CN': mantenedorName, 'O': 'FixaLog'};
+    final subject = {'CN': mantenedorName, 'O': 'FixLog'};
 
     final csr = X509Utils.generateEccCsrPem(subject, privateKey, publicKey);
 

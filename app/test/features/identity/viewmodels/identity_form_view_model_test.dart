@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:app/features/identity/repositories/identity_repository.dart';
-import 'package:app/core/models/local/identity_record.dart';
-import 'package:app/core/services/crypto_service.dart';
+import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixlog/features/identity/repositories/identity_repository.dart';
+import 'package:fixlog/core/models/local/identity_record.dart';
+import 'package:fixlog/core/services/crypto_service.dart';
 
 class MockIdentityRepository implements IdentityRepository {
   bool saveCalled = false;

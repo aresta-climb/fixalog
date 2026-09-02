@@ -91,9 +91,9 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Typography 'FIXA LOG'
+                // Typography 'FIX LOG'
                 Text(
-                  'FIXA',
+                  'FIX',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                     fontSize: 72,
@@ -299,7 +299,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'Ao clicar em gerar chaves, você concorda com os termos de responsabilidade técnica e segurança ambiental da FixaLog v2.4.',
+                        'Ao clicar em gerar chaves, você concorda com os termos de responsabilidade técnica e segurança ambiental da FixLog v2.4.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white38,
                           fontSize: 11,

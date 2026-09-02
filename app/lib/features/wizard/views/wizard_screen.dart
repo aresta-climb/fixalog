@@ -180,7 +180,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'FIXALOG',
+                          'FIXLOG',
                           style: TextStyle(
                             color: Color(0xFFFF6B00),
                             fontFamily: 'SpaceGrotesk',
@@ -1984,7 +1984,7 @@ class SummaryConclusionCard extends ConsumerWidget {
                 final protocol = ref.read(wizardControllerProvider).protocol;
 
                 await ref.read(generationProvider.notifier).startGeneration(
-                  protocol?.nome ?? 'Relatório FixaLog',
+                  protocol?.nome ?? 'Relatório FixLog',
                   outputPath,
                   sessionId: sessionId,
                 );

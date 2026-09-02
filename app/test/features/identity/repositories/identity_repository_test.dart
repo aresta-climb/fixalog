@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app/features/identity/repositories/identity_repository.dart';
-import 'package:app/core/models/local/identity_record.dart';
+import 'package:fixlog/features/identity/repositories/identity_repository.dart';
+import 'package:fixlog/core/models/local/identity_record.dart';
 
 // Como o Isar não roda facilmente em testes unitários puros sem carregar a lib binária,
 // testamos aqui a lógica de nullability do nosso Repository atual

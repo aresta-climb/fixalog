@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 // As seguintes importações não existem ainda, pois estamos no TDD (Fase Red)
-// import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
-// import 'package:app/rust/api/simple.dart'; // ffi gerada
+// import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
+// import 'package:fixlog/rust/api/simple.dart'; // ffi gerada
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

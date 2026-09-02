@@ -5,11 +5,11 @@ import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
-import 'features/onboarding/views/terms_of_use_screen.dart' as fixalog_onboarding;
+import 'features/onboarding/views/terms_of_use_screen.dart' as fixlog_onboarding;
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
 import 'core/models/local/app_config_record.dart';
-import 'package:app/src/rust/frb_generated.dart';
+import 'package:fixlog/src/rust/frb_generated.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,18 +26,18 @@ void main() async {
       overrides: [
         isarProvider.overrideWithValue(isar),
       ],
-      child: const FixaLogApp(),
+      child: const FixLogApp(),
     ),
   );
 }
 
-class FixaLogApp extends StatelessWidget {
-  const FixaLogApp({super.key});
+class FixLogApp extends StatelessWidget {
+  const FixLogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FixaLog',
+      title: 'FixLog',
       themeMode: ThemeMode.dark,
       builder: (context, child) {
         final mediaQueryData = MediaQuery.of(context);
@@ -102,7 +102,7 @@ class _StartupRouter extends ConsumerWidget {
 
     if (!acceptedTerms) {
       // Import the screen conditionally or ensure it is imported at the top
-      return const fixalog_onboarding.TermsOfUseScreen();
+      return const fixlog_onboarding.TermsOfUseScreen();
     }
 
     final hasIdentityAsync = ref.watch(hasIdentityProvider);

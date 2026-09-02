@@ -102,7 +102,7 @@ class NewProtocolScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'FIXALOG',
+                      'FIXLOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
                         fontFamily: 'SpaceGrotesk',

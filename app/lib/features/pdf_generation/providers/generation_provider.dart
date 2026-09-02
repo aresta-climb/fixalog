@@ -1,15 +1,15 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:app/features/pdf_generation/models/generation_media.dart';
-import 'package:app/src/rust/api/simple.dart' as rust_api;
-import 'package:app/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:app/features/media/services/media_compressor_service.dart';
-import 'package:app/features/pdf_generation/services/generation_recovery_service.dart';
-import 'package:app/core/services/session_bundle_manager.dart';
+import 'package:fixlog/features/pdf_generation/models/generation_media.dart';
+import 'package:fixlog/src/rust/api/simple.dart' as rust_api;
+import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixlog/features/media/services/media_compressor_service.dart';
+import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:fixlog/core/services/session_bundle_manager.dart';
 import 'package:isar_community/isar.dart';
-import 'package:app/core/models/local/submission_record.dart';
-import 'package:app/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
-import 'package:app/core/models/proto/protos/registro.pb.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
+import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
 
 // Estado da Geração
 class GenerationState {
@@ -214,7 +214,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       state = state.copyWith(
         progress: 1.0, 
-        status: 'Selo FixaLog aplicado com sucesso!', 
+        status: 'Selo FixLog aplicado com sucesso!', 
         isComplete: true,
         outputPath: outputPath,
       );

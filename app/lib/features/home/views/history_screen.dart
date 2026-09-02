@@ -1,10 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:app/features/home/providers/history_provider.dart';
-import 'package:app/core/services/pdf_viewer_service.dart';
-import 'package:app/features/wizard/views/wizard_screen.dart';
-import 'package:app/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixlog/features/home/providers/history_provider.dart';
+import 'package:fixlog/core/services/pdf_viewer_service.dart';
+import 'package:fixlog/features/wizard/views/wizard_screen.dart';
+import 'package:fixlog/features/wizard/controllers/wizard_state_controller.dart';
 
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -96,7 +96,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'FIXALOG',
+                      'FIXLOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
                         fontFamily: 'SpaceGrotesk',

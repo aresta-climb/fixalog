@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:app/features/wizard/views/widgets/signature_modal.dart';
+import 'package:fixlog/features/wizard/views/widgets/signature_modal.dart';
 import 'package:signature/signature.dart';
 
 void main() {

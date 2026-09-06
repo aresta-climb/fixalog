@@ -1,0 +1,3 @@
+[submodule "app/legal/repo"]
+	path = app/legal/repo
+	url = https://github.com/aresta-climb/arestaclimb.com.git

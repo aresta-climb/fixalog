@@ -22,38 +22,27 @@ jobs:
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
 
-      - name: Checkout do Repositório
-        uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag_name }}
           token: ${{ steps.app-token.outputs.token }}
           submodules: 'recursive'
 
-      - name: Configurar Java 17
-        uses: actions/setup-java@v5
+      - name: Setup Java
+        uses: actions/setup-java@v6
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
-      - name: Configurar Rust Toolchain e Targets Android
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
-
-      - name: Configurar Flutter
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+          
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
-
-      - name: Cache de dependências Pub
-        uses: actions/cache@v5
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
 
       - name: Obter dependências do Flutter
         working-directory: ./app

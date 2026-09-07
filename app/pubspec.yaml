@@ -1,7 +1,7 @@
 name: fixlog
 description: "Aplicativo de inventário e vistoria técnica de proteções em vias de escalada."
 publish_to: 'none'
-version: 0.1.1-dev+3
+version: 0.1.2+4
 
 environment:
   sdk: ^3.11.3

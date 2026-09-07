@@ -72,6 +72,8 @@
 		<string>Precisamos da sua câmera para registrar a manutenção.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>Precisamos da sua biometria para autorizar a assinatura digital do documento.</string>
 		<key>UIStatusBarHidden</key>

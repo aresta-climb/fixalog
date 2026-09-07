@@ -29,6 +29,15 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           submodules: 'recursive'
 
+      - name: Liberar espaço em disco
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/2*
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Setup Java
         uses: actions/setup-java@v6
         with:
@@ -73,6 +82,13 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           STORE_FILE: upload-keystore.jks
         run: flutter build appbundle --release
+
+      - name: Limpar artefatos pesados de compilação do Rust
+        working-directory: ./app
+        run: |
+          rm -rf build/rust_lib_app/build
+          rm -rf rust/target
+          df -h
 
       - name: Upload para Google Play Console (Faixa Interna)
         uses: r0adkll/upload-google-play@v1.1.3

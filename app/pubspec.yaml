@@ -40,6 +40,8 @@ dependencies:
   share_plus: ^13.2.0
   open_filex: ^4.7.0
   signature: ^6.4.0
+  flutter_markdown_plus: ^1.0.7
+  url_launcher: ^6.3.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -61,6 +63,8 @@ flutter:
     - assets/protocols/
     - assets/logo_app.png
     - assets/logo_splash.png
+    - legal/repo/public/docs/termos-de-uso-fixlog.md
+    - legal/repo/public/docs/politica-de-privacidade-fixlog.md
 
 flutter_launcher_icons:
   android: true

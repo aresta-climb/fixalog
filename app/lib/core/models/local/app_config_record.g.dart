@@ -22,6 +22,11 @@ const AppConfigRecordSchema = CollectionSchema(
       name: r'acceptedTermsVersion',
       type: IsarType.long,
     ),
+    r'dataHoraAceiteTermos': PropertySchema(
+      id: 1,
+      name: r'dataHoraAceiteTermos',
+      type: IsarType.dateTime,
+    ),
   },
 
   estimateSize: _appConfigRecordEstimateSize,
@@ -55,6 +60,7 @@ void _appConfigRecordSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.acceptedTermsVersion);
+  writer.writeDateTime(offsets[1], object.dataHoraAceiteTermos);
 }
 
 AppConfigRecord _appConfigRecordDeserialize(
@@ -65,6 +71,7 @@ AppConfigRecord _appConfigRecordDeserialize(
 ) {
   final object = AppConfigRecord();
   object.acceptedTermsVersion = reader.readLong(offsets[0]);
+  object.dataHoraAceiteTermos = reader.readDateTimeOrNull(offsets[1]);
   object.id = id;
   return object;
 }
@@ -78,6 +85,8 @@ P _appConfigRecordDeserializeProp<P>(
   switch (propertyId) {
     case 0:
       return (reader.readLong(offset)) as P;
+    case 1:
+      return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -241,6 +250,82 @@ extension AppConfigRecordQueryFilter
   }
 
   QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'dataHoraAceiteTermos'),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'dataHoraAceiteTermos'),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'dataHoraAceiteTermos',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dataHoraAceiteTermos',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dataHoraAceiteTermos',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
+  dataHoraAceiteTermosBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dataHoraAceiteTermos',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterFilterCondition>
   idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -317,6 +402,20 @@ extension AppConfigRecordQuerySortBy
       return query.addSortBy(r'acceptedTermsVersion', Sort.desc);
     });
   }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
+  sortByDataHoraAceiteTermos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataHoraAceiteTermos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
+  sortByDataHoraAceiteTermosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataHoraAceiteTermos', Sort.desc);
+    });
+  }
 }
 
 extension AppConfigRecordQuerySortThenBy
@@ -332,6 +431,20 @@ extension AppConfigRecordQuerySortThenBy
   thenByAcceptedTermsVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'acceptedTermsVersion', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
+  thenByDataHoraAceiteTermos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataHoraAceiteTermos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QAfterSortBy>
+  thenByDataHoraAceiteTermosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataHoraAceiteTermos', Sort.desc);
     });
   }
 
@@ -356,6 +469,13 @@ extension AppConfigRecordQueryWhereDistinct
       return query.addDistinctBy(r'acceptedTermsVersion');
     });
   }
+
+  QueryBuilder<AppConfigRecord, AppConfigRecord, QDistinct>
+  distinctByDataHoraAceiteTermos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'dataHoraAceiteTermos');
+    });
+  }
 }
 
 extension AppConfigRecordQueryProperty
@@ -370,6 +490,13 @@ extension AppConfigRecordQueryProperty
   acceptedTermsVersionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'acceptedTermsVersion');
+    });
+  }
+
+  QueryBuilder<AppConfigRecord, DateTime?, QQueryOperations>
+  dataHoraAceiteTermosProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'dataHoraAceiteTermos');
     });
   }
 }

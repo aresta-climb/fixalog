@@ -8,7 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
-import 'features/onboarding/views/terms_of_use_screen.dart' as fixlog_onboarding;
+import 'features/onboarding/views/tela_termos_de_uso.dart' as fixlog_onboarding;
+import 'core/constantes/versao_legal.g.dart';
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
 import 'core/models/local/app_config_record.dart';
@@ -101,11 +102,10 @@ class _StartupRouter extends ConsumerWidget {
     }
 
     final config = isar.appConfigRecords.getSync(1);
-    final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= 1; // 1 is kCurrentTermsVersion
+    final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= kVersaoLegal;
 
     if (!acceptedTerms) {
-      // Import the screen conditionally or ensure it is imported at the top
-      return const fixlog_onboarding.TermsOfUseScreen();
+      return const fixlog_onboarding.TelaTermosDeUso();
     }
 
     final hasIdentityAsync = ref.watch(hasIdentityProvider);
@@ -125,7 +125,7 @@ class _StartupRouter extends ConsumerWidget {
       ),
       error: (e, st) => Scaffold(
         body: Center(
-          child: Text('Erro fatal ao ler banco: \$e'),
+          child: Text('Erro fatal ao ler banco: $e'),
         ),
       ),
     );

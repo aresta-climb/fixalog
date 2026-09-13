@@ -5,21 +5,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fixlog/core/models/local/app_config_record.dart';
 
 void main() {
-  group('AppConfigRecord Tests', () {
-    test('Should construct with default parameters', () {
-      final record = AppConfigRecord();
-
-      expect(record.id, 1);
-      expect(record.acceptedTermsVersion, 0);
+  group('AppConfigRecord', () {
+    test('Inicializa com valores padrao corretos', () {
+      final config = AppConfigRecord();
+      expect(config.id, equals(1));
+      expect(config.acceptedTermsVersion, equals(0));
+      expect(config.versaoTermosAceita, equals(0));
+      expect(config.dataHoraAceiteTermos, isNull);
     });
 
-    test('Should allow setting specific parameters', () {
-      final record = AppConfigRecord();
-      record.id = 2;
-      record.acceptedTermsVersion = 1;
+    test('Sincroniza versaoTermosAceita com acceptedTermsVersion', () {
+      final config = AppConfigRecord();
 
-      expect(record.id, 2);
-      expect(record.acceptedTermsVersion, 1);
+      config.versaoTermosAceita = 5;
+      expect(config.acceptedTermsVersion, equals(5));
+      expect(config.versaoTermosAceita, equals(5));
+
+      config.acceptedTermsVersion = 10;
+      expect(config.versaoTermosAceita, equals(10));
+    });
+
+    test('Armazena e recupera dataHoraAceiteTermos com sucesso', () {
+      final config = AppConfigRecord();
+      final agora = DateTime.now();
+
+      config.dataHoraAceiteTermos = agora;
+      expect(config.dataHoraAceiteTermos, equals(agora));
+
+      config.dataHoraAceiteTermos = null;
+      expect(config.dataHoraAceiteTermos, isNull);
     });
   });
 }

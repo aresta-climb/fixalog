@@ -1,4 +1,6 @@
-﻿## ADDED Requirements
+# PDF XMP Signature
+
+## Requirements
 
 ### Requirement: O sistema DEVE assinar PDFs digitalmente usando PKCS#7
 O sistema DEVE utilizar um certificado X.509 autoassinado gerado na máquina (ECDSA secp256r1) para envelopar criptograficamente todo o documento PDF gerado, protegendo os dados visuais e os metadados XMP contra adulterações.

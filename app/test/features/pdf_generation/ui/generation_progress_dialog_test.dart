@@ -42,7 +42,7 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('exibe estado de sucesso e botão ABRIR PDF', (tester) async {
+    testWidgets('exibe estado de sucesso e botão VISUALIZAR RELATÓRIO (sem ABRIR PDF)', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -52,7 +52,7 @@ void main() {
                   progress: 1.0,
                   status: 'Selo FixLog aplicado com sucesso!',
                   isComplete: true,
-                  outputPath: '/path/to/laudo.pdf',
+                  outputPath: '/path/to/laudo.epub',
                 ),
               ),
             ),
@@ -66,7 +66,8 @@ void main() {
       expect(find.text('Selo FixLog aplicado com sucesso!'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(find.text('FECHAR'), findsOneWidget);
-      expect(find.text('ABRIR PDF'), findsOneWidget);
+      expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
+      expect(find.text('ABRIR PDF'), findsNothing);
     });
 
     testWidgets('exibe estado de erro', (tester) async {

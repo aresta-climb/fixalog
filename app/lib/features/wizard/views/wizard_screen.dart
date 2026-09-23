@@ -1498,9 +1498,12 @@ class _CampoSimplesContent extends ConsumerWidget {
         final isVid = campo.tipo == StepCampoSimples_TipoCampo.VIDEO;
         return GestureDetector(
           onTap: () async {
+            final origem = await _selecionarOrigemMidia(context, isVid);
+            if (origem == null) return;
+
             final picker = ImagePicker();
             if (isVid) {
-              final video = await picker.pickVideo(source: ImageSource.camera);
+              final video = await picker.pickVideo(source: origem);
               if (video != null) {
                 await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
                       conteudoId,
@@ -1510,7 +1513,7 @@ class _CampoSimplesContent extends ConsumerWidget {
                     );
               }
             } else {
-              final image = await picker.pickImage(source: ImageSource.camera);
+              final image = await picker.pickImage(source: origem);
               if (image != null) {
                 await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
                       conteudoId,
@@ -1652,6 +1655,70 @@ class _CampoSimplesContent extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<ImageSource?> _selecionarOrigemMidia(BuildContext context, bool isVideo) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: const Color(0xFF181A1C),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isVideo ? 'SELECIONE A ORIGEM DO VÍDEO' : 'SELECIONE A ORIGEM DA FOTO',
+                style: const TextStyle(
+                  color: Color(0xFFFF6B00),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(
+                  isVideo ? Icons.videocam : Icons.camera_alt,
+                  color: const Color(0xFF00FF66),
+                ),
+                title: Text(
+                  isVideo ? 'Gravar com a Câmera' : 'Tirar Foto com a Câmera',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                tileColor: const Color(0xFF22252A),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: Icon(
+                  isVideo ? Icons.video_library : Icons.photo_library,
+                  color: const Color(0xFF00FF66),
+                ),
+                title: Text(
+                  isVideo ? 'Escolher da Galeria / Arquivos' : 'Escolher da Galeria',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                tileColor: const Color(0xFF22252A),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

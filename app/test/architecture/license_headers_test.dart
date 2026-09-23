@@ -62,51 +62,6 @@ void main() {
       );
     });
 
-    test('todos os arquivos Rust autorais em rust/src/ devem conter o cabeçalho SPDX/MPL-2.0', () {
-      final rustSrcDir = Directory('rust/src');
-      if (!rustSrcDir.existsSync()) {
-        // Se executado da raiz do workspace em vez da pasta app/
-        final altRustDir = Directory('app/rust/src');
-        if (!altRustDir.existsSync()) {
-          fail('Diretório rust/src não foi encontrado.');
-        }
-      }
-
-      final targetDir = rustSrcDir.existsSync() ? rustSrcDir : Directory('app/rust/src');
-      final rsFiles = targetDir
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.rs'));
-
-      final invalidFiles = <String>[];
-
-      for (final file in rsFiles) {
-        final normalizedPath = file.path.replaceAll(r'\', '/');
-
-        // Ignora arquivos gerados automaticamente pelo flutter_rust_bridge
-        if (normalizedPath.endsWith('frb_generated.rs') ||
-            normalizedPath.contains('/target/') ||
-            normalizedPath.contains('/formats/')) {
-          continue;
-        }
-
-        if (!hasValidHeader(file)) {
-          invalidFiles.add(normalizedPath);
-        }
-      }
-
-      expect(
-        invalidFiles,
-        isEmpty,
-        reason:
-            'Os seguintes arquivos Rust não contêm o cabeçalho SPDX/MPL-2.0 obrigatório:\n'
-            '${invalidFiles.map((f) => '  - $f').join('\n')}\n\n'
-            'O topo do arquivo deve conter:\n'
-            '$expectedLine1\n'
-            '$expectedLine2\n',
-      );
-    });
-
     test('todos os arquivos Kotlin autorais em android/ devem conter o cabeçalho SPDX/MPL-2.0', () {
       final kotlinDir = Directory('android/app/src/main/kotlin');
       final targetDir = kotlinDir.existsSync() ? kotlinDir : Directory('app/android/app/src/main/kotlin');

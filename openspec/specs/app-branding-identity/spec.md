@@ -1,4 +1,4 @@
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Oficialização do Nome e Identificadores do Pacote
 A aplicação DEVE utilizar o identificador de pacote `com.arestaclimb.fixlog` e o nome visível `FixLog` em todas as plataformas móveis suportadas (Android e iOS) e no módulo Dart.

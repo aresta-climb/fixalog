@@ -4,7 +4,6 @@
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import 'package:basic_utils/basic_utils.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -15,8 +14,8 @@ class CryptoService {
   CryptoService({
     FlutterSecureStorage? secureStorage,
     LocalAuthentication? localAuth,
-  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
-       _localAuth = localAuth ?? LocalAuthentication();
+  })  : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+        _localAuth = localAuth ?? LocalAuthentication();
 
   /// Gera as chaves ECDSA secp256r1 persistindo em Secure Storage
   Future<void> generateAndStoreKeysIfNeeded() async {
@@ -96,6 +95,15 @@ class CryptoService {
       throw Exception("Chave pública não encontrada.");
     }
     return publicKeyPem;
+  }
+
+  /// Retorna a chave privada armazenada no secure storage
+  Future<String> getPrivateKeyPem() async {
+    final privateKeyPem = await _secureStorage.read(key: 'private_key');
+    if (privateKeyPem == null) {
+      throw Exception("Chave privada não encontrada.");
+    }
+    return privateKeyPem;
   }
 
   /// Assina o binário usando a chave do device (ECDSA secp256r1)

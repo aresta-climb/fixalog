@@ -10,6 +10,7 @@ import 'package:fixlog/features/home/providers/history_provider.dart';
 import 'package:fixlog/core/models/local/submission_record.dart';
 import 'package:fixlog/core/services/pdf_viewer_service.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? customPdfViewer}) {
   return ProviderScope(
@@ -145,6 +146,81 @@ void main() {
       expect(find.text('Protocolo 10'), findsOneWidget);
       expect(find.text('Protocolo 14'), findsOneWidget);
       expect(carregarMaisFinder, findsNothing);
+    });
+
+    testWidgets('Toque no item com relatório EPUB abre VisualizadorRelatorioScreen', (tester) async {
+      final logs = [
+        SubmissionRecord()
+          ..idSessao = 's_epub'
+          ..nomeProtocolo = 'Via com EPUB'
+          ..dataInclusao = DateTime(2025, 5, 10)
+          ..status = SubmissionStatus.gerado
+          ..protobufPath = '/path/to/laudo.epub'
+          ..pdfPath = '/path/to/laudo.pdf',
+      ];
+
+      await tester.pumpWidget(_buildScreen(customLogs: logs));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Via com EPUB'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.byType(VisualizadorRelatorioScreen), findsOneWidget);
+    });
+
+    testWidgets('Menu de contexto exibe Abrir Relatório (e não Abrir PDF) e abre VisualizadorRelatorioScreen', (tester) async {
+      final logs = [
+        SubmissionRecord()
+          ..idSessao = 's_context'
+          ..nomeProtocolo = 'Via Context Menu'
+          ..dataInclusao = DateTime(2025, 5, 10)
+          ..status = SubmissionStatus.gerado
+          ..protobufPath = '/path/to/laudo.epub',
+      ];
+
+      await tester.pumpWidget(_buildScreen(customLogs: logs));
+      await tester.pumpAndSettle();
+
+      // Abrir o menu de 3 pontos
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Abrir Relatório'), findsOneWidget);
+      expect(find.text('Abrir PDF'), findsNothing);
+
+      // Clicar em 'Abrir Relatório'
+      await tester.tap(find.text('Abrir Relatório'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.byType(VisualizadorRelatorioScreen), findsOneWidget);
+    });
+
+    testWidgets('Item com PDF que possui EPUB irmão correspondente abre VisualizadorRelatorioScreen', (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('hist_epub_test_');
+      final fakePdf = File('${tempDir.path}/relatorio_com_irmao.pdf')..writeAsStringSync('fake pdf');
+      final fakeEpub = File('${tempDir.path}/relatorio_com_irmao.epub')..writeAsStringSync('fake epub');
+
+      final logs = [
+        SubmissionRecord()
+          ..idSessao = 's_irmao'
+          ..nomeProtocolo = 'Via Irmão EPUB'
+          ..dataInclusao = DateTime(2025, 5, 10)
+          ..status = SubmissionStatus.gerado
+          ..pdfPath = fakePdf.path,
+      ];
+
+      await tester.pumpWidget(_buildScreen(customLogs: logs));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Via Irmão EPUB'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.byType(VisualizadorRelatorioScreen), findsOneWidget);
+
+      tempDir.deleteSync(recursive: true);
     });
   });
 }

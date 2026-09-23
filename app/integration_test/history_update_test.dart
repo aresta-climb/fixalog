@@ -10,7 +10,6 @@ import 'package:fixlog/core/models/local/identity_record.dart';
 import 'package:fixlog/core/models/local/submission_record.dart';
 import 'package:fixlog/core/models/local/app_config_record.dart';
 import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/src/rust/frb_generated.dart';
 import 'package:fixlog/core/services/pdf_viewer_service.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -18,9 +17,6 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Gera relatório simulado e verifica se o histórico atualiza', (tester) async {
-    // 1. Setup inicial
-    await RustLib.init();
-    
     // Configura o Isar em um diretório temporário para isolamento do teste
     final tempDir = await getTemporaryDirectory();
     final testDir = Directory('${tempDir.path}/test_history_update');

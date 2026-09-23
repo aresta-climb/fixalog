@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
-import 'package:fixlog/core/services/pdf_viewer_service.dart';
+import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 class GenerationProgressDialog extends ConsumerWidget {
   const GenerationProgressDialog({super.key});
@@ -44,32 +44,35 @@ class GenerationProgressDialog extends ConsumerWidget {
               },
               child: const Text('FECHAR', style: TextStyle(color: Colors.white)),
             ),
-          if (state.isComplete && state.outputPath != null)
+          if (state.isComplete && (state.epubPath != null || state.outputPath != null))
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B00),
                 foregroundColor: Colors.white,
               ),
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('ABRIR PDF'),
+              icon: const Icon(Icons.visibility),
+              label: const Text('VISUALIZAR RELATÓRIO'),
               onPressed: () {
-                ref.read(pdfViewerServiceProvider).openPdf(state.outputPath!).catchError((e) {
-                  debugPrint('Erro ao abrir: $e');
-                });
+                final epub = state.epubPath ??
+                    (state.outputPath?.endsWith('.epub') == true
+                        ? state.outputPath
+                        : null);
+                final pdf = state.pdfPath ??
+                    (state.outputPath?.endsWith('.pdf') == true
+                        ? state.outputPath
+                        : null);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => VisualizadorRelatorioScreen(
+                      caminhoEpub: epub,
+                      caminhoPdf: pdf,
+                    ),
+                  ),
+                );
               },
-          ),
-      ],
+            ),
+        ],
       ),
     );
   }
 }
-
-// Para usar na UI:
-// showDialog(
-//   context: context,
-//   barrierDismissible: false,
-//   builder: (_) => GenerationProgressDialog(onComplete: () => print('Done!')),
-// );
-// 
-// E então acionar a geração:
-// ref.read(generationProvider.notifier).startGeneration('Vistoria X', [file1, file2], '/path/to/final.pdf');

@@ -9,16 +9,10 @@ import 'package:fixlog/main.dart';
 import 'package:fixlog/core/models/local/identity_record.dart';
 import 'package:fixlog/core/models/local/submission_record.dart';
 import 'package:fixlog/core/models/local/app_config_record.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/src/rust/frb_generated.dart';
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Fluxo de Integração: Auto-save contínuo de rascunho e retomada pelo histórico', (tester) async {
-    try {
-      await RustLib.init();
-    } catch (_) {}
 
     final tempDir = await getTemporaryDirectory();
     final testDir = Directory('${tempDir.path}/test_draft_flow');

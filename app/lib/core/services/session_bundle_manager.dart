@@ -14,9 +14,15 @@ import 'package:path/path.dart' as p;
 /// ficam isolados dentro do diretório específico da sessão (`/sessoes/<sessionId>/`).
 /// Esta classe é a principal interface para escrever e ler esses bundles isolados no disco local.
 class SessionBundleManager {
+  final Future<Directory> Function()? baseDirectoryGetter;
+
+  SessionBundleManager({this.baseDirectoryGetter});
+
   /// Retorna (e cria, se não existir) o diretório da sessão correspondente ao [sessionId].
   Future<Directory> getSessionDirectory(String sessionId) async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = baseDirectoryGetter != null
+        ? await baseDirectoryGetter!()
+        : await getApplicationDocumentsDirectory();
     final sessionDir = Directory(p.join(appDir.path, 'sessoes', sessionId));
     if (!await sessionDir.exists()) {
       await sessionDir.create(recursive: true);

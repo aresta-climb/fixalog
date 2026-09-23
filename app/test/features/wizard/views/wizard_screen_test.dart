@@ -67,5 +67,93 @@ blocos:
       final color = button.style?.backgroundColor?.resolve({});
       expect(color, equals(const Color(0xFFFF6B00)));
     });
+
+    testWidgets('ao clicar em GRAVAR VÍDEO exibe modal de seleção entre Câmera e Galeria', (tester) async {
+      const videoYaml = '''
+id: "video_protocol"
+nome: "Protocolo Vídeo"
+versao: "1.0.0"
+blocos:
+  - id: "b1"
+    nome: "Bloco 1"
+    steps:
+      - id: "s1"
+        nome: "Passo 1"
+        conteudos:
+          - id: "v1"
+            tipo_componente: "CAMPO_SIMPLES"
+            campo_simples:
+              label: "Vídeo de Inspeção"
+              tipo: "VIDEO"
+              obrigatorio: true
+''';
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: WizardScreen(initialYaml: videoYaml),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final videoButtonFinder = find.text('GRAVAR VÍDEO');
+      expect(videoButtonFinder, findsOneWidget);
+
+      await tester.tap(videoButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text('SELECIONE A ORIGEM DO VÍDEO'), findsOneWidget);
+      expect(find.text('Gravar com a Câmera'), findsOneWidget);
+      expect(find.text('Escolher da Galeria / Arquivos'), findsOneWidget);
+
+      await tester.tap(find.text('Escolher da Galeria / Arquivos'));
+      await tester.pumpAndSettle();
+      expect(find.text('SELECIONE A ORIGEM DO VÍDEO'), findsNothing);
+    });
+
+    testWidgets('ao clicar em ABRIR CÂMERA exibe modal de seleção entre Câmera e Galeria para fotos', (tester) async {
+      const fotoYaml = '''
+id: "foto_protocol"
+nome: "Protocolo Foto"
+versao: "1.0.0"
+blocos:
+  - id: "b1"
+    nome: "Bloco 1"
+    steps:
+      - id: "s1"
+        nome: "Passo 1"
+        conteudos:
+          - id: "f1"
+            tipo_componente: "CAMPO_SIMPLES"
+            campo_simples:
+              label: "Foto de Inspeção"
+              tipo: "IMAGE"
+              obrigatorio: true
+''';
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: WizardScreen(initialYaml: fotoYaml),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final fotoButtonFinder = find.text('ABRIR CÂMERA');
+      expect(fotoButtonFinder, findsOneWidget);
+
+      await tester.tap(fotoButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text('SELECIONE A ORIGEM DA FOTO'), findsOneWidget);
+      expect(find.text('Tirar Foto com a Câmera'), findsOneWidget);
+      expect(find.text('Escolher da Galeria'), findsOneWidget);
+
+      await tester.tap(find.text('Escolher da Galeria'));
+      await tester.pumpAndSettle();
+      expect(find.text('SELECIONE A ORIGEM DA FOTO'), findsNothing);
+    });
   });
 }

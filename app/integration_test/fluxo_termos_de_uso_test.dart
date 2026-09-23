@@ -15,15 +15,11 @@ import 'package:fixlog/core/models/local/app_config_record.dart';
 import 'package:fixlog/core/constantes/versao_legal.g.dart';
 import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixlog/features/onboarding/views/tela_termos_de_uso.dart';
-import 'package:fixlog/src/rust/frb_generated.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Fluxo de Integração: Bloqueio inicial, leitura, checkbox e aceite dos termos de uso', (tester) async {
-    try {
-      await RustLib.init();
-    } catch (_) {}
 
     final tempDir = await getTemporaryDirectory();
     final testDir = Directory('${tempDir.path}/teste_fluxo_termos');

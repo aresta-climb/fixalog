@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 FixLog Contributors
 
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:fixlog/features/home/providers/history_provider.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
 import 'package:fixlog/core/services/pdf_viewer_service.dart';
 import 'package:fixlog/features/wizard/views/wizard_screen.dart';
 import 'package:fixlog/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -19,6 +24,56 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _limit = 10;
+
+  String? _localizarCaminhoEpub(SubmissionRecord record) {
+    if (record.protobufPath.endsWith('.epub')) {
+      return record.protobufPath;
+    }
+    if (record.pdfPath.endsWith('.epub')) {
+      return record.pdfPath;
+    }
+    if (record.pdfPath.endsWith('.pdf')) {
+      final irmao = record.pdfPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
+      if (File(irmao).existsSync()) {
+        return irmao;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _abrirRelatorio(SubmissionRecord record) async {
+    final caminhoEpub = _localizarCaminhoEpub(record);
+    final caminhoPdf = record.pdfPath.isNotEmpty ? record.pdfPath : null;
+
+    if (caminhoEpub != null) {
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => VisualizadorRelatorioScreen(
+              caminhoEpub: caminhoEpub,
+              caminhoPdf: caminhoPdf,
+              titulo: record.nomeProtocolo.isEmpty
+                  ? 'Relatório Técnico'
+                  : record.nomeProtocolo,
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (caminhoPdf != null) {
+      try {
+        await ref.read(pdfViewerServiceProvider).openPdf(caminhoPdf);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao abrir relatório: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -251,33 +306,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 cloudIconColor: cloudIconColor,
                                 isEmProgresso: isEmProgresso,
                                 onTap: () async {
-                                  if (!isEmProgresso && record.pdfPath.isNotEmpty) {
-                                    try {
-                                      await ref.read(pdfViewerServiceProvider).openPdf(record.pdfPath);
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Erro ao abrir PDF: $e')),
-                                        );
-                                      }
-                                    }
+                                  if (!isEmProgresso) {
+                                    await _abrirRelatorio(record);
                                   } else {
                                     loadAndEdit();
                                   }
                                 },
                                 onEdit: loadAndEdit,
-                                onViewPdf: () async {
-                                  try {
-                                    await ref
-                                        .read(pdfViewerServiceProvider)
-                                        .openPdf(record.pdfPath);
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Erro ao abrir PDF: $e')),
-                                      );
-                                    }
-                                  }
+                                onViewRelatorio: () async {
+                                  await _abrirRelatorio(record);
                                 },
                                 onDelete: () async {
                                   final confirm = await showDialog<bool>(
@@ -385,7 +422,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     VoidCallback? onTap,
     VoidCallback? onEdit,
     VoidCallback? onDelete,
-    VoidCallback? onViewPdf,
+    VoidCallback? onViewRelatorio,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -473,7 +510,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 icon: const Icon(Icons.more_vert, color: Colors.white54),
                 onSelected: (value) {
                   if (value == 'edit' && onEdit != null) onEdit();
-                  if (value == 'viewPdf' && onViewPdf != null) onViewPdf();
+                  if (value == 'viewRelatorio' && onViewRelatorio != null) {
+                    onViewRelatorio();
+                  }
                   if (value == 'delete' && onDelete != null) onDelete();
                 },
                 itemBuilder: (context) => [
@@ -488,8 +527,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                   ] else ...[
                     const PopupMenuItem(
-                      value: 'viewPdf',
-                      child: Text('Abrir PDF'),
+                      value: 'viewRelatorio',
+                      child: Text('Abrir Relatório'),
                     ),
                     const PopupMenuItem(
                       value: 'edit',

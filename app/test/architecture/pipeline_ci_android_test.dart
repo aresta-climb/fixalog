@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Conformidade do Pipeline CI/CD Android — Prevenção de Falta de Espaço em Disco', () {
+  group('Conformidade do Pipeline CI/CD Android — Otimização e Ausência de Rust', () {
     late File workflowFile;
     late String workflowContent;
 
@@ -32,7 +32,7 @@ void main() {
         reason:
             'O runner ubuntu-latest possui espaço em disco limitado (~14 GB livres). '
             'É obrigatório ter um passo para remover pacotes pesados não utilizados '
-            '(como .NET, Haskell, Android NDKs não utilizados) antes de iniciar a compilação do Rust e Flutter.',
+            '(como .NET, Haskell, Android NDKs não utilizados) antes de iniciar a compilação do Flutter.',
       );
     });
 
@@ -64,14 +64,26 @@ void main() {
       );
     });
 
-    test('deve conter etapa de limpeza de artefatos intermediários do Rust após compilação do AAB', () {
+    test('não deve conter toolchain, cache ou passos de compilação do Rust', () {
       expect(
-        workflowContent.contains('Limpar artefatos') ||
-            workflowContent.contains('Clean build artifacts'),
-        isTrue,
-        reason:
-            'Após compilar o AAB, as pastas de build intermediárias do Rust (build/rust_lib_app/build) '
-            'acumulam mais de 8 GB de arquivos temporários que devem ser limpos para evitar estouro de disco.',
+        workflowContent.contains('rust-toolchain'),
+        isFalse,
+        reason: 'O pipeline não deve configurar o Rust toolchain após a migração para Dart puro.',
+      );
+      expect(
+        workflowContent.contains('rust-cache'),
+        isFalse,
+        reason: 'O pipeline não deve usar rust-cache.',
+      );
+      expect(
+        workflowContent.contains('rust_lib_app'),
+        isFalse,
+        reason: 'O pipeline não deve referenciar artefatos da antiga biblioteca rust_lib_app.',
+      );
+      expect(
+        workflowContent.contains('rust/target'),
+        isFalse,
+        reason: 'O pipeline não deve referenciar a pasta rust/target.',
       );
     });
   });

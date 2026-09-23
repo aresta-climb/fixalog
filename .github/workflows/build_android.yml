@@ -47,16 +47,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Configurar Rust Toolchain e Targets Android
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
-
-      - name: Cache de compilação do Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: app/rust
-          
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -82,13 +72,6 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           STORE_FILE: upload-keystore.jks
         run: flutter build appbundle --release
-
-      - name: Limpar artefatos pesados de compilação do Rust
-        working-directory: ./app
-        run: |
-          rm -rf build/rust_lib_app/build
-          rm -rf rust/target
-          df -h
 
       - name: Upload para Google Play Console (Faixa Interna)
         uses: r0adkll/upload-google-play@v1.1.3

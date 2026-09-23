@@ -10,6 +10,10 @@ class GenerationRecoveryService {
   static const _processingFlagKey = 'is_generating_pdf';
   static const _tempDirName = 'fixalog_temp_media';
 
+  final Future<Directory> Function()? tempDirGetter;
+
+  GenerationRecoveryService({this.tempDirGetter});
+
   /// Marca no armazenamento local que o processamento começou
   Future<void> markAsProcessing(bool isProcessing) async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,7 +30,9 @@ class GenerationRecoveryService {
   Future<void> garbageCollect() async {
     final interrupted = await wasInterrupted();
     if (interrupted) {
-      final cacheDir = await getTemporaryDirectory();
+      final cacheDir = tempDirGetter != null
+          ? await tempDirGetter!()
+          : await getTemporaryDirectory();
       final targetDir = Directory(p.join(cacheDir.path, _tempDirName));
       
       if (targetDir.existsSync()) {
@@ -44,7 +50,9 @@ class GenerationRecoveryService {
 
   /// Retorna o diretório de trabalho temporário seguro
   Future<Directory> getWorkspaceDir() async {
-    final cacheDir = await getTemporaryDirectory();
+    final cacheDir = tempDirGetter != null
+        ? await tempDirGetter!()
+        : await getTemporaryDirectory();
     final targetDir = Directory(p.join(cacheDir.path, _tempDirName));
     if (!targetDir.existsSync()) {
       targetDir.createSync(recursive: true);

@@ -16,22 +16,22 @@ class SubmissionRecord {
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
-  late String idSessao;
+  String idSessao = '';
 
-  late String idProtocolo;
+  String idProtocolo = '';
 
-  late String nomeProtocolo;
+  String nomeProtocolo = '';
 
-  late DateTime dataInclusao;
+  DateTime dataInclusao = DateTime.now();
 
   // Hash completo para integridade
-  late String hashAssinatura;
+  String hashAssinatura = '';
 
   // Caminho do arquivo PDF salvo em disco
-  late String pdfPath;
+  String pdfPath = '';
 
   // Caminho do arquivo Protobuf (binarypb) salvo em disco
-  late String protobufPath;
+  String protobufPath = '';
 
   bool enviadoNuvem = false;
 

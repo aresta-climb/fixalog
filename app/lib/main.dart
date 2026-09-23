@@ -13,11 +13,9 @@ import 'core/constantes/versao_legal.g.dart';
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
 import 'core/models/local/app_config_record.dart';
-import 'package:fixlog/src/rust/frb_generated.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await RustLib.init();
 
   final dir = await getApplicationDocumentsDirectory();
   final isar = await Isar.open(

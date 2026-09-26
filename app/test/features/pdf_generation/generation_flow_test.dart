@@ -81,6 +81,7 @@ void main() {
     late MockFlutterSecureStorage mockSecureStorage;
     late CryptoService cryptoService;
     late GenerationNotifier notifier;
+    late PdfPrintSummaryService pdfSummaryService;
     final Map<String, String> memoriaSecureStorage = {};
 
     setUp(() async {
@@ -124,6 +125,7 @@ void main() {
       });
 
       cryptoService = CryptoService(secureStorage: mockSecureStorage);
+      pdfSummaryService = PdfPrintSummaryService();
 
       notifier = GenerationNotifier(
         null,
@@ -134,7 +136,7 @@ void main() {
         EpubDocumentBuilder(),
         EpubPackagerService(),
         XmlDsigSigner(),
-        PdfPrintSummaryService(),
+        pdfSummaryService,
         cryptoService,
       );
     });
@@ -173,17 +175,23 @@ void main() {
       expect(state.isComplete, isTrue);
       expect(state.progress, equals(1.0));
 
-      // Validar existência do arquivo PDF
-      expect(state.pdfPath, isNotNull);
-      final pdfFile = File(state.pdfPath!);
-      expect(await pdfFile.exists(), isTrue);
-      expect(await pdfFile.length(), greaterThan(0));
-
-      // Validar existência do arquivo EPUB 3
+      // Validar que o fluxo desacoplado conclui com o EPUB 3 mantendo o PDF sob demanda
       expect(state.epubPath, isNotNull);
+      expect(state.pdfPath, isNull);
+
       final epubFile = File(state.epubPath!);
       expect(await epubFile.exists(), isTrue);
       expect(await epubFile.length(), greaterThan(0));
+
+      // Validar geração do PDF Resumido sob demanda
+      final pdfFile = await pdfSummaryService.exportarPdfResumido(
+        caminhoSaida: outputPathPdf,
+        registro: registro,
+        idSessao: sid,
+        urlCanonica: 'https://arestaclimb.com/relatorios/$sid',
+      );
+      expect(await pdfFile.exists(), isTrue);
+      expect(await pdfFile.length(), greaterThan(0));
 
       // Validar integridade interna do container EPUB 3
       final epubBytes = await epubFile.readAsBytes();

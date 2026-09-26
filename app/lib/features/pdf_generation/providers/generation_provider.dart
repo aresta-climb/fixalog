@@ -86,6 +86,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   final PdfPrintSummaryService _pdfSummaryService;
   final CryptoService _cryptoService;
 
+  PdfPrintSummaryService get pdfSummaryService => _pdfSummaryService;
+
   GenerationNotifier(
     this._draftService,
     this._mediaService,
@@ -294,50 +296,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       await epubFile.create(recursive: true);
       await epubFile.writeAsBytes(epubBytes);
 
-      // 7. Exportação opcional do PDF Resumido de Protocolo
-      String? pdfPathFinal;
-      if (outputPath.endsWith('.pdf')) {
-        state = state.copyWith(
-            progress: 0.9, status: 'Gerando PDF Resumido para protocolo...');
-        try {
-          // Prepara mapeamento com data URIs em base64 para renderização 100% autocontida e imediata no WebView
-          final Map<String, String> midiasDataUri = {};
-          final Map<String, String> posterDataUri = {};
-          for (final e in arquivosMidias.entries) {
-            final uri = 'data:image/webp;base64,${base64Encode(e.value)}';
-            if (e.key.contains('_poster.')) {
-              final uuid = e.key
-                  .replaceFirst('midias/', '')
-                  .replaceFirst('_poster.webp', '');
-              posterDataUri[uuid] = uri;
-            } else if (e.key.endsWith('.webp')) {
-              final uuid =
-                  e.key.replaceFirst('midias/', '').replaceFirst('.webp', '');
-              midiasDataUri[uuid] = uri;
-            }
-          }
-
-          final pdfFile = await _pdfSummaryService
-              .exportarPdfResumido(
-                caminhoSaida: outputPath,
-                registro: registro,
-                idSessao: sid,
-                urlCanonica: urlCanonica,
-                mapeamentoMidias: midiasDataUri.isNotEmpty
-                    ? midiasDataUri
-                    : mapeamentoMidias,
-                posterFrames: posterDataUri.isNotEmpty
-                    ? posterDataUri
-                    : posterFrames,
-              )
-              .timeout(const Duration(seconds: 15));
-          pdfPathFinal = pdfFile.path;
-        } catch (e) {
-          // Se o motor de impressão nativo falhar ou der timeout no dispositivo, não bloqueia o laudo oficial EPUB 3
-        }
-      }
-
-      // Se houver draftService legado, chamamos para compatibilidade se mockado
+      // 7. Se houver draftService legado, chamamos para compatibilidade se mockado
       if (_draftService != null) {
         try {
           final workspace = await _recoveryService.getWorkspaceDir();
@@ -346,15 +305,19 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         } catch (_) {}
       }
 
-      // 8. Gravação no Isar
-      if (_isar != null) {
+      // 8. Gravação no Isar (mantém pdfPath pré-existente ou vazio para geração sob demanda)
+      String? pdfExistente;
+      final isar = _isar;
+      if (isar != null) {
         SubmissionRecord? existingRecord;
         try {
-          existingRecord = await _isar!.submissionRecords
+          existingRecord = await isar.submissionRecords
               .filter()
               .idSessaoEqualTo(sid)
               .findFirst();
         } catch (_) {}
+
+        pdfExistente = existingRecord?.pdfPath;
 
         final record = existingRecord ?? SubmissionRecord()
           ..idSessao = sid
@@ -364,12 +327,12 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           ..enviadoNuvem = false;
 
         record
-          ..pdfPath = pdfPathFinal ?? ''
+          ..pdfPath = pdfExistente ?? ''
           ..protobufPath = epubFile.path
           ..status = SubmissionStatus.gerado;
 
-        await _isar!.writeTxn(() async {
-          await _isar!.collection<SubmissionRecord>().put(record);
+        await isar.writeTxn(() async {
+          await isar.collection<SubmissionRecord>().put(record);
         });
       }
 
@@ -377,9 +340,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         progress: 1.0,
         status: 'Relatório gerado e assinado com sucesso!',
         isComplete: true,
-        outputPath: pdfPathFinal ?? epubFile.path,
+        outputPath: epubFile.path,
         epubPath: epubFile.path,
-        pdfPath: pdfPathFinal,
+        pdfPath: pdfExistente,
       );
       await _recoveryService.markAsProcessing(false);
     } catch (e) {

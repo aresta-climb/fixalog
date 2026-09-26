@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Oficialização do Nome e Identificadores do Pacote
-A aplicação DEVE utilizar o identificador de pacote `com.arestaclimb.fixalog` e o nome visível `Fixalog` em todas as plataformas móveis suportadas (Android e iOS) e no módulo Dart (`fixalog`).
+A aplicação DEVE utilizar o identificador de pacote `com.arestaclimb.fixalog` e o nome visível `Fixalog` em todas as plataformas móveis suportadas (Android e iOS), no módulo Dart (`fixalog`) e nos pipelines de CI/CD.
 
 #### Scenario: Identificadores no Android
 - **WHEN** o projeto Android for inspecionado ou compilado
@@ -10,6 +10,10 @@ A aplicação DEVE utilizar o identificador de pacote `com.arestaclimb.fixalog` 
 #### Scenario: Identificadores no iOS
 - **WHEN** o projeto iOS for inspecionado ou compilado no Xcode
 - **THEN** o `PRODUCT_BUNDLE_IDENTIFIER` DEVE ser `com.arestaclimb.fixalog` e as chaves `CFBundleDisplayName` e `CFBundleName` no `Info.plist` DEVEM ser `Fixalog`
+
+#### Scenario: Identificadores nos Workflows de CI/CD
+- **WHEN** os fluxos de automação do GitHub Actions forem verificados
+- **THEN** o `packageName` no `.github/workflows/build_android.yml` e o `--bundle-id` no `.github/workflows/build_ios.yml` DEVEM ser `com.arestaclimb.fixalog`
 
 #### Scenario: Identificador do Pacote Dart
 - **WHEN** os arquivos do projeto Flutter forem analisados
@@ -28,4 +32,12 @@ Todas as referências legadas ao termo `FixLog` DEVEM ser substituídas por `Fix
 
 #### Scenario: Textos de Interface e Diálogos
 - **WHEN** diálogos de selagem, telas de introdução, termos e relatórios forem exibidos
-- **THEN** todo o texto visível DEVE utilizar a grafia `'Fixalog'`
+- **THEN** todo o texto visível e assuntos de compartilhamento DEVEM utilizar a grafia `'Fixalog'`
+
+#### Scenario: URL Canônica de Relatórios Técnicos
+- **WHEN** um relatório técnico for exportado ou tiver seu QR Code gerado
+- **THEN** a URL canônica padrão DEVE ser estruturada sob o domínio `'https://fixalog.app/v/<id>'`
+
+#### Scenario: Cabeçalhos de Licença SPDX
+- **WHEN** o teste de conformidade `license_headers_test.dart` for executado
+- **THEN** todos os arquivos Dart e Kotlin autorais DEVEM conter o cabeçalho `// Copyright (c) 2026 Fixalog Contributors`

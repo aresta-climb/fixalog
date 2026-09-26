@@ -1,56 +1,101 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 FixLog Contributors
 
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:isar_community/isar.dart';
+import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixlog/core/services/session_bundle_manager.dart';
+import 'package:fixlog/core/services/pdf_print_summary_service.dart';
 import 'package:fixlog/core/services/epub_extrator_service.dart';
+import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart'
+    show isarProvider;
 
 /// Tela para visualização no aplicativo do relatório técnico de manutenção gerado em EPUB 3 (XHTML responsivo).
 ///
 /// Consome os arquivos descompactados do container EPUB 3 em cache local,
 /// permitindo a reprodução de mídias (fotos e vídeos) via WebView,
-/// além de oferecer opções de compartilhamento do arquivo `.epub` canônico e do `.pdf` resumido.
-class VisualizadorRelatorioScreen extends StatefulWidget {
+/// além de oferecer opções de compartilhamento do arquivo `.epub` canônico e do `.pdf` resumido gerado sob demanda.
+class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
   final String? caminhoEpub;
   final String? caminhoPdf;
   final String? caminhoXhtml;
+  final String? idSessao;
   final String titulo;
   final EpubExtratorService? extratorService;
+  final PdfPrintSummaryService? pdfSummaryService;
+  final SessionBundleManager? sessionManager;
+  final Isar? isar;
   final Future<void> Function(List<String> paths, {String? text, String? subject})?
       compartilharArquivosProxy;
   final Future<void> Function(String path)? abrirArquivoProxy;
   final Widget Function(BuildContext context, String caminhoXhtml)? webViewBuilder;
+  final Future<String> Function({
+    required String? caminhoEpub,
+    required String? caminhoXhtml,
+    required String? idSessao,
+  })? geradorPdfSobDemandaProxy;
 
   const VisualizadorRelatorioScreen({
     super.key,
     this.caminhoEpub,
     this.caminhoPdf,
     this.caminhoXhtml,
+    this.idSessao,
     this.titulo = 'Relatório Técnico',
     this.extratorService,
+    this.pdfSummaryService,
+    this.sessionManager,
+    this.isar,
     this.compartilharArquivosProxy,
     this.abrirArquivoProxy,
     this.webViewBuilder,
+    this.geradorPdfSobDemandaProxy,
   });
 
   @override
-  State<VisualizadorRelatorioScreen> createState() =>
+  ConsumerState<VisualizadorRelatorioScreen> createState() =>
       _VisualizadorRelatorioScreenState();
 }
 
 class _VisualizadorRelatorioScreenState
-    extends State<VisualizadorRelatorioScreen> {
+    extends ConsumerState<VisualizadorRelatorioScreen> {
   bool _carregando = true;
+  bool _gerandoPdf = false;
   String? _mensagemErro;
   String? _caminhoXhtmlFinal;
+  String? _caminhoPdfFinal;
   WebViewController? _webViewController;
+
+  Isar? _isar;
 
   @override
   void initState() {
     super.initState();
+    _caminhoPdfFinal = widget.caminhoPdf;
     _carregarRelatorio();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.isar != null) {
+      _isar = widget.isar;
+    } else {
+      try {
+        _isar = ref.read(isarProvider);
+      } catch (_) {
+        _isar = null;
+      }
+    }
   }
 
   Future<void> _carregarRelatorio() async {
@@ -121,18 +166,244 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
+  Future<String?> _gerarPdfSobDemanda() async {
+    if (!mounted) return null;
+
+    setState(() {
+      _gerandoPdf = true;
+    });
+
+    try {
+      final String novoPdf;
+      if (widget.geradorPdfSobDemandaProxy != null) {
+        novoPdf = await widget.geradorPdfSobDemandaProxy!(
+          caminhoEpub: widget.caminhoEpub,
+          caminhoXhtml: _caminhoXhtmlFinal ?? widget.caminhoXhtml,
+          idSessao: widget.idSessao,
+        );
+      } else {
+        novoPdf = await _executarGeracaoPdfPadrao();
+      }
+
+      _caminhoPdfFinal = novoPdf;
+      return novoPdf;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _gerandoPdf = false;
+        });
+      }
+    }
+  }
+
+  Future<String> _executarGeracaoPdfPadrao() async {
+    final sessionManager = widget.sessionManager ?? SessionBundleManager();
+    final isar = _isar;
+
+    String? sid = widget.idSessao;
+    SubmissionRecord? record;
+
+    if (isar != null) {
+      if (sid != null && sid.isNotEmpty) {
+        try {
+          record = await isar.submissionRecords
+              .filter()
+              .idSessaoEqualTo(sid)
+              .findFirst();
+        } catch (_) {}
+      }
+      if (record == null && widget.caminhoEpub != null) {
+        try {
+          record = await isar.submissionRecords
+              .filter()
+              .protobufPathEqualTo(widget.caminhoEpub!)
+              .findFirst();
+          if (record != null && (sid == null || sid.isEmpty)) {
+            sid = record.idSessao;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (sid == null || sid.isEmpty) {
+      if (widget.caminhoEpub != null) {
+        sid = p.basenameWithoutExtension(widget.caminhoEpub!);
+      } else {
+        sid = DateTime.now().millisecondsSinceEpoch.toString();
+      }
+    }
+
+    Registro? registro;
+    if (_caminhoXhtmlFinal != null) {
+      final oebpsDir = File(_caminhoXhtmlFinal!).parent;
+      final pbFile = File(p.join(oebpsDir.path, 'dados', 'registro.binarypb'));
+      if (pbFile.existsSync()) {
+        try {
+          final bytes = pbFile.readAsBytesSync();
+          registro = Registro.fromBuffer(bytes);
+        } catch (_) {}
+      }
+    }
+
+    if (registro == null) {
+      try {
+        final bytes = await sessionManager.readManifest(sessionId: sid);
+        registro = Registro.fromBuffer(bytes);
+      } catch (_) {}
+    }
+
+    registro ??= (Registro()..idProtocolo = widget.titulo);
+
+    final Set<String> fotosUuids = {};
+    final Set<String> videosUuids = {};
+
+    for (final resp in registro.respostas.values) {
+      if (resp.hasMidia()) {
+        if (resp.midia.hasImagem()) {
+          fotosUuids.add(resp.midia.imagem.uuid);
+        } else if (resp.midia.hasVideo()) {
+          videosUuids.add(resp.midia.video.uuid);
+        }
+      }
+    }
+    for (final grupo in registro.listas) {
+      for (final resp in grupo.respostasItem.values) {
+        if (resp.hasMidia()) {
+          if (resp.midia.hasImagem()) {
+            fotosUuids.add(resp.midia.imagem.uuid);
+          } else if (resp.midia.hasVideo()) {
+            videosUuids.add(resp.midia.video.uuid);
+          }
+        }
+      }
+    }
+
+    final Map<String, String> midiasDataUri = {};
+    final Map<String, String> posterDataUri = {};
+
+    for (final uuid in fotosUuids) {
+      Uint8List? bytes;
+
+      final thumbPath = await sessionManager.getMediaFilePath(
+        sessionId: sid,
+        mediaUuid: '${uuid}_thumb',
+        extension: '.webp',
+      );
+      final thumbFile = File(thumbPath);
+      if (thumbFile.existsSync()) {
+        bytes = thumbFile.readAsBytesSync();
+      }
+
+      if (bytes == null) {
+        final mainPath = await sessionManager.getMediaFilePath(
+          sessionId: sid,
+          mediaUuid: uuid,
+          extension: '.webp',
+        );
+        final mainFile = File(mainPath);
+        if (mainFile.existsSync()) {
+          bytes = mainFile.readAsBytesSync();
+        }
+      }
+
+      if (bytes == null && _caminhoXhtmlFinal != null) {
+        final oebpsDir = File(_caminhoXhtmlFinal!).parent;
+        final imgEpub = File(p.join(oebpsDir.path, 'midias', '$uuid.webp'));
+        if (imgEpub.existsSync()) {
+          bytes = imgEpub.readAsBytesSync();
+        }
+      }
+
+      if (bytes != null) {
+        midiasDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      }
+    }
+
+    for (final uuid in videosUuids) {
+      Uint8List? bytes;
+
+      final posterPath = await sessionManager.getMediaFilePath(
+        sessionId: sid,
+        mediaUuid: '${uuid}_poster',
+        extension: '.webp',
+      );
+      final posterFile = File(posterPath);
+      if (posterFile.existsSync()) {
+        bytes = posterFile.readAsBytesSync();
+      }
+
+      if (bytes == null && _caminhoXhtmlFinal != null) {
+        final oebpsDir = File(_caminhoXhtmlFinal!).parent;
+        final posterEpub =
+            File(p.join(oebpsDir.path, 'midias', '${uuid}_poster.webp'));
+        if (posterEpub.existsSync()) {
+          bytes = posterEpub.readAsBytesSync();
+        }
+      }
+
+      if (bytes != null) {
+        posterDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      }
+    }
+
+    final pdfService = widget.pdfSummaryService ?? PdfPrintSummaryService();
+    final caminhoPdfSaida =
+        await sessionManager.getReportFilePath(sessionId: sid);
+    final urlCanonica = 'https://fixlog.app/v/$sid';
+
+    final pdfFile = await pdfService.exportarPdfResumido(
+      caminhoSaida: caminhoPdfSaida,
+      registro: registro,
+      idSessao: sid,
+      urlCanonica: urlCanonica,
+      mapeamentoMidias: midiasDataUri,
+      posterFrames: posterDataUri,
+    );
+
+    if (isar != null) {
+      record ??= await isar.submissionRecords
+          .filter()
+          .idSessaoEqualTo(sid)
+          .findFirst();
+      if (record != null) {
+        record.pdfPath = pdfFile.path;
+        await isar.writeTxn(() async {
+          await isar.submissionRecords.put(record!);
+        });
+      }
+    }
+
+    return pdfFile.path;
+  }
+
   Future<void> _compartilharPdf() async {
-    if (widget.caminhoPdf == null) return;
+    String? caminhoPdf = _caminhoPdfFinal ?? widget.caminhoPdf;
+
+    if (caminhoPdf == null || caminhoPdf.isEmpty) {
+      try {
+        caminhoPdf = await _gerarPdfSobDemanda();
+        if (caminhoPdf == null) return;
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao gerar PDF resumido: $e')),
+          );
+        }
+        return;
+      }
+    }
+
     try {
       if (widget.compartilharArquivosProxy != null) {
         await widget.compartilharArquivosProxy!(
-          [widget.caminhoPdf!],
+          [caminhoPdf],
           subject: 'Relatório Técnico Resumido FixLog (PDF)',
         );
       } else {
         await SharePlus.instance.share(
           ShareParams(
-            files: [XFile(widget.caminhoPdf!)],
+            files: [XFile(caminhoPdf)],
             subject: 'Relatório Técnico Resumido FixLog (PDF)',
           ),
         );
@@ -148,7 +419,10 @@ class _VisualizadorRelatorioScreenState
   }
 
   Future<void> _abrirExternamente() async {
-    final alvo = widget.caminhoEpub ?? widget.caminhoPdf ?? _caminhoXhtmlFinal;
+    final alvo = widget.caminhoEpub ??
+        _caminhoPdfFinal ??
+        widget.caminhoPdf ??
+        _caminhoXhtmlFinal;
     if (alvo == null) return;
 
     try {
@@ -167,8 +441,8 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
-  void _mostrarModalCompartilhamento(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _mostrarModalCompartilhamento(BuildContext context) async {
+    final opcao = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -176,13 +450,15 @@ class _VisualizadorRelatorioScreenState
       builder: (modalContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+            padding:
+                const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Text(
                     'Compartilhar Relatório',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -201,10 +477,7 @@ class _VisualizadorRelatorioScreenState
                   ),
                   enabled: widget.caminhoEpub != null,
                   onTap: widget.caminhoEpub != null
-                      ? () {
-                          Navigator.of(modalContext).pop();
-                          _compartilharEpub();
-                        }
+                      ? () => Navigator.of(modalContext).pop('epub')
                       : null,
                 ),
                 ListTile(
@@ -214,18 +487,11 @@ class _VisualizadorRelatorioScreenState
                     child: Icon(Icons.picture_as_pdf, color: Color(0xFFFF6B00)),
                   ),
                   title: const Text('Versão Resumida (PDF)'),
-                  subtitle: Text(
-                    widget.caminhoPdf != null
-                        ? 'Para impressão rápida e protocolo com QR Codes'
-                        : 'Versão em PDF não gerada para este relatório',
+                  subtitle: const Text(
+                    'Para impressão rápida e protocolo com QR Codes',
                   ),
-                  enabled: widget.caminhoPdf != null,
-                  onTap: widget.caminhoPdf != null
-                      ? () {
-                          Navigator.of(modalContext).pop();
-                          _compartilharPdf();
-                        }
-                      : null,
+                  enabled: true,
+                  onTap: () => Navigator.of(modalContext).pop('pdf'),
                 ),
               ],
             ),
@@ -233,6 +499,12 @@ class _VisualizadorRelatorioScreenState
         );
       },
     );
+
+    if (opcao == 'epub') {
+      await _compartilharEpub();
+    } else if (opcao == 'pdf') {
+      await _compartilharPdf();
+    }
   }
 
   @override
@@ -255,7 +527,30 @@ class _VisualizadorRelatorioScreenState
           ),
         ],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+          if (_gerandoPdf) ...[
+            const ModalBarrier(
+              color: Colors.black54,
+              dismissible: false,
+            ),
+            const Center(
+              child: AlertDialog(
+                content: Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 20),
+                    Expanded(
+                      child: Text('Gerando PDF resumido...'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }

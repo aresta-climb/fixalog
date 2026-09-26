@@ -24,8 +24,8 @@ class SessionBundleManager {
         ? await baseDirectoryGetter!()
         : await getApplicationDocumentsDirectory();
     final sessionDir = Directory(p.join(appDir.path, 'sessoes', sessionId));
-    if (!await sessionDir.exists()) {
-      await sessionDir.create(recursive: true);
+    if (!sessionDir.existsSync()) {
+      sessionDir.createSync(recursive: true);
     }
     return sessionDir;
   }
@@ -110,7 +110,7 @@ class SessionBundleManager {
     return p.join(dir.path, '$mediaUuid$ext');
   }
 
-  /// Retorna o caminho formatado do relatório PDF com a nomenclatura única (fixalog_<uuid>.pdf)
+  /// Retorna o caminho formatado do relatório PDF com a nomenclatura única (`fixalog_<uuid>.pdf`)
   Future<String> getReportFilePath({required String sessionId}) async {
     final dir = await getSessionDirectory(sessionId);
     return p.join(dir.path, 'fixalog_$sessionId.pdf');

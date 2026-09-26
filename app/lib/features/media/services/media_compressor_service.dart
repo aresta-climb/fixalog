@@ -56,6 +56,34 @@ class MediaCompressorService {
     return File(result.path);
   }
 
+  /// Reduz resolução e comprime miniaturas leves para impressão em WebP (600x600) com qualidade 85.
+  ///
+  /// Retorna o [File] comprimido ou `null` se o arquivo de entrada não existir ou a compressão falhar.
+  Future<File?> compressThumbnail(
+    File file,
+    String outputPath, {
+    int quality = 85,
+    int minWidth = 600,
+    int minHeight = 600,
+    CompressFormat format = CompressFormat.webp,
+  }) async {
+    if (!await file.exists()) {
+      return null;
+    }
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      outputPath,
+      quality: quality,
+      minWidth: minWidth,
+      minHeight: minHeight,
+      format: format,
+    );
+
+    if (result == null) return null;
+    return File(result.path);
+  }
+
   /// Transcodifica vídeo para H.264 720p CRF 26 delegando para [VideoTranscoderService].
   Future<File?> compressVideo(File file, String outputPath) async {
     return _videoTranscoderService.transcodificarVideo(
@@ -83,8 +111,21 @@ class MediaCompressorService {
     return null;
   }
 
+  /// Alias de conveniência para [comprimirImagemSessao].
+  Future<File?> comprimirFotoSessao({
+    required SessionBundleManager sessionManager,
+    required String sessionId,
+    required String mediaUuid,
+  }) =>
+      comprimirImagemSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
   /// Localiza o arquivo original da foto na sessão (`<uuid>_original.jpg/png`),
-  /// comprime para WebP (`<uuid>.webp`) e preserva o arquivo bruto intacto no disco.
+  /// comprime para WebP principal (`<uuid>.webp`), gera miniatura de impressão (`<uuid>_thumb.webp`)
+  /// e preserva o arquivo bruto intacto no disco.
   Future<File?> comprimirImagemSessao({
     required SessionBundleManager sessionManager,
     required String sessionId,
@@ -111,12 +152,20 @@ class MediaCompressorService {
       return null;
     }
 
-    // 2. Destino comprimido em WebP
+    // 2. Destino comprimido principal em WebP (2048x2048, q85)
     final outputPath = await sessionManager.getMediaFilePath(
       sessionId: sessionId,
       mediaUuid: mediaUuid,
       extension: '.webp',
     );
+
+    // 3. Destino da miniatura leve de impressão em WebP (600x600, q85)
+    final thumbPath = await sessionManager.getMediaFilePath(
+      sessionId: sessionId,
+      mediaUuid: '${mediaUuid}_thumb',
+      extension: '.webp',
+    );
+    await compressThumbnail(originalFile, thumbPath);
 
     return compressImage(originalFile, outputPath);
   }

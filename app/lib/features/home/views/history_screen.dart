@@ -5,8 +5,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:fixlog/features/home/providers/history_provider.dart';
 import 'package:fixlog/core/models/local/submission_record.dart';
 import 'package:fixlog/core/services/pdf_viewer_service.dart';
@@ -52,6 +50,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             builder: (_) => VisualizadorRelatorioScreen(
               caminhoEpub: caminhoEpub,
               caminhoPdf: caminhoPdf,
+              idSessao: record.idSessao,
               titulo: record.nomeProtocolo.isEmpty
                   ? 'Relatório Técnico'
                   : record.nomeProtocolo,

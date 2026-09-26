@@ -160,7 +160,7 @@ void main() {
     );
   });
 
-  test('Deve processar manifest e gerar relatório completo em EPUB 3 e PDF', () async {
+  test('Deve processar manifest e gerar relatório canônico em EPUB 3 assinado sem chamada síncrona de PDF', () async {
     final fakeWorkspace = Directory.systemTemp.createTempSync('workspace');
     when(() => mockRecoveryService.getWorkspaceDir()).thenAnswer((_) async => fakeWorkspace);
     when(() => mockRecoveryService.markAsProcessing(any())).thenAnswer((_) async {});
@@ -172,7 +172,7 @@ void main() {
     when(() => mockDraftService.drawDraft(any(), any(), any()))
         .thenAnswer((_) async => File('${fakeWorkspace.path}/draft.pdf')..writeAsStringSync('draft'));
 
-    final outPath = '${fakeWorkspace.path}/output.pdf';
+    final outPath = '${fakeWorkspace.path}/output.epub';
 
     await notifier.startGeneration('Teste', outPath, sessionId: '123');
 
@@ -180,7 +180,7 @@ void main() {
     expect(notifier.state.hasError, isFalse);
     expect(notifier.state.progress, 1.0);
     expect(notifier.state.epubPath, isNotNull);
-    expect(notifier.state.pdfPath, equals(outPath));
+    expect(notifier.state.pdfPath, isNull);
 
     verify(() => mockEpubPackager.empacotarEpub(
       idSessao: '123',
@@ -192,14 +192,14 @@ void main() {
       signaturesXml: any(named: 'signaturesXml'),
     )).called(1);
 
-    verify(() => mockPdfSummaryService.exportarPdfResumido(
-      caminhoSaida: outPath,
+    verifyNever(() => mockPdfSummaryService.exportarPdfResumido(
+      caminhoSaida: any(named: 'caminhoSaida'),
       registro: any(named: 'registro'),
-      idSessao: '123',
+      idSessao: any(named: 'idSessao'),
       urlCanonica: any(named: 'urlCanonica'),
       mapeamentoMidias: any(named: 'mapeamentoMidias'),
       posterFrames: any(named: 'posterFrames'),
-    )).called(1);
+    ));
 
     fakeWorkspace.deleteSync(recursive: true);
   });
@@ -222,7 +222,7 @@ void main() {
     expect(fakeIsar.fakeCollection.putCalls, 1);
     final savedRecord = fakeIsar.fakeCollection.lastSavedRecord!;
     expect(savedRecord.nomeProtocolo, 'Teste Protocolo');
-    expect(savedRecord.pdfPath, outPath);
+    expect(savedRecord.pdfPath, '');
     expect(savedRecord.idSessao, '123');
     expect(savedRecord.protobufPath, endsWith('.epub'));
 

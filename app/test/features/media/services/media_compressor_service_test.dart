@@ -120,6 +120,39 @@ void main() {
       expect(fakeImageCompress.lastMinHeight, equals(2048));
     });
 
+    test('compressThumbnail comprime para WebP qualidade 85 e 600x600', () async {
+      final imgOriginal = File('${tempDir.path}/foto.jpg');
+      await imgOriginal.writeAsBytes([10, 20, 30]);
+
+      final outPath = '${tempDir.path}/foto_thumb.webp';
+      final resultado = await service.compressThumbnail(imgOriginal, outPath);
+
+      expect(resultado, isNotNull);
+      expect(resultado!.path, equals(outPath));
+      expect(fakeImageCompress.lastFormat, equals(CompressFormat.webp));
+      expect(fakeImageCompress.lastQuality, equals(85));
+      expect(fakeImageCompress.lastMinWidth, equals(600));
+      expect(fakeImageCompress.lastMinHeight, equals(600));
+    });
+
+    test('compressThumbnail retorna null quando arquivo de entrada não existe', () async {
+      final imgInexistente = File('${tempDir.path}/inexistente.jpg');
+      final outPath = '${tempDir.path}/foto_thumb.webp';
+
+      final resultado = await service.compressThumbnail(imgInexistente, outPath);
+      expect(resultado, isNull);
+    });
+
+    test('compressThumbnail retorna null quando compressAndGetFile falha', () async {
+      fakeImageCompress.shouldFail = true;
+      final imgOriginal = File('${tempDir.path}/foto.jpg');
+      await imgOriginal.writeAsBytes([10, 20, 30]);
+
+      final outPath = '${tempDir.path}/foto_thumb.webp';
+      final resultado = await service.compressThumbnail(imgOriginal, outPath);
+      expect(resultado, isNull);
+    });
+
     test('compressImage retorna null quando arquivo de entrada não existe', () async {
       final imgInexistente = File('${tempDir.path}/inexistente.jpg');
       final outPath = '${tempDir.path}/foto.webp';
@@ -188,7 +221,7 @@ void main() {
       expect(resultado, isNull);
     });
 
-    test('comprimirImagemSessao preserva arquivo original intacto e gera webp', () async {
+    test('comprimirImagemSessao preserva arquivo original intacto e gera webp e miniatura _thumb.webp', () async {
       const sessionId = 'sessao-1';
       const mediaUuid = 'foto-uuid';
 
@@ -211,6 +244,43 @@ void main() {
       // Arquivo original continua existindo intacto
       expect(await originalFile.exists(), isTrue);
       expect(await originalFile.readAsBytes(), equals([1, 2, 3, 4, 5]));
+
+      // Miniatura de impressão também deve existir no bundle
+      final thumbPath = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_thumb',
+        extension: '.webp',
+      );
+      final thumbFile = File(thumbPath);
+      expect(await thumbFile.exists(), isTrue);
+    });
+
+    test('comprimirFotoSessao delega para comprimirImagemSessao gerando imagem e miniatura', () async {
+      const sessionId = 'sessao-alias';
+      const mediaUuid = 'foto-alias-uuid';
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.jpg',
+        bytes: Uint8List.fromList([10, 20, 30]),
+      );
+
+      final resultado = await service.comprimirFotoSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
+      expect(resultado, isNotNull);
+      expect(resultado!.path, endsWith('$mediaUuid.webp'));
+
+      final thumbPath = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_thumb',
+        extension: '.webp',
+      );
+      expect(await File(thumbPath).exists(), isTrue);
     });
 
     test('comprimirImagemSessao suporta fallback para png se jpg original não existir', () async {

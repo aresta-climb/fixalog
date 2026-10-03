@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/pdf_generation/ui/generation_progress_dialog.dart';
-import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/ui/generation_progress_dialog.dart';
+import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 
 class _FakeGenerationNotifier extends StateNotifier<GenerationState>
     implements GenerationNotifier {
@@ -36,7 +36,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Selando Laudo FixLog'), findsOneWidget);
+      expect(find.text('Selando Laudo Fixalog'), findsOneWidget);
       expect(find.text('Comprimindo mídias...'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
@@ -50,7 +50,7 @@ void main() {
               (ref) => _FakeGenerationNotifier(
                 GenerationState(
                   progress: 1.0,
-                  status: 'Selo FixLog aplicado com sucesso!',
+                  status: 'Selo Fixalog aplicado com sucesso!',
                   isComplete: true,
                   outputPath: '/path/to/laudo.epub',
                 ),
@@ -63,7 +63,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Selo FixLog aplicado com sucesso!'), findsOneWidget);
+      expect(find.text('Selo Fixalog aplicado com sucesso!'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(find.text('FECHAR'), findsOneWidget);
       expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);

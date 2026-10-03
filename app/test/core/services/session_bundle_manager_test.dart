@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
 
 // Mock path_provider
 class FakePathProviderPlatform extends Fake

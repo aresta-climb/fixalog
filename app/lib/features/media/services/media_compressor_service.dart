@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/features/media/services/video_transcoder_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 
 /// Assinatura para execução de áudio customizada (para testes).
 typedef ExecutadorAudio = Future<bool> Function(String comando);
 
-/// Serviço responsável pela compressão de mídias para relatórios do FixLog.
+/// Serviço responsável pela compressão de mídias para relatórios do Fixalog.
 ///
 /// Calibração oficial conforme especificações de design e EPUB 3:
 /// - Imagens: WebP (4MP, qualidade 85, máx 2048x2048).

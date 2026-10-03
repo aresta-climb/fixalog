@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Step;
@@ -12,7 +12,7 @@ import '../../../core/services/protocol_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'widgets/signature_modal.dart';
@@ -183,7 +183,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'FIXLOG',
+                          'FIXALOG',
                           style: TextStyle(
                             color: Color(0xFFFF6B00),
                             fontFamily: 'SpaceGrotesk',
@@ -1723,27 +1723,6 @@ class _CampoSimplesContent extends ConsumerWidget {
     );
   }
 
-  InputDecoration _inputDec(String hint) => InputDecoration(
-    filled: true,
-    fillColor: Colors.black26,
-    hintText: hint,
-    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
-    contentPadding: const EdgeInsets.all(16),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(
-        color: const Color(0xFFFF6B00).withValues(alpha: 0.5),
-      ),
-    ),
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2054,7 +2033,7 @@ class SummaryConclusionCard extends ConsumerWidget {
                 final protocol = ref.read(wizardControllerProvider).protocol;
 
                 await ref.read(generationProvider.notifier).startGeneration(
-                  protocol?.nome ?? 'Relatório FixLog',
+                  protocol?.nome ?? 'Relatório Fixalog',
                   outputPath,
                   sessionId: sessionId,
                 );

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:basic_utils/basic_utils.dart';
-import 'package:fixlog/core/services/xml_dsig_signer.dart';
+import 'package:fixalog/core/services/xml_dsig_signer.dart';
 
 void main() {
   group('XmlDsigSigner - Testes Unitários', () {

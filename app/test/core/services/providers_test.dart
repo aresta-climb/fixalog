@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/core/services/providers.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
+import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
 
 void main() {
   test('cryptoServiceProvider should provide CryptoService instance', () {

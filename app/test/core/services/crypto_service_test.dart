@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -131,7 +131,7 @@ void main() {
       // Parse the cert to verify its subject
       final x509 = X509Utils.x509CertificateFromPem(certPem);
       expect(x509.subject, containsPair('2.5.4.3', 'Renato')); // CN
-      expect(x509.subject, containsPair('2.5.4.10', 'FixLog')); // O
+      expect(x509.subject, containsPair('2.5.4.10', 'Fixalog')); // O
       when(
         () => mockSecureStorage.read(key: 'public_key'),
       ).thenAnswer((_) async => null);

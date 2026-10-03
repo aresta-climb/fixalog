@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:crypto/crypto.dart';
@@ -22,7 +22,7 @@ class AtualizadorVersaoLegal {
     final arquivoPolitica = File('$caminhoRepositorio/public/docs/politica-de-privacidade-fixlog.md');
 
     if (!await arquivoTermos.exists() || !await arquivoPolitica.exists()) {
-      stderr.writeln('Erro: Documentos legais do FixLog não encontrados em $caminhoRepositorio/public/docs/.');
+      stderr.writeln('Erro: Documentos legais do Fixalog não encontrados em $caminhoRepositorio/public/docs/.');
       return false;
     }
 

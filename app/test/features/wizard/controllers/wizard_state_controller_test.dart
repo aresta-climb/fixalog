@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 // test/wizard_state_controller_test.dart
 //
@@ -10,9 +10,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fixlog/core/models/proto/protos/wizard.pb.dart';
-import 'package:fixlog/features/wizard/controllers/wizard_state_controller.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
+import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixnum/fixnum.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────

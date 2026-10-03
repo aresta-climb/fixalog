@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 void main() {
   group('PdfDraftService', () {

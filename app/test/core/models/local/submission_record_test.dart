@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
 
 void main() {
   late Isar isar;

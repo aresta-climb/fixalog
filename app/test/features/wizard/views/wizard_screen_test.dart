@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/wizard/views/wizard_screen.dart';
+import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 
 void main() {
   const testYaml = '''
@@ -38,7 +38,7 @@ blocos:
 
       await tester.pumpAndSettle();
 
-      expect(find.text('FIXLOG'), findsOneWidget);
+      expect(find.text('FIXALOG'), findsOneWidget);
       expect(find.text('Tipo de Chapeleta'), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
     });

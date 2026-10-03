@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/epub_packager_service.dart';
 
 void main() {
   group('EpubPackagerService - Testes Unitários', () {

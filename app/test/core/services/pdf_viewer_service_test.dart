@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:fixlog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/core/services/pdf_viewer_service.dart';
 
 void main() {
   group('PdfViewerService', () {

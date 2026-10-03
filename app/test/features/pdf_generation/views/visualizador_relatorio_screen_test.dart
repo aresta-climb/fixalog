@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:async';
 import 'dart:io';
@@ -7,11 +7,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
-import 'package:fixlog/core/services/epub_extrator_service.dart';
-import 'package:fixlog/core/services/pdf_print_summary_service.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
+import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService {
   String? ultimoCaminhoSaida;

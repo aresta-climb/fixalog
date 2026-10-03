@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -302,7 +302,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'Ao clicar em gerar chaves, você concorda com os termos de responsabilidade técnica e segurança ambiental da FixLog v2.4.',
+                        'Ao clicar em gerar chaves, você concorda com os termos de responsabilidade técnica e segurança ambiental da Fixalog v2.4.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white38,
                           fontSize: 11,

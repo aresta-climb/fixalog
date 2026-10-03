@@ -121,7 +121,7 @@ jobs:
             <string>Apple Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.arestaclimb.fixlog</key>
+              <key>com.arestaclimb.fixalog</key>
               <string>${{ env.PROVISIONING_PROFILE_UUID }}</string>
             </dict>
           </dict>
@@ -153,7 +153,7 @@ jobs:
           
           # Se o APPSTORE_APPLE_ID for fornecido, inclui no comando, senão usa lookup por bundle-id
           if [ -n "$APPLE_ID" ]; then
-            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID" --bundle-id "com.arestaclimb.fixlog"
+            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID" --bundle-id "com.arestaclimb.fixalog"
           else
-            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --bundle-id "com.arestaclimb.fixlog"
+            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --bundle-id "com.arestaclimb.fixalog"
           fi

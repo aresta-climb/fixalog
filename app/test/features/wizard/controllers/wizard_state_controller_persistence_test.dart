@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -8,12 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:isar_community/isar.dart';
 
-import 'package:fixlog/core/models/proto/protos/wizard.pb.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/features/wizard/controllers/wizard_state_controller.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
+import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 
 class MockSessionBundleManager extends Mock implements SessionBundleManager {}
 

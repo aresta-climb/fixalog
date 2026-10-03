@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/home/views/history_screen.dart';
-import 'package:fixlog/features/home/providers/history_provider.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/features/home/views/history_screen.dart';
+import 'package:fixalog/features/home/providers/history_provider.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/pdf_viewer_service.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? customPdfViewer}) {
   return ProviderScope(
@@ -34,11 +34,11 @@ Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? custo
 
 void main() {
   group('HistoryScreen Widget Tests (TDD)', () {
-    testWidgets('Exibe o header FIXLOG', (tester) async {
+    testWidgets('Exibe o header FIXALOG', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(find.text('FIXLOG'), findsOneWidget);
+      expect(find.text('FIXALOG'), findsOneWidget);
     });
 
     testWidgets('Exibe título da página "Histórico"', (tester) async {
@@ -200,7 +200,7 @@ void main() {
     testWidgets('Item com PDF que possui EPUB irmão correspondente abre VisualizadorRelatorioScreen', (tester) async {
       final tempDir = Directory.systemTemp.createTempSync('hist_epub_test_');
       final fakePdf = File('${tempDir.path}/relatorio_com_irmao.pdf')..writeAsStringSync('fake pdf');
-      final fakeEpub = File('${tempDir.path}/relatorio_com_irmao.epub')..writeAsStringSync('fake epub');
+      File('${tempDir.path}/relatorio_com_irmao.epub').writeAsStringSync('fake epub');
 
       final logs = [
         SubmissionRecord()

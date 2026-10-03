@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -105,7 +105,7 @@ class NewProtocolScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'FIXLOG',
+                      'FIXALOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
                         fontFamily: 'SpaceGrotesk',

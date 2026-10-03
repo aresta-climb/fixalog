@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import '../models/proto/protos/registro.pb.dart';
 
@@ -12,7 +12,7 @@ class EpubDocumentBuilder {
   /// Gera a folha de estilos CSS completa com regras para visualização em tela e impressão.
   String gerarCss() {
     return '''
-/* Estilos Gerais do Relatório FixLog */
+/* Estilos Gerais do Relatório Fixalog */
 :root {
   --cor-fundo: #121416;
   --cor-superficie: #1a1c1e;
@@ -182,7 +182,7 @@ h2 {
 
     // Cabeçalho exclusivo para versão impressa (PDF Resumido)
     buffer.writeln('  <div class="cabecalho-versao-impressa">');
-    buffer.writeln('    <p><strong>FixLog — Relatório Técnico de Manutenção (Versão Resumida)</strong></p>');
+    buffer.writeln('    <p><strong>Fixalog — Relatório Técnico de Manutenção (Versão Resumida)</strong></p>');
     buffer.writeln(
       '    <p>Este documento é uma representação impressa. O relatório canônico oficial — contendo os vídeos originais de inspeção em alta definição e dados brutos — está disponível em:</p>',
     );

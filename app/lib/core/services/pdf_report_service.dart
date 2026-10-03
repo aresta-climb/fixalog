@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
@@ -22,7 +22,7 @@ class PdfReportService {
             pw.Header(
               level: 0,
               child: pw.Text(
-                "Relatório de Manutenção - FixLog",
+                "Relatório de Manutenção - Fixalog",
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
-import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
+import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 class GenerationProgressDialog extends ConsumerWidget {
   const GenerationProgressDialog({super.key});
@@ -16,7 +16,7 @@ class GenerationProgressDialog extends ConsumerWidget {
     return PopScope(
       canPop: state.isComplete || state.hasError,
       child: AlertDialog(
-        title: const Text('Selando Laudo FixLog'),
+        title: const Text('Selando Laudo Fixalog'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
-import 'features/onboarding/views/tela_termos_de_uso.dart' as fixlog_onboarding;
+import 'features/onboarding/views/tela_termos_de_uso.dart' as fixalog_onboarding;
 import 'core/constantes/versao_legal.g.dart';
 import 'core/models/local/identity_record.dart';
 import 'core/models/local/submission_record.dart';
@@ -28,18 +28,18 @@ void main() async {
       overrides: [
         isarProvider.overrideWithValue(isar),
       ],
-      child: const FixLogApp(),
+      child: const FixalogApp(),
     ),
   );
 }
 
-class FixLogApp extends StatelessWidget {
-  const FixLogApp({super.key});
+class FixalogApp extends StatelessWidget {
+  const FixalogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FixLog',
+      title: 'Fixalog',
       themeMode: ThemeMode.dark,
       builder: (context, child) {
         final mediaQueryData = MediaQuery.of(context);
@@ -103,7 +103,7 @@ class _StartupRouter extends ConsumerWidget {
     final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= kVersaoLegal;
 
     if (!acceptedTerms) {
-      return const fixlog_onboarding.TelaTermosDeUso();
+      return const fixalog_onboarding.TelaTermosDeUso();
     }
 
     final hasIdentityAsync = ref.watch(hasIdentityProvider);

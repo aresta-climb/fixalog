@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -10,9 +10,9 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_image_compress_platform_interface/flutter_image_compress_platform_interface.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/features/media/services/media_compressor_service.dart';
-import 'package:fixlog/features/media/services/video_transcoder_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/features/media/services/media_compressor_service.dart';
+import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 import 'package:ffmpeg_kit_flutter_platform_interface/ffmpeg_kit_flutter_platform_interface.dart';
 
 class FakeFlutterImageCompressPlatform extends Fake

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 class PdfDraftService {
   /// Gera o PDF estrutural (Rascunho) com textos, imagens estáticas e placeholders

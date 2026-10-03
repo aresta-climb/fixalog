@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:archive/archive.dart';
-import 'package:fixlog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/epub_extrator_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +39,7 @@ void main() {
     final videoBytes = [1, 2, 3, 4, 5];
     archive.addFile(ArchiveFile('OEBPS/midias/video1.mp4', videoBytes.length, videoBytes));
 
-    final zipBytes = ZipEncoder().encode(archive)!;
+    final zipBytes = ZipEncoder().encode(archive);
     final epubFile = File('${tempDir.path}/laudo_teste.epub');
     await epubFile.writeAsBytes(zipBytes);
 
@@ -101,7 +101,7 @@ void main() {
     final archive = Archive();
     final xhtmlContent = '<html><body>Personalizado</body></html>';
     archive.addFile(ArchiveFile('conteudo/outro.xhtml', xhtmlContent.length, utf8.encode(xhtmlContent)));
-    final zipBytes = ZipEncoder().encode(archive)!;
+    final zipBytes = ZipEncoder().encode(archive);
     final epubFile = File('${tempDir.path}/nao_padrao.epub');
     await epubFile.writeAsBytes(zipBytes);
 
@@ -113,7 +113,7 @@ void main() {
   test('Deve lançar FormatException quando não houver arquivo XHTML no EPUB', () async {
     final archive = Archive();
     archive.addFile(ArchiveFile('texto.txt', 4, utf8.encode('olá')));
-    final zipBytes = ZipEncoder().encode(archive)!;
+    final zipBytes = ZipEncoder().encode(archive);
     final epubFile = File('${tempDir.path}/sem_xhtml.epub');
     await epubFile.writeAsBytes(zipBytes);
 

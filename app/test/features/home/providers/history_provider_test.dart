@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/features/home/providers/history_provider.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixalog/features/home/providers/history_provider.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
 
 import 'dart:io';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mocktail/mocktail.dart';
 

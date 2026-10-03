@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/features/wizard/views/widgets/signature_modal.dart';
+import 'package:fixalog/features/wizard/views/widgets/signature_modal.dart';
 import 'package:signature/signature.dart';
 
 void main() {

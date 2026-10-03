@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -53,7 +53,7 @@ class XmlDsigSigner {
     final bufferFinal = StringBuffer();
     bufferFinal.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     bufferFinal.writeln('<signatures xmlns="urn:oasis:names:tc:opendocument:xmlns:container">');
-    bufferFinal.writeln('  <Signature xmlns="http://www.w3.org/2000/09/xmldsig#" id="FixLogSignature">');
+    bufferFinal.writeln('  <Signature xmlns="http://www.w3.org/2000/09/xmldsig#" id="FixalogSignature">');
     bufferFinal.writeln('    $signedInfoXml');
     bufferFinal.writeln('    <SignatureValue>$signatureValueBase64</SignatureValue>');
 

@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fixlog/core/services/providers.dart';
-import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
-import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:fixlog/features/media/services/media_compressor_service.dart';
-import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/core/services/epub_document_builder.dart';
-import 'package:fixlog/core/services/epub_packager_service.dart';
-import 'package:fixlog/core/services/xml_dsig_signer.dart';
-import 'package:fixlog/core/services/pdf_print_summary_service.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixalog/features/media/services/media_compressor_service.dart';
+import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/epub_document_builder.dart';
+import 'package:fixalog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/xml_dsig_signer.dart';
+import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
 
 class MockPdfDraftService extends Mock implements PdfDraftService {}
 class MockMediaCompressorService extends Mock implements MediaCompressorService {}

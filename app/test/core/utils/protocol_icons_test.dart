@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/core/utils/protocol_icons.dart';
+import 'package:fixalog/core/utils/protocol_icons.dart';
 
 void main() {
   group('ProtocolIcons Utility Tests', () {

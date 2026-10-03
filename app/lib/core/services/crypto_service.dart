@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
@@ -36,7 +36,7 @@ class CryptoService {
     }
   }
 
-  /// Gera um Certificado X.509 Autoassinado com CN=Nome, O=FixLog
+  /// Gera um Certificado X.509 Autoassinado com CN=Nome, O=Fixalog
   Future<String> generateX509Certificate(String mantenedorName) async {
     final privateKeyPem = await _secureStorage.read(key: 'private_key');
     final publicKeyPem = await _secureStorage.read(key: 'public_key');
@@ -50,7 +50,7 @@ class CryptoService {
     final privateKey = CryptoUtils.ecPrivateKeyFromPem(privateKeyPem);
     final publicKey = CryptoUtils.ecPublicKeyFromPem(publicKeyPem);
 
-    final subject = {'CN': mantenedorName, 'O': 'FixLog'};
+    final subject = {'CN': mantenedorName, 'O': 'Fixalog'};
 
     final csr = X509Utils.generateEccCsrPem(subject, privateKey, publicKey);
 

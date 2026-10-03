@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +12,7 @@ import '../../identity/views/identity_setup_screen.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
 import '../../home/views/home_screen.dart';
 
-/// Tela obrigatória de consentimento e aceite dos Termos de Uso e Política de Privacidade do FixLog.
+/// Tela obrigatória de consentimento e aceite dos Termos de Uso e Política de Privacidade do Fixalog.
 class TelaTermosDeUso extends ConsumerStatefulWidget {
   final AssetBundle? assetBundle;
   final VoidCallback? aoAceitar;
@@ -77,7 +77,7 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
           appBar: AppBar(
             backgroundColor: const Color(0xFF121416),
             title: const Text(
-              'Política de Privacidade - FixLog',
+              'Política de Privacidade - Fixalog',
               style: TextStyle(fontFamily: 'SpaceGrotesk', fontSize: 16),
             ),
             leading: IconButton(

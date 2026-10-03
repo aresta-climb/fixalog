@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/features/pdf_generation/models/generation_media.dart';
+import 'package:fixalog/features/pdf_generation/models/generation_media.dart';
 
 void main() {
   group('GenerationMedia Model Tests', () {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 // test/validate_protocols_test.dart
 //
@@ -12,8 +12,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fixlog/core/models/proto/protos/wizard.pb.dart';
-import 'package:fixlog/core/services/protocol_parser.dart';
+import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
+import 'package:fixalog/core/services/protocol_parser.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers para os testes — adaptados para o novo schema (Step.conteudos)
@@ -29,33 +29,6 @@ List<File> _getProtocolFiles() {
     ..sort((a, b) => a.path.compareTo(b.path));
 }
 
-/// Coleta recursivamente todos os ConteudoSteps de um certo tipo em uma lista
-/// de steps (incluindo dentro de ramos e tipos de ação).
-void _collectConteudosByType(
-  List<Step> steps,
-  ConteudoStep_Tipo tipo,
-  List<ConteudoStep> result,
-) {
-  for (final step in steps) {
-    for (final c in step.conteudos) {
-      if (c.whichTipo() == tipo) {
-        result.add(c);
-      }
-      // Recursão em ramos
-      if (c.whichTipo() == ConteudoStep_Tipo.selecaoRamo) {
-        for (final ramo in c.selecaoRamo.ramos) {
-          _collectConteudosByType(ramo.steps, tipo, result);
-        }
-      }
-      // Recursão em tipos de ação de listas
-      if (c.whichTipo() == ConteudoStep_Tipo.listaAcoes) {
-        for (final tipo in c.listaAcoes.tiposDisponiveis) {
-          _collectConteudosByType(tipo.steps, c.whichTipo(), result);
-        }
-      }
-    }
-  }
-}
 
 /// Coleta os IDs de todos os ConteudoSteps do tipo listaAcoes no protocolo.
 Set<String> _collectListaConteudoIds(DefinicaoProtocolo proto) {

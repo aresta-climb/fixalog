@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/home/views/home_screen.dart';
-import 'package:fixlog/features/home/providers/history_provider.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/core/models/local/identity_record.dart';
+import 'package:fixalog/features/home/views/home_screen.dart';
+import 'package:fixalog/features/home/providers/history_provider.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/core/models/local/identity_record.dart';
 
 // Helper que envolve o widget numa árvore mínima com providers mockados.
 Widget _buildTestApp({IdentityRecord? identity}) {

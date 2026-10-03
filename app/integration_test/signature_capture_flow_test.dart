@@ -1,15 +1,14 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/wizard/views/widgets/signature_modal.dart';
+import 'package:fixalog/features/wizard/views/widgets/signature_modal.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Fluxo de Integração: Abertura e captura de assinatura sem crash de render box', (tester) async {
-    Uint8List? signatureResult;
-
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -18,7 +17,7 @@ void main() {
               builder: (context) => Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    signatureResult = await showDialog<Uint8List>(
+                    await showDialog<Uint8List>(
                       context: context,
                       builder: (ctx) => const SignatureModal(),
                     );

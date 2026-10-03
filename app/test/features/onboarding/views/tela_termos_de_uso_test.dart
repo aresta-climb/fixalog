@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/features/onboarding/views/tela_termos_de_uso.dart';
-import 'package:fixlog/core/models/local/app_config_record.dart';
-import 'package:fixlog/core/constantes/versao_legal.g.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/features/home/views/home_screen.dart';
-import 'package:fixlog/features/identity/views/identity_setup_screen.dart';
+import 'package:fixalog/features/onboarding/views/tela_termos_de_uso.dart';
+import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/core/constantes/versao_legal.g.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/features/home/views/home_screen.dart';
+import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
 
 class PacoteAssetsTeste extends Fake implements AssetBundle {
   final Map<String, String> arquivos;
@@ -129,7 +129,7 @@ void main() {
     await tester.tap(btnPolitica);
     await tester.pumpAndSettle();
 
-    expect(find.text('Política de Privacidade - FixLog'), findsOneWidget);
+    expect(find.text('Política de Privacidade - Fixalog'), findsOneWidget);
     expect(find.textContaining('Politica FixLog'), findsOneWidget);
 
     // Fecha o modal

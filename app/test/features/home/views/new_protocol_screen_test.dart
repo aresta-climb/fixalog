@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/home/views/new_protocol_screen.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/core/models/local/identity_record.dart';
-import 'package:fixlog/features/wizard/views/wizard_screen.dart';
+import 'package:fixalog/features/home/views/new_protocol_screen.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/core/models/local/identity_record.dart';
+import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 
 // Helper: monta a tela com um provider de identidade mockado.
 Widget _buildScreen({IdentityRecord? identity}) {
@@ -23,11 +23,11 @@ Widget _buildScreen({IdentityRecord? identity}) {
 
 void main() {
   group('NewProtocolScreen Widget Tests', () {
-    testWidgets('Exibe o header FIXLOG', (tester) async {
+    testWidgets('Exibe o header FIXALOG', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(find.text('FIXLOG'), findsOneWidget);
+      expect(find.text('FIXALOG'), findsOneWidget);
     });
 
     testWidgets('Exibe saudação genérica quando identidade está vazia', (

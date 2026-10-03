@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
-import 'package:fixlog/core/services/epub_document_builder.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/epub_document_builder.dart';
 
 void main() {
   group('EpubDocumentBuilder - Testes Unitários', () {
@@ -29,7 +29,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_abc',
-        urlCanonica: 'https://fixlog.app/v/sessao_abc',
+        urlCanonica: 'https://fixalog.app/v/sessao_abc',
         qrCodeCanonica: 'midias/qr_principal.png',
       );
 
@@ -38,7 +38,7 @@ void main() {
       expect(xhtml, contains('xmlns="http://www.w3.org/1999/xhtml"'));
       expect(xhtml, contains('xmlns:epub="http://www.idpf.org/2007/ops"'));
       expect(xhtml, contains('protocolo_teste_123'));
-      expect(xhtml, contains('https://fixlog.app/v/sessao_abc'));
+      expect(xhtml, contains('https://fixalog.app/v/sessao_abc'));
       expect(xhtml, contains('<img src="midias/qr_principal.png" class="qr-code"'));
     });
 
@@ -54,7 +54,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_999',
-        urlCanonica: 'https://fixlog.app/v/sessao_999',
+        urlCanonica: 'https://fixalog.app/v/sessao_999',
       );
 
       expect(xhtml, contains('>material:</span> <span>Titânio Grau 2</span>'));
@@ -81,7 +81,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_foto',
-        urlCanonica: 'https://fixlog.app/v/sessao_foto',
+        urlCanonica: 'https://fixalog.app/v/sessao_foto',
         mapeamentoMidias: {'uuid-foto-1': 'midias/uuid-foto-1.webp'},
       );
 
@@ -101,7 +101,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_video',
-        urlCanonica: 'https://fixlog.app/v/sessao_video',
+        urlCanonica: 'https://fixalog.app/v/sessao_video',
         mapeamentoMidias: {'uuid-video-1': 'midias/uuid-video-1.mp4'},
         posterFrames: {'uuid-video-1': 'midias/uuid-video-1_poster.webp'},
         qrCodesVideos: {'uuid-video-1': 'midias/uuid-video-1_qr.png'},
@@ -151,7 +151,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_lista',
-        urlCanonica: 'https://fixlog.app/v/sessao_lista',
+        urlCanonica: 'https://fixalog.app/v/sessao_lista',
         mapeamentoMidias: {
           'uuid-item-foto': 'midias/uuid-item-foto.webp',
           'uuid-item-video': 'midias/uuid-item-video.mp4',
@@ -175,7 +175,7 @@ void main() {
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'vazio',
-        urlCanonica: 'https://fixlog.app/v/vazio',
+        urlCanonica: 'https://fixalog.app/v/vazio',
       );
 
       expect(xhtml, contains('<!DOCTYPE html>'));

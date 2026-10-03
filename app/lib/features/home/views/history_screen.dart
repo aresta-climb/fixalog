@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/home/providers/history_provider.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/core/services/pdf_viewer_service.dart';
-import 'package:fixlog/features/wizard/views/wizard_screen.dart';
-import 'package:fixlog/features/wizard/controllers/wizard_state_controller.dart';
-import 'package:fixlog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
+import 'package:fixalog/features/home/providers/history_provider.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/features/wizard/views/wizard_screen.dart';
+import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -153,7 +153,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'FIXLOG',
+                      'FIXALOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
                         fontFamily: 'SpaceGrotesk',

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/core/services/pdf_report_service.dart';
-import 'package:fixlog/core/models/proto/protos/fixalog.pb.dart';
+import 'package:fixalog/core/services/pdf_report_service.dart';
+import 'package:fixalog/core/models/proto/protos/fixalog.pb.dart';
 
 void main() {
   group('PdfReportService Tests', () {

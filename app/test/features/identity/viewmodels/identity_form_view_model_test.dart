@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/features/identity/repositories/identity_repository.dart';
-import 'package:fixlog/core/models/local/identity_record.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/features/identity/repositories/identity_repository.dart';
+import 'package:fixalog/core/models/local/identity_record.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
 
 class MockIdentityRepository implements IdentityRepository {
   bool saveCalled = false;

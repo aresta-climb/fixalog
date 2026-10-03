@@ -1,5 +1,5 @@
 name: atualizador_legal
-description: "Utilitário de versionamento e integridade dos termos legais do FixLog"
+description: "Utilitário de versionamento e integridade dos termos legais do Fixalog"
 version: 1.0.0
 publish_to: 'none'
 

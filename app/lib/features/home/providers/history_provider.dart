@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
-import 'package:fixlog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
+import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'dart:io';
 
 /// Repositório central para gerenciar o Histórico de Registros Expresso já concluídos.
@@ -52,8 +52,8 @@ class HistoryRepository {
     }
 
     // 3. Apagar do Isar
-    await _isar!.writeTxn(() async {
-      await _isar!.collection<SubmissionRecord>().delete(record.id);
+    await _isar.writeTxn(() async {
+      await _isar.collection<SubmissionRecord>().delete(record.id);
     });
 
     // 4. Deletar o Session Bundle

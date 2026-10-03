@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
 import 'dart:io';
@@ -11,12 +11,12 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/core/services/pdf_print_summary_service.dart';
-import 'package:fixlog/core/services/epub_extrator_service.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart'
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart'
     show isarProvider;
 
 /// Tela para visualização no aplicativo do relatório técnico de manutenção gerado em EPUB 3 (XHTML responsivo).
@@ -146,13 +146,13 @@ class _VisualizadorRelatorioScreenState
       if (widget.compartilharArquivosProxy != null) {
         await widget.compartilharArquivosProxy!(
           [widget.caminhoEpub!],
-          subject: 'Relatório Técnico FixLog (EPUB 3)',
+          subject: 'Relatório Técnico Fixalog (EPUB 3)',
         );
       } else {
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(widget.caminhoEpub!)],
-            subject: 'Relatório Técnico FixLog (EPUB 3)',
+            subject: 'Relatório Técnico Fixalog (EPUB 3)',
           ),
         );
       }
@@ -349,7 +349,7 @@ class _VisualizadorRelatorioScreenState
     final pdfService = widget.pdfSummaryService ?? PdfPrintSummaryService();
     final caminhoPdfSaida =
         await sessionManager.getReportFilePath(sessionId: sid);
-    final urlCanonica = 'https://fixlog.app/v/$sid';
+    final urlCanonica = 'https://fixalog.app/v/$sid';
 
     final pdfFile = await pdfService.exportarPdfResumido(
       caminhoSaida: caminhoPdfSaida,
@@ -398,13 +398,13 @@ class _VisualizadorRelatorioScreenState
       if (widget.compartilharArquivosProxy != null) {
         await widget.compartilharArquivosProxy!(
           [caminhoPdf],
-          subject: 'Relatório Técnico Resumido FixLog (PDF)',
+          subject: 'Relatório Técnico Resumido Fixalog (PDF)',
         );
       } else {
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(caminhoPdf)],
-            subject: 'Relatório Técnico Resumido FixLog (PDF)',
+            subject: 'Relatório Técnico Resumido Fixalog (PDF)',
           ),
         );
       }

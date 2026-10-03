@@ -1,16 +1,15 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:fixlog/main.dart';
-import 'package:fixlog/core/models/local/identity_record.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/core/models/local/app_config_record.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart';
-import 'package:fixlog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/main.dart';
+import 'package:fixalog/core/models/local/identity_record.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/core/services/pdf_viewer_service.dart';
 import 'package:open_filex/open_filex.dart';
 
 void main() {
@@ -62,7 +61,7 @@ void main() {
           isarProvider.overrideWithValue(isar),
           pdfViewerServiceProvider.overrideWithValue(mockPdfViewerService),
         ],
-        child: const FixLogApp(),
+        child: const FixalogApp(),
       ),
     );
 
@@ -89,7 +88,7 @@ void main() {
       ..dataInclusao = DateTime(2025, 1, 1)
       ..hashAssinatura = 'abc123hash'
       ..pdfPath = fakePdf.path
-      ..yamlPath = '${testDir.path}/yaml.yaml';
+      ..protobufPath = '${testDir.path}/laudo.epub';
 
     await isar.writeTxn(() async {
       await isar.submissionRecords.put(novoRegistro);

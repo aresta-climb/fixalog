@@ -5,10 +5,11 @@ import 'package:integration_test/integration_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:fixlog/main.dart';
-import 'package:fixlog/core/models/local/identity_record.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/core/models/local/app_config_record.dart';
+import 'package:fixalog/main.dart';
+import 'package:fixalog/core/models/local/identity_record.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -43,7 +44,7 @@ void main() {
         overrides: [
           isarProvider.overrideWithValue(isar),
         ],
-        child: const FixLogApp(),
+        child: const FixalogApp(),
       ),
     );
     await tester.pumpAndSettle();

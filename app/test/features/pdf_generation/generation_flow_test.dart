@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,21 +8,20 @@ import 'package:mocktail/mocktail.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
 import 'package:printing/src/interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:archive/archive.dart';
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/core/services/epub_document_builder.dart';
-import 'package:fixlog/core/services/epub_packager_service.dart';
-import 'package:fixlog/core/services/xml_dsig_signer.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
-import 'package:fixlog/core/services/pdf_print_summary_service.dart';
-import 'package:fixlog/features/media/services/media_compressor_service.dart';
-import 'package:fixlog/features/pdf_generation/providers/generation_provider.dart';
-import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/epub_document_builder.dart';
+import 'package:fixalog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/xml_dsig_signer.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/features/media/services/media_compressor_service.dart';
+import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 
 class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 

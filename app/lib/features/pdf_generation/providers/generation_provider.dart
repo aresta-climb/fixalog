@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright (c) 2026 FixLog Contributors
+// Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixlog/features/media/services/media_compressor_service.dart';
-import 'package:fixlog/features/pdf_generation/services/generation_recovery_service.dart';
-import 'package:fixlog/core/services/session_bundle_manager.dart';
-import 'package:fixlog/core/services/epub_document_builder.dart';
-import 'package:fixlog/core/services/epub_packager_service.dart';
-import 'package:fixlog/core/services/xml_dsig_signer.dart';
-import 'package:fixlog/core/services/pdf_print_summary_service.dart';
-import 'package:fixlog/core/services/crypto_service.dart';
-import 'package:fixlog/core/services/providers.dart';
-import 'package:fixlog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixalog/features/media/services/media_compressor_service.dart';
+import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/epub_document_builder.dart';
+import 'package:fixalog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/xml_dsig_signer.dart';
+import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
 import 'package:isar_community/isar.dart';
-import 'package:fixlog/core/models/local/submission_record.dart';
-import 'package:fixlog/features/identity/viewmodels/identity_form_view_model.dart'
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart'
     show isarProvider;
-import 'package:fixlog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 // Estado da Geração
 class GenerationState {
@@ -165,7 +165,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final Map<String, String> mapeamentoMidias = {};
       final Map<String, String> posterFrames = {};
       final Map<String, String> qrCodesVideos = {};
-      final urlCanonica = 'https://fixlog.app/v/$sid';
+      final urlCanonica = 'https://fixalog.app/v/$sid';
 
       // 2. Comprimir Fotos em WebP 4MP q85
       for (final uuid in fotosUuids) {
@@ -247,7 +247,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         x509CertPem = await _cryptoService.generateX509Certificate(
           registro.idProtocolo.isNotEmpty
               ? registro.idProtocolo
-              : 'FixLog',
+              : 'Fixalog',
         );
       } catch (_) {
         x509CertPem = publicKeyPem;

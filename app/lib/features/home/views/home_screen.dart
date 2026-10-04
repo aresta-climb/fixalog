@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF060908),
       body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: _FixlogBottomBar(
+      bottomNavigationBar: _FixalogBottomBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
       ),
@@ -141,8 +141,8 @@ class _SettingsPlaceholder extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Bottom Bar
 // ---------------------------------------------------------------------------
-class _FixlogBottomBar extends StatelessWidget {
-  const _FixlogBottomBar({required this.currentIndex, required this.onTap});
+class _FixalogBottomBar extends StatelessWidget {
+  const _FixalogBottomBar({required this.currentIndex, required this.onTap});
 
   final int currentIndex;
   final ValueChanged<int> onTap;

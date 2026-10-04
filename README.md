@@ -1,63 +1,118 @@
-# FixLog
+# Fixalog
 
-Catalogue suas proteções fixas durantes abertura ou manutenções de vias de
-escalada!
+> **Aplicativo de inventário, auditoria técnica e laudos periciais de proteções fixas em vias de escalada.**
 
-## 🛠️ Configuração do Ambiente de Desenvolvimento (Toolchains)
+O **Fixalog** é uma ferramenta de campo desenvolvida para conquistadores, mantenedores e entidades de montanhismo catalogarem, auditarem e emitirem relatórios técnicos verificáveis sobre o estado de conservação de proteções fixas (grampos, chapeletas, paradas, rapéis e ancoragens).
 
-Este projeto utiliza **Flutter** para a interface móvel e um núcleo em **Rust**
-para processamento criptográfico de PDFs pesados. Para compilar o aplicativo
-localmente, você precisará configurar ambas as toolchains.
+Faz parte do ecossistema de código aberto da **Aresta Climb**.
 
-### 1. Flutter SDK
+---
 
-Siga as instruções oficiais para instalar o Flutter no seu sistema operacional:
-[Instalação do Flutter](https://docs.flutter.dev/get-started/install)
+## ⚡ Principais Funcionalidades
 
-- Certifique-se de rodar `flutter doctor` no terminal e resolver as pendências
-  (Android Studio / Xcode).
+- **📱 Funcionamento 100% Offline-First**: Projetado para operar em ambientes remotos de montanha sem conexão à internet, com persistência local reativa via Isar Database.
+- **🔐 Laudos Periciais em EPUB 3 com XML-DSig**: Geração de containers padronizados em EPUB 3 contendo fotos e vídeos comprimidos, dados brutos em Protobuf e assinatura digital criptográfica (X.509) do responsável técnico.
+- **📄 Sumários Executivos em PDF**: Emissão de relatórios resumidos em PDF com QR Code canônico para validação de autenticidade no domínio `https://fixalog.app/v/<id>`.
+- **📍 Auditoria de Localização e Antifraude**: Coleta e validação de coordenadas geográficas (GPS) com marca d'água forense e registro de cadeia de custódia.
+- **🎬 Compressão Otimizada de Mídias**: Transcodificação local de fotos e vídeos para manter pacotes leves e portáveis.
 
-### 2. Rust (rustup)
+---
 
-Instale o compilador da linguagem Rust via `rustup` (gerenciador oficial):
+## 🛠️ Stack Tecnológica
 
-- **Linux/macOS:** Rode
-  `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` no terminal.
-- **Windows:** Baixe e instale o arquivo `rustup-init.exe` em
-  [rustup.rs](https://rustup.rs/).
+O Fixalog é construído inteiramente em **Flutter/Dart** puro, sem necessidade de toolchains externas ou compiladores de outras linguagens:
 
-### 3. Alvos de Compilação (Cross-Compilation)
+- **Framework**: [Flutter](https://flutter.dev) (Dart 3.x)
+- **Gerenciamento de Estado**: [Riverpod](https://riverpod.dev)
+- **Banco de Dados Local**: [Isar Database](https://isar.dev)
+- **Criptografia e Assinatura Digital**: [PointyCastle](https://pub.dev/packages/pointycastle) & X.509
+- **Geração de Documentos**: `pdf`, `printing` e `archive` (EPUB 3)
+- **Serialização de Protocolos**: [Protocol Buffers (Protobuf)](https://protobuf.dev)
+- **Processamento Multimídia**: `flutter_image_compress` e `ffmpeg_kit_flutter_new`
 
-Para que o código Rust compile corretamente para as arquiteturas dos celulares
-(ARM/x86), você precisa adicionar os _targets_ através do `rustup`:
+---
 
+## 🚀 Como Começar
+
+### Pré-requisitos
+
+- **Flutter SDK** instalado (Canal `stable`, versão `>=3.11.3`).  
+  Siga as instruções oficiais: [Instalação do Flutter](https://docs.flutter.dev/get-started/install).
+- **Android Studio** (com Android SDK configurado) ou **Xcode** (no macOS para compilação iOS).
+
+Verifique o seu ambiente executando:
 ```bash
-# Adiciona alvos para Android
-rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
-
-# Adiciona alvos para iOS (Necessário utilizar macOS)
-rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
+flutter doctor
 ```
 
-### 4. Integração Flutter <-> Rust (flutter_rust_bridge)
+### Executando o Aplicativo
 
-Nós usamos o `flutter_rust_bridge` para conectar o Dart ao Rust (FFI). Instale o
-gerador de código globalmente e a ferramenta para NDK:
+1. Clone o repositório com os submódulos:
+   ```bash
+   git clone --recursive https://github.com/aresta-climb/fixalog.git
+   cd fixalog/app
+   ```
 
+2. Instale as dependências do Flutter:
+   ```bash
+   flutter pub get
+   ```
+
+3. Inicie o aplicativo em seu emulador ou dispositivo físico:
+   ```bash
+   flutter run
+   ```
+
+---
+
+## 🧪 Qualidade de Código e Testes
+
+Conforme estabelecido em nossos [Princípios de Engenharia](PRINCIPIOS.md), mantemos **100% de cobertura de testes unitários** e ciclo rigoroso de TDD (Test-Driven Development).
+
+### Rodando a Suíte de Testes
 ```bash
-cargo install flutter_rust_bridge_codegen cargo-ndk
+cd app
+flutter test
 ```
 
-### 5. Executando o Projeto
-
-Com tudo instalado, sempre que modificar algo na pasta `rust/`, você deve gerar
-as pontes de comunicação novamente antes de compilar o app Flutter:
-
+### Verificando a Cobertura de Código
 ```bash
-flutter_rust_bridge_codegen generate
-flutter run
+cd app
+flutter test --coverage
 ```
+
+### Análise Estática
+```bash
+cd app
+flutter analyze
+```
+
+---
+
+## 📂 Estrutura do Repositório
+
+```text
+fixalog/
+├── app/                  # Código-fonte do aplicativo Flutter (lib/, test/, android/, ios/)
+├── docs/                 # Documentações arquiteturais e roteiros de integração
+├── ferramentas/          # Utilitários de apoio (ex: atualizador_legal de termos)
+├── openspec/             # Especificações de arquitetura e mudanças orientadas a especificação
+└── PRINCIPIOS.md         # Princípios fundamentais e inegociáveis de engenharia
+```
+
+---
+
+## 📜 Princípios de Engenharia
+
+O desenvolvimento do Fixalog é pautado por cinco regras fundamentais definidas em [PRINCIPIOS.md](PRINCIPIOS.md):
+1. **Tudo em Português**: Código, documentação, entidades e testes em português brasileiro.
+2. **Library-First**: Módulos autossuficientes e desacoplados.
+3. **100% de Cobertura de Testes Unitários**: Inegociável para qualquer entrega.
+4. **TDD Obrigatório**: Red-Green-Refactor desde o primeiro teste.
+5. **Simplicidade e Anti-Abstração**: Código claro, direto e sem complexidade desnecessária.
+
+---
 
 ## 📄 Licença
 
-Este projeto é distribuído sob os termos da **Mozilla Public License Version 2.0 (MPL-2.0)**. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
+Distribuído sob os termos da **Mozilla Public License Version 2.0 (MPL-2.0)**. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.

@@ -1,6 +1,6 @@
-# Visão Geral do Sistema: FixaLog
+# Visão Geral do Sistema: Fixalog
 
-O **FixaLog** é um aplicativo voltado para a catalogação de proteções fixas durante a abertura ou manutenção de vias de escalada.
+O **Fixalog** é um aplicativo voltado para a catalogação de proteções fixas durante a abertura ou manutenção de vias de escalada.
 
 ## Stack Tecnológico Atual
 - **Framework**: Flutter (versão >3.11.3)

@@ -1,6 +1,6 @@
-# Roteiro de Integração de Infraestrutura: aresta_app ➔ fixlog
+# Roteiro de Integração de Infraestrutura: aresta_app ➔ fixalog
 
-Este documento define o planejamento estratégico e arquitetural para o reaproveitamento e integração de infraestrutura comprovada do ecossistema **Aresta Climb** (`aresta_app/frontend`) para o **FixLog** (`fixalog/app`).
+Este documento define o planejamento estratégico e arquitetural para o reaproveitamento e integração de infraestrutura comprovada do ecossistema **Aresta Climb** (`aresta_app/frontend`) para o **Fixalog** (`fixalog/app`).
 
 A estratégia segue estritamente os princípios de engenharia definidos no [PRINCIPIOS.md](../PRINCIPIOS.md):
 - **I. Tudo em Português**: Documentação, código, testes e entidades em português brasileiro.
@@ -59,7 +59,7 @@ A estratégia segue estritamente os princípios de engenharia definidos no [PRIN
 
 ### 📄 Etapa 1: Termos de Uso e Governança Jurídica (`termos-de-uso-fixlog`)
 
-O FixLog lida com auditoria de proteções, responsabilidade técnica, localização precisa (GPS) e fotos/vídeos. Esta etapa estabelece a esteira automatizada de conformidade jurídica.
+O Fixalog lida com auditoria de proteções, responsabilidade técnica, localização precisa (GPS) e fotos/vídeos. Esta etapa estabelece a esteira automatizada de conformidade jurídica.
 
 #### Entregáveis:
 1. **Submódulo Git `legal/repo`**:
@@ -68,7 +68,7 @@ O FixLog lida com auditoria de proteções, responsabilidade técnica, localiza�
      - `public/docs/termos-de-uso-fixlog.md`
      - `public/docs/politica-de-privacidade-fixlog.md`
 2. **CLI de Versionamento e Hashes (`tool/legal_updater`)**:
-   - Script em Dart que analisa o SHA-256 dos arquivos Markdown do FixLog.
+   - Script em Dart que analisa o SHA-256 dos arquivos Markdown do Fixalog.
    - Gera e incrementa `lib/core/constants/versao_legal.g.dart` quando houver alterações de texto.
 3. **Automação GitHub Actions (`.github/workflows/update_legal_terms.yml`)**:
    - Sincronização disparada via `repository_dispatch` ou manual.
@@ -89,7 +89,7 @@ Estabelece observabilidade em campo para um aplicativo que roda código nativo d
 
 #### Entregáveis:
 1. **Projeto Firebase Dedicado**:
-   - Identificador de projeto: `com-arestaclimb-fixlog`.
+   - Identificador de projeto: `com-arestaclimb-fixalog`.
    - Isolamento total de métricas, cotas do Plano Spark e regras de Remote Config em relação ao app de croquis.
 2. **Camada de Log Resiliente (`RegistroLogger`)**:
    - Captura silenciosa de falhas não-fatais e crashes fatais via Firebase Crashlytics.

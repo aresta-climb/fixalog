@@ -28,6 +28,6 @@ No arquivo `main.dart`, a inicialização do app:
 5. Usa um roteador inicial (`_StartupRouter`) que verifica de forma reativa (`ref.watch(hasIdentityProvider)`) se o usuário já preencheu sua identidade. Redireciona de acordo (Home ou Setup).
 
 ## Princípios de Engenharia
-Todos os desenvolvimentos neste repositório devem seguir rigidamente os princípios estabelecidos em `PRINCIPIOS.md`.
+Todos os desenvolvimentos neste repositório devem seguir rigidamente os princípios estabelecidos em `AGENTS.md`.
 
 Este arquivo serve como o contexto base para o OpenSpec e para os agentes autônomos que operarem nesta base de código.

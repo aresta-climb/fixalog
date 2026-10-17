@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Arquitetura de Testes — Espelhamento 1:1 (PRINCIPIOS.md)', () {
+  group('Arquitetura de Testes — Espelhamento 1:1 (AGENTS.md)', () {
     test(
       'todo arquivo .dart de produção em lib/ deve possuir um arquivo _test.dart equivalente em test/',
       () {
@@ -51,7 +51,7 @@ void main() {
           missingTests,
           isEmpty,
           reason:
-              'Violação do Princípio IV de PRINCIPIOS.md: Os seguintes arquivos em lib/ não possuem testes espelhados em test/:\n${missingTests.map((m) => '  - $m').join('\n')}',
+              'Violação do Princípio III de AGENTS.md: Os seguintes arquivos em lib/ não possuem testes espelhados em test/:\n${missingTests.map((m) => '  - $m').join('\n')}',
         );
       },
     );

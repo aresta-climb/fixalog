@@ -67,7 +67,7 @@ flutter doctor
 
 ## 🧪 Qualidade de Código e Testes
 
-Conforme estabelecido em nossos [Princípios de Engenharia](PRINCIPIOS.md), mantemos **100% de cobertura de testes unitários** e ciclo rigoroso de TDD (Test-Driven Development).
+Conforme estabelecido em nossos [Princípios de Engenharia](AGENTS.md), mantemos **100% de cobertura de testes unitários** orientados a comportamento e ciclo rigoroso de TDD (Test-Driven Development).
 
 ### Rodando a Suíte de Testes
 ```bash
@@ -97,19 +97,22 @@ fixalog/
 ├── docs/                 # Documentações arquiteturais e roteiros de integração
 ├── ferramentas/          # Utilitários de apoio (ex: atualizador_legal de termos)
 ├── openspec/             # Especificações de arquitetura e mudanças orientadas a especificação
-└── PRINCIPIOS.md         # Princípios fundamentais e inegociáveis de engenharia
+└── AGENTS.md             # Princípios fundamentais e inegociáveis de engenharia
 ```
 
 ---
 
 ## 📜 Princípios de Engenharia
 
-O desenvolvimento do Fixalog é pautado por cinco regras fundamentais definidas em [PRINCIPIOS.md](PRINCIPIOS.md):
+O desenvolvimento do Fixalog é pautado pelas regras fundamentais definidas em [AGENTS.md](AGENTS.md):
 1. **Tudo em Português**: Código, documentação, entidades e testes em português brasileiro.
-2. **Library-First**: Módulos autossuficientes e desacoplados.
-3. **100% de Cobertura de Testes Unitários**: Inegociável para qualquer entrega.
-4. **TDD Obrigatório**: Red-Green-Refactor desde o primeiro teste.
-5. **Simplicidade e Anti-Abstração**: Código claro, direto e sem complexidade desnecessária.
+2. **Modularidade e Desacoplamento (Library-First)**: Módulos autossuficientes e desacoplados.
+3. **Testes Orientados a Comportamento e Espelhamento 1:1**: 1 teste por behavior na API pública, sem change-detectors.
+4. **100% de Cobertura Comportamental e TDD Obrigatório**: Red-Green-Refactor desde o primeiro teste.
+5. **Fidelidade de Produção e Anti-Mocking**: Uso de implementações reais e bibliotecas `test-only` de Fakes determinísticos testados.
+6. **Simplicidade, Anti-Abstração e Documentação Contínua**: Código claro, direto e bem documentado.
+7. **Inegociabilidade Perante Código Legado**: Refatoração contínua ao tocar em código fora do padrão.
+8. **Operação Offline-First e Integridade Pericial Criptográfica**: Funcionamento em campo sem internet e laudos verificáveis.
 
 ---
 

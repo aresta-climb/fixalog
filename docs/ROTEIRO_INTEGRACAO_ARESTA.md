@@ -2,7 +2,7 @@
 
 Este documento define o planejamento estratégico e arquitetural para o reaproveitamento e integração de infraestrutura comprovada do ecossistema **Aresta Climb** (`aresta_app/frontend`) para o **Fixalog** (`fixalog/app`).
 
-A estratégia segue estritamente os princípios de engenharia definidos no [PRINCIPIOS.md](../PRINCIPIOS.md):
+A estratégia segue estritamente os princípios de engenharia definidos no [AGENTS.md](../AGENTS.md):
 - **I. Tudo em Português**: Documentação, código, testes e entidades em português brasileiro.
 - **II. Library-First**: Funcionalidades isoladas, autossuficientes e modulares.
 - **III. 100% Unit Test Coverage**: Cobertura integral de testes unitários em cada etapa.

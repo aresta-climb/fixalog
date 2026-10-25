@@ -70,8 +70,8 @@ void main() {
 
   setUp(() {
     assetsTeste = PacoteAssetsTeste({
-      'legal/repo/public/docs/termos-de-uso-fixlog.md': '# Termos FixLog\n\nTexto dos termos.',
-      'legal/repo/public/docs/politica-de-privacidade-fixlog.md': '# Politica FixLog\n\nConteudo de privacidade.',
+      'legal/repo/public/docs/termos-de-uso-fixalog.md': '# Termos Fixalog\n\nTexto dos termos.',
+      'legal/repo/public/docs/politica-de-privacidade-fixalog.md': '# Politica Fixalog\n\nConteudo de privacidade.',
     });
   });
 
@@ -101,7 +101,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Termos de Uso e Auditoria Técnica'), findsOneWidget);
-    expect(find.textContaining('Termos FixLog'), findsOneWidget);
+    expect(find.textContaining('Termos Fixalog'), findsOneWidget);
     expect(find.textContaining('Li e concordo com os Termos de Uso e a Política de Privacidade.'), findsOneWidget);
 
     final botao = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Aceitar Termos e Continuar'));
@@ -130,7 +130,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Política de Privacidade - Fixalog'), findsOneWidget);
-    expect(find.textContaining('Politica FixLog'), findsOneWidget);
+    expect(find.textContaining('Politica Fixalog'), findsOneWidget);
 
     // Fecha o modal
     await tester.tap(find.byIcon(Icons.close));

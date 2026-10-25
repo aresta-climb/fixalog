@@ -61,8 +61,8 @@ flutter:
     - assets/protocols/
     - assets/logo_app.png
     - assets/logo_splash.png
-    - legal/repo/public/docs/termos-de-uso-fixlog.md
-    - legal/repo/public/docs/politica-de-privacidade-fixlog.md
+    - legal/repo/public/docs/termos-de-uso-fixalog.md
+    - legal/repo/public/docs/politica-de-privacidade-fixalog.md
 
 flutter_launcher_icons:
   android: true

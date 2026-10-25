@@ -18,8 +18,8 @@ A estratégia segue estritamente os princípios de engenharia definidos no [AGEN
 │ ETAPA 1: Termos de Uso e Governança Jurídica (termos-de-uso-fixlog)     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ • Submódulo Git legal/repo apontando para o repositório central         │
-│ • Documentos dedicados: termos-de-uso-fixlog.md e                      │
-│   politica-de-privacidade-fixlog.md                                     │
+│ • Documentos dedicados: termos-de-uso-fixalog.md e                     │
+│   politica-de-privacidade-fixalog.md                                    │
 │ • Utilitário CLI tool/legal_updater para hash SHA-256 e versionamento   │
 │ • Workflow CI/CD .github/workflows/update_legal_terms.yml               │
 │ • Tela de consentimento inicial em Markdown + Auditoria no Isar         │
@@ -65,8 +65,8 @@ O Fixalog lida com auditoria de proteções, responsabilidade técnica, localiza
 1. **Submódulo Git `legal/repo`**:
    - Conecta ao repositório de documentos legais do portal `arestaclimb.com`.
    - Utilização de arquivos dedicados:
-     - `public/docs/termos-de-uso-fixlog.md`
-     - `public/docs/politica-de-privacidade-fixlog.md`
+     - `public/docs/termos-de-uso-fixalog.md`
+     - `public/docs/politica-de-privacidade-fixalog.md`
 2. **CLI de Versionamento e Hashes (`tool/legal_updater`)**:
    - Script em Dart que analisa o SHA-256 dos arquivos Markdown do Fixalog.
    - Gera e incrementa `lib/core/constants/versao_legal.g.dart` quando houver alterações de texto.

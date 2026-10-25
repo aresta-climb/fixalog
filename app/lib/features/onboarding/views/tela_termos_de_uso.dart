@@ -46,8 +46,8 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
     try {
       final pacote = widget.assetBundle ?? DefaultAssetBundle.of(context);
 
-      final termos = await pacote.loadString('legal/repo/public/docs/termos-de-uso-fixlog.md');
-      final politica = await pacote.loadString('legal/repo/public/docs/politica-de-privacidade-fixlog.md');
+      final termos = await pacote.loadString('legal/repo/public/docs/termos-de-uso-fixalog.md');
+      final politica = await pacote.loadString('legal/repo/public/docs/politica-de-privacidade-fixalog.md');
 
       if (mounted) {
         setState(() {

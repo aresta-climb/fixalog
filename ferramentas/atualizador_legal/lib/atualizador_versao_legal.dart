@@ -18,8 +18,8 @@ class AtualizadorVersaoLegal {
   /// Verifica os hashes atuais e gera/incrementa o arquivo de saída se houver alterações.
   Future<bool> verificarEAtualizar() async {
     final arquivoSaida = File(caminhoArquivoSaida);
-    final arquivoTermos = File('$caminhoRepositorio/public/docs/termos-de-uso-fixlog.md');
-    final arquivoPolitica = File('$caminhoRepositorio/public/docs/politica-de-privacidade-fixlog.md');
+    final arquivoTermos = File('$caminhoRepositorio/public/docs/termos-de-uso-fixalog.md');
+    final arquivoPolitica = File('$caminhoRepositorio/public/docs/politica-de-privacidade-fixalog.md');
 
     if (!await arquivoTermos.exists() || !await arquivoPolitica.exists()) {
       stderr.writeln('Erro: Documentos legais do Fixalog não encontrados em $caminhoRepositorio/public/docs/.');
@@ -42,12 +42,12 @@ class AtualizadorVersaoLegal {
           versaoAnterior = int.parse(matchVersao.group(1)!);
         }
 
-        final matchTermos = RegExp(r"'termos-de-uso-fixlog\.md': '([^']+)'").firstMatch(conteudoExistente);
+        final matchTermos = RegExp(r"'termos-de-uso-fixalog\.md': '([^']+)'").firstMatch(conteudoExistente);
         if (matchTermos != null) {
           hashTermosAnterior = matchTermos.group(1)!;
         }
 
-        final matchPolitica = RegExp(r"'politica-de-privacidade-fixlog\.md': '([^']+)'").firstMatch(conteudoExistente);
+        final matchPolitica = RegExp(r"'politica-de-privacidade-fixalog\.md': '([^']+)'").firstMatch(conteudoExistente);
         if (matchPolitica != null) {
           hashPoliticaAnterior = matchPolitica.group(1)!;
         }
@@ -70,8 +70,8 @@ const int kVersaoLegal = $novaVersao;
 const String kDataUltimaAtualizacaoLegal = '$dataIso';
 
 const Map<String, String> kHashesLegais = {
-  'termos-de-uso-fixlog.md': '$hashTermosAtual',
-  'politica-de-privacidade-fixlog.md': '$hashPoliticaAtual',
+  'termos-de-uso-fixalog.md': '$hashTermosAtual',
+  'politica-de-privacidade-fixalog.md': '$hashPoliticaAtual',
 };
 ''';
 

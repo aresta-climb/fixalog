@@ -17,12 +17,12 @@ void main() {
     caminhoDocs = '${diretorioTemporario.path}/public/docs';
     await Directory(caminhoDocs).create(recursive: true);
 
-    arquivoTermos = '$caminhoDocs/termos-de-uso-fixlog.md';
-    arquivoPolitica = '$caminhoDocs/politica-de-privacidade-fixlog.md';
+    arquivoTermos = '$caminhoDocs/termos-de-uso-fixalog.md';
+    arquivoPolitica = '$caminhoDocs/politica-de-privacidade-fixalog.md';
     arquivoSaida = '${diretorioTemporario.path}/lib/core/constantes/versao_legal.g.dart';
 
-    await File(arquivoTermos).writeAsString('Conteudo inicial dos termos fixlog');
-    await File(arquivoPolitica).writeAsString('Conteudo inicial da politica fixlog');
+    await File(arquivoTermos).writeAsString('Conteudo inicial dos termos fixalog');
+    await File(arquivoPolitica).writeAsString('Conteudo inicial da politica fixalog');
   });
 
   tearDown(() async {
@@ -46,8 +46,8 @@ void main() {
     expect(conteudo, contains('const int kVersaoLegal = 1;'));
     expect(conteudo, contains('kDataUltimaAtualizacaoLegal'));
     expect(conteudo, contains('kHashesLegais'));
-    expect(conteudo, contains('termos-de-uso-fixlog.md'));
-    expect(conteudo, contains('politica-de-privacidade-fixlog.md'));
+    expect(conteudo, contains('termos-de-uso-fixalog.md'));
+    expect(conteudo, contains('politica-de-privacidade-fixalog.md'));
   });
 
   test('Retorna false e nao altera arquivo quando hashes sao identicos', () async {

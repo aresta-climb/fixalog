@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/wizard_state_controller.dart';
 import '../../../core/models/proto/protos/wizard.pb.dart';
+import '../../../core/models/proto/protos/registro.pb.dart';
 import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'widgets/signature_modal.dart';
+import '../../media/services/seletor_documento_service.dart';
 import '../../pdf_generation/providers/generation_provider.dart';
 import '../../pdf_generation/ui/generation_progress_dialog.dart';
 
@@ -26,7 +28,36 @@ import '../../pdf_generation/ui/generation_progress_dialog.dart';
 class WizardScreen extends ConsumerStatefulWidget {
   final String initialYaml;
   final bool isEditing;
-  const WizardScreen({super.key, required this.initialYaml, this.isEditing = false});
+  final bool retornarAoConcluir;
+
+  const WizardScreen({
+    super.key,
+    required this.initialYaml,
+    this.isEditing = false,
+    this.retornarAoConcluir = false,
+  });
+
+  /// Abre uma nova sessão do [WizardScreen] empilhada em um [ProviderScope] isolado,
+  /// preservando integralmente o estado de qualquer [WizardScreen] pai ativo.
+  static Future<String?> abrirSessaoIsolada(
+    BuildContext context, {
+    required String initialYaml,
+    bool retornarAoConcluir = true,
+  }) {
+    return Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ProviderScope(
+          overrides: [
+            wizardControllerProvider.overrideWith(WizardStateController.new),
+          ],
+          child: WizardScreen(
+            initialYaml: initialYaml,
+            retornarAoConcluir: retornarAoConcluir,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   ConsumerState<WizardScreen> createState() => _WizardScreenState();
@@ -54,13 +85,43 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     super.dispose();
   }
 
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     HapticFeedback.lightImpact();
     final state = ref.read(wizardControllerProvider);
-    final success = ref.read(wizardControllerProvider.notifier).nextStep();
+    final notifier = ref.read(wizardControllerProvider.notifier);
+
+    final currentFlowStep = state.currentFlowStep;
+    if (currentFlowStep != null) {
+      for (final conteudo in currentFlowStep.step.conteudos) {
+        if (conteudo.whichTipo() == ConteudoStep_Tipo.campoSimples &&
+            conteudo.campoSimples.tipo == StepCampoSimples_TipoCampo.SIGNATURE &&
+            conteudo.campoSimples.obrigatorio &&
+            !state.answers.containsKey(conteudo.id)) {
+          final signatureBytes = await showDialog<Uint8List>(
+            context: context,
+            builder: (ctx) => const SignatureModal(),
+          );
+          if (!mounted) return;
+          if (signatureBytes != null) {
+            await notifier.saveMediaAnswerBytes(
+              conteudo.id,
+              signatureBytes,
+              '.png',
+              conteudo.campoSimples.tipo,
+            );
+          } else {
+            return;
+          }
+        }
+      }
+    }
+
+    final idxBefore = ref.read(wizardControllerProvider).currentIndex;
+    final success = notifier.nextStep();
     if (success) {
-      _scrollToIndex(state.currentIndex + 1);
-    } else {
+      _scrollToIndex(idxBefore + 1);
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
@@ -174,11 +235,9 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () async {
-                            await ref.read(wizardControllerProvider.notifier).flushAutoSave();
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
+                          onPressed: () {
+                            ref.read(wizardControllerProvider.notifier).flushAutoSave();
+                            Navigator.pop(context);
                           },
                         ),
                         const SizedBox(width: 8),
@@ -237,6 +296,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                             isLastStep: index == state.queue.length - 1,
                             onNext: _onNextPressed,
                             onBackToStep: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
                               ref
                                   .read(wizardControllerProvider.notifier)
                                   .goToStep(index);
@@ -245,7 +305,10 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                           );
                         }),
                         if (state.isFinished)
-                          SummaryConclusionCard(key: _summaryKey),
+                          SummaryConclusionCard(
+                            key: _summaryKey,
+                            retornarAoConcluir: widget.retornarAoConcluir,
+                          ),
                       ],
                     ),
                   ),
@@ -286,8 +349,14 @@ class _StepCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(wizardControllerProvider);
+    final notifier = ref.read(wizardControllerProvider.notifier);
+    final zeroBasedIndex = stepIndex - 1;
+    final podeAcessar = notifier.podeAcessarStep(zeroBasedIndex);
     final isCurrent = !isLocked && !isCompleted;
-    final opacity = isCompleted ? 0.65 : (isLocked ? 0.45 : 1.0);
+    final podeInteragir = isCurrent || (isLocked && podeAcessar);
+    final opacity =
+        isCompleted ? 0.65 : ((isLocked && !podeAcessar) ? 0.45 : 1.0);
 
     return Opacity(
       opacity: opacity,
@@ -321,26 +390,56 @@ class _StepCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               // Renderiza todos os conteudos em sequência
-              IgnorePointer(
-                ignoring: !isCurrent,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: flowStep.step.conteudos.asMap().entries.map((e) {
-                    final index = e.key;
-                    final conteudo = e.value;
-                    final isFirst = index == 0;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (!isFirst) ...[
-                          const SizedBox(height: 20),
-                          Divider(color: Colors.white.withValues(alpha: 0.06)),
-                          const SizedBox(height: 12),
-                        ],
-                        _ConteudoWidget(conteudo: conteudo),
-                      ],
-                    );
-                  }).toList(),
+              Listener(
+                onPointerDown: (_) {
+                  if (!isCurrent && podeAcessar && isLocked) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    notifier.goToStep(zeroBasedIndex);
+                  }
+                },
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: (!podeInteragir && isLocked)
+                      ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Preencha todos os campos obrigatórios do passo anterior para prosseguir.',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              backgroundColor: Color(0xFF5A1E1E),
+                            ),
+                          );
+                        }
+                      : null,
+                  child: ExcludeFocus(
+                    excluding: !podeInteragir,
+                    child: IgnorePointer(
+                      ignoring: !podeInteragir,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: flowStep.step.conteudos.asMap().entries.map((e) {
+                          final index = e.key;
+                          final conteudo = e.value;
+                          final isFirst = index == 0;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!isFirst) ...[
+                                const SizedBox(height: 20),
+                                Divider(color: Colors.white.withValues(alpha: 0.06)),
+                                const SizedBox(height: 12),
+                              ],
+                              _ConteudoWidget(conteudo: conteudo),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               // Botões de ação
@@ -592,7 +691,7 @@ class CampoSimplesWidget extends ConsumerWidget {
     
     String? answer;
     if (answerObj != null) {
-      if (answerObj.hasMidia()) {
+      if (WizardStateController.extrairMidiasDeResposta(answerObj).isNotEmpty) {
         answer = 'media';
       } else if (answerObj.hasTexto() && answerObj.texto.isNotEmpty) {
         answer = answerObj.texto;
@@ -654,9 +753,12 @@ class SelecaoRamoWidget extends ConsumerWidget {
             subtitle: ramo.sublabel,
             icon: ProtocolIcons.get(ramo.iconName),
             isSelected: selected == ramo.id,
-            onTap: () => ref
-                .read(wizardControllerProvider.notifier)
-                .chooseRamo(conteudo.id, ramo.id),
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              ref
+                  .read(wizardControllerProvider.notifier)
+                  .chooseRamo(conteudo.id, ramo.id);
+            },
           ),
         ),
       ],
@@ -670,14 +772,19 @@ class SelecaoRamoWidget extends ConsumerWidget {
 
 class ListaAcoesWidget extends ConsumerWidget {
   final ConteudoStep conteudo;
-  const ListaAcoesWidget({super.key, required this.conteudo});
+  final String? parentItemId;
+  const ListaAcoesWidget({super.key, required this.conteudo, this.parentItemId});
+
+  String get _listKey =>
+      parentItemId != null ? '${conteudo.id}__$parentItemId' : conteudo.id;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
     final lista = conteudo.listaAcoes;
-    final items = state.lists[conteudo.id] ?? [];
-    final expandedId = state.expandedListItems[conteudo.id];
+    final listKey = _listKey;
+    final items = state.lists[listKey] ?? [];
+    final expandedId = state.expandedListItems[listKey];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -708,7 +815,7 @@ class ListaAcoesWidget extends ConsumerWidget {
           (item) => InlineItemCard(
             key: ValueKey(item.id),
             item: item,
-            listConteudoId: conteudo.id,
+            listConteudoId: listKey,
             isExpanded: expandedId == item.id,
           ),
         ),
@@ -718,7 +825,11 @@ class ListaAcoesWidget extends ConsumerWidget {
         // Botão adicionar
         if (lista.maximo == 0 || items.length < lista.maximo)
           OutlinedButton.icon(
-            onPressed: () => _showAddItemSheet(context, ref, lista),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              FocusManager.instance.primaryFocus?.unfocus();
+              _showAddItemSheet(context, ref, lista, listKey);
+            },
             icon: const Icon(Icons.add, size: 18),
             label: Text(
               items.isEmpty ? 'ADICIONAR ITEM' : 'ADICIONAR OUTRO',
@@ -759,95 +870,159 @@ class ListaAcoesWidget extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     StepListaAcoes lista,
+    String listKey,
   ) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF181A1C),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'SELECIONE O TIPO',
-              style: TextStyle(
-                color: Color(0xFFFF6B00),
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-                letterSpacing: 1.5,
-              ),
+      builder: (sheetContext) {
+        final recuoInferiorSo = _obterRecuoInferiorModal(context, sheetContext);
+        return SafeArea(
+          bottom: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
             ),
-            const SizedBox(height: 16),
-            ...lista.tiposDisponiveis.map(
-              (tipo) => GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  ref
-                      .read(wizardControllerProvider.notifier)
-                      .addListItem(listConteudoId: conteudo.id, tipo: tipo);
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + recuoInferiorSo),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'SELECIONE O TIPO',
+                    style: TextStyle(
+                      color: Color(0xFFFF6B00),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.5,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1D1C),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          ProtocolIcons.get(tipo.iconName),
-                          color: Colors.white54,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tipo.label,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (tipo.sublabel.isNotEmpty)
-                              Text(
-                                tipo.sublabel,
-                                style: const TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 11,
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      key: const Key('scroll_selecao_tipo'),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ...lista.tiposDisponiveis.map(
+                            (tipo) => GestureDetector(
+                              onTap: () {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                Navigator.pop(sheetContext);
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                ref
+                                    .read(wizardControllerProvider.notifier)
+                                    .addListItem(
+                                      listConteudoId: listKey,
+                                      tipo: tipo,
+                                    );
+                              },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.black26,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.08),
                                 ),
                               ),
-                          ],
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A1D1C),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      ProtocolIcons.get(tipo.iconName),
+                                      color: Colors.white54,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tipo.label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        if (tipo.sublabel.isNotEmpty)
+                                          Text(
+                                            tipo.sublabel,
+                                            style: const TextStyle(
+                                              color: Colors.white38,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white24,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Colors.white24),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      );
+      },
     );
   }
+}
+
+double _obterRecuoInferiorModal(
+  BuildContext origemContext,
+  BuildContext sheetContext,
+) {
+  final mqOrigem = MediaQuery.maybeOf(origemContext);
+  final mqSheet = MediaQuery.maybeOf(sheetContext);
+  final view = View.maybeOf(sheetContext);
+  final viewPaddingBottom =
+      view != null ? view.viewPadding.bottom / view.devicePixelRatio : 0.0;
+  final gestureBottom = view != null
+      ? view.systemGestureInsets.bottom / view.devicePixelRatio
+      : 0.0;
+
+  final candidatos = <double>[
+    mqSheet?.padding.bottom ?? 0.0,
+    mqSheet?.viewPadding.bottom ?? 0.0,
+    mqSheet?.systemGestureInsets.bottom ?? 0.0,
+    mqOrigem?.padding.bottom ?? 0.0,
+    mqOrigem?.viewPadding.bottom ?? 0.0,
+    mqOrigem?.systemGestureInsets.bottom ?? 0.0,
+    viewPaddingBottom,
+    gestureBottom,
+  ];
+
+  double maior = 0.0;
+  for (final valor in candidatos) {
+    if (valor > maior) maior = valor;
+  }
+  return maior;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -861,8 +1036,9 @@ class RefMateriaisWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
+    final notifier = ref.read(wizardControllerProvider.notifier);
     final refStep = conteudo.refMateriais;
-    final allItems = state.lists[refStep.idStepMateriais] ?? [];
+    final allItems = notifier.obterItensParaRefMateriais(refStep);
     final selectedIds = state.refSelections[conteudo.id] ?? [];
 
     return _RefMateriaisContent(
@@ -870,13 +1046,31 @@ class RefMateriaisWidget extends ConsumerWidget {
       sublabel: refStep.sublabel,
       allItems: allItems,
       selectedIds: selectedIds,
+      origemCatalogo: refStep.origemCatalogo,
       onToggle: (itemId) {
         final newIds = List<String>.from(selectedIds);
         newIds.contains(itemId) ? newIds.remove(itemId) : newIds.add(itemId);
-        ref
-            .read(wizardControllerProvider.notifier)
-            .setRefMateriais(conteudo.id, newIds);
+        notifier.setRefMateriais(conteudo.id, newIds);
       },
+      onCadastrarNovoMaterial: refStep.origemCatalogo
+          ? () async {
+              final yaml = await rootBundle.loadString(
+                'assets/protocols/cadastro_material.yaml',
+              );
+              if (!context.mounted) return;
+              final novoId = await WizardScreen.abrirSessaoIsolada(
+                context,
+                initialYaml: yaml,
+              );
+              if (novoId != null && novoId.isNotEmpty) {
+                final newIds = List<String>.from(selectedIds);
+                if (!newIds.contains(novoId)) {
+                  newIds.add(novoId);
+                }
+                notifier.setRefMateriais(conteudo.id, newIds);
+              }
+            }
+          : null,
     );
   }
 }
@@ -885,7 +1079,7 @@ class RefMateriaisWidget extends ConsumerWidget {
 // INLINE ITEM CARD — card expansível dentro de ListaAcoesWidget
 // ═════════════════════════════════════════════════════════════════════════════
 
-class InlineItemCard extends ConsumerWidget {
+class InlineItemCard extends ConsumerStatefulWidget {
   final ListItemRecord item;
   final String listConteudoId;
   final bool isExpanded;
@@ -898,7 +1092,66 @@ class InlineItemCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InlineItemCard> createState() => _InlineItemCardState();
+}
+
+class _InlineItemCardState extends ConsumerState<InlineItemCard> {
+  final GlobalKey _cabecalhoExpandidoKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isExpanded) {
+      _rolarParaSecaoAberta();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant InlineItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isExpanded && widget.isExpanded) {
+      _rolarParaSecaoAberta();
+    } else if (oldWidget.isExpanded && !widget.isExpanded) {
+      _rolarParaSecaoColapsada();
+    }
+  }
+
+  void _rolarParaSecaoAberta() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+      final alvoContext = _cabecalhoExpandidoKey.currentContext ?? context;
+      Scrollable.ensureVisible(
+        alvoContext,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        alignment: 0.08,
+      );
+    });
+  }
+
+  void _rolarParaSecaoColapsada() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final expandidoAtual = ref
+          .read(wizardControllerProvider)
+          .expandedListItems[widget.listConteudoId];
+      if (expandidoAtual != null && expandidoAtual.isNotEmpty) {
+        return;
+      }
+      FocusManager.instance.primaryFocus?.unfocus();
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        alignment: 0.25,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpanded = widget.isExpanded;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -920,11 +1173,16 @@ class InlineItemCard extends ConsumerWidget {
   }
 
   Widget _buildCollapsed(BuildContext context, WidgetRef ref) {
+    final item = widget.item;
+    final listConteudoId = widget.listConteudoId;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
-      onTap: () => ref
-          .read(wizardControllerProvider.notifier)
-          .expandListItem(listConteudoId, item.id),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        ref
+            .read(wizardControllerProvider.notifier)
+            .expandListItem(listConteudoId, item.id);
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
@@ -951,12 +1209,15 @@ class InlineItemCard extends ConsumerWidget {
                     size: 14,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    item.tipoLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                  Flexible(
+                    child: Text(
+                      item.tipoLabel,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -974,11 +1235,14 @@ class InlineItemCard extends ConsumerWidget {
   }
 
   Widget _buildExpanded(BuildContext context, WidgetRef ref) {
+    final item = widget.item;
+    final listConteudoId = widget.listConteudoId;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Header do item expandido
         Padding(
+          key: _cabecalhoExpandidoKey,
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: Row(
             children: [
@@ -988,21 +1252,27 @@ class InlineItemCard extends ConsumerWidget {
                 size: 18,
               ),
               const SizedBox(width: 10),
-              Text(
-                item.tipoLabel.toUpperCase(),
-                style: const TextStyle(
-                  color: Color(0xFF4CAF50),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.4,
+              Expanded(
+                child: Text(
+                  item.tipoLabel.toUpperCase(),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.4,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               // Botão para colapsar sem confirmar
               InkWell(
-                onTap: () => ref
-                    .read(wizardControllerProvider.notifier)
-                    .expandListItem(listConteudoId, ''), // colapsa
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  ref
+                      .read(wizardControllerProvider.notifier)
+                      .expandListItem(listConteudoId, ''); // colapsa
+                },
                 child: Icon(
                   Icons.expand_less,
                   color: Colors.white.withValues(alpha: 0.3),
@@ -1037,6 +1307,7 @@ class InlineItemCard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: ElevatedButton.icon(
             onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
               final success = ref
                   .read(wizardControllerProvider.notifier)
                   .confirmListItem(listConteudoId, item.id);
@@ -1072,6 +1343,8 @@ class InlineItemCard extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
+    final item = widget.item;
+    final listConteudoId = widget.listConteudoId;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1175,7 +1448,7 @@ class InlineConteudoRenderer extends ConsumerWidget {
         
         String? answer;
         if (answerObj != null) {
-          if (answerObj.hasMidia()) {
+          if (WizardStateController.extrairMidiasDeResposta(answerObj).isNotEmpty) {
             answer = 'media';
           } else if (answerObj.hasTexto() && answerObj.texto.isNotEmpty) {
             answer = answerObj.texto;
@@ -1213,26 +1486,32 @@ class InlineConteudoRenderer extends ConsumerWidget {
             _InlineSelecaoRamoWidget(
               selecao: selecao,
               selectedId: selectedRamoId,
-              onChoose: (ramoId) => ref
-                  .read(wizardControllerProvider.notifier)
-                  .answerInlineConteudoString(conteudo.id, ramoId, itemId),
+              onChoose: (ramoId) {
+                FocusManager.instance.primaryFocus?.unfocus();
+                ref
+                    .read(wizardControllerProvider.notifier)
+                    .answerInlineConteudoString(conteudo.id, ramoId, itemId);
+              },
             ),
             // Sub-steps do ramo escolhido (recursivo)
             if (selectedRamo != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.only(left: 16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: const Color(0xFFFF6B00).withValues(alpha: 0.3),
-                      width: 2,
+              _SubSecaoRamoAutoScroll(
+                key: ValueKey('ramo_${conteudo.id}_${itemId}_${selectedRamo.id}'),
+                child: Container(
+                  padding: const EdgeInsets.only(left: 16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: const Color(0xFFFF6B00).withValues(alpha: 0.3),
+                        width: 2,
+                      ),
                     ),
                   ),
-                ),
-                child: InlineStepsRenderer(
-                  steps: selectedRamo.steps,
-                  itemId: itemId,
+                  child: InlineStepsRenderer(
+                    steps: selectedRamo.steps,
+                    itemId: itemId,
+                  ),
                 ),
               ),
             ],
@@ -1242,7 +1521,8 @@ class InlineConteudoRenderer extends ConsumerWidget {
       case ConteudoStep_Tipo.refMateriais:
         final refStep = conteudo.refMateriais;
         final state = ref.watch(wizardControllerProvider);
-        final allItems = state.lists[refStep.idStepMateriais] ?? [];
+        final notifier = ref.read(wizardControllerProvider.notifier);
+        final allItems = notifier.obterItensParaRefMateriais(refStep);
         final selectedIds = state.refSelections[answerKey] ?? [];
 
         return _RefMateriaisContent(
@@ -1250,14 +1530,39 @@ class InlineConteudoRenderer extends ConsumerWidget {
           sublabel: refStep.sublabel,
           allItems: allItems,
           selectedIds: selectedIds,
+          origemCatalogo: refStep.origemCatalogo,
           onToggle: (mid) {
             final newIds = List<String>.from(selectedIds);
             newIds.contains(mid) ? newIds.remove(mid) : newIds.add(mid);
-            ref
-                .read(wizardControllerProvider.notifier)
-                .setRefMateriais(conteudo.id, newIds, listItemId: itemId);
+            notifier.setRefMateriais(conteudo.id, newIds, listItemId: itemId);
           },
+          onCadastrarNovoMaterial: refStep.origemCatalogo
+              ? () async {
+                  final yaml = await rootBundle.loadString(
+                    'assets/protocols/cadastro_material.yaml',
+                  );
+                  if (!context.mounted) return;
+                  final novoId = await WizardScreen.abrirSessaoIsolada(
+                    context,
+                    initialYaml: yaml,
+                  );
+                  if (novoId != null && novoId.isNotEmpty) {
+                    final newIds = List<String>.from(selectedIds);
+                    if (!newIds.contains(novoId)) {
+                      newIds.add(novoId);
+                    }
+                    notifier.setRefMateriais(
+                      conteudo.id,
+                      newIds,
+                      listItemId: itemId,
+                    );
+                  }
+                }
+              : null,
         );
+
+      case ConteudoStep_Tipo.listaAcoes:
+        return ListaAcoesWidget(conteudo: conteudo, parentItemId: itemId);
 
       default:
         return const SizedBox.shrink();
@@ -1303,6 +1608,45 @@ class _InlineSelecaoRamoWidget extends StatelessWidget {
             onTap: () => onChoose(ramo.id),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _SubSecaoRamoAutoScroll extends StatefulWidget {
+  final Widget child;
+  const _SubSecaoRamoAutoScroll({super.key, required this.child});
+
+  @override
+  State<_SubSecaoRamoAutoScroll> createState() => _SubSecaoRamoAutoScrollState();
+}
+
+class _SubSecaoRamoAutoScrollState extends State<_SubSecaoRamoAutoScroll> {
+  final GlobalKey _topoKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+      final alvo = _topoKey.currentContext ?? context;
+      Scrollable.ensureVisible(
+        alvo,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        alignment: 0.15,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(key: _topoKey, height: 1),
+        widget.child,
       ],
     );
   }
@@ -1389,11 +1733,17 @@ class _CampoSimplesContent extends ConsumerWidget {
     switch (campo.tipo) {
       case StepCampoSimples_TipoCampo.TEXT:
       case StepCampoSimples_TipoCampo.DATE:
+        if (campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA) {
+          return _CampoTextoMarkdownArea(
+            initialValue: answer,
+            onChanged: (v) => _saveString(ref, v),
+          );
+        }
         return TextFormField(
           initialValue: answer,
           keyboardType: TextInputType.text,
           onChanged: (v) => _saveString(ref, v),
-          maxLines: campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA ? 4 : 1,
+          maxLines: 1,
           decoration: const InputDecoration(
             hintText: 'Digite aqui...',
           ),
@@ -1494,46 +1844,138 @@ class _CampoSimplesContent extends ConsumerWidget {
 
       case StepCampoSimples_TipoCampo.IMAGE:
       case StepCampoSimples_TipoCampo.VIDEO:
-        final has = answer != null && answer.isNotEmpty;
         final isVid = campo.tipo == StepCampoSimples_TipoCampo.VIDEO;
-        return GestureDetector(
-          onTap: () async {
-            final origem = await _selecionarOrigemMidia(context, isVid);
-            if (origem == null) return;
+        final fullKey = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+        final wizardState = ref.watch(wizardControllerProvider);
+        final answerObj = wizardState.answers[fullKey];
+        final midias = WizardStateController.extrairMidiasDeResposta(answerObj);
+        final qtdProcessando = wizardState.processandoMidiasPorCampo[fullKey] ?? 0;
 
-            final picker = ImagePicker();
-            if (isVid) {
-              final video = await picker.pickVideo(source: origem);
-              if (video != null) {
-                await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
-                      conteudoId,
-                      video.path,
-                      campo.tipo,
-                      listItemId: listItemId,
-                    );
-              }
-            } else {
-              final image = await picker.pickImage(source: origem);
-              if (image != null) {
-                await ref.read(wizardControllerProvider.notifier).saveMediaAnswer(
-                      conteudoId,
-                      image.path,
-                      campo.tipo,
-                      listItemId: listItemId,
-                    );
-              }
-            }
-          },
-          child: _actionTile(
-            icon: has
-                ? Icons.check_circle
-                : (isVid ? Icons.videocam_outlined : Icons.camera_alt_outlined),
-            label: has
-                ? (isVid ? 'VÍDEO GRAVADO' : 'FOTO CAPTURADA')
-                : (isVid ? 'GRAVAR VÍDEO' : 'ABRIR CÂMERA'),
-            sub: '',
-            active: has,
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < midias.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: _midiaAnexadaTile(
+                  midia: midias[i],
+                  indice: i,
+                  chaveCampo: fullKey,
+                  onRemover: () async {
+                    await ref
+                        .read(wizardControllerProvider.notifier)
+                        .removerMidiaDaResposta(
+                          conteudoId,
+                          i,
+                          listItemId: listItemId,
+                        );
+                  },
+                ),
+              ),
+            if (qtdProcessando > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: _loadingMidiaTile(
+                  chaveCampo: fullKey,
+                  quantidade: qtdProcessando,
+                ),
+              ),
+            GestureDetector(
+              onTap: () async {
+                final origem = await _selecionarOrigemMidia(context, isVid);
+                if (origem == null) return;
+
+                if (origem == _OrigemMidia.arquivoPdf) {
+                  final seletor = ref.read(seletorDocumentoServiceProvider);
+                  final doc = await seletor.selecionarPdf();
+                  if (doc != null) {
+                    await ref
+                        .read(wizardControllerProvider.notifier)
+                        .saveDocumentAnswerBytes(
+                          conteudoId,
+                          doc.bytes,
+                          nomeOriginal: doc.nome,
+                          listItemId: listItemId,
+                        );
+                  }
+                  return;
+                }
+
+                final picker = ImagePicker();
+                if (origem == _OrigemMidia.fotoCamera) {
+                  final image = await picker.pickImage(source: ImageSource.camera);
+                  if (image != null) {
+                    await ref
+                        .read(wizardControllerProvider.notifier)
+                        .saveMediaAnswer(
+                          conteudoId,
+                          image.path,
+                          StepCampoSimples_TipoCampo.IMAGE,
+                          listItemId: listItemId,
+                        );
+                  }
+                } else if (origem == _OrigemMidia.videoCamera) {
+                  final video = await picker.pickVideo(source: ImageSource.camera);
+                  if (video != null) {
+                    await ref
+                        .read(wizardControllerProvider.notifier)
+                        .saveMediaAnswer(
+                          conteudoId,
+                          video.path,
+                          StepCampoSimples_TipoCampo.VIDEO,
+                          listItemId: listItemId,
+                        );
+                  }
+                } else if (origem == _OrigemMidia.galeria) {
+                  final arquivos = await picker.pickMultipleMedia();
+                  if (arquivos.isEmpty) return;
+                  final itensSelecionados = <({
+                    String filePath,
+                    StepCampoSimples_TipoCampo tipo,
+                  })>[];
+                  for (final arquivo in arquivos) {
+                    final ext = p.extension(arquivo.path).toLowerCase();
+                    final mime = arquivo.mimeType?.toLowerCase() ?? '';
+                    final ehVideo = mime.startsWith('video/') ||
+                        const {
+                          '.mp4',
+                          '.mov',
+                          '.avi',
+                          '.mkv',
+                          '.webm',
+                          '.3gp',
+                          '.m4v',
+                        }.contains(ext);
+                    itensSelecionados.add((
+                      filePath: arquivo.path,
+                      tipo: ehVideo
+                          ? StepCampoSimples_TipoCampo.VIDEO
+                          : StepCampoSimples_TipoCampo.IMAGE,
+                    ));
+                  }
+                  await ref
+                      .read(wizardControllerProvider.notifier)
+                      .saveMultipleMediaAnswers(
+                        conteudoId,
+                        itensSelecionados,
+                        listItemId: listItemId,
+                      );
+                }
+              },
+              child: _actionTile(
+                icon: midias.isEmpty
+                    ? (isVid ? Icons.videocam_outlined : Icons.camera_alt_outlined)
+                    : Icons.add_circle_outline,
+                label: midias.isEmpty
+                    ? (isVid ? 'GRAVAR VÍDEO' : 'ABRIR CÂMERA')
+                    : 'ADICIONAR MÍDIA',
+                sub: midias.isEmpty
+                    ? 'Fotos, vídeos ou PDFs'
+                    : 'Adicionar outra foto, vídeo ou PDF',
+                active: false,
+              ),
+            ),
+          ],
         );
 
       case StepCampoSimples_TipoCampo.SIGNATURE:
@@ -1601,6 +2043,152 @@ class _CampoSimplesContent extends ConsumerWidget {
     }
   }
 
+  Widget _midiaAnexadaTile({
+    required ReferenciaMidia midia,
+    required int indice,
+    required String chaveCampo,
+    required VoidCallback onRemover,
+  }) {
+    final bool ehPdf = midia.hasDocumento();
+    final bool ehVideo = midia.hasVideo();
+    final IconData icone = ehPdf
+        ? Icons.picture_as_pdf
+        : (ehVideo ? Icons.videocam : Icons.check_circle);
+    final String rotulo = ehPdf
+        ? 'PDF ANEXADO'
+        : (ehVideo ? 'VÍDEO GRAVADO' : 'FOTO CAPTURADA');
+    final String subtitulo = ehPdf
+        ? '${midia.documento.nomeOriginal} (${midia.documento.quantidadePaginas} pág.)'
+        : (ehVideo
+            ? 'Anexo #${indice + 1} (${midia.video.tipoOriginal})'
+            : 'Anexo #${indice + 1} (${midia.imagem.tipoOriginal})');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1D1C),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icone,
+              color: const Color(0xFFFF6B00),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rotulo,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                if (subtitulo.isNotEmpty)
+                  Text(
+                    subtitulo,
+                    style: const TextStyle(
+                      color: Color(0xFFFF6B00),
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            key: Key('btn_remover_midia_${chaveCampo}_$indice'),
+            onPressed: onRemover,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.redAccent,
+              size: 20,
+            ),
+            tooltip: 'Remover mídia',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _loadingMidiaTile({
+    required String chaveCampo,
+    required int quantidade,
+  }) {
+    final texto = quantidade > 1
+        ? 'PROCESSANDO $quantidade MÍDIAS...'
+        : 'PROCESSANDO MÍDIA...';
+    return Container(
+      key: Key('loading_midia_$chaveCampo'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black26,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFFF6B00).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1D1C),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: Color(0xFFFF6B00),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  texto,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Text(
+                  'Salvando e calculando integridade em segundo plano...',
+                  style: TextStyle(
+                    color: Color(0xFFFF6B00),
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _actionTile({
     required IconData icon,
     required String label,
@@ -1659,70 +2247,127 @@ class _CampoSimplesContent extends ConsumerWidget {
     );
   }
 
-  Future<ImageSource?> _selecionarOrigemMidia(BuildContext context, bool isVideo) {
-    return showModalBottomSheet<ImageSource>(
+  Future<_OrigemMidia?> _selecionarOrigemMidia(BuildContext context, bool isVideo) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return showModalBottomSheet<_OrigemMidia>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF181A1C),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                isVideo ? 'SELECIONE A ORIGEM DO VÍDEO' : 'SELECIONE A ORIGEM DA FOTO',
-                style: const TextStyle(
-                  color: Color(0xFFFF6B00),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
+      builder: (ctx) {
+        final recuoInferiorSo = _obterRecuoInferiorModal(context, ctx);
+        return SafeArea(
+          bottom: false,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+            ),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + recuoInferiorSo),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'ADICIONAR MÍDIA (FOTO, VÍDEO OU PDF)',
+                      style: TextStyle(
+                        color: Color(0xFFFF6B00),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.camera_alt,
+                        color: Color(0xFF00FF66),
+                      ),
+                      title: const Text(
+                        'Tirar Foto com a Câmera',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      tileColor: const Color(0xFF22252A),
+                      onTap: () => Navigator.pop(ctx, _OrigemMidia.fotoCamera),
+                    ),
+                    const SizedBox(height: 10),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.videocam,
+                        color: Color(0xFF4FC3F7),
+                      ),
+                      title: const Text(
+                        'Gravar com a Câmera',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      tileColor: const Color(0xFF22252A),
+                      onTap: () => Navigator.pop(ctx, _OrigemMidia.videoCamera),
+                    ),
+                    const SizedBox(height: 10),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.perm_media,
+                        color: Color(0xFF00FF66),
+                      ),
+                      title: const Text(
+                        'Escolher da Galeria',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Fotos e vídeos',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      tileColor: const Color(0xFF22252A),
+                      onTap: () => Navigator.pop(ctx, _OrigemMidia.galeria),
+                    ),
+                    const SizedBox(height: 10),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.picture_as_pdf,
+                        color: Color(0xFFFF6B00),
+                      ),
+                      title: const Text(
+                        'Selecionar Arquivo PDF',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      tileColor: const Color(0xFF22252A),
+                      onTap: () => Navigator.pop(ctx, _OrigemMidia.arquivoPdf),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: Icon(
-                  isVideo ? Icons.videocam : Icons.camera_alt,
-                  color: const Color(0xFF00FF66),
-                ),
-                title: Text(
-                  isVideo ? 'Gravar com a Câmera' : 'Tirar Foto com a Câmera',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                tileColor: const Color(0xFF22252A),
-                onTap: () => Navigator.pop(ctx, ImageSource.camera),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: Icon(
-                  isVideo ? Icons.video_library : Icons.photo_library,
-                  color: const Color(0xFF00FF66),
-                ),
-                title: Text(
-                  isVideo ? 'Escolher da Galeria / Arquivos' : 'Escolher da Galeria',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                tileColor: const Color(0xFF22252A),
-                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+}
 
+enum _OrigemMidia {
+  fotoCamera,
+  videoCamera,
+  galeria,
+  arquivoPdf,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1735,6 +2380,8 @@ class _RefMateriaisContent extends StatelessWidget {
   final List<ListItemRecord> allItems;
   final List<String> selectedIds;
   final void Function(String itemId) onToggle;
+  final bool origemCatalogo;
+  final VoidCallback? onCadastrarNovoMaterial;
 
   const _RefMateriaisContent({
     required this.label,
@@ -1742,6 +2389,8 @@ class _RefMateriaisContent extends StatelessWidget {
     required this.allItems,
     required this.selectedIds,
     required this.onToggle,
+    this.origemCatalogo = false,
+    this.onCadastrarNovoMaterial,
   });
 
   @override
@@ -1777,7 +2426,9 @@ class _RefMateriaisContent extends StatelessWidget {
               border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Text(
-              'Nenhum material registrado no Bloco 1.\nVolte e adicione os materiais primeiro.',
+              origemCatalogo
+                  ? 'Nenhum material cadastrado no catálogo ainda.\nToque abaixo para cadastrar um novo material.'
+                  : 'Nenhum material registrado no Bloco 1.\nVolte e adicione os materiais primeiro.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 13,
@@ -1852,6 +2503,32 @@ class _RefMateriaisContent extends StatelessWidget {
               ),
             );
           }),
+        if (onCadastrarNovoMaterial != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onCadastrarNovoMaterial,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text(
+              'CADASTRAR NOVO MATERIAL',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 0.5,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFF6B00),
+              side: BorderSide(
+                color: const Color(0xFFFF6B00).withValues(alpha: 0.4),
+              ),
+              backgroundColor: const Color(0xFFFF6B00).withValues(alpha: 0.05),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1969,7 +2646,8 @@ class _SelectionTile extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SummaryConclusionCard extends ConsumerWidget {
-  const SummaryConclusionCard({super.key});
+  final bool retornarAoConcluir;
+  const SummaryConclusionCard({super.key, this.retornarAoConcluir = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2018,12 +2696,14 @@ class SummaryConclusionCard extends ConsumerWidget {
 
                 if (!context.mounted) return;
 
-                // 2. Mostrar loading dialog
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (ctx) => const GenerationProgressDialog(),
-                );
+                // 2. Mostrar loading dialog (apenas quando não retorna direto para sessão pai)
+                if (!retornarAoConcluir) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => const GenerationProgressDialog(),
+                  );
+                }
 
                 // 3. Iniciar geração
                 final appDir = await getApplicationDocumentsDirectory();
@@ -2038,6 +2718,10 @@ class SummaryConclusionCard extends ConsumerWidget {
                   sessionId: sessionId,
                 );
                 ref.read(wizardControllerProvider.notifier).marcarComoSalvo();
+
+                if (retornarAoConcluir && context.mounted) {
+                  Navigator.of(context).pop(sessionId);
+                }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -2063,5 +2747,213 @@ class SummaryConclusionCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Caixa de texto multilinha (`TEXT_AREA`) que suporta quebras de linha/linhas em branco
+/// via tecla Enter e estiliza sintaxe Markdown in-place (estilo WhatsApp/Telegram)
+/// sem alterar o texto bruto digitado.
+class _CampoTextoMarkdownArea extends StatefulWidget {
+  final String? initialValue;
+  final ValueChanged<String> onChanged;
+
+  const _CampoTextoMarkdownArea({
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<_CampoTextoMarkdownArea> createState() => _CampoTextoMarkdownAreaState();
+}
+
+class _CampoTextoMarkdownAreaState extends State<_CampoTextoMarkdownArea> {
+  late final _ControladorTextoMarkdown _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = _ControladorTextoMarkdown(text: widget.initialValue ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _CampoTextoMarkdownArea oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final novoValor = widget.initialValue ?? '';
+    if (novoValor != _controller.text) {
+      _controller.value = _controller.value.copyWith(
+        text: novoValor,
+        selection: TextSelection.collapsed(offset: novoValor.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
+      minLines: 4,
+      maxLines: null,
+      onChanged: widget.onChanged,
+      decoration: const InputDecoration(
+        hintText: 'Digite aqui... (suporta **negrito**, *itálico*, # título e listas)',
+      ),
+    );
+  }
+}
+
+/// Controlador de edição que aplica estilização visual in-place para sintaxe
+/// Markdown (`# título`, `- lista`, `**negrito**`, `*itálico*`, `` `código` ``, `~~tachado~~`)
+/// preservando 100% dos caracteres originais no buffer de texto.
+class _ControladorTextoMarkdown extends TextEditingController {
+  _ControladorTextoMarkdown({super.text});
+
+  static final RegExp _regexCabecalho = RegExp(r'^(#{1,6}\s+)(.*)$');
+  static final RegExp _regexLista = RegExp(r'^(\s*[-*]\s+)(.*)$');
+  static final RegExp _regexInline = RegExp(
+    r'\*\*(.+?)\*\*|~~(.+?)~~|`([^`]+)`|\*(?!\s)(.+?)(?<!\s)\*',
+  );
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final estiloBase = style ?? const TextStyle();
+    if (text.isEmpty) {
+      return TextSpan(style: estiloBase, text: '');
+    }
+
+    final spans = <InlineSpan>[];
+    final linhas = text.split('\n');
+
+    for (var i = 0; i < linhas.length; i++) {
+      final linha = linhas[i];
+      final matchCab = _regexCabecalho.firstMatch(linha);
+      if (matchCab != null) {
+        final prefixo = matchCab.group(1)!;
+        final conteudo = matchCab.group(2)!;
+        final estiloTitulo = estiloBase.copyWith(
+          color: const Color(0xFFFF6B00),
+          fontWeight: FontWeight.bold,
+        );
+        spans.add(
+          TextSpan(
+            text: prefixo,
+            style: estiloTitulo.copyWith(color: const Color(0x99FF6B00)),
+          ),
+        );
+        spans.addAll(_gerarSpansInline(conteudo, estiloTitulo));
+      } else {
+        final matchLista = _regexLista.firstMatch(linha);
+        if (matchLista != null) {
+          final prefixo = matchLista.group(1)!;
+          final conteudo = matchLista.group(2)!;
+          spans.add(
+            TextSpan(
+              text: prefixo,
+              style: estiloBase.copyWith(
+                color: const Color(0xFFFF6B00),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+          spans.addAll(_gerarSpansInline(conteudo, estiloBase));
+        } else {
+          spans.addAll(_gerarSpansInline(linha, estiloBase));
+        }
+      }
+
+      if (i < linhas.length - 1) {
+        spans.add(TextSpan(text: '\n', style: estiloBase));
+      }
+    }
+
+    return TextSpan(style: estiloBase, children: spans);
+  }
+
+  List<InlineSpan> _gerarSpansInline(String trecho, TextStyle estiloBase) {
+    if (trecho.isEmpty) {
+      return const [];
+    }
+
+    final spans = <InlineSpan>[];
+    final estiloDelimitador = estiloBase.copyWith(
+      color: (estiloBase.color ?? Colors.white).withValues(alpha: 0.45),
+    );
+    var cursor = 0;
+
+    for (final match in _regexInline.allMatches(trecho)) {
+      if (match.start > cursor) {
+        spans.add(
+          TextSpan(
+            text: trecho.substring(cursor, match.start),
+            style: estiloBase,
+          ),
+        );
+      }
+
+      if (match.group(1) != null) {
+        spans.add(TextSpan(text: '**', style: estiloDelimitador));
+        spans.add(
+          TextSpan(
+            text: match.group(1)!,
+            style: estiloBase.copyWith(fontWeight: FontWeight.bold),
+          ),
+        );
+        spans.add(TextSpan(text: '**', style: estiloDelimitador));
+      } else if (match.group(2) != null) {
+        spans.add(TextSpan(text: '~~', style: estiloDelimitador));
+        spans.add(
+          TextSpan(
+            text: match.group(2)!,
+            style: estiloBase.copyWith(decoration: TextDecoration.lineThrough),
+          ),
+        );
+        spans.add(TextSpan(text: '~~', style: estiloDelimitador));
+      } else if (match.group(3) != null) {
+        spans.add(TextSpan(text: '`', style: estiloDelimitador));
+        spans.add(
+          TextSpan(
+            text: match.group(3)!,
+            style: estiloBase.copyWith(
+              fontFamily: 'monospace',
+              color: const Color(0xFF4FC3F7),
+            ),
+          ),
+        );
+        spans.add(TextSpan(text: '`', style: estiloDelimitador));
+      } else if (match.group(4) != null) {
+        spans.add(TextSpan(text: '*', style: estiloDelimitador));
+        spans.add(
+          TextSpan(
+            text: match.group(4)!,
+            style: estiloBase.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
+        spans.add(TextSpan(text: '*', style: estiloDelimitador));
+      }
+
+      cursor = match.end;
+    }
+
+    if (cursor < trecho.length) {
+      spans.add(
+        TextSpan(
+          text: trecho.substring(cursor),
+          style: estiloBase,
+        ),
+      );
+    }
+
+    return spans;
   }
 }

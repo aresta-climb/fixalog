@@ -25,6 +25,7 @@ import '../models/proto/protos/wizard.pb.dart';
 /// ```
 /// Neste caso o ConteudoStep herda o mesmo id do Step pai.
 class ProtocolParser {
+  /// Analisa uma string YAML e retorna a estrutura [DefinicaoProtocolo] correspondente.
   static DefinicaoProtocolo fromYaml(String yamlContent) {
     final doc = loadYaml(yamlContent) as YamlMap;
     final proto = doc['protocolo'] as YamlMap? ?? doc;
@@ -184,6 +185,7 @@ class ProtocolParser {
       opcoes: (m['opcoes'] as YamlList? ?? YamlList.wrap([])).map(
         _parseOpcaoCampo,
       ),
+      preencherDataAtual: m['preencher_data_atual'] as bool? ?? false,
     );
   }
 
@@ -266,6 +268,7 @@ class ProtocolParser {
       sublabel: m['sublabel'] as String? ?? '',
       idStepMateriais: m['id_step_materiais'] as String? ?? '',
       obrigatorio: m['obrigatorio'] as bool? ?? false,
+      origemCatalogo: m['origem_catalogo'] as bool? ?? false,
     );
   }
 }

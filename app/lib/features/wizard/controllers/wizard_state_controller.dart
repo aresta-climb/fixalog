@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
@@ -11,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart';
 import '../../../core/services/session_bundle_manager.dart';
 import '../../../core/services/protocol_parser.dart';
+import '../../media/services/media_compressor_service.dart';
 import 'package:isar_community/isar.dart';
 import '../../../core/models/local/submission_record.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart' show isarProvider;
@@ -39,7 +42,7 @@ class ListItemRecord {
   });
 }
 
-/// Um passo activo na fila de navegação principal do wizard.
+/// Um passo ativo na fila de navegação principal do wizard.
 class FlowStep {
   final Step step;
   const FlowStep({required this.step});
@@ -60,11 +63,12 @@ class WizardState {
   /// Índice do card atual na fila.
   final int currentIndex;
 
-  /// Respostas keyed por ConteudoStep.id.
+  /// Respostas indexadas por ConteudoStep.id.
   /// Para conteúdos dentro de itens de lista: "${conteudoId}__${listItemId}".
   final Map<String, Resposta> answers;
 
-  /// Itens de lista keyed por ConteudoStep.id (do StepListaAcoes).
+  /// Itens de lista indexados por ConteudoStep.id (do StepListaAcoes)
+  /// ou "${subListaConteudoId}__${parentItemId}" para sub-listas aninhadas.
   final Map<String, List<ListItemRecord>> lists;
 
   /// Qual item está expandido (em edição) em cada lista.
@@ -82,6 +86,9 @@ class WizardState {
   /// Indica se houve alteração nos dados do formulário desde o carregamento ou última geração de relatório.
   final bool possuiAlteracoesPendentes;
 
+  /// Quantidade de mídias em processamento assíncrono em segundo plano por chave de campo.
+  final Map<String, int> processandoMidiasPorCampo;
+
   const WizardState({
     this.sessionId = '',
     this.protocol,
@@ -94,6 +101,7 @@ class WizardState {
     this.refSelections = const {},
     this.ramoInjectedStepIds = const {},
     this.possuiAlteracoesPendentes = false,
+    this.processandoMidiasPorCampo = const {},
   });
 
   WizardState copyWith({
@@ -108,6 +116,7 @@ class WizardState {
     Map<String, List<String>>? refSelections,
     Map<String, List<String>>? ramoInjectedStepIds,
     bool? possuiAlteracoesPendentes,
+    Map<String, int>? processandoMidiasPorCampo,
   }) {
     return WizardState(
       sessionId: sessionId ?? this.sessionId,
@@ -122,6 +131,8 @@ class WizardState {
       ramoInjectedStepIds: ramoInjectedStepIds ?? this.ramoInjectedStepIds,
       possuiAlteracoesPendentes:
           possuiAlteracoesPendentes ?? this.possuiAlteracoesPendentes,
+      processandoMidiasPorCampo:
+          processandoMidiasPorCampo ?? this.processandoMidiasPorCampo,
     );
   }
 
@@ -166,7 +177,9 @@ class WizardStateController extends Notifier<WizardState> {
   Future<void> flushAutoSave() async {
     _autoSaveTimer?.cancel();
     if (state.protocol != null && state.sessionId.isNotEmpty) {
-      await saveSession();
+      try {
+        await saveSession();
+      } catch (_) {}
     }
   }
 
@@ -175,13 +188,85 @@ class WizardStateController extends Notifier<WizardState> {
     state = state.copyWith(possuiAlteracoesPendentes: false);
   }
 
+  static String _formatarDataAtual() {
+    final hoje = DateTime.now();
+    return '${hoje.day.toString().padLeft(2, '0')}/${hoje.month.toString().padLeft(2, '0')}/${hoje.year}';
+  }
+
+  static void _preencherDatasAtuaisNosSteps(
+    List<Step> steps,
+    Map<String, Resposta> targetAnswers, {
+    String? listItemId,
+  }) {
+    final dataFormatada = _formatarDataAtual();
+    for (final step in steps) {
+      for (final conteudo in step.conteudos) {
+        if (conteudo.hasCampoSimples() &&
+            conteudo.campoSimples.preencherDataAtual) {
+          final key = listItemId != null
+              ? '${conteudo.id}__$listItemId'
+              : conteudo.id;
+          if (!targetAnswers.containsKey(key)) {
+            targetAnswers[key] = Resposta(texto: dataFormatada);
+          }
+        } else if (listItemId != null && conteudo.hasSelecaoRamo()) {
+          for (final ramo in conteudo.selecaoRamo.ramos) {
+            _preencherDatasAtuaisNosSteps(
+              ramo.steps,
+              targetAnswers,
+              listItemId: listItemId,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  static StepListaAcoes? _encontrarStepListaAcoes(
+    DefinicaoProtocolo protocol,
+    String pureListId,
+  ) {
+    for (final bloco in protocol.blocos) {
+      final achado = _encontrarStepListaEmSteps(bloco.steps, pureListId);
+      if (achado != null) return achado;
+    }
+    return null;
+  }
+
+  static StepListaAcoes? _encontrarStepListaEmSteps(
+    List<Step> steps,
+    String pureListId,
+  ) {
+    for (final step in steps) {
+      for (final conteudo in step.conteudos) {
+        if (conteudo.id == pureListId && conteudo.hasListaAcoes()) {
+          return conteudo.listaAcoes;
+        }
+        if (conteudo.hasListaAcoes()) {
+          for (final tipo in conteudo.listaAcoes.tiposDisponiveis) {
+            final sub = _encontrarStepListaEmSteps(tipo.steps, pureListId);
+            if (sub != null) return sub;
+          }
+        }
+        if (conteudo.hasSelecaoRamo()) {
+          for (final ramo in conteudo.selecaoRamo.ramos) {
+            final sub = _encontrarStepListaEmSteps(ramo.steps, pureListId);
+            if (sub != null) return sub;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   // ── Carregamento ────────────────────────────────────────────────────────────
 
   void loadProtocol(DefinicaoProtocolo protocol, {String rawYaml = ''}) {
-    final queue = protocol.blocos
-        .expand((b) => b.steps)
-        .map((s) => FlowStep(step: s))
-        .toList();
+    final allSteps = protocol.blocos.expand((b) => b.steps).toList();
+    final queue = allSteps.map((s) => FlowStep(step: s)).toList();
+
+    final initialAnswers = <String, Resposta>{};
+    _preencherDatasAtuaisNosSteps(allSteps, initialAnswers);
 
     state = WizardState(
       sessionId: const Uuid().v4(),
@@ -189,6 +274,7 @@ class WizardStateController extends Notifier<WizardState> {
       protocolRawYaml: rawYaml,
       queue: queue,
       currentIndex: 0,
+      answers: initialAnswers,
       possuiAlteracoesPendentes: true,
     );
     _scheduleAutoSave(immediate: true);
@@ -199,46 +285,54 @@ class WizardStateController extends Notifier<WizardState> {
     final bytes = await sessionManager.readManifest(sessionId: sessionId);
     final registro = Registro.fromBuffer(bytes);
 
-    final yamlStr = registro.yamlConteudo;
+    var yamlStr = registro.yamlConteudo;
     if (yamlStr.isEmpty) {
       throw Exception("O registro antigo não contém o YAML original salvo. Não é possível recriar a interface.");
     }
 
+    if (registro.idProtocolo == 'cadastro_material' &&
+        (yamlStr.contains('det_video') ||
+            yamlStr.contains('tq_video') ||
+            yamlStr.contains('Foto da Etapa / Detalhe') ||
+            yamlStr.contains('Mídias da Etapa / Detalhe'))) {
+      try {
+        final arquivoLocal = File('assets/protocols/cadastro_material.yaml');
+        if (arquivoLocal.existsSync()) {
+          yamlStr = arquivoLocal.readAsStringSync();
+        } else {
+          yamlStr = await rootBundle.loadString(
+            'assets/protocols/cadastro_material.yaml',
+          );
+        }
+      } catch (_) {}
+    }
+
     final protocol = ProtocolParser.fromYaml(yamlStr);
-    
+
     final queue = protocol.blocos
         .expand((b) => b.steps)
         .map((s) => FlowStep(step: s))
         .toList();
 
-    // Reconstruct lists map from GrupoRepetido
+    // Reconstrói o mapa de listas (incluindo sub-listas aninhadas) a partir de GrupoRepetido
     final reconstructedLists = <String, List<ListItemRecord>>{};
-    
-    // We need to find the labels/icons for each list item from the protocol definition
+
     for (final grupo in registro.listas) {
       final listId = grupo.idLista;
+      final pureListId = listId.split('__').first;
       final tipoId = grupo.idTipo;
-      
-      // Find the StepListaAcoes in the protocol that matches listId
-      StepListaAcoes? stepLista;
-      for (final bloco in protocol.blocos) {
-        for (final step in bloco.steps) {
-          for (final conteudo in step.conteudos) {
-            if (conteudo.id == listId && conteudo.hasListaAcoes()) {
-              stepLista = conteudo.listaAcoes;
-              break;
-            }
-          }
-        }
-      }
-      
+
+      final stepLista = _encontrarStepListaAcoes(protocol, pureListId);
+
       if (stepLista != null) {
-        // Find the TipoAcao
         final tipoAcao = stepLista.tiposDisponiveis.firstWhere(
           (t) => t.id == tipoId,
-          orElse: () => TipoAcao()..id = tipoId..label = 'Item'..iconName = 'list',
+          orElse: () => TipoAcao()
+            ..id = tipoId
+            ..label = 'Item'
+            ..iconName = 'list',
         );
-        
+
         final record = ListItemRecord(
           id: grupo.idItem,
           tipoId: tipoId,
@@ -246,18 +340,32 @@ class WizardStateController extends Notifier<WizardState> {
           tipoIconName: tipoAcao.iconName,
           tipo: tipoAcao,
         );
-        
+
         reconstructedLists.putIfAbsent(listId, () => []).add(record);
       }
     }
 
-    // Flatten all answers
+    // Achata todas as respostas
     final allAnswers = <String, Resposta>{};
     allAnswers.addAll(registro.respostas);
-    
+
     for (final grupo in registro.listas) {
       for (final entry in grupo.respostasItem.entries) {
         allAnswers['${entry.key}__${grupo.idItem}'] = entry.value;
+      }
+    }
+
+    // Reconstrói seleções de RefMateriais a partir de respostas com ListaRespostas de texto
+    final reconstructedRefs = <String, List<String>>{};
+    for (final entry in allAnswers.entries) {
+      if (entry.value.hasLista()) {
+        final textos = entry.value.lista.valores
+            .where((v) => v.hasTexto() && v.texto.isNotEmpty)
+            .map((v) => v.texto)
+            .toList();
+        if (textos.isNotEmpty) {
+          reconstructedRefs[entry.key] = textos;
+        }
       }
     }
 
@@ -269,6 +377,7 @@ class WizardStateController extends Notifier<WizardState> {
       currentIndex: 0,
       answers: allAnswers,
       lists: reconstructedLists,
+      refSelections: reconstructedRefs,
       possuiAlteracoesPendentes: false,
     );
   }
@@ -342,6 +451,66 @@ class WizardStateController extends Notifier<WizardState> {
 
   // ── Mídias ───────────────────────────────────────────────────────────────────
 
+  /// Extrai todas as [ReferenciaMidia] contidas em uma [Resposta], seja ela
+  /// de mídia única (`resp.hasMidia()`) ou uma lista de mídias (`resp.hasLista()`).
+  static List<ReferenciaMidia> extrairMidiasDeResposta(Resposta? resp) {
+    if (resp == null) return const [];
+    if (resp.hasMidia()) return [resp.midia];
+    if (resp.hasLista()) {
+      return resp.lista.valores
+          .where((v) => v.hasMidia())
+          .map((v) => v.midia)
+          .toList();
+    }
+    return const [];
+  }
+
+  static Resposta _empacotarMidiasEmResposta(List<ReferenciaMidia> midias) {
+    if (midias.length == 1) {
+      return Resposta(midia: midias.first);
+    }
+    return Resposta(
+      lista: ListaRespostas(
+        valores: midias.map((m) => Resposta(midia: m)).toList(),
+      ),
+    );
+  }
+
+  void _definirProcessandoMidia(String key, int quantidade) {
+    final atual = Map<String, int>.from(state.processandoMidiasPorCampo);
+    if (quantidade <= 0) {
+      atual.remove(key);
+    } else {
+      atual[key] = quantidade;
+    }
+    state = state.copyWith(processandoMidiasPorCampo: atual);
+  }
+
+  static Future<String> _calcularSha256Assincrono(Uint8List bytes) async {
+    if (bytes.length > 65536) {
+      return Isolate.run(() => sha256.convert(bytes).toString());
+    }
+    return sha256.convert(bytes).toString();
+  }
+
+  static Future<({Uint8List bytes, String hash})?> _lerArquivoECalcularHash(
+    String filePath,
+  ) async {
+    final file = File(filePath);
+    if (!file.existsSync()) return null;
+    final length = file.lengthSync();
+    if (length > 65536) {
+      return Isolate.run(() {
+        final b = File(filePath).readAsBytesSync();
+        final h = sha256.convert(b).toString();
+        return (bytes: b, hash: h);
+      });
+    }
+    final bytes = file.readAsBytesSync();
+    final hash = sha256.convert(bytes).toString();
+    return (bytes: bytes, hash: hash);
+  }
+
   /// Salva uma mídia no SessionBundle, calcula o hash e já armazena como ReferenciaMidia.
   Future<void> saveMediaAnswerBytes(
     String conteudoId,
@@ -350,37 +519,59 @@ class WizardStateController extends Notifier<WizardState> {
     StepCampoSimples_TipoCampo tipo, {
     String? listItemId,
   }) async {
-    final sessionManager = ref.read(sessionBundleManagerProvider);
-    final mediaUuid = const Uuid().v4();
-    final hash = sha256.convert(bytes).toString();
-
-    await sessionManager.saveOriginalMedia(
-      sessionId: state.sessionId,
-      mediaUuid: mediaUuid,
-      extension: extension,
-      bytes: bytes,
-    );
-
-    final refMidia = ReferenciaMidia();
-    final mimeExt = extension.replaceAll('.', '');
-    if (tipo == StepCampoSimples_TipoCampo.IMAGE || tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
-      refMidia.imagem = ArquivoImagem(
-        uuid: mediaUuid,
-        hashOriginal: hash,
-        tipoOriginal: 'image/$mimeExt',
-      );
-    } else if (tipo == StepCampoSimples_TipoCampo.VIDEO) {
-      refMidia.video = ArquivoVideo(
-        uuid: mediaUuid,
-        hashOriginal: hash,
-        tipoOriginal: 'video/$mimeExt',
-      );
-    }
-
     final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
-    final updated = Map<String, Resposta>.from(state.answers)..[key] = Resposta(midia: refMidia);
-    state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
-    await saveSession(status: SubmissionStatus.emProgresso);
+    _definirProcessandoMidia(key, 1);
+    try {
+      final sessionManager = ref.read(sessionBundleManagerProvider);
+      final mediaUuid = const Uuid().v4();
+      final hash = await _calcularSha256Assincrono(bytes);
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: state.sessionId,
+        mediaUuid: mediaUuid,
+        extension: extension,
+        bytes: bytes,
+      );
+
+      final refMidia = ReferenciaMidia();
+      final mimeExt = extension.replaceAll('.', '');
+      if (tipo == StepCampoSimples_TipoCampo.IMAGE ||
+          tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
+        refMidia.imagem = ArquivoImagem(
+          uuid: mediaUuid,
+          hashOriginal: hash,
+          tipoOriginal: 'image/$mimeExt',
+        );
+      } else if (tipo == StepCampoSimples_TipoCampo.VIDEO) {
+        refMidia.video = ArquivoVideo(
+          uuid: mediaUuid,
+          hashOriginal: hash,
+          tipoOriginal: 'video/$mimeExt',
+        );
+      }
+
+      final Resposta novaResposta;
+      if (tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
+        novaResposta = Resposta(midia: refMidia);
+      } else {
+        final atuais = extrairMidiasDeResposta(state.answers[key]);
+        novaResposta = _empacotarMidiasEmResposta([...atuais, refMidia]);
+      }
+      final updated = Map<String, Resposta>.from(state.answers)
+        ..[key] = novaResposta;
+      final updatedProc = Map<String, int>.from(state.processandoMidiasPorCampo)
+        ..remove(key);
+      state = state.copyWith(
+        answers: updated,
+        processandoMidiasPorCampo: updatedProc,
+        possuiAlteracoesPendentes: true,
+      );
+      await saveSession(status: SubmissionStatus.emProgresso);
+    } finally {
+      if (state.processandoMidiasPorCampo.containsKey(key)) {
+        _definirProcessandoMidia(key, 0);
+      }
+    }
   }
 
   /// Lê o arquivo de mídia, salva no SessionBundle, calcula hash e armazena como ReferenciaMidia.
@@ -390,12 +581,193 @@ class WizardStateController extends Notifier<WizardState> {
     StepCampoSimples_TipoCampo tipo, {
     String? listItemId,
   }) async {
-    final file = File(filePath);
-    if (!await file.exists()) return;
+    await saveMultipleMediaAnswers(
+      conteudoId,
+      [(filePath: filePath, tipo: tipo)],
+      listItemId: listItemId,
+    );
+  }
 
-    final bytes = await file.readAsBytes();
-    final ext = p.extension(filePath);
-    await saveMediaAnswerBytes(conteudoId, bytes, ext, tipo, listItemId: listItemId);
+  /// Processa e salva múltiplas mídias em lote em segundo plano, atualizando
+  /// [WizardState.processandoMidiasPorCampo] e persistindo a sessão uma única vez ao final.
+  Future<void> saveMultipleMediaAnswers(
+    String conteudoId,
+    List<({String filePath, StepCampoSimples_TipoCampo tipo})> arquivos, {
+    String? listItemId,
+  }) async {
+    if (arquivos.isEmpty) return;
+    final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+    _definirProcessandoMidia(key, arquivos.length);
+    try {
+      await Future<void>.delayed(Duration.zero);
+      final sessionManager = ref.read(sessionBundleManagerProvider);
+      final atuais = List<ReferenciaMidia>.from(
+        extrairMidiasDeResposta(state.answers[key]),
+      );
+      var restantes = arquivos.length;
+
+      for (final item in arquivos) {
+        await Future<void>.delayed(Duration.zero);
+        final lido = await _lerArquivoECalcularHash(item.filePath);
+        if (lido == null) {
+          restantes--;
+          _definirProcessandoMidia(key, restantes);
+          continue;
+        }
+
+        final mediaUuid = const Uuid().v4();
+        final ext = p.extension(item.filePath);
+        await sessionManager.saveOriginalMedia(
+          sessionId: state.sessionId,
+          mediaUuid: mediaUuid,
+          extension: ext,
+          bytes: lido.bytes,
+        );
+
+        final refMidia = ReferenciaMidia();
+        final mimeExt = ext.replaceAll('.', '');
+        if (item.tipo == StepCampoSimples_TipoCampo.VIDEO) {
+          refMidia.video = ArquivoVideo(
+            uuid: mediaUuid,
+            hashOriginal: lido.hash,
+            tipoOriginal: 'video/$mimeExt',
+          );
+        } else {
+          refMidia.imagem = ArquivoImagem(
+            uuid: mediaUuid,
+            hashOriginal: lido.hash,
+            tipoOriginal: 'image/$mimeExt',
+          );
+        }
+
+        if (item.tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
+          atuais
+            ..clear()
+            ..add(refMidia);
+        } else {
+          atuais.add(refMidia);
+        }
+        restantes--;
+
+        final updatedAnswers = Map<String, Resposta>.from(state.answers)
+          ..[key] = _empacotarMidiasEmResposta(atuais);
+        final updatedProc =
+            Map<String, int>.from(state.processandoMidiasPorCampo);
+        if (restantes <= 0) {
+          updatedProc.remove(key);
+        } else {
+          updatedProc[key] = restantes;
+        }
+        state = state.copyWith(
+          answers: updatedAnswers,
+          processandoMidiasPorCampo: updatedProc,
+          possuiAlteracoesPendentes: true,
+        );
+      }
+
+      await saveSession(status: SubmissionStatus.emProgresso);
+    } finally {
+      if (state.processandoMidiasPorCampo.containsKey(key)) {
+        _definirProcessandoMidia(key, 0);
+      }
+    }
+  }
+
+  /// Salva um documento PDF original no SessionBundle (`<uuid>_original.pdf`),
+  /// rasteriza suas páginas em WebP (`<uuid>_p1.webp` .. `<uuid>_pN.webp`),
+  /// calcula os hashes SHA-256 e armazena como [ReferenciaMidia] com [ArquivoDocumento].
+  Future<void> saveDocumentAnswerBytes(
+    String conteudoId,
+    Uint8List pdfBytes, {
+    required String nomeOriginal,
+    String? listItemId,
+  }) async {
+    final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+    _definirProcessandoMidia(key, 1);
+    try {
+      final sessionManager = ref.read(sessionBundleManagerProvider);
+      MediaCompressorService mediaService;
+      try {
+        mediaService = ref.read(mediaCompressorProvider);
+      } catch (_) {
+        mediaService = MediaCompressorService();
+      }
+
+      final docUuid = const Uuid().v4();
+      final hashOriginal = await _calcularSha256Assincrono(pdfBytes);
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: state.sessionId,
+        mediaUuid: docUuid,
+        extension: '.pdf',
+        bytes: pdfBytes,
+      );
+
+      final paginasWebp = await mediaService.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: state.sessionId,
+        mediaUuid: docUuid,
+      );
+
+      final hashesPaginas = <String>[];
+      for (final arquivoPagina in paginasWebp) {
+        if (arquivoPagina.existsSync()) {
+          final bytesPagina = arquivoPagina.readAsBytesSync();
+          hashesPaginas.add(await _calcularSha256Assincrono(bytesPagina));
+        }
+      }
+
+      final refMidia = ReferenciaMidia(
+        documento: ArquivoDocumento(
+          uuid: docUuid,
+          tipoOriginal: 'application/pdf',
+          hashOriginal: hashOriginal,
+          nomeOriginal: nomeOriginal,
+          quantidadePaginas: hashesPaginas.length,
+          hashesPaginasWebp: hashesPaginas,
+        ),
+      );
+
+      final atuais = extrairMidiasDeResposta(state.answers[key]);
+      final updated = Map<String, Resposta>.from(state.answers)
+        ..[key] = _empacotarMidiasEmResposta([...atuais, refMidia]);
+      final updatedProc = Map<String, int>.from(state.processandoMidiasPorCampo)
+        ..remove(key);
+      state = state.copyWith(
+        answers: updated,
+        processandoMidiasPorCampo: updatedProc,
+        possuiAlteracoesPendentes: true,
+      );
+      await saveSession(status: SubmissionStatus.emProgresso);
+    } finally {
+      if (state.processandoMidiasPorCampo.containsKey(key)) {
+        _definirProcessandoMidia(key, 0);
+      }
+    }
+  }
+
+  /// Remove uma mídia pelo índice [indice] da resposta associada a [conteudoId]
+  /// (ou `${conteudoId}__$listItemId`) e persiste a sessão.
+  Future<void> removerMidiaDaResposta(
+    String conteudoId,
+    int indice, {
+    String? listItemId,
+  }) async {
+    final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+    final atuais = List<ReferenciaMidia>.from(
+      extrairMidiasDeResposta(state.answers[key]),
+    );
+    if (indice < 0 || indice >= atuais.length) return;
+    atuais.removeAt(indice);
+
+    final updated = Map<String, Resposta>.from(state.answers);
+    if (atuais.isEmpty) {
+      updated.remove(key);
+    } else {
+      updated[key] = _empacotarMidiasEmResposta(atuais);
+    }
+    state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
+    await saveSession(status: SubmissionStatus.emProgresso);
   }
 
   // ── SelecaoRamo — fluxo principal ────────────────────────────────────────────
@@ -431,6 +803,7 @@ class WizardStateController extends Notifier<WizardState> {
     // Registrar resposta (ramo selecionado é uma string)
     final updatedAnswers = Map<String, Resposta>.from(state.answers)
       ..[conteudoId] = Resposta(texto: ramoId);
+    _preencherDatasAtuaisNosSteps(ramo.steps, updatedAnswers);
 
     // Injetar sub-steps do ramo após o card atual
     final ramoFlowSteps = ramo.steps.map((s) => FlowStep(step: s)).toList();
@@ -474,9 +847,17 @@ class WizardStateController extends Notifier<WizardState> {
     final updatedExpanded = Map<String, String?>.from(state.expandedListItems)
       ..[listConteudoId] = itemId;
 
+    final updatedAnswers = Map<String, Resposta>.from(state.answers);
+    _preencherDatasAtuaisNosSteps(
+      tipo.steps,
+      updatedAnswers,
+      listItemId: itemId,
+    );
+
     state = state.copyWith(
       lists: updatedLists,
       expandedListItems: updatedExpanded,
+      answers: updatedAnswers,
       possuiAlteracoesPendentes: true,
     );
     _scheduleAutoSave(immediate: true);
@@ -511,16 +892,18 @@ class WizardStateController extends Notifier<WizardState> {
     state = state.copyWith(expandedListItems: updatedExpanded);
   }
 
-  /// Remove um item da lista.
+  /// Remove um item da lista (e eventuais sub-listas aninhadas associadas ao item).
   void removeListItem(String listConteudoId, String itemId) {
     final items = List<ListItemRecord>.from(state.lists[listConteudoId] ?? [])
       ..removeWhere((i) => i.id == itemId);
 
     final updatedLists = Map<String, List<ListItemRecord>>.from(state.lists)
-      ..[listConteudoId] = items;
+      ..[listConteudoId] = items
+      ..removeWhere((k, _) => k.endsWith('__$itemId'));
 
     // Se o item removido estava expandido, limpa
-    final updatedExpanded = Map<String, String?>.from(state.expandedListItems);
+    final updatedExpanded = Map<String, String?>.from(state.expandedListItems)
+      ..removeWhere((k, _) => k.endsWith('__$itemId'));
     if (updatedExpanded[listConteudoId] == itemId) {
       updatedExpanded[listConteudoId] = null;
     }
@@ -541,17 +924,43 @@ class WizardStateController extends Notifier<WizardState> {
     String? listItemId,
   }) {
     final key = listItemId != null ? '${conteudoId}__$listItemId' : conteudoId;
+    final previousIds = state.refSelections[key] ?? const <String>[];
+    final recemSelecionados =
+        selectedIds.where((id) => !previousIds.contains(id)).toList();
+
+    if (recemSelecionados.isNotEmpty) {
+      try {
+        final isar = ref.read(isarProvider);
+        if (isar != null) {
+          final agora = DateTime.now();
+          isar.writeTxnSync(() {
+            for (final idMat in recemSelecionados) {
+              final record = isar.submissionRecords.getByIdSessaoSync(idMat);
+              if (record != null && record.isMaterial) {
+                record.dataUltimaSelecao = agora;
+                isar.submissionRecords.putSync(record);
+              }
+            }
+          });
+        }
+      } catch (_) {}
+    }
+
     final updatedRefs = Map<String, List<String>>.from(state.refSelections)
       ..[key] = selectedIds;
-    
+
     // Converte a lista de strings para uma lista de respostas em string
     final respostasLista = ListaRespostas(
-      valores: selectedIds.map((id) => Resposta(texto: id)).toList()
+      valores: selectedIds.map((id) => Resposta(texto: id)).toList(),
     );
-    
-    final updatedAnswers = Map<String, Resposta>.from(state.answers)
-      ..[key] = Resposta(lista: respostasLista);
-      
+
+    final updatedAnswers = Map<String, Resposta>.from(state.answers);
+    if (selectedIds.isEmpty) {
+      updatedAnswers.remove(key);
+    } else {
+      updatedAnswers[key] = Resposta(lista: respostasLista);
+    }
+
     state = state.copyWith(
       refSelections: updatedRefs,
       answers: updatedAnswers,
@@ -560,10 +969,104 @@ class WizardStateController extends Notifier<WizardState> {
     _scheduleAutoSave(immediate: true);
   }
 
+  /// Obtém todos os materiais concluídos do catálogo local ordenados por [dataUltimaSelecao] decrescente.
+  List<ListItemRecord> obterMateriaisDoCatalogo() {
+    try {
+      final isar = ref.read(isarProvider);
+      if (isar == null) return [];
+      final todos = isar.submissionRecords.where().findAllSync();
+      final materiais = todos.where((r) => r.isMaterial && r.isGerado).toList();
+
+      materiais.sort((a, b) {
+        if (a.dataUltimaSelecao != null && b.dataUltimaSelecao != null) {
+          final cmp = b.dataUltimaSelecao!.compareTo(a.dataUltimaSelecao!);
+          if (cmp != 0) return cmp;
+        } else if (a.dataUltimaSelecao != null) {
+          return -1;
+        } else if (b.dataUltimaSelecao != null) {
+          return 1;
+        }
+        return b.dataInclusao.compareTo(a.dataInclusao);
+      });
+
+      return materiais.map((r) {
+        final label = r.tituloExibicao.isNotEmpty
+            ? r.tituloExibicao
+            : (r.nomeProtocolo.isNotEmpty ? r.nomeProtocolo : 'Material');
+        return ListItemRecord(
+          id: r.idSessao,
+          tipoId: 'material_catalogo',
+          tipoLabel: label,
+          tipoIconName: 'hardware',
+          tipo: TipoAcao(
+            id: 'material_catalogo',
+            label: label,
+            iconName: 'hardware',
+          ),
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Resolve a lista de itens disponíveis para um [StepRefMateriais],
+  /// seja diretamente do catálogo local ou de um passo anterior da sessão.
+  List<ListItemRecord> obterItensParaRefMateriais(StepRefMateriais refStep) {
+    if (refStep.origemCatalogo) {
+      return obterMateriaisDoCatalogo();
+    }
+    if (state.lists.containsKey(refStep.idStepMateriais)) {
+      return state.lists[refStep.idStepMateriais]!;
+    }
+    final idsNoBloco1 = state.refSelections[refStep.idStepMateriais] ?? [];
+    if (idsNoBloco1.isEmpty) return [];
+    final catalogo = obterMateriaisDoCatalogo();
+    final porId = {for (final item in catalogo) item.id: item};
+    return idsNoBloco1
+        .map(
+          (id) =>
+              porId[id] ??
+              ListItemRecord(
+                id: id,
+                tipoId: 'material_catalogo',
+                tipoLabel: id,
+                tipoIconName: 'hardware',
+                tipo: TipoAcao(
+                  id: 'material_catalogo',
+                  label: id,
+                  iconName: 'hardware',
+                ),
+              ),
+        )
+        .toList();
+  }
+
   List<ListItemRecord> getMaterialItems(String idStepMateriais) =>
       state.lists[idStepMateriais] ?? [];
 
   // ── Validação interna ─────────────────────────────────────────────────────────
+
+  /// Verifica se todos os conteúdos obrigatórios do passo em [stepIndex] estão satisfeitos.
+  bool isStepSatisfied(int stepIndex) {
+    if (stepIndex < 0 || stepIndex >= state.queue.length) return false;
+    final step = state.queue[stepIndex].step;
+    for (final conteudo in step.conteudos) {
+      if (!_isConteudoSatisfied(conteudo)) return false;
+    }
+    return true;
+  }
+
+  /// Verifica se o passo em [stepIndex] pode ser interagido diretamente (é o passo atual,
+  /// já foi concluído ou todos os passos anteriores já estão satisfeitos).
+  bool podeAcessarStep(int stepIndex) {
+    if (stepIndex < 0 || stepIndex >= state.queue.length) return false;
+    if (stepIndex <= state.currentIndex) return true;
+    for (var i = 0; i < stepIndex; i++) {
+      if (!isStepSatisfied(i)) return false;
+    }
+    return true;
+  }
 
   bool _isConteudoSatisfied(ConteudoStep conteudo) {
     final key = conteudo.id;
@@ -575,13 +1078,15 @@ class WizardStateController extends Notifier<WizardState> {
       ConteudoStep_Tipo.listaAcoes =>
         (state.lists[key]?.length ?? 0) >= conteudo.listaAcoes.minimo,
       ConteudoStep_Tipo.refMateriais =>
-        !conteudo.refMateriais.obrigatorio || state.answers.containsKey(key),
+        !conteudo.refMateriais.obrigatorio ||
+            ((state.refSelections[key]?.isNotEmpty ?? false) ||
+                state.answers.containsKey(key)),
       ConteudoStep_Tipo.instrucao => true,
       _ => true,
     };
   }
 
-  /// Validação recursiva dos conteúdos de um item inline (segue ramos escolhidos).
+  /// Validação recursiva dos conteúdos de um item inline (segue ramos escolhidos e sub-listas).
   bool _validateInlineSteps(List<Step> steps, String itemId) {
     for (final step in steps) {
       for (final conteudo in step.conteudos) {
@@ -599,7 +1104,10 @@ class WizardStateController extends Notifier<WizardState> {
             state.answers.containsKey(key);
       case ConteudoStep_Tipo.refMateriais:
         return !conteudo.refMateriais.obrigatorio ||
-            state.answers.containsKey(key);
+            ((state.refSelections[key]?.isNotEmpty ?? false) ||
+                state.answers.containsKey(key));
+      case ConteudoStep_Tipo.listaAcoes:
+        return (state.lists[key]?.length ?? 0) >= conteudo.listaAcoes.minimo;
       case ConteudoStep_Tipo.selecaoRamo:
         if (conteudo.selecaoRamo.obrigatorio &&
             !state.answers.containsKey(key)) {
@@ -619,7 +1127,6 @@ class WizardStateController extends Notifier<WizardState> {
         }
         return true;
       case ConteudoStep_Tipo.instrucao:
-      case ConteudoStep_Tipo.listaAcoes:
       default:
         return true;
     }
@@ -698,7 +1205,7 @@ class WizardStateController extends Notifier<WizardState> {
     // Salvar o YAML no manifesto
     registro.yamlConteudo = state.protocolRawYaml;
 
-    // 3. Mapear grupos repetidos para 'listas'
+    // 3. Mapear grupos repetidos para 'listas' (incluindo sub-listas aninhadas)
     for (final entry in state.lists.entries) {
       final listId = entry.key;
       for (final item in entry.value) {
@@ -725,7 +1232,7 @@ class WizardStateController extends Notifier<WizardState> {
     if (isar != null) {
       final isarDb = isar;
       final sessionDir = await sessionManager.getSessionDirectory(sessionId);
-      
+
       SubmissionRecord? existingRecord;
       try {
         existingRecord = await isarDb.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
@@ -741,11 +1248,33 @@ class WizardStateController extends Notifier<WizardState> {
         targetStatus = SubmissionStatus.emProgresso;
       }
 
+      final ehMaterial = protocol.id == 'cadastro_material';
+      final tipoRegistro = ehMaterial
+          ? SubmissionTipoRegistro.material
+          : SubmissionTipoRegistro.manutencao;
+
+      String tituloExtraido = '';
+      for (final chaveTitulo in const ['mat_nome', 'via_nome', 'nome_via']) {
+        final texto = finalAnswers[chaveTitulo]?.texto.trim() ?? '';
+        if (texto.isNotEmpty) {
+          tituloExtraido = texto;
+          break;
+        }
+      }
+      if (tituloExtraido.isEmpty) {
+        tituloExtraido = (existingRecord != null && existingRecord.tituloExibicao.isNotEmpty)
+            ? existingRecord.tituloExibicao
+            : protocol.nome;
+      }
+
       record
         ..idSessao = sessionId
         ..idProtocolo = protocol.id
         ..nomeProtocolo = protocol.nome
+        ..tituloExibicao = tituloExtraido
+        ..tipoRegistro = tipoRegistro
         ..dataInclusao = existingRecord?.dataInclusao ?? DateTime.now()
+        ..dataUltimaSelecao = existingRecord?.dataUltimaSelecao
         ..hashAssinatura = existingRecord?.hashAssinatura ?? ''
         ..pdfPath = (targetStatus == SubmissionStatus.emProgresso ? '' : (existingRecord?.pdfPath ?? ''))
         ..protobufPath = p.join(sessionDir.path, 'registro.binarypb')

@@ -44,7 +44,8 @@ class SessionBundleManager {
     // Remove o ponto inicial se houver, para não dar erro
     final ext = extension.startsWith('.') ? extension : '.$extension';
     final file = File(p.join(dir.path, '${mediaUuid}_original$ext'));
-    return file.writeAsBytes(bytes);
+    file.writeAsBytesSync(bytes);
+    return file;
   }
 
   /// Salva uma mídia comprimida no bundle da sessão.
@@ -60,7 +61,8 @@ class SessionBundleManager {
     final dir = await getSessionDirectory(sessionId);
     final ext = extension.startsWith('.') ? extension : '.$extension';
     final file = File(p.join(dir.path, '$mediaUuid$ext'));
-    return file.writeAsBytes(bytes);
+    file.writeAsBytesSync(bytes);
+    return file;
   }
 
   /// Salva o manifesto de dados em formato binário (Protobuf) no bundle da sessão.
@@ -74,7 +76,8 @@ class SessionBundleManager {
   }) async {
     final dir = await getSessionDirectory(sessionId);
     final file = File(p.join(dir.path, 'registro.binarypb'));
-    return file.writeAsBytes(binarypb);
+    file.writeAsBytesSync(binarypb);
+    return file;
   }
 
   /// Salva o manifesto de dados convertido para JSON no bundle da sessão.
@@ -87,7 +90,8 @@ class SessionBundleManager {
   }) async {
     final dir = await getSessionDirectory(sessionId);
     final file = File(p.join(dir.path, 'registro.json'));
-    return file.writeAsString(jsonStr);
+    file.writeAsStringSync(jsonStr);
+    return file;
   }
 
   /// Lê o manifesto Protobuf binário a partir do disco, se existir.
@@ -96,7 +100,7 @@ class SessionBundleManager {
   Future<Uint8List> readManifest({required String sessionId}) async {
     final dir = await getSessionDirectory(sessionId);
     final file = File(p.join(dir.path, 'registro.binarypb'));
-    return file.readAsBytes();
+    return file.readAsBytesSync();
   }
 
   /// Retorna o caminho absoluto do arquivo de mídia persistido para esta sessão.

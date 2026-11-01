@@ -33,3 +33,17 @@ Após a primeira geração sob demanda do PDF resumido, o sistema MUST salvar o 
 #### Scenario: Compartilhamento subsequente do PDF já gerado
 - **WHEN** o usuário solicita compartilhar o PDF Resumido de um laudo cujo PDF já foi gerado previamente
 - **THEN** o sistema reutiliza o arquivo em disco diretamente sem disparar nova conversão pelo motor de impressão
+
+### Requirement: Concatenação dos Relatórios de Materiais no PDF Resumido da Manutenção
+Ao gerar o documento PDF Resumido de uma manutenção que utiliza materiais cadastrados, o sistema DEVE anexar ao final do mesmo arquivo PDF, logo após o relatório da manutenção, as seções completas correspondentes aos relatórios de cada material utilizado (incluindo seus dados técnicos, notas fiscais, testes de qualidade, detalhes de fabricação e QR Codes de vídeos).
+
+#### Scenario: Exportação de PDF único contendo manutenção e materiais anexos
+- **WHEN** o usuário solicita a geração ou compartilhamento do PDF Resumido de uma manutenção com materiais vinculados
+- **THEN** o sistema produz um único arquivo PDF contendo nas primeiras páginas o relatório da manutenção e nas páginas seguintes as fichas completas de todos os materiais utilizados
+
+### Requirement: Renderização Integral das Páginas de Documentos PDF Anexados no PDF Resumido
+Ao gerar o PDF Resumido de um registro que contenha documentos PDF anexados (`ArquivoDocumento`), o gerador de PDF DEVE incorporar sequencialmente todas as páginas rasterizadas (`<uuid>_p1.webp` até `<uuid>_pN.webp`) do documento anexado na seção correspondente do relatório impresso.
+
+#### Scenario: Exportação de PDF Resumido contendo comprovante PDF de múltiplas páginas
+- **WHEN** o usuário exporta o PDF Resumido de um material ou manutenção que possui um comprovante PDF de 3 páginas anexado
+- **THEN** o documento PDF gerado renderiza as 3 páginas rasterizadas do comprovante em sequência, identificadas com o nome original do documento e a numeração de página

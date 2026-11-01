@@ -379,6 +379,83 @@ void main() {
       final resultado = await defaultService.compressAudio(audioFile, outPath);
       expect(resultado, isNotNull);
     });
+
+    test('rasterizarDocumentoPdfSessao gera um arquivo WebP para PDF de 1 página preservando o PDF original', () async {
+      const sessionId = 'sessao-pdf-1';
+      const mediaUuid = 'doc-1p-uuid';
+
+      final servicoComPdf = MediaCompressorService(
+        rasterizadorPdf: (pdfBytes, {double dpi = 150.0}) async {
+          return [
+            Uint8List.fromList([137, 80, 78, 71, 1]),
+          ];
+        },
+      );
+
+      final pdfOriginal = await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.pdf',
+        bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31]),
+      );
+
+      final paginas = await servicoComPdf.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
+      expect(paginas.length, equals(1));
+      expect(paginas[0].path, endsWith('${mediaUuid}_p1.webp'));
+      expect(await paginas[0].exists(), isTrue);
+      expect(await pdfOriginal.exists(), isTrue);
+    });
+
+    test('rasterizarDocumentoPdfSessao gera arquivos WebP numerados para PDF de múltiplas páginas', () async {
+      const sessionId = 'sessao-pdf-multi';
+      const mediaUuid = 'doc-3p-uuid';
+
+      final servicoComPdf = MediaCompressorService(
+        rasterizadorPdf: (pdfBytes, {double dpi = 150.0}) async {
+          return [
+            Uint8List.fromList([137, 80, 78, 71, 1]),
+            Uint8List.fromList([137, 80, 78, 71, 2]),
+            Uint8List.fromList([137, 80, 78, 71, 3]),
+          ];
+        },
+      );
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.pdf',
+        bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31]),
+      );
+
+      final paginas = await servicoComPdf.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
+      expect(paginas.length, equals(3));
+      expect(paginas[0].path, endsWith('${mediaUuid}_p1.webp'));
+      expect(paginas[1].path, endsWith('${mediaUuid}_p2.webp'));
+      expect(paginas[2].path, endsWith('${mediaUuid}_p3.webp'));
+      for (final p in paginas) {
+        expect(await p.exists(), isTrue);
+      }
+    });
+
+    test('rasterizarDocumentoPdfSessao retorna lista vazia se arquivo PDF original não existir', () async {
+      final paginas = await service.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: 'sessao-inexistente',
+        mediaUuid: 'pdf-inexistente',
+      );
+
+      expect(paginas, isEmpty);
+    });
   });
 }
 

@@ -87,6 +87,7 @@ message StepCampoSimples {
   UiHint    ui_hint  = 4;
   bool      obrigatorio = 5;
   repeated OpcaoCampo opcoes = 6; // apenas para tipo DROPDOWN
+  bool      preencher_data_atual = 7; // preenche automaticamente a data atual em campos DATE
 
   enum TipoCampo {
     TEXT      = 0;
@@ -170,8 +171,9 @@ message TipoAcao {
 message StepRefMateriais {
   string label             = 1;
   string sublabel          = 2;
-  // ID do ConteudoStep (tipo StepListaAcoes) de onde os materiais vêm.
+  // ID do ConteudoStep (tipo StepListaAcoes ou StepRefMateriais) de onde os materiais vêm.
   // Ex: "lista_materiais_c" — referencia o ConteudoStep do Bloco 1.
   string id_step_materiais = 3;
   bool   obrigatorio       = 4;
+  bool   origem_catalogo   = 5; // se verdadeiro, lista materiais do catálogo local do aplicativo
 }

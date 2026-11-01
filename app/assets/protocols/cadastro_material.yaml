@@ -1,0 +1,723 @@
+protocolo:
+  id: cadastro_material
+  nome: "Cadastro de Material de Manutenção"
+  descricao: "Protocolo para catalogação, rastreabilidade, testes de qualidade e processos de fabricação de materiais ou conjuntos para manutenção"
+  versao: "1.0.0"
+
+  blocos:
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 1 — Identificação Geral do Material ou Conjunto
+    # ═══════════════════════════════════════════════════════════════
+    - id: identificacao_material
+      titulo: "Bloco 1 — Identificação Geral"
+      subtitulo: "Identificação do material isolado ou conjunto de materiais"
+
+      steps:
+        - id: identificacao_geral
+          conteudos:
+            - id: mat_instrucao
+              instrucao:
+                titulo: "Identificação do Material ou Conjunto"
+                corpo: "Defina um nome claro para este material ou conjunto (ex.: 'Kit Parabolt 3/8 + Chapeleta Bonier' ou 'Barra Roscada Inox 316 14cm'). Este nome aparecerá no catálogo ao selecionar materiais durante uma manutenção."
+                nivel_alerta: INFO
+            - id: mat_nome
+              campo_simples:
+                label: "Nome do Material ou Conjunto"
+                sublabel: "Nome descritivo para identificação rápida no catálogo"
+                tipo: TEXT
+                obrigatorio: true
+            - id: mat_codigo_associacao
+              campo_simples:
+                label: "Código de Rastreamento da Associação"
+                sublabel: "Código interno de controle da associação (opcional)"
+                tipo: TEXT
+                obrigatorio: false
+            - id: mat_data
+              campo_simples:
+                label: "Data do Registro"
+                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                tipo: DATE
+                obrigatorio: true
+                preencher_data_atual: true
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 2 — Lista de Materiais (1 ou mais itens do conjunto)
+    # ═══════════════════════════════════════════════════════════════
+    - id: composicao_materiais
+      titulo: "Bloco 2 — Especificação dos Materiais"
+      subtitulo: "Adicione cada material que compõe este registro, incluindo nota fiscal, testes e detalhes"
+
+      steps:
+        - id: lista_itens_material
+          conteudos:
+            - id: lista_itens_material_c
+              lista_acoes:
+                label: "Materiais Cadastrados"
+                sublabel: "Adicione 1 material isolado ou múltiplos itens que formam o conjunto. Mínimo 1."
+                minimo: 1
+                maximo: 0
+                tipos_disponiveis:
+
+                  # ── 1. Chumbador Mecânico / Parabolt ────────────────────
+                  - id: parabolt
+                    label: "Chumbador Mecânico / Parabolt"
+                    sublabel: "Chumbador expansivo ou prisioneiro mecânico"
+                    icon_name: hardware
+                    steps:
+                      - id: pb_dados
+                        conteudos:
+                          - id: pb_marca
+                            campo_simples:
+                              label: "Marca / Fabricante"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: pb_liga
+                            campo_simples:
+                              label: "Liga / Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316 / 316L"
+                                - valor: aco_inox_304
+                                  label: "Aço Inox 304"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: pb_dimensoes
+                            campo_simples:
+                              label: "Diâmetro e Comprimento"
+                              sublabel: "Ex.: 3/8 x 90mm ou 10mm x 100mm"
+                              tipo: TEXT
+                          - id: pb_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: pb_validade
+                            campo_simples:
+                              label: "Validade (se aplicável)"
+                              tipo: DATE
+                          - id: pb_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: pb_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: pb_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: pb_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: pb_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione ensaios de tração, cisalhamento ou inspeções de lote (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio mecânico, químico ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: pb_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: pb_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione informações extras ou passo-a-passo de preparação/fabricação (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: pb_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+                  # ── 2. Chapeleta ────────────────────────────────────────
+                  - id: chapeleta
+                    label: "Chapeleta"
+                    sublabel: "Placa de ancoragem sem argola"
+                    icon_name: link
+                    steps:
+                      - id: ch_dados
+                        conteudos:
+                          - id: ch_marca
+                            campo_simples:
+                              label: "Marca / Fabricante"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: ch_liga
+                            campo_simples:
+                              label: "Liga / Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316 / 316L"
+                                - valor: aco_inox_304
+                                  label: "Aço Inox 304"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: ch_furo
+                            campo_simples:
+                              label: "Diâmetro do Furo"
+                              sublabel: "Ex.: 3/8 (10mm) ou 1/2 (12mm)"
+                              tipo: TEXT
+                          - id: ch_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: ch_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: ch_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: ch_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: ch_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: ch_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione ensaios ou inspeções de lote (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio mecânico, químico ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: ch_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: ch_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione informações extras ou passo-a-passo de fabricação (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: ch_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+                  # ── 3. Chapeleta com Argola ─────────────────────────────
+                  - id: chapeleta_argola
+                    label: "Chapeleta com Argola"
+                    sublabel: "Conjunto de parada / rapel com argola integrada"
+                    icon_name: radio_button_unchecked
+                    steps:
+                      - id: ca_dados
+                        conteudos:
+                          - id: ca_marca
+                            campo_simples:
+                              label: "Marca / Fabricante"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: ca_liga
+                            campo_simples:
+                              label: "Liga / Material"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316 / 316L"
+                                - valor: aco_inox_304
+                                  label: "Aço Inox 304"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: ca_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: ca_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: ca_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: ca_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: ca_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: ca_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione ensaios ou inspeções de lote (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio mecânico, químico ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: ca_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: ca_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione informações extras ou passo-a-passo de fabricação (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: ca_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+                  # ── 4. Ancoragem Química ────────────────────────────────
+                  - id: ancoragem_quimica
+                    label: "Ancoragem Química"
+                    sublabel: "Resina química, ampola ou chumbador químico"
+                    icon_name: science
+                    steps:
+                      - id: aq_dados
+                        conteudos:
+                          - id: aq_marca
+                            campo_simples:
+                              label: "Marca / Produto"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: aq_validade
+                            campo_simples:
+                              label: "Validade"
+                              tipo: DATE
+                              obrigatorio: true
+                          - id: aq_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: aq_foto
+                            campo_simples:
+                              label: "Foto da embalagem / material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: aq_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: aq_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: aq_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: aq_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione testes de cura, arrancamento ou inspeções (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio de cura, tração ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: aq_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: aq_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione informações extras ou procedimentos de preparo (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: aq_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+                  # ── 5. Costura Permanente ───────────────────────────────
+                  - id: costura_permanente
+                    label: "Costura Permanente"
+                    sublabel: "Costura fixa, malha rápida e conector permanente"
+                    icon_name: link
+                    steps:
+                      - id: cp_dados
+                        conteudos:
+                          - id: cp_marca
+                            campo_simples:
+                              label: "Marca / Fabricante"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: cp_liga
+                            campo_simples:
+                              label: "Material / Liga"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: aco_inox_316
+                                  label: "Aço Inox 316 / 316L"
+                                - valor: aco_galvanizado
+                                  label: "Aço Carbono Galvanizado"
+                                - valor: titanio
+                                  label: "Titânio"
+                                - valor: outro
+                                  label: "Outro"
+                          - id: cp_carga
+                            campo_simples:
+                              label: "Carga de Ruptura Nominal (kN)"
+                              tipo: NUMBER
+                          - id: cp_lote
+                            campo_simples:
+                              label: "Número de lote"
+                              tipo: TEXT
+                          - id: cp_foto
+                            campo_simples:
+                              label: "Foto do material"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: cp_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: cp_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: cp_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: cp_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione ensaios ou inspeções de lote (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio mecânico, químico ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: cp_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: cp_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione informações extras ou montagem (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: cp_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+                  # ── 6. Outro (Fabricação própria / customizado) ─────────
+                  - id: outro
+                    label: "Outro"
+                    sublabel: "Fabricação própria, conjuntos customizados ou outros insumos"
+                    icon_name: more_horiz
+                    steps:
+                      - id: out_dados
+                        conteudos:
+                          - id: out_instrucao
+                            instrucao:
+                              titulo: "Material Customizado ou Fabricação Própria"
+                              corpo: "Registre abaixo o comprovante de aquisição da matéria-prima, eventuais testes de qualidade e todas as etapas de fabricação ou detalhes técnicos."
+                              nivel_alerta: INFO
+                          - id: out_nf_numero
+                            campo_simples:
+                              label: "Nota Fiscal / Comprovante (Número ou Chave)"
+                              tipo: TEXT
+                          - id: out_nf_fornecedor
+                            campo_simples:
+                              label: "Fornecedor / Loja"
+                              tipo: TEXT
+                          - id: out_nf_foto
+                            campo_simples:
+                              label: "Foto ou PDF da Nota Fiscal / Comprovante"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: out_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Adicione ensaios ou testes realizados (opcional)"
+                              minimo: 0
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: teste_qualidade
+                                  label: "Teste de Qualidade"
+                                  sublabel: "Ensaio mecânico, químico ou laudo"
+                                  icon_name: science
+                                  steps:
+                                    - id: out_tq_step
+                                      conteudos:
+                                        - id: tq_tipo
+                                          campo_simples:
+                                            label: "Tipo de Ensaio / Teste"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: tq_resultado
+                                          campo_simples:
+                                            label: "Resultado / Carga Obtida"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: tq_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias ao Teste / Laudo"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+                          - id: out_detalhes
+                            lista_acoes:
+                              label: "Detalhes e Processo de Fabricação"
+                              sublabel: "Adicione cada etapa de fabricação ou especificação técnica. Mínimo 1."
+                              minimo: 1
+                              maximo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Detalhe / Etapa de Fabricação"
+                                  sublabel: "Descrição livre com fotos, vídeos ou PDFs"
+                                  icon_name: build
+                                  steps:
+                                    - id: out_det_step
+                                      conteudos:
+                                        - id: det_titulo
+                                          campo_simples:
+                                            label: "Título do Detalhe ou Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
+                                        - id: det_descricao
+                                          campo_simples:
+                                            label: "Descrição Detalhada"
+                                            tipo: TEXT
+                                            ui_hint: TEXT_AREA
+                                            obrigatorio: true
+                                        - id: det_foto
+                                          campo_simples:
+                                            label: "Anexar Mídias à Etapa / Detalhe"
+                                            tipo: IMAGE
+                                            ui_hint: CAMERA_ACTION
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 3 — Certificação e Assinatura
+    # ═══════════════════════════════════════════════════════════════
+    - id: encerramento_material
+      titulo: "Bloco 3 — Certificação e Assinatura"
+      subtitulo: "Assinatura do responsável técnico pelo cadastro e rastreabilidade do material"
+
+      steps:
+        - id: assinatura_material
+          conteudos:
+            - id: mat_assinatura_instrucao
+              instrucao:
+                titulo: "Declaração de Rastreabilidade do Material"
+                corpo: "Ao assinar abaixo, declaro que os dados de origem, notas fiscais, ensaios e etapas de fabricação informados neste registro correspondem fielmente ao lote/conjunto cadastrado."
+                nivel_alerta: INFO
+            - id: mat_assinatura_c
+              campo_simples:
+                label: "Assinatura do responsável"
+                tipo: SIGNATURE
+                obrigatorio: true

@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from wizard.proto.
+// Generated from protos/wizard.proto.
 
 // @dart = 3.3
 
@@ -28,7 +28,7 @@ class DefinicaoProtocolo extends $pb.GeneratedMessage {
     $core.String? versao,
     $core.Iterable<Bloco>? blocos,
   }) {
-    final result = create();
+    final result = DefinicaoProtocolo._();
     if (id != null) result.id = id;
     if (nome != null) result.nome = nome;
     if (descricao != null) result.descricao = descricao;
@@ -41,20 +41,21 @@ class DefinicaoProtocolo extends $pb.GeneratedMessage {
 
   factory DefinicaoProtocolo.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      DefinicaoProtocolo()..mergeFromBuffer(data, registry);
   factory DefinicaoProtocolo.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      DefinicaoProtocolo()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'DefinicaoProtocolo',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: DefinicaoProtocolo.create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'nome')
     ..aOS(3, _omitFieldNames ? '' : 'descricao')
     ..aOS(4, _omitFieldNames ? '' : 'versao')
-    ..pPM<Bloco>(5, _omitFieldNames ? '' : 'blocos', subBuilder: Bloco.create)
+    ..pPM<Bloco>(5, _omitFieldNames ? '' : 'blocos',
+        subBuilder: Bloco.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -68,12 +69,15 @@ class DefinicaoProtocolo extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use DefinicaoProtocolo() / DefinicaoProtocolo.new instead')
   static DefinicaoProtocolo create() => DefinicaoProtocolo._();
+  static $pb.GeneratedMessage $_createMessage() => DefinicaoProtocolo._();
   @$core.override
-  DefinicaoProtocolo createEmptyInstance() => create();
+  DefinicaoProtocolo createEmptyInstance() => DefinicaoProtocolo._();
   @$core.pragma('dart2js:noInline')
   static DefinicaoProtocolo getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<DefinicaoProtocolo>(create);
+      $pb.GeneratedMessage.$_defaultFor<DefinicaoProtocolo>(
+          DefinicaoProtocolo.create);
   static DefinicaoProtocolo? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -124,7 +128,7 @@ class Bloco extends $pb.GeneratedMessage {
     $core.String? subtitulo,
     $core.Iterable<Step>? steps,
   }) {
-    final result = create();
+    final result = Bloco._();
     if (id != null) result.id = id;
     if (titulo != null) result.titulo = titulo;
     if (subtitulo != null) result.subtitulo = subtitulo;
@@ -136,19 +140,20 @@ class Bloco extends $pb.GeneratedMessage {
 
   factory Bloco.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      Bloco()..mergeFromBuffer(data, registry);
   factory Bloco.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      Bloco()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Bloco',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: Bloco.create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'titulo')
     ..aOS(3, _omitFieldNames ? '' : 'subtitulo')
-    ..pPM<Step>(4, _omitFieldNames ? '' : 'steps', subBuilder: Step.create)
+    ..pPM<Step>(4, _omitFieldNames ? '' : 'steps',
+        subBuilder: Step.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -161,12 +166,14 @@ class Bloco extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Bloco() / Bloco.new instead')
   static Bloco create() => Bloco._();
+  static $pb.GeneratedMessage $_createMessage() => Bloco._();
   @$core.override
-  Bloco createEmptyInstance() => create();
+  Bloco createEmptyInstance() => Bloco._();
   @$core.pragma('dart2js:noInline')
-  static Bloco getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Bloco>(create);
+  static Bloco getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Bloco>(Bloco.create);
   static Bloco? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -220,7 +227,7 @@ class ConteudoStep extends $pb.GeneratedMessage {
     StepListaAcoes? listaAcoes,
     StepRefMateriais? refMateriais,
   }) {
-    final result = create();
+    final result = ConteudoStep._();
     if (id != null) result.id = id;
     if (instrucao != null) result.instrucao = instrucao;
     if (campoSimples != null) result.campoSimples = campoSimples;
@@ -234,10 +241,10 @@ class ConteudoStep extends $pb.GeneratedMessage {
 
   factory ConteudoStep.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      ConteudoStep()..mergeFromBuffer(data, registry);
   factory ConteudoStep.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      ConteudoStep()..mergeFromJson(json, registry);
 
   static const $core.Map<$core.int, ConteudoStep_Tipo> _ConteudoStep_TipoByTag =
       {
@@ -251,7 +258,7 @@ class ConteudoStep extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ConteudoStep',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: ConteudoStep.create)
     ..oo(0, [2, 3, 4, 5, 6])
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOM<StepInstrucao>(2, _omitFieldNames ? '' : 'instrucao',
@@ -277,12 +284,15 @@ class ConteudoStep extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use ConteudoStep() / ConteudoStep.new instead')
   static ConteudoStep create() => ConteudoStep._();
+  static $pb.GeneratedMessage $_createMessage() => ConteudoStep._();
   @$core.override
-  ConteudoStep createEmptyInstance() => create();
+  ConteudoStep createEmptyInstance() => ConteudoStep._();
   @$core.pragma('dart2js:noInline')
-  static ConteudoStep getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ConteudoStep>(create);
+  static ConteudoStep getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConteudoStep>(
+          ConteudoStep.create);
   static ConteudoStep? _defaultInstance;
 
   @$pb.TagNumber(2)
@@ -368,7 +378,7 @@ class Step extends $pb.GeneratedMessage {
     $core.String? id,
     $core.Iterable<ConteudoStep>? conteudos,
   }) {
-    final result = create();
+    final result = Step._();
     if (id != null) result.id = id;
     if (conteudos != null) result.conteudos.addAll(conteudos);
     return result;
@@ -378,15 +388,15 @@ class Step extends $pb.GeneratedMessage {
 
   factory Step.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      Step()..mergeFromBuffer(data, registry);
   factory Step.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      Step()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Step',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: Step.create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..pPM<ConteudoStep>(2, _omitFieldNames ? '' : 'conteudos',
         subBuilder: ConteudoStep.create)
@@ -402,12 +412,14 @@ class Step extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Step() / Step.new instead')
   static Step create() => Step._();
+  static $pb.GeneratedMessage $_createMessage() => Step._();
   @$core.override
-  Step createEmptyInstance() => create();
+  Step createEmptyInstance() => Step._();
   @$core.pragma('dart2js:noInline')
-  static Step getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Step>(create);
+  static Step getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Step>(Step.create);
   static Step? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -431,7 +443,7 @@ class StepInstrucao extends $pb.GeneratedMessage {
     $core.String? iconName,
     StepInstrucao_NivelAlerta? nivelAlerta,
   }) {
-    final result = create();
+    final result = StepInstrucao._();
     if (titulo != null) result.titulo = titulo;
     if (corpo != null) result.corpo = corpo;
     if (iconName != null) result.iconName = iconName;
@@ -443,15 +455,15 @@ class StepInstrucao extends $pb.GeneratedMessage {
 
   factory StepInstrucao.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      StepInstrucao()..mergeFromBuffer(data, registry);
   factory StepInstrucao.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      StepInstrucao()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'StepInstrucao',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: StepInstrucao.create)
     ..aOS(1, _omitFieldNames ? '' : 'titulo')
     ..aOS(2, _omitFieldNames ? '' : 'corpo')
     ..aOS(3, _omitFieldNames ? '' : 'iconName')
@@ -470,12 +482,15 @@ class StepInstrucao extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use StepInstrucao() / StepInstrucao.new instead')
   static StepInstrucao create() => StepInstrucao._();
+  static $pb.GeneratedMessage $_createMessage() => StepInstrucao._();
   @$core.override
-  StepInstrucao createEmptyInstance() => create();
+  StepInstrucao createEmptyInstance() => StepInstrucao._();
   @$core.pragma('dart2js:noInline')
-  static StepInstrucao getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StepInstrucao>(create);
+  static StepInstrucao getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StepInstrucao>(
+          StepInstrucao.create);
   static StepInstrucao? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -523,14 +538,17 @@ class StepCampoSimples extends $pb.GeneratedMessage {
     StepCampoSimples_UiHint? uiHint,
     $core.bool? obrigatorio,
     $core.Iterable<OpcaoCampo>? opcoes,
+    $core.bool? preencherDataAtual,
   }) {
-    final result = create();
+    final result = StepCampoSimples._();
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
     if (tipo != null) result.tipo = tipo;
     if (uiHint != null) result.uiHint = uiHint;
     if (obrigatorio != null) result.obrigatorio = obrigatorio;
     if (opcoes != null) result.opcoes.addAll(opcoes);
+    if (preencherDataAtual != null)
+      result.preencherDataAtual = preencherDataAtual;
     return result;
   }
 
@@ -538,15 +556,15 @@ class StepCampoSimples extends $pb.GeneratedMessage {
 
   factory StepCampoSimples.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      StepCampoSimples()..mergeFromBuffer(data, registry);
   factory StepCampoSimples.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      StepCampoSimples()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'StepCampoSimples',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: StepCampoSimples.create)
     ..aOS(1, _omitFieldNames ? '' : 'label')
     ..aOS(2, _omitFieldNames ? '' : 'sublabel')
     ..aE<StepCampoSimples_TipoCampo>(3, _omitFieldNames ? '' : 'tipo',
@@ -556,6 +574,7 @@ class StepCampoSimples extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'obrigatorio')
     ..pPM<OpcaoCampo>(6, _omitFieldNames ? '' : 'opcoes',
         subBuilder: OpcaoCampo.create)
+    ..aOB(7, _omitFieldNames ? '' : 'preencherDataAtual')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -569,12 +588,15 @@ class StepCampoSimples extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use StepCampoSimples() / StepCampoSimples.new instead')
   static StepCampoSimples create() => StepCampoSimples._();
+  static $pb.GeneratedMessage $_createMessage() => StepCampoSimples._();
   @$core.override
-  StepCampoSimples createEmptyInstance() => create();
+  StepCampoSimples createEmptyInstance() => StepCampoSimples._();
   @$core.pragma('dart2js:noInline')
-  static StepCampoSimples getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StepCampoSimples>(create);
+  static StepCampoSimples getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StepCampoSimples>(
+          StepCampoSimples.create);
   static StepCampoSimples? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -624,6 +646,15 @@ class StepCampoSimples extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<OpcaoCampo> get opcoes => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.bool get preencherDataAtual => $_getBF(6);
+  @$pb.TagNumber(7)
+  set preencherDataAtual($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPreencherDataAtual() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearPreencherDataAtual() => $_clearField(7);
 }
 
 class OpcaoCampo extends $pb.GeneratedMessage {
@@ -633,7 +664,7 @@ class OpcaoCampo extends $pb.GeneratedMessage {
     $core.String? sublabel,
     $core.String? iconName,
   }) {
-    final result = create();
+    final result = OpcaoCampo._();
     if (valor != null) result.valor = valor;
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
@@ -645,15 +676,15 @@ class OpcaoCampo extends $pb.GeneratedMessage {
 
   factory OpcaoCampo.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      OpcaoCampo()..mergeFromBuffer(data, registry);
   factory OpcaoCampo.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      OpcaoCampo()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'OpcaoCampo',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: OpcaoCampo.create)
     ..aOS(1, _omitFieldNames ? '' : 'valor')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aOS(3, _omitFieldNames ? '' : 'sublabel')
@@ -670,12 +701,14 @@ class OpcaoCampo extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use OpcaoCampo() / OpcaoCampo.new instead')
   static OpcaoCampo create() => OpcaoCampo._();
+  static $pb.GeneratedMessage $_createMessage() => OpcaoCampo._();
   @$core.override
-  OpcaoCampo createEmptyInstance() => create();
+  OpcaoCampo createEmptyInstance() => OpcaoCampo._();
   @$core.pragma('dart2js:noInline')
   static OpcaoCampo getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<OpcaoCampo>(create);
+      $pb.GeneratedMessage.$_defaultFor<OpcaoCampo>(OpcaoCampo.create);
   static OpcaoCampo? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -722,7 +755,7 @@ class StepSelecaoRamo extends $pb.GeneratedMessage {
     $core.bool? obrigatorio,
     $core.Iterable<Ramo>? ramos,
   }) {
-    final result = create();
+    final result = StepSelecaoRamo._();
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
     if (obrigatorio != null) result.obrigatorio = obrigatorio;
@@ -734,19 +767,20 @@ class StepSelecaoRamo extends $pb.GeneratedMessage {
 
   factory StepSelecaoRamo.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      StepSelecaoRamo()..mergeFromBuffer(data, registry);
   factory StepSelecaoRamo.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      StepSelecaoRamo()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'StepSelecaoRamo',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: StepSelecaoRamo.create)
     ..aOS(1, _omitFieldNames ? '' : 'label')
     ..aOS(2, _omitFieldNames ? '' : 'sublabel')
     ..aOB(3, _omitFieldNames ? '' : 'obrigatorio')
-    ..pPM<Ramo>(4, _omitFieldNames ? '' : 'ramos', subBuilder: Ramo.create)
+    ..pPM<Ramo>(4, _omitFieldNames ? '' : 'ramos',
+        subBuilder: Ramo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -760,12 +794,15 @@ class StepSelecaoRamo extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use StepSelecaoRamo() / StepSelecaoRamo.new instead')
   static StepSelecaoRamo create() => StepSelecaoRamo._();
+  static $pb.GeneratedMessage $_createMessage() => StepSelecaoRamo._();
   @$core.override
-  StepSelecaoRamo createEmptyInstance() => create();
+  StepSelecaoRamo createEmptyInstance() => StepSelecaoRamo._();
   @$core.pragma('dart2js:noInline')
-  static StepSelecaoRamo getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StepSelecaoRamo>(create);
+  static StepSelecaoRamo getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StepSelecaoRamo>(
+          StepSelecaoRamo.create);
   static StepSelecaoRamo? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -808,7 +845,7 @@ class Ramo extends $pb.GeneratedMessage {
     $core.String? iconName,
     $core.Iterable<Step>? steps,
   }) {
-    final result = create();
+    final result = Ramo._();
     if (id != null) result.id = id;
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
@@ -821,20 +858,21 @@ class Ramo extends $pb.GeneratedMessage {
 
   factory Ramo.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      Ramo()..mergeFromBuffer(data, registry);
   factory Ramo.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      Ramo()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Ramo',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: Ramo.create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aOS(3, _omitFieldNames ? '' : 'sublabel')
     ..aOS(4, _omitFieldNames ? '' : 'iconName')
-    ..pPM<Step>(5, _omitFieldNames ? '' : 'steps', subBuilder: Step.create)
+    ..pPM<Step>(5, _omitFieldNames ? '' : 'steps',
+        subBuilder: Step.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -847,12 +885,14 @@ class Ramo extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Ramo() / Ramo.new instead')
   static Ramo create() => Ramo._();
+  static $pb.GeneratedMessage $_createMessage() => Ramo._();
   @$core.override
-  Ramo createEmptyInstance() => create();
+  Ramo createEmptyInstance() => Ramo._();
   @$core.pragma('dart2js:noInline')
-  static Ramo getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Ramo>(create);
+  static Ramo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Ramo>(Ramo.create);
   static Ramo? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -903,7 +943,7 @@ class StepListaAcoes extends $pb.GeneratedMessage {
     $core.int? maximo,
     $core.Iterable<TipoAcao>? tiposDisponiveis,
   }) {
-    final result = create();
+    final result = StepListaAcoes._();
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
     if (minimo != null) result.minimo = minimo;
@@ -917,15 +957,15 @@ class StepListaAcoes extends $pb.GeneratedMessage {
 
   factory StepListaAcoes.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      StepListaAcoes()..mergeFromBuffer(data, registry);
   factory StepListaAcoes.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      StepListaAcoes()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'StepListaAcoes',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: StepListaAcoes.create)
     ..aOS(1, _omitFieldNames ? '' : 'label')
     ..aOS(2, _omitFieldNames ? '' : 'sublabel')
     ..aI(3, _omitFieldNames ? '' : 'minimo')
@@ -945,12 +985,15 @@ class StepListaAcoes extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use StepListaAcoes() / StepListaAcoes.new instead')
   static StepListaAcoes create() => StepListaAcoes._();
+  static $pb.GeneratedMessage $_createMessage() => StepListaAcoes._();
   @$core.override
-  StepListaAcoes createEmptyInstance() => create();
+  StepListaAcoes createEmptyInstance() => StepListaAcoes._();
   @$core.pragma('dart2js:noInline')
-  static StepListaAcoes getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StepListaAcoes>(create);
+  static StepListaAcoes getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StepListaAcoes>(
+          StepListaAcoes.create);
   static StepListaAcoes? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1002,7 +1045,7 @@ class TipoAcao extends $pb.GeneratedMessage {
     $core.String? iconName,
     $core.Iterable<Step>? steps,
   }) {
-    final result = create();
+    final result = TipoAcao._();
     if (id != null) result.id = id;
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
@@ -1015,20 +1058,21 @@ class TipoAcao extends $pb.GeneratedMessage {
 
   factory TipoAcao.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      TipoAcao()..mergeFromBuffer(data, registry);
   factory TipoAcao.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      TipoAcao()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'TipoAcao',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: TipoAcao.create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aOS(3, _omitFieldNames ? '' : 'sublabel')
     ..aOS(4, _omitFieldNames ? '' : 'iconName')
-    ..pPM<Step>(5, _omitFieldNames ? '' : 'steps', subBuilder: Step.create)
+    ..pPM<Step>(5, _omitFieldNames ? '' : 'steps',
+        subBuilder: Step.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1041,12 +1085,14 @@ class TipoAcao extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use TipoAcao() / TipoAcao.new instead')
   static TipoAcao create() => TipoAcao._();
+  static $pb.GeneratedMessage $_createMessage() => TipoAcao._();
   @$core.override
-  TipoAcao createEmptyInstance() => create();
+  TipoAcao createEmptyInstance() => TipoAcao._();
   @$core.pragma('dart2js:noInline')
-  static TipoAcao getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TipoAcao>(create);
+  static TipoAcao getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TipoAcao>(TipoAcao.create);
   static TipoAcao? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1095,12 +1141,14 @@ class StepRefMateriais extends $pb.GeneratedMessage {
     $core.String? sublabel,
     $core.String? idStepMateriais,
     $core.bool? obrigatorio,
+    $core.bool? origemCatalogo,
   }) {
-    final result = create();
+    final result = StepRefMateriais._();
     if (label != null) result.label = label;
     if (sublabel != null) result.sublabel = sublabel;
     if (idStepMateriais != null) result.idStepMateriais = idStepMateriais;
     if (obrigatorio != null) result.obrigatorio = obrigatorio;
+    if (origemCatalogo != null) result.origemCatalogo = origemCatalogo;
     return result;
   }
 
@@ -1108,19 +1156,20 @@ class StepRefMateriais extends $pb.GeneratedMessage {
 
   factory StepRefMateriais.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
+      StepRefMateriais()..mergeFromBuffer(data, registry);
   factory StepRefMateriais.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+      StepRefMateriais()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'StepRefMateriais',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
-      createEmptyInstance: create)
+      createEmptyInstance: StepRefMateriais.create)
     ..aOS(1, _omitFieldNames ? '' : 'label')
     ..aOS(2, _omitFieldNames ? '' : 'sublabel')
     ..aOS(3, _omitFieldNames ? '' : 'idStepMateriais')
     ..aOB(4, _omitFieldNames ? '' : 'obrigatorio')
+    ..aOB(5, _omitFieldNames ? '' : 'origemCatalogo')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1134,12 +1183,15 @@ class StepRefMateriais extends $pb.GeneratedMessage {
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use StepRefMateriais() / StepRefMateriais.new instead')
   static StepRefMateriais create() => StepRefMateriais._();
+  static $pb.GeneratedMessage $_createMessage() => StepRefMateriais._();
   @$core.override
-  StepRefMateriais createEmptyInstance() => create();
+  StepRefMateriais createEmptyInstance() => StepRefMateriais._();
   @$core.pragma('dart2js:noInline')
-  static StepRefMateriais getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StepRefMateriais>(create);
+  static StepRefMateriais getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StepRefMateriais>(
+          StepRefMateriais.create);
   static StepRefMateriais? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1160,7 +1212,7 @@ class StepRefMateriais extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearSublabel() => $_clearField(2);
 
-  /// ID do ConteudoStep (tipo StepListaAcoes) de onde os materiais vêm.
+  /// ID do ConteudoStep (tipo StepListaAcoes ou StepRefMateriais) de onde os materiais vêm.
   /// Ex: "lista_materiais_c" — referencia o ConteudoStep do Bloco 1.
   @$pb.TagNumber(3)
   $core.String get idStepMateriais => $_getSZ(2);
@@ -1179,6 +1231,15 @@ class StepRefMateriais extends $pb.GeneratedMessage {
   $core.bool hasObrigatorio() => $_has(3);
   @$pb.TagNumber(4)
   void clearObrigatorio() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get origemCatalogo => $_getBF(4);
+  @$pb.TagNumber(5)
+  set origemCatalogo($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOrigemCatalogo() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOrigemCatalogo() => $_clearField(5);
 }
 
 const $core.bool _omitFieldNames =

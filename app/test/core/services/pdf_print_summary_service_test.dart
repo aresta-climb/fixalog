@@ -166,5 +166,149 @@ void main() {
       final inst = container.read(pdfPrintSummaryServiceProvider);
       expect(inst, isA<PdfPrintSummaryService>());
     });
+
+    test('gerarHtmlParaImpressao e exportarPdfResumido concatenam relatórios dos materiais anexos ao final do documento', () async {
+      final grupoMaterial = GrupoRepetido()
+        ..idLista = 'lista_itens_material_c'
+        ..idItem = 'item_mat_1'
+        ..idTipo = 'parabolt'
+        ..respostasItem['parabolt_marca'] = (Resposta()..texto = 'Petzl Coeur Pulse')
+        ..respostasItem['nf_descricao'] = (Resposta()..texto = 'NF-e 998877');
+
+      final grupoFabricacao = GrupoRepetido()
+        ..idLista = 'sublista_detalhes_fabricacao__item_mat_1'
+        ..idItem = 'etapa_1'
+        ..idTipo = 'etapa_detalhe'
+        ..respostasItem['detalhe_titulo'] = (Resposta()..texto = 'Corte e Repassivação Ácida');
+
+      final registroMat = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..respostas['mat_nome'] = (Resposta()..texto = 'Conjunto Parabolt Inox 316L')
+        ..respostas['mat_codigo_associacao'] = (Resposta()..texto = 'ASSOC-2026-01')
+        ..listas.addAll([grupoMaterial, grupoFabricacao]);
+
+      final registroManut = Registro()
+        ..idProtocolo = 'manutencao_ferragens'
+        ..respostas['via_nome'] = (Resposta()..texto = 'Via Aresta Solar')
+        ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-anexo-1');
+
+      final anexo = RelatorioMaterialAnexo(
+        idSessao: 'uuid-mat-anexo-1',
+        registro: registroMat,
+        urlCanonica: 'https://fixalog.app/v/uuid-mat-anexo-1',
+      );
+
+      final html = service.gerarHtmlParaImpressao(
+        registro: registroManut,
+        idSessao: 'sessao-manut-99',
+        urlCanonica: 'https://fixalog.app/v/sessao-manut-99',
+        materiaisAnexos: [anexo],
+      );
+
+      // O relatório principal deve vir antes do relatório do material anexo
+      final posManut = html.indexOf('Via Aresta Solar');
+      final posMaterial = html.indexOf('Conjunto Parabolt Inox 316L');
+      final posFabricacao = html.indexOf('Corte e Repassivação Ácida');
+
+      expect(posManut, isNonNegative);
+      expect(posMaterial, greaterThan(posManut));
+      expect(posFabricacao, greaterThan(posManut));
+      expect(html, contains('NF-e 998877'));
+      expect(html, contains('page-break-before: always'));
+
+      final destino = '${tempDir.path}/manut_com_materiais.pdf';
+      final arquivo = await service.exportarPdfResumido(
+        caminhoSaida: destino,
+        registro: registroManut,
+        idSessao: 'sessao-manut-99',
+        urlCanonica: 'https://fixalog.app/v/sessao-manut-99',
+        materiaisAnexos: [anexo],
+      );
+
+      expect(await arquivo.exists(), isTrue);
+      expect(fakePrinting.lastHtml, contains('Corte e Repassivação Ácida'));
+    });
+
+    test('gerarHtmlParaImpressao renderiza todas as páginas WebP de documentos PDF no relatório principal e nos materiais anexos', () {
+      final grupoMat = GrupoRepetido()
+        ..idLista = 'lista_materiais_cadastro'
+        ..idItem = 'item_mat_1'
+        ..idTipo = 'chumbador_mecanico'
+        ..respostasItem['mat_nota_fiscal'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..documento = (ArquivoDocumento()
+              ..uuid = 'uuid-nf-anexo'
+              ..nomeOriginal = 'nf_anexo.pdf'
+              ..quantidadePaginas = 2)));
+
+      final registroMat = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..respostas['mat_nome'] = (Resposta()..texto = 'Parabolt com PDF')
+        ..listas.add(grupoMat);
+
+      final registroManut = Registro()
+        ..idProtocolo = 'manutencao_ferragens'
+        ..respostas['laudo_pdf'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..documento = (ArquivoDocumento()
+              ..uuid = 'uuid-laudo-princ'
+              ..nomeOriginal = 'laudo_principal.pdf'
+              ..quantidadePaginas = 2)));
+
+      final anexo = RelatorioMaterialAnexo(
+        idSessao: 'uuid-mat-pdf',
+        registro: registroMat,
+        urlCanonica: 'https://fixalog.app/v/uuid-mat-pdf',
+        mapeamentoMidias: {
+          'uuid-nf-anexo_p1': 'data:image/webp;base64,AAA1',
+          'uuid-nf-anexo_p2': 'data:image/webp;base64,AAA2',
+        },
+      );
+
+      final html = service.gerarHtmlParaImpressao(
+        registro: registroManut,
+        idSessao: 'sessao-manut-pdf',
+        urlCanonica: 'https://fixalog.app/v/sessao-manut-pdf',
+        mapeamentoMidias: {
+          'uuid-laudo-princ_p1': 'data:image/webp;base64,BBB1',
+          'uuid-laudo-princ_p2': 'data:image/webp;base64,BBB2',
+        },
+        materiaisAnexos: [anexo],
+      );
+
+      expect(html, contains('laudo_principal.pdf — Página 1 de 2'));
+      expect(html, contains('src="data:image/webp;base64,BBB1"'));
+      expect(html, contains('laudo_principal.pdf — Página 2 de 2'));
+      expect(html, contains('src="data:image/webp;base64,BBB2"'));
+
+      expect(html, contains('nf_anexo.pdf — Página 1 de 2'));
+      expect(html, contains('src="data:image/webp;base64,AAA1"'));
+      expect(html, contains('nf_anexo.pdf — Página 2 de 2'));
+      expect(html, contains('src="data:image/webp;base64,AAA2"'));
+    });
+
+    test('gerarHtmlParaImpressao reflete formatação Markdown e linhas em branco nas descrições do PDF Resumido', () {
+      final grupo = GrupoRepetido()
+        ..idLista = 'pb_detalhes'
+        ..idItem = 'det_1'
+        ..idTipo = 'detalhe_item'
+        ..respostasItem['det_descricao'] = (Resposta()
+          ..texto = '# Tratamento Térmico\n\nAquecimento a **1050°C** com resfriamento *rápido*.\n\n- Ensaio aprovado');
+
+      final registro = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..listas.add(grupo);
+
+      final html = service.gerarHtmlParaImpressao(
+        registro: registro,
+        idSessao: 'sessao-md-pdf',
+        urlCanonica: 'https://fixalog.app/v/sessao-md-pdf',
+      );
+
+      expect(html, contains('<h4>Tratamento Térmico</h4>'));
+      expect(html, contains('<strong>1050°C</strong>'));
+      expect(html, contains('<em>rápido</em>'));
+      expect(html, contains('<ul><li>Ensaio aprovado</li></ul>'));
+    });
   });
 }

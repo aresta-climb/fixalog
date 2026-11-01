@@ -43,12 +43,15 @@ void main() {
       });
 
       final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('session-123').findFirst();
-      
+
       expect(retrieved, isNotNull);
       expect(retrieved!.protobufPath, '/path/to/registro.binarypb');
       expect(retrieved.status, equals(SubmissionStatus.emProgresso));
       expect(retrieved.isEmProgresso, isTrue);
       expect(retrieved.isGerado, isFalse);
+      expect(retrieved.tipoRegistro, equals(SubmissionTipoRegistro.manutencao));
+      expect(retrieved.isManutencao, isTrue);
+      expect(retrieved.isMaterial, isFalse);
     });
 
     test('Deve permitir definir status como GERADO e validar getters', () async {
@@ -68,7 +71,7 @@ void main() {
       });
 
       final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('session-456').findFirst();
-      
+
       expect(retrieved, isNotNull);
       expect(retrieved!.status, equals(SubmissionStatus.gerado));
       expect(retrieved.isGerado, isTrue);
@@ -89,6 +92,33 @@ void main() {
 
       expect(legacyRascunho.isEmProgresso, isTrue);
       expect(legacyRascunho.isGerado, isFalse);
+    });
+
+    test('Deve persistir e recuperar tipoRegistro MATERIAL, tituloExibicao e dataUltimaSelecao', () async {
+      final dataSelecao = DateTime(2026, 11, 1, 14, 30);
+      final record = SubmissionRecord()
+        ..idSessao = 'mat-001'
+        ..idProtocolo = 'cadastro_material'
+        ..nomeProtocolo = 'Cadastro de Material de Manutenção'
+        ..tipoRegistro = SubmissionTipoRegistro.material
+        ..tituloExibicao = 'Kit Parabolt 3/8 + Chapeleta Bonier'
+        ..dataUltimaSelecao = dataSelecao
+        ..status = SubmissionStatus.gerado
+        ..pdfPath = '/path/to/mat.epub'
+        ..protobufPath = '/path/to/mat.binarypb';
+
+      await isar.writeTxn(() async {
+        await isar.submissionRecords.put(record);
+      });
+
+      final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('mat-001').findFirst();
+
+      expect(retrieved, isNotNull);
+      expect(retrieved!.tipoRegistro, equals(SubmissionTipoRegistro.material));
+      expect(retrieved.isMaterial, isTrue);
+      expect(retrieved.isManutencao, isFalse);
+      expect(retrieved.tituloExibicao, equals('Kit Parabolt 3/8 + Chapeleta Bonier'));
+      expect(retrieved.dataUltimaSelecao, equals(dataSelecao));
     });
   });
 }

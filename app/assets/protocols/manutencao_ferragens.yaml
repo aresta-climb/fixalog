@@ -2,196 +2,31 @@ protocolo:
   id: manutencao_ferragens
   nome: "Manutenção de Proteções Fixas"
   descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas e ancoragens)"
-  versao: "2.0.0"
+  versao: "2.1.0"
 
   blocos:
 
     # ═══════════════════════════════════════════════════════════════
-    # BLOCO 1 — Materiais a instalar
+    # BLOCO 1 — Materiais a instalar (selecionados do catálogo local)
     # ═══════════════════════════════════════════════════════════════
     - id: materiais
       titulo: "Bloco 1 — Materiais a Instalar"
-      subtitulo: "Registre todos os materiais que serão instalados nesta via antes de começar a subir"
+      subtitulo: "Selecione os materiais cadastrados que serão utilizados nesta manutenção ou cadastre um novo agora"
 
       steps:
         - id: lista_materiais
           conteudos:
+            - id: materiais_aviso
+              instrucao:
+                titulo: "Seleção de Materiais para a Manutenção"
+                corpo: "Selecione abaixo os materiais ou conjuntos do seu catálogo local que serão utilizados nesta via. Caso ainda não tenha cadastrado algum material, toque em Cadastrar Novo Material."
+                nivel_alerta: INFO
             - id: lista_materiais_c
-              lista_acoes:
+              ref_materiais:
                 label: "Materiais a instalar"
-                sublabel: "Adicione cada material com seus dados de rastreabilidade. Mínimo 1."
-                minimo: 1
-                maximo: 0
-                tipos_disponiveis:
-
-                  # ── Parabolt ─────────────────────────────────────
-                  - id: parabolt
-                    label: "Parabolt"
-                    sublabel: "Chumbador expansivo"
-                    icon_name: hardware
-                    steps:
-                      - id: pb_dados
-                        conteudos:
-                          - id: pb_aviso
-                            instrucao:
-                              titulo: "Dados do Parabolt"
-                              corpo: "Registre todos os dados de rastreabilidade do parabolt antes de instalar. Lote e marca são obrigatórios."
-                              nivel_alerta: INFO
-                          - id: pb_marca
-                            campo_simples:
-                              label: "Marca"
-                              tipo: TEXT
-                              obrigatorio: true
-                          - id: pb_liga
-                            campo_simples:
-                              label: "Liga / Material"
-                              tipo: DROPDOWN
-                              opcoes:
-                                - valor: aco_inox_316
-                                  label: "Aço Inox 316L"
-                                - valor: aco_inox_304
-                                  label: "Aço Inox 304"
-                                - valor: titanio
-                                  label: "Titânio"
-                                - valor: outro
-                                  label: "Outro"
-                          - id: pb_lote
-                            campo_simples:
-                              label: "Número de lote"
-                              tipo: TEXT
-                              obrigatorio: true
-                          - id: pb_validade
-                            campo_simples:
-                              label: "Validade"
-                              tipo: DATE
-                          - id: pb_foto
-                            campo_simples:
-                              label: "Foto do material"
-                              tipo: IMAGE
-                              ui_hint: CAMERA_ACTION
-
-                  # ── Chapeleta ─────────────────────────────────────
-                  - id: chapeleta
-                    label: "Chapeleta"
-                    sublabel: "Placa de distribuição de carga"
-                    icon_name: link
-                    steps:
-                      - id: ch_dados
-                        conteudos:
-                          - id: ch_marca
-                            campo_simples:
-                              label: "Marca"
-                              tipo: TEXT
-                              obrigatorio: true
-                          - id: ch_liga
-                            campo_simples:
-                              label: "Material"
-                              tipo: DROPDOWN
-                              opcoes:
-                                - valor: aco_inox_316
-                                  label: "Aço Inox 316L"
-                                - valor: titanio
-                                  label: "Titânio"
-                                - valor: outro
-                                  label: "Outro"
-                          - id: ch_lote
-                            campo_simples:
-                              label: "Número de lote"
-                              tipo: TEXT
-                          - id: ch_foto
-                            campo_simples:
-                              label: "Foto do material"
-                              tipo: IMAGE
-                              ui_hint: CAMERA_ACTION
-
-                  # ── Argola ────────────────────────────────────────
-                  - id: argola
-                    label: "Argola"
-                    sublabel: "Anel de ligação"
-                    icon_name: radio_button_unchecked
-                    steps:
-                      - id: arg_dados
-                        conteudos:
-                          - id: arg_marca
-                            campo_simples:
-                              label: "Marca"
-                              tipo: TEXT
-                          - id: arg_liga
-                            campo_simples:
-                              label: "Material"
-                              tipo: DROPDOWN
-                              opcoes:
-                                - valor: aco_inox_316
-                                  label: "Aço Inox 316L"
-                                - valor: titanio
-                                  label: "Titânio"
-                          - id: arg_foto
-                            campo_simples:
-                              label: "Foto do material"
-                              tipo: IMAGE
-                              ui_hint: CAMERA_ACTION
-
-                  # ── Ancoragem Química ─────────────────────────────
-                  - id: ancoragem_quimica
-                    label: "Ancoragem Química"
-                    sublabel: "Resina de fixação"
-                    icon_name: science
-                    steps:
-                      - id: aq_dados
-                        conteudos:
-                          - id: aq_aviso
-                            instrucao:
-                              titulo: "⚠ Atenção — Validade"
-                              corpo: "Verifique a validade antes de usar. Resina fora do prazo NÃO deve ser instalada em proteções de vida."
-                              nivel_alerta: PERIGO
-                          - id: aq_marca
-                            campo_simples:
-                              label: "Marca / Produto"
-                              tipo: TEXT
-                              obrigatorio: true
-                          - id: aq_validade
-                            campo_simples:
-                              label: "Validade"
-                              tipo: DATE
-                              obrigatorio: true
-                          - id: aq_lote
-                            campo_simples:
-                              label: "Número de lote"
-                              tipo: TEXT
-                          - id: aq_foto
-                            campo_simples:
-                              label: "Foto da embalagem"
-                              tipo: IMAGE
-                              ui_hint: CAMERA_ACTION
-
-                  # ── Cola Química ──────────────────────────────────
-                  - id: cola_quimica
-                    label: "Cola Química"
-                    sublabel: "Adesivo estrutural"
-                    icon_name: colorize
-                    steps:
-                      - id: cq_dados
-                        conteudos:
-                          - id: cq_aviso
-                            instrucao:
-                              titulo: "Atenção — Validade"
-                              corpo: "Verifique a validade da cola antes de aplicar."
-                              nivel_alerta: ATENCAO
-                          - id: cq_marca
-                            campo_simples:
-                              label: "Marca / Produto"
-                              tipo: TEXT
-                              obrigatorio: true
-                          - id: cq_validade
-                            campo_simples:
-                              label: "Validade"
-                              tipo: DATE
-                              obrigatorio: true
-                          - id: cq_foto
-                            campo_simples:
-                              label: "Foto da embalagem"
-                              tipo: IMAGE
-                              ui_hint: CAMERA_ACTION
+                sublabel: "Ordenados pelos materiais utilizados mais recentemente. Mínimo 1."
+                origem_catalogo: true
+                obrigatorio: true
 
     # ═══════════════════════════════════════════════════════════════
     # BLOCO 2 — Identificação da via

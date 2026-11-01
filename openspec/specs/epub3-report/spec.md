@@ -35,8 +35,41 @@ O sistema DEVE proteger a integridade do relatório gerando o arquivo META-INF/s
 - **THEN** o arquivo META-INF/signatures.xml é gerado contendo os digests de cada componente e a assinatura criptográfica vinculada ao certificado do mantenedor
 
 ### Requirement: O sistema DEVE embutir os dados brutos Protobuf no container
-O sistema DEVE incluir o arquivo binário original egistro.binarypb dentro da estrutura do EPUB 3 (em OEBPS/dados/registro.binarypb), devidamente declarado no manifesto content.opf e protegido pelo cálculo de hash na assinatura digital.
+O sistema DEVE incluir o arquivo binário original `registro.binarypb` dentro da estrutura do EPUB 3 (em OEBPS/dados/registro.binarypb), devidamente declarado no manifesto content.opf e protegido pelo cálculo de hash na assinatura digital.
 
 #### Scenario: Auditoria técnica automatizada
 - **WHEN** um sistema terceiro lê o arquivo .epub da vistoria
-- **THEN** ele consegue extrair o binário egistro.binarypb para consumir as respostas estruturadas e coordenadas GPS sem depender do parsing do layout visual
+- **THEN** ele consegue extrair o binário `registro.binarypb` para consumir as respostas estruturadas e coordenadas GPS sem depender do parsing do layout visual
+
+### Requirement: Incorporação de Materiais Extraídos sem Duplicação no EPUB 3 da Manutenção
+Ao gerar o container EPUB 3 de uma manutenção que referencia materiais cadastrados, o sistema DEVE incorporar o conteúdo extraído do pacote `.epub` de cada material utilizado dentro do diretório `OEBPS/materiais/<uuid_material>/` do EPUB da manutenção, mantendo o arquivo `OEBPS/dados/registro.binarypb` e a assinatura `META-INF/signatures.xml` originais do material intactos dentro dessa subpasta para permitir validação criptográfica independente sem duplicar mídias.
+
+#### Scenario: Empacotamento e verificação de material aninhado no EPUB da manutenção
+- **WHEN** o relatório EPUB 3 de uma manutenção contendo materiais selecionados é gerado e assinado
+- **THEN** a árvore extraída do EPUB de cada material utilizado é gravada em `OEBPS/materiais/<uuid_material>/` contendo seu `META-INF/signatures.xml` e `OEBPS/dados/registro.binarypb` originais
+- **THEN** a assinatura `META-INF/signatures.xml` da manutenção na raiz assina todos os arquivos do pacote principal e das subpastas de materiais
+- **THEN** a assinatura original do material continua válida se verificada isoladamente a partir da subpasta `OEBPS/materiais/<uuid_material>/`
+
+### Requirement: Navegação por Hiperlinks de Ida e Volta entre Manutenção e Materiais no EPUB 3
+O documento `relatorio.xhtml` da manutenção DEVE renderizar as referências aos materiais utilizados como hiperlinks apontando para o documento `materiais/<uuid_material>/OEBPS/relatorio.xhtml` correspondente, e o documento XHTML do material DEVE disponibilizar um botão ou controle de retorno que permita ao leitor voltar exatamente ao ponto de leitura anterior no relatório da manutenção.
+
+#### Scenario: Navegar para os detalhes do material e retornar à manutenção
+- **WHEN** o usuário visualiza o relatório da manutenção e clica na referência de um material utilizado
+- **THEN** o visualizador navega para a página de detalhes daquele material exibindo seus componentes, notas fiscais, testes e etapas de fabricação
+- **THEN** ao acionar o botão de voltar na página do material, o visualizador retorna ao relatório da manutenção na posição onde o usuário estava
+
+### Requirement: Atualização de Materiais ao Re-gerar Relatório de Manutenção
+Quando um relatório de manutenção previamente gerado for editado ou re-gerado, o sistema DEVE buscar a versão assinada mais recente de cada material referenciado no catálogo local para atualizar a subpasta `OEBPS/materiais/<uuid_material>/`, mantendo como fallback a cópia já embutida no EPUB anterior caso o material tenha sido excluído do catálogo local.
+
+#### Scenario: Re-gerar manutenção após atualização de um material no catálogo
+- **WHEN** um material é editado e re-assinado no catálogo e posteriormente o usuário re-gera o relatório de uma manutenção que utiliza esse material
+- **THEN** o novo EPUB 3 da manutenção incorpora a versão atualizada do material
+
+### Requirement: Empacotamento de Documentos PDF Originais e Páginas Rasterizadas no EPUB 3
+Quando o registro contiver um documento PDF anexado (`ArquivoDocumento`), o gerador de EPUB 3 DEVE empacotar o binário original intacto em `OEBPS/midias/<uuid>.pdf` (declarado no `content.opf` com `media-type="application/pdf"` e assinado no `META-INF/signatures.xml`) e empacotar cada página rasterizada em `OEBPS/midias/<uuid>_p<N>.webp`, exibindo todas as páginas sequencialmente no `relatorio.xhtml` junto a um link direto para abrir ou baixar o documento PDF original.
+
+#### Scenario: Geração de EPUB 3 com nota fiscal em PDF assinado de múltiplas páginas
+- **WHEN** um relatório EPUB 3 é gerado contendo uma nota fiscal anexada em formato PDF com 2 páginas
+- **THEN** o pacote EPUB 3 inclui `OEBPS/midias/<uuid>.pdf` preservado bit-a-bit (mantendo eventual assinatura gov.br/ICP-Brasil) e as imagens `OEBPS/midias/<uuid>_p1.webp` e `OEBPS/midias/<uuid>_p2.webp`
+- **THEN** o `META-INF/signatures.xml` inclui os resumos SHA-256 tanto do `.pdf` original quanto de cada `.webp` de página
+- **THEN** o `relatorio.xhtml` renderiza as imagens das 2 páginas na ordem correta e exibe um link apontando para `midias/<uuid>.pdf`

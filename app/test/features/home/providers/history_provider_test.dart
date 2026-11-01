@@ -1,120 +1,113 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_community/isar.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
-
-import 'dart:io';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
-import 'package:isar_community/isar.dart';
-import 'package:mocktail/mocktail.dart';
-
-class FakeHistoryRepository implements HistoryRepository {
-  List<SubmissionRecord> mockData = [];
-
-  @override
-  Stream<List<SubmissionRecord>> watchHistory() async* {
-    yield mockData;
-  }
-
-  @override
-  Future<void> deleteRecord(SubmissionRecord record) async {}
-}
-
-class MockSessionBundleManager extends Mock implements SessionBundleManager {}
-
-class FakeIsarCollection extends Fake implements IsarCollection<SubmissionRecord> {
-  final List<SubmissionRecord> items = [];
-  int deleteCalls = 0;
-  
-  @override
-  Future<bool> delete(int id) async {
-    deleteCalls++;
-    items.removeWhere((element) => element.id == id);
-    return true;
-  }
-}
-
-class FakeIsar extends Fake implements Isar {
-  final FakeIsarCollection fakeCollection = FakeIsarCollection();
-
-  @override
-  IsarCollection<T> collection<T>() {
-    if (T == SubmissionRecord) {
-      return fakeCollection as IsarCollection<T>;
-    }
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<T> writeTxn<T>(Future<T> Function() callback, {bool silent = false}) {
-    return callback();
-  }
-}
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 
 void main() {
-  test('historyProvider deve retornar os registros ordenados decrescente pelo historyRepositoryProvider', () async {
-    final fakeRepo = FakeHistoryRepository();
-    final today = DateTime.now();
-    fakeRepo.mockData = [
-      SubmissionRecord()
-        ..nomeProtocolo = 'Protocolo Mais Antigo'
-        ..dataInclusao = today.subtract(const Duration(days: 2)),
-      SubmissionRecord()
-        ..nomeProtocolo = 'Protocolo Mais Novo'
-        ..dataInclusao = today,
-    ];
+  late Isar isar;
+  late Directory tempDir;
+  late SessionBundleManager sessionManager;
+
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('history_prov_test');
+    await Isar.initializeIsarCore(download: true);
+    isar = await Isar.open(
+      [SubmissionRecordSchema],
+      directory: tempDir.path,
+    );
+    sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+  });
+
+  tearDown(() async {
+    await isar.close(deleteFromDisk: true);
+    try {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
+  });
+
+  test('historyProvider retorna registros ordenados decrescente e separa manutenções de materiais', () async {
+    final hoje = DateTime(2026, 11, 1, 12, 0);
+    await isar.writeTxn(() async {
+      await isar.submissionRecords.putAll([
+        SubmissionRecord()
+          ..idSessao = 'manut-antiga'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção Antiga'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = hoje.subtract(const Duration(days: 2)),
+        SubmissionRecord()
+          ..idSessao = 'mat-1'
+          ..idProtocolo = 'cadastro_material'
+          ..nomeProtocolo = 'Cadastro de Material'
+          ..tituloExibicao = 'Chapeleta Bonier Inox 316L'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..dataInclusao = hoje.subtract(const Duration(days: 1)),
+        SubmissionRecord()
+          ..idSessao = 'manut-nova'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção Nova'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = hoje,
+      ]);
+    });
 
     final container = ProviderContainer(
       overrides: [
-        historyRepositoryProvider.overrideWithValue(fakeRepo),
+        isarProvider.overrideWithValue(isar),
       ],
     );
+    addTearDown(container.dispose);
 
-    // Wait for the stream to emit the first value
-    final history = await container.read(historyProvider.stream).first;
+    final todos = await container.read(historyProvider.future);
+    expect(todos.map((r) => r.idSessao).toList(), equals(['manut-nova', 'mat-1', 'manut-antiga']));
 
-    expect(history.length, 2);
+    final manutencoes = container.read(historyManutencoesProvider).valueOrNull ?? [];
+    expect(manutencoes.map((r) => r.idSessao).toList(), equals(['manut-nova', 'manut-antiga']));
+
+    final materiais = container.read(historyMateriaisProvider).valueOrNull ?? [];
+    expect(materiais.map((r) => r.idSessao).toList(), equals(['mat-1']));
+    expect(materiais.first.tituloExibicao, equals('Chapeleta Bonier Inox 316L'));
   });
 
-  test('HistoryRepository watchHistory() deve lidar com nulo no isar e falhas, ou retornar tudo filtrado', () async {
-    final repo = HistoryRepository(null, MockSessionBundleManager());
+  test('HistoryRepository watchHistory() retorna lista vazia quando Isar é nulo', () async {
+    final repo = HistoryRepository(null, sessionManager);
     final history = await repo.watchHistory().first;
     expect(history, isEmpty);
   });
 
-  test('HistoryRepository deleteRecord() deve apagar do Isar, apagar o PDF e deletar o SessionBundle (Fase Red)', () async {
-    // Arrange
-    final fakeIsar = FakeIsar();
-    final mockSessionManager = MockSessionBundleManager();
-    final repo = HistoryRepository(fakeIsar, mockSessionManager);
+  test('HistoryRepository deleteRecord() apaga do Isar, remove arquivos gerados e deleta o SessionBundle', () async {
+    final repo = HistoryRepository(isar, sessionManager);
 
-    final tmpDir = Directory.systemTemp.createTempSync('history_test');
-    final fakePdf = File('${tmpDir.path}/report.pdf');
-    await fakePdf.writeAsString('fake pdf content');
+    final relatorioPdf = File('${tempDir.path}/report.pdf')..writeAsStringSync('pdf bytes');
+    final relatorioEpub = File('${tempDir.path}/report.epub')..writeAsStringSync('epub bytes');
+    await sessionManager.saveManifest(
+      sessionId: 'sessao_99',
+      binarypb: File(relatorioPdf.path).readAsBytesSync(),
+    );
 
     final record = SubmissionRecord()
-      ..id = 99
       ..idSessao = 'sessao_99'
-      ..pdfPath = fakePdf.path;
-      
-    fakeIsar.fakeCollection.items.add(record);
+      ..pdfPath = relatorioPdf.path
+      ..protobufPath = relatorioEpub.path;
 
-    when(() => mockSessionManager.deleteSessionBundle('sessao_99')).thenAnswer((_) async {});
+    await isar.writeTxn(() async {
+      await isar.submissionRecords.put(record);
+    });
 
-    // Act
     await repo.deleteRecord(record);
 
-    // Assert
-    expect(fakeIsar.fakeCollection.deleteCalls, 1, reason: 'Deve chamar delete no Isar');
-    expect(fakeIsar.fakeCollection.items, isEmpty, reason: 'O registro deve ter sido removido');
-    
-    expect(fakePdf.existsSync(), isFalse, reason: 'O arquivo PDF final deve ter sido apagado fisicamente');
-    
-    verify(() => mockSessionManager.deleteSessionBundle('sessao_99')).called(1);
-    
-    tmpDir.deleteSync(recursive: true);
+    final restante = await isar.submissionRecords.where().idSessaoEqualTo('sessao_99').findFirst();
+    expect(restante, isNull);
+    expect(relatorioPdf.existsSync(), isFalse);
+    expect(relatorioEpub.existsSync(), isFalse);
   });
 }

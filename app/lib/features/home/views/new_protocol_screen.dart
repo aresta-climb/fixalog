@@ -172,7 +172,7 @@ class NewProtocolScreen extends ConsumerWidget {
                 _buildProtocolCard(
                   context: context,
                   tagText: 'NOVO RECURSO',
-                  tagColor: const Color(0xFF00FF00), // Verde pra destacar
+                  tagColor: const Color(0xFF00FF00),
                   title: 'Registro Expresso\n(Fotos + Local)',
                   iconData: Icons.bolt,
                   onTap: () async {
@@ -241,6 +241,27 @@ class NewProtocolScreen extends ConsumerWidget {
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
                       'assets/protocols/abertura_vias.yaml',
+                    );
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildProtocolCard(
+                  context: context,
+                  tagText: 'CATÁLOGO DE INSUMOS',
+                  tagColor: const Color(0xFF4FC3F7),
+                  title: 'Cadastro de\nMateriais',
+                  iconData: Icons.inventory_2_outlined,
+                  onTap: () async {
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/cadastro_material.yaml',
                     );
                     if (context.mounted) {
                       Navigator.of(context).push(

@@ -96,6 +96,31 @@ final $typed_data.Uint8List arquivoAudioDescriptor = $convert.base64Decode(
     'RvGAUgASgJUg5oYXNoQ29tcHJpbWlkbxIrChF2ZXJzYW9fY29tcHJlc3NhbxgGIAEoBVIQdmVy'
     'c2FvQ29tcHJlc3Nhbw==');
 
+@$core.Deprecated('Use arquivoDocumentoDescriptor instead')
+const ArquivoDocumento$json = {
+  '1': 'ArquivoDocumento',
+  '2': [
+    {'1': 'uuid', '3': 1, '4': 1, '5': 9, '10': 'uuid'},
+    {'1': 'tipo_original', '3': 2, '4': 1, '5': 9, '10': 'tipoOriginal'},
+    {'1': 'hash_original', '3': 3, '4': 1, '5': 9, '10': 'hashOriginal'},
+    {'1': 'nome_original', '3': 4, '4': 1, '5': 9, '10': 'nomeOriginal'},
+    {
+      '1': 'quantidade_paginas',
+      '3': 5,
+      '4': 1,
+      '5': 5,
+      '10': 'quantidadePaginas'
+    },
+    {
+      '1': 'hashes_paginas_webp',
+      '3': 6,
+      '4': 3,
+      '5': 9,
+      '10': 'hashesPaginasWebp'
+    },
+  ],
+};
+
 @$core.Deprecated('Use referenciaMidiaDescriptor instead')
 const ReferenciaMidia$json = {
   '1': 'ReferenciaMidia',
@@ -126,6 +151,15 @@ const ReferenciaMidia$json = {
       '6': '.fixalog.ArquivoAudio',
       '9': 0,
       '10': 'audio'
+    },
+    {
+      '1': 'documento',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.fixalog.ArquivoDocumento',
+      '9': 0,
+      '10': 'documento'
     },
   ],
   '8': [

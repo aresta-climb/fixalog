@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from wizard.proto.
+// Generated from protos/wizard.proto.
 
 // @dart = 3.3
 
@@ -218,6 +218,13 @@ const StepCampoSimples$json = {
       '6': '.fixalog.OpcaoCampo',
       '10': 'opcoes'
     },
+    {
+      '1': 'preencher_data_atual',
+      '3': 7,
+      '4': 1,
+      '5': 8,
+      '10': 'preencherDataAtual'
+    },
   ],
   '4': [StepCampoSimples_TipoCampo$json, StepCampoSimples_UiHint$json],
 };
@@ -255,11 +262,12 @@ final $typed_data.Uint8List stepCampoSimplesDescriptor = $convert.base64Decode(
     'EoCVIIc3VibGFiZWwSNwoEdGlwbxgDIAEoDjIjLmZpeGFsb2cuU3RlcENhbXBvU2ltcGxlcy5U'
     'aXBvQ2FtcG9SBHRpcG8SOQoHdWlfaGludBgEIAEoDjIgLmZpeGFsb2cuU3RlcENhbXBvU2ltcG'
     'xlcy5VaUhpbnRSBnVpSGludBIgCgtvYnJpZ2F0b3JpbxgFIAEoCFILb2JyaWdhdG9yaW8SKwoG'
-    'b3Bjb2VzGAYgAygLMhMuZml4YWxvZy5PcGNhb0NhbXBvUgZvcGNvZXMidAoJVGlwb0NhbXBvEg'
-    'gKBFRFWFQQABIKCgZOVU1CRVIQARIMCghEUk9QRE9XThACEgkKBUlNQUdFEAMSCwoHQk9PTEVB'
-    'ThAEEgcKA0dQUxAFEgkKBVZJREVPEAYSDQoJU0lHTkFUVVJFEAcSCAoEREFURRAIIkgKBlVpSG'
-    'ludBILCgdERUZBVUxUEAASDwoLTEFSR0VfVElMRVMQARIRCg1DQU1FUkFfQUNUSU9OEAISDQoJ'
-    'VEVYVF9BUkVBEAM=');
+    'b3Bjb2VzGAYgAygLMhMuZml4YWxvZy5PcGNhb0NhbXBvUgZvcGNvZXMSMAoUcHJlZW5jaGVyX2'
+    'RhdGFfYXR1YWwYByABKAhSEnByZWVuY2hlckRhdGFBdHVhbCJ0CglUaXBvQ2FtcG8SCAoEVEVY'
+    'VBAAEgoKBk5VTUJFUhABEgwKCERST1BET1dOEAISCQoFSU1BR0UQAxILCgdCT09MRUFOEAQSBw'
+    'oDR1BTEAUSCQoFVklERU8QBhINCglTSUdOQVRVUkUQBxIICgREQVRFEAgiSAoGVWlIaW50EgsK'
+    'B0RFRkFVTFQQABIPCgtMQVJHRV9USUxFUxABEhEKDUNBTUVSQV9BQ1RJT04QAhINCglURVhUX0'
+    'FSRUEQAw==');
 
 @$core.Deprecated('Use opcaoCampoDescriptor instead')
 const OpcaoCampo$json = {
@@ -386,6 +394,7 @@ const StepRefMateriais$json = {
     {'1': 'sublabel', '3': 2, '4': 1, '5': 9, '10': 'sublabel'},
     {'1': 'id_step_materiais', '3': 3, '4': 1, '5': 9, '10': 'idStepMateriais'},
     {'1': 'obrigatorio', '3': 4, '4': 1, '5': 8, '10': 'obrigatorio'},
+    {'1': 'origem_catalogo', '3': 5, '4': 1, '5': 8, '10': 'origemCatalogo'},
   ],
 };
 
@@ -393,4 +402,5 @@ const StepRefMateriais$json = {
 final $typed_data.Uint8List stepRefMateriaisDescriptor = $convert.base64Decode(
     'ChBTdGVwUmVmTWF0ZXJpYWlzEhQKBWxhYmVsGAEgASgJUgVsYWJlbBIaCghzdWJsYWJlbBgCIA'
     'EoCVIIc3VibGFiZWwSKgoRaWRfc3RlcF9tYXRlcmlhaXMYAyABKAlSD2lkU3RlcE1hdGVyaWFp'
-    'cxIgCgtvYnJpZ2F0b3JpbxgEIAEoCFILb2JyaWdhdG9yaW8=');
+    'cxIgCgtvYnJpZ2F0b3JpbxgEIAEoCFILb2JyaWdhdG9yaW8SJwoPb3JpZ2VtX2NhdGFsb2dvGA'
+    'UgASgIUg5vcmlnZW1DYXRhbG9nbw==');

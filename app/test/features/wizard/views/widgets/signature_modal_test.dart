@@ -97,6 +97,42 @@ void main() {
       expect(resultado, isNull);
     });
 
+    testWidgets('Salvar após desenhar traço retorna bytes PNG válidos e fecha o diálogo sem travar', (tester) async {
+      Uint8List? resultado;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  resultado = await showDialog<Uint8List>(
+                    context: context,
+                    builder: (_) => const SignatureModal(),
+                  );
+                },
+                child: const Text('ABRIR'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('ABRIR'));
+      await tester.pumpAndSettle();
+
+      final signatureFinder = find.byType(Signature);
+      await tester.drag(signatureFinder, const Offset(60, 25));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('SALVAR ASSINATURA'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ASSINATURA DIGITAL'), findsNothing);
+      expect(resultado, isNotNull);
+      expect(resultado!.sublist(0, 8), equals(const [137, 80, 78, 71, 13, 10, 26, 10]));
+    });
+
     testWidgets('Deve renderizar sem exceção mesmo sob restrições infinitas (UnconstrainedBox)', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(

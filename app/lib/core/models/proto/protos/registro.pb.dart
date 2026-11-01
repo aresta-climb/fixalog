@@ -364,7 +364,119 @@ class ArquivoAudio extends $pb.GeneratedMessage {
   void clearVersaoCompressao() => $_clearField(6);
 }
 
-enum ReferenciaMidia_Midia { imagem, video, audio, notSet }
+/// Representa um documento PDF anexado (ex: nota fiscal eletrônica ou laudo de teste de qualidade).
+/// O arquivo .pdf original é preservado intacto e cada página é rasterizada em uma imagem WebP.
+class ArquivoDocumento extends $pb.GeneratedMessage {
+  factory ArquivoDocumento({
+    $core.String? uuid,
+    $core.String? tipoOriginal,
+    $core.String? hashOriginal,
+    $core.String? nomeOriginal,
+    $core.int? quantidadePaginas,
+    $core.Iterable<$core.String>? hashesPaginasWebp,
+  }) {
+    final result = create();
+    if (uuid != null) result.uuid = uuid;
+    if (tipoOriginal != null) result.tipoOriginal = tipoOriginal;
+    if (hashOriginal != null) result.hashOriginal = hashOriginal;
+    if (nomeOriginal != null) result.nomeOriginal = nomeOriginal;
+    if (quantidadePaginas != null) result.quantidadePaginas = quantidadePaginas;
+    if (hashesPaginasWebp != null) {
+      result.hashesPaginasWebp.addAll(hashesPaginasWebp);
+    }
+    return result;
+  }
+
+  ArquivoDocumento._();
+
+  factory ArquivoDocumento.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ArquivoDocumento.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ArquivoDocumento',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'uuid')
+    ..aOS(2, _omitFieldNames ? '' : 'tipoOriginal')
+    ..aOS(3, _omitFieldNames ? '' : 'hashOriginal')
+    ..aOS(4, _omitFieldNames ? '' : 'nomeOriginal')
+    ..aI(5, _omitFieldNames ? '' : 'quantidadePaginas')
+    ..pPS(6, _omitFieldNames ? '' : 'hashesPaginasWebp')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ArquivoDocumento clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ArquivoDocumento copyWith(void Function(ArquivoDocumento) updates) =>
+      super.copyWith((message) => updates(message as ArquivoDocumento))
+          as ArquivoDocumento;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ArquivoDocumento create() => ArquivoDocumento._();
+  @$core.override
+  ArquivoDocumento createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ArquivoDocumento getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ArquivoDocumento>(create);
+  static ArquivoDocumento? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get uuid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set uuid($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUuid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUuid() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get tipoOriginal => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set tipoOriginal($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTipoOriginal() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTipoOriginal() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get hashOriginal => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set hashOriginal($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasHashOriginal() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHashOriginal() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get nomeOriginal => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set nomeOriginal($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasNomeOriginal() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNomeOriginal() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get quantidadePaginas => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set quantidadePaginas($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasQuantidadePaginas() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearQuantidadePaginas() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<$core.String> get hashesPaginasWebp => $_getList(5);
+}
+
+enum ReferenciaMidia_Midia { imagem, video, audio, documento, notSet }
 
 /// Um contêiner polimórfico (`oneof`) que aponta para qualquer tipo de mídia no disco local.
 /// Substitui a inclusão direta de bytes no Protobuf, delegando a mídia para o SessionBundleManager.
@@ -373,11 +485,13 @@ class ReferenciaMidia extends $pb.GeneratedMessage {
     ArquivoImagem? imagem,
     ArquivoVideo? video,
     ArquivoAudio? audio,
+    ArquivoDocumento? documento,
   }) {
     final result = create();
     if (imagem != null) result.imagem = imagem;
     if (video != null) result.video = video;
     if (audio != null) result.audio = audio;
+    if (documento != null) result.documento = documento;
     return result;
   }
 
@@ -395,19 +509,22 @@ class ReferenciaMidia extends $pb.GeneratedMessage {
     1: ReferenciaMidia_Midia.imagem,
     2: ReferenciaMidia_Midia.video,
     3: ReferenciaMidia_Midia.audio,
+    4: ReferenciaMidia_Midia.documento,
     0: ReferenciaMidia_Midia.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ReferenciaMidia',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'fixalog'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2, 3])
+    ..oo(0, [1, 2, 3, 4])
     ..aOM<ArquivoImagem>(1, _omitFieldNames ? '' : 'imagem',
         subBuilder: ArquivoImagem.create)
     ..aOM<ArquivoVideo>(2, _omitFieldNames ? '' : 'video',
         subBuilder: ArquivoVideo.create)
     ..aOM<ArquivoAudio>(3, _omitFieldNames ? '' : 'audio',
         subBuilder: ArquivoAudio.create)
+    ..aOM<ArquivoDocumento>(4, _omitFieldNames ? '' : 'documento',
+        subBuilder: ArquivoDocumento.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -432,11 +549,13 @@ class ReferenciaMidia extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   ReferenciaMidia_Midia whichMidia() =>
       _ReferenciaMidia_MidiaByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   void clearMidia() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -471,6 +590,17 @@ class ReferenciaMidia extends $pb.GeneratedMessage {
   void clearAudio() => $_clearField(3);
   @$pb.TagNumber(3)
   ArquivoAudio ensureAudio() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  ArquivoDocumento get documento => $_getN(3);
+  @$pb.TagNumber(4)
+  set documento(ArquivoDocumento value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDocumento() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDocumento() => $_clearField(4);
+  @$pb.TagNumber(4)
+  ArquivoDocumento ensureDocumento() => $_ensure(3);
 }
 
 /// Wrapper para permitir listas de respostas dentro do oneof (ex: checkboxes, seleções múltiplas)

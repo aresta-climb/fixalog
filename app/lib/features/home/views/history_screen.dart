@@ -12,7 +12,6 @@ import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
-
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -22,6 +21,7 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _limit = 10;
+  bool _mostrarMateriais = false;
 
   String? _localizarCaminhoEpub(SubmissionRecord record) {
     if (record.protobufPath.endsWith('.epub')) {
@@ -39,6 +39,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return null;
   }
 
+  String _obterTituloRegistro(SubmissionRecord record, {String padrao = 'Protocolo'}) {
+    if (record.tituloExibicao.trim().isNotEmpty) {
+      return record.tituloExibicao.trim();
+    }
+    if (record.nomeProtocolo.trim().isNotEmpty) {
+      return record.nomeProtocolo.trim();
+    }
+    return padrao;
+  }
+
   Future<void> _abrirRelatorio(SubmissionRecord record) async {
     final caminhoEpub = _localizarCaminhoEpub(record);
     final caminhoPdf = record.pdfPath.isNotEmpty ? record.pdfPath : null;
@@ -51,9 +61,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               caminhoEpub: caminhoEpub,
               caminhoPdf: caminhoPdf,
               idSessao: record.idSessao,
-              titulo: record.nomeProtocolo.isEmpty
-                  ? 'Relatório Técnico'
-                  : record.nomeProtocolo,
+              titulo: _obterTituloRegistro(record, padrao: 'Relatório Técnico'),
             ),
           ),
         );
@@ -166,9 +174,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                Text(
+                const Text(
                   'Histórico',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontFamily: 'SpaceGrotesk',
                     fontSize: 28,
@@ -201,6 +209,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
                     }
 
+                    final registrosFiltrados = history
+                        .where((r) => _mostrarMateriais ? r.isMaterial : r.isManutencao)
+                        .toList();
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -223,15 +235,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 40),
-                        const SizedBox(height: 16),
-                        if (history.isEmpty)
-                          const Center(
+                        const SizedBox(height: 24),
+                        _buildSeletorCategoria(),
+                        const SizedBox(height: 24),
+                        if (registrosFiltrados.isEmpty)
+                          Center(
                             child: Padding(
-                              padding: EdgeInsets.all(32.0),
+                              padding: const EdgeInsets.all(32.0),
                               child: Text(
-                                'Nenhum relatório preenchido.',
-                                style: TextStyle(color: Colors.white54),
+                                _mostrarMateriais
+                                    ? 'Nenhum material cadastrado.'
+                                    : 'Nenhum relatório preenchido.',
+                                style: const TextStyle(color: Colors.white54),
                               ),
                             ),
                           )
@@ -239,22 +254,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: history.length > _limit
+                            itemCount: registrosFiltrados.length > _limit
                                 ? _limit
-                                : history.length,
+                                : registrosFiltrados.length,
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
-                              final record = history[index];
+                              final record = registrosFiltrados[index];
                               final dataFormatada =
                                   "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
 
-                              final loadAndEdit = () async {
+                              Future<void> loadAndEdit() async {
                                 try {
                                   final controller = ref.read(wizardControllerProvider.notifier);
                                   await controller.loadSession(record.idSessao);
-                                  
-                                  // Pegar o YAML recuperado para passar pro WizardScreen
+
                                   final state = ref.read(wizardControllerProvider);
                                   final yamlStr = state.protocolRawYaml;
 
@@ -275,7 +289,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                     );
                                   }
                                 }
-                              };
+                              }
 
                               final isEmProgresso = record.isEmProgresso;
                               final tag = isEmProgresso ? 'EM PROGRESSO' : 'GERADO';
@@ -293,14 +307,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   : const Color(0xFF4F6D44);
 
                               return _buildHistoryItem(
-                                title: record.nomeProtocolo.isEmpty
-                                    ? 'Protocolo'
-                                    : record.nomeProtocolo,
+                                title: _obterTituloRegistro(record),
                                 date: dataFormatada,
                                 tag: tag,
                                 tagColor: tagColor,
                                 textColor: textColor,
-                                icon: Icons.history,
+                                icon: record.isMaterial
+                                    ? Icons.inventory_2_outlined
+                                    : Icons.history,
                                 cloudIcon: cloudIcon,
                                 cloudIconColor: cloudIconColor,
                                 isEmProgresso: isEmProgresso,
@@ -308,7 +322,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   if (!isEmProgresso) {
                                     await _abrirRelatorio(record);
                                   } else {
-                                    loadAndEdit();
+                                    await loadAndEdit();
                                   }
                                 },
                                 onEdit: loadAndEdit,
@@ -334,7 +348,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               );
                             },
                           ),
-                          if (history.length > _limit) ...[
+                          if (registrosFiltrados.length > _limit) ...[
                             const SizedBox(height: 24),
                             TextButton(
                               onPressed: () {
@@ -371,6 +385,85 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSeletorCategoria() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121416),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                if (_mostrarMateriais) {
+                  setState(() {
+                    _mostrarMateriais = false;
+                    _limit = 10;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: !_mostrarMateriais
+                      ? const Color(0xFFFF6B00)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'MANUTENÇÕES',
+                  style: TextStyle(
+                    color: !_mostrarMateriais ? Colors.white : Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                if (!_mostrarMateriais) {
+                  setState(() {
+                    _mostrarMateriais = true;
+                    _limit = 10;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _mostrarMateriais
+                      ? const Color(0xFFFF6B00)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'MATERIAIS',
+                  style: TextStyle(
+                    color: _mostrarMateriais ? Colors.white : Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -444,107 +537,107 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.history,
-                    color: Color(0xFFFF6B00),
+                  child: Icon(
+                    icon,
+                    color: const Color(0xFFFF6B00),
                     size: 18,
                   ),
                 ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        Text(
-                          date,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tagColor,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            tag,
+                      ),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            date,
                             style: TextStyle(
-                              color: textColor,
-                              fontSize: 8,
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: tagColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  cloudIcon,
+                  color: cloudIconColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white54),
+                  onSelected: (value) {
+                    if (value == 'edit' && onEdit != null) onEdit();
+                    if (value == 'viewRelatorio' && onViewRelatorio != null) {
+                      onViewRelatorio();
+                    }
+                    if (value == 'delete' && onDelete != null) onDelete();
+                  },
+                  itemBuilder: (context) => [
+                    if (isEmProgresso) ...[
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Continuar preenchimento'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Excluir'),
+                      ),
+                    ] else ...[
+                      const PopupMenuItem(
+                        value: 'viewRelatorio',
+                        child: Text('Abrir Relatório'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Editar'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Excluir'),
+                      ),
+                    ],
                   ],
                 ),
-              ),
-              Icon(
-                cloudIcon,
-                color: cloudIconColor,
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.white54),
-                onSelected: (value) {
-                  if (value == 'edit' && onEdit != null) onEdit();
-                  if (value == 'viewRelatorio' && onViewRelatorio != null) {
-                    onViewRelatorio();
-                  }
-                  if (value == 'delete' && onDelete != null) onDelete();
-                },
-                itemBuilder: (context) => [
-                  if (isEmProgresso) ...[
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Continuar preenchimento'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Excluir'),
-                    ),
-                  ] else ...[
-                    const PopupMenuItem(
-                      value: 'viewRelatorio',
-                      child: Text('Abrir Relatório'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Editar'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Excluir'),
-                    ),
-                  ],
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

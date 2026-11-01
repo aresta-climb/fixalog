@@ -14,6 +14,7 @@ import 'package:isar_community/isar.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart'
@@ -37,6 +38,8 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
   final Future<void> Function(List<String> paths, {String? text, String? subject})?
       compartilharArquivosProxy;
   final Future<void> Function(String path)? abrirArquivoProxy;
+  final void Function(Future<bool> Function(String url) tratarUrl)?
+      aoRegistrarTratadorUrl;
   final Widget Function(BuildContext context, String caminhoXhtml)? webViewBuilder;
   final Future<String> Function({
     required String? caminhoEpub,
@@ -57,6 +60,7 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
     this.isar,
     this.compartilharArquivosProxy,
     this.abrirArquivoProxy,
+    this.aoRegistrarTratadorUrl,
     this.webViewBuilder,
     this.geradorPdfSobDemandaProxy,
   });
@@ -124,6 +128,8 @@ class _VisualizadorRelatorioScreenState
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..loadFile(_caminhoXhtmlFinal!);
       }
+
+      widget.aoRegistrarTratadorUrl?.call(_tratarCliqueUrlRelatorio);
 
       if (mounted) {
         setState(() {
@@ -196,6 +202,163 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
+  Future<bool> _tratarCliqueUrlRelatorio(String url) async {
+    final semQuery = url.split('?').first.split('#').first;
+    if (!semQuery.toLowerCase().endsWith('.pdf')) {
+      return false;
+    }
+
+    String caminhoAlvo = semQuery;
+    if (semQuery.startsWith('file://')) {
+      caminhoAlvo = Uri.parse(semQuery).toFilePath();
+    } else if (_caminhoXhtmlFinal != null && !p.isAbsolute(semQuery)) {
+      caminhoAlvo = p.normalize(
+        p.join(File(_caminhoXhtmlFinal!).parent.path, semQuery),
+      );
+    }
+
+    if (widget.abrirArquivoProxy != null) {
+      await widget.abrirArquivoProxy!(caminhoAlvo);
+    } else {
+      await OpenFilex.open(caminhoAlvo);
+    }
+    return true;
+  }
+
+  void _coletarUuidsMidia(
+    Registro reg,
+    Set<String> fotosUuids,
+    Set<String> videosUuids,
+    Map<String, ArquivoDocumento> documentosPorUuid,
+  ) {
+    for (final resp in reg.respostas.values) {
+      for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
+        if (midia.hasImagem()) {
+          fotosUuids.add(midia.imagem.uuid);
+        } else if (midia.hasVideo()) {
+          videosUuids.add(midia.video.uuid);
+        } else if (midia.hasDocumento()) {
+          documentosPorUuid[midia.documento.uuid] = midia.documento;
+        }
+      }
+    }
+    for (final grupo in reg.listas) {
+      for (final resp in grupo.respostasItem.values) {
+        for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
+          if (midia.hasImagem()) {
+            fotosUuids.add(midia.imagem.uuid);
+          } else if (midia.hasVideo()) {
+            videosUuids.add(midia.video.uuid);
+          } else if (midia.hasDocumento()) {
+            documentosPorUuid[midia.documento.uuid] = midia.documento;
+          }
+        }
+      }
+    }
+  }
+
+  Future<({Map<String, String> midiasDataUri, Map<String, String> posterDataUri})>
+      _carregarMidiasDataUri({
+    required Registro registro,
+    required String idSessaoAlvo,
+    required SessionBundleManager sessionManager,
+    Directory? oebpsDirAlvo,
+  }) async {
+    final Set<String> fotosUuids = {};
+    final Set<String> videosUuids = {};
+    final Map<String, ArquivoDocumento> documentosPorUuid = {};
+    _coletarUuidsMidia(
+      registro,
+      fotosUuids,
+      videosUuids,
+      documentosPorUuid,
+    );
+
+    final Map<String, String> midiasDataUri = {};
+    final Map<String, String> posterDataUri = {};
+
+    Future<Uint8List?> lerBytesWebpPorChave(String chaveMidia) async {
+      final thumbPath = await sessionManager.getMediaFilePath(
+        sessionId: idSessaoAlvo,
+        mediaUuid: '${chaveMidia}_thumb',
+        extension: '.webp',
+      );
+      final thumbFile = File(thumbPath);
+      if (thumbFile.existsSync()) {
+        return thumbFile.readAsBytesSync();
+      }
+
+      final mainPath = await sessionManager.getMediaFilePath(
+        sessionId: idSessaoAlvo,
+        mediaUuid: chaveMidia,
+        extension: '.webp',
+      );
+      final mainFile = File(mainPath);
+      if (mainFile.existsSync()) {
+        return mainFile.readAsBytesSync();
+      }
+
+      if (oebpsDirAlvo != null) {
+        final imgEpub =
+            File(p.join(oebpsDirAlvo.path, 'midias', '$chaveMidia.webp'));
+        if (imgEpub.existsSync()) {
+          return imgEpub.readAsBytesSync();
+        }
+      }
+      return null;
+    }
+
+    for (final uuid in fotosUuids) {
+      final bytes = await lerBytesWebpPorChave(uuid);
+      if (bytes != null) {
+        midiasDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      }
+    }
+
+    for (final doc in documentosPorUuid.values) {
+      final limitePaginas =
+          doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 999;
+      for (var i = 1; i <= limitePaginas; i++) {
+        final chavePagina = '${doc.uuid}_p$i';
+        final bytes = await lerBytesWebpPorChave(chavePagina);
+        if (bytes != null) {
+          midiasDataUri[chavePagina] =
+              'data:image/webp;base64,${base64Encode(bytes)}';
+        } else if (doc.quantidadePaginas == 0) {
+          break;
+        }
+      }
+    }
+
+    for (final uuid in videosUuids) {
+      Uint8List? bytes;
+
+      final posterPath = await sessionManager.getMediaFilePath(
+        sessionId: idSessaoAlvo,
+        mediaUuid: '${uuid}_poster',
+        extension: '.webp',
+      );
+      final posterFile = File(posterPath);
+      if (posterFile.existsSync()) {
+        bytes = posterFile.readAsBytesSync();
+      }
+
+      if (bytes == null && oebpsDirAlvo != null) {
+        final posterEpub =
+            File(p.join(oebpsDirAlvo.path, 'midias', '${uuid}_poster.webp'));
+        if (posterEpub.existsSync()) {
+          bytes = posterEpub.readAsBytesSync();
+        }
+      }
+
+      if (bytes != null) {
+        posterDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      }
+    }
+
+    return (midiasDataUri: midiasDataUri, posterDataUri: posterDataUri);
+  }
+
   Future<String> _executarGeracaoPdfPadrao() async {
     final sessionManager = widget.sessionManager ?? SessionBundleManager();
     final isar = _isar;
@@ -233,9 +396,10 @@ class _VisualizadorRelatorioScreenState
       }
     }
 
+    Directory? oebpsDir;
     Registro? registro;
     if (_caminhoXhtmlFinal != null) {
-      final oebpsDir = File(_caminhoXhtmlFinal!).parent;
+      oebpsDir = File(_caminhoXhtmlFinal!).parent;
       final pbFile = File(p.join(oebpsDir.path, 'dados', 'registro.binarypb'));
       if (pbFile.existsSync()) {
         try {
@@ -254,95 +418,72 @@ class _VisualizadorRelatorioScreenState
 
     registro ??= (Registro()..idProtocolo = widget.titulo);
 
-    final Set<String> fotosUuids = {};
-    final Set<String> videosUuids = {};
+    final midiasPrincipais = await _carregarMidiasDataUri(
+      registro: registro,
+      idSessaoAlvo: sid,
+      sessionManager: sessionManager,
+      oebpsDirAlvo: oebpsDir,
+    );
 
-    for (final resp in registro.respostas.values) {
-      if (resp.hasMidia()) {
-        if (resp.midia.hasImagem()) {
-          fotosUuids.add(resp.midia.imagem.uuid);
-        } else if (resp.midia.hasVideo()) {
-          videosUuids.add(resp.midia.video.uuid);
-        }
-      }
-    }
-    for (final grupo in registro.listas) {
-      for (final resp in grupo.respostasItem.values) {
-        if (resp.hasMidia()) {
-          if (resp.midia.hasImagem()) {
-            fotosUuids.add(resp.midia.imagem.uuid);
-          } else if (resp.midia.hasVideo()) {
-            videosUuids.add(resp.midia.video.uuid);
+    // Coletar materiais embutidos em OEBPS/materiais/<uuid>/ ou referenciados no Registro
+    final Set<String> uuidsMateriais = {
+      ...EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(registro),
+    };
+    if (oebpsDir != null) {
+      final dirMateriais = Directory(p.join(oebpsDir.path, 'materiais'));
+      if (dirMateriais.existsSync()) {
+        for (final entidade in dirMateriais.listSync()) {
+          if (entidade is Directory) {
+            uuidsMateriais.add(p.basename(entidade.path));
           }
         }
       }
     }
 
-    final Map<String, String> midiasDataUri = {};
-    final Map<String, String> posterDataUri = {};
+    final List<RelatorioMaterialAnexo> materiaisAnexos = [];
+    for (final uuidMat in uuidsMateriais) {
+      if (uuidMat == sid) continue;
 
-    for (final uuid in fotosUuids) {
-      Uint8List? bytes;
+      Directory? oebpsMatDir;
+      Registro? regMat;
 
-      final thumbPath = await sessionManager.getMediaFilePath(
-        sessionId: sid,
-        mediaUuid: '${uuid}_thumb',
-        extension: '.webp',
-      );
-      final thumbFile = File(thumbPath);
-      if (thumbFile.existsSync()) {
-        bytes = thumbFile.readAsBytesSync();
-      }
-
-      if (bytes == null) {
-        final mainPath = await sessionManager.getMediaFilePath(
-          sessionId: sid,
-          mediaUuid: uuid,
-          extension: '.webp',
+      if (oebpsDir != null) {
+        final candidatoOebpsMat =
+            Directory(p.join(oebpsDir.path, 'materiais', uuidMat, 'OEBPS'));
+        final pbMatFile = File(
+          p.join(candidatoOebpsMat.path, 'dados', 'registro.binarypb'),
         );
-        final mainFile = File(mainPath);
-        if (mainFile.existsSync()) {
-          bytes = mainFile.readAsBytesSync();
+        if (pbMatFile.existsSync()) {
+          oebpsMatDir = candidatoOebpsMat;
+          try {
+            regMat = Registro.fromBuffer(pbMatFile.readAsBytesSync());
+          } catch (_) {}
         }
       }
 
-      if (bytes == null && _caminhoXhtmlFinal != null) {
-        final oebpsDir = File(_caminhoXhtmlFinal!).parent;
-        final imgEpub = File(p.join(oebpsDir.path, 'midias', '$uuid.webp'));
-        if (imgEpub.existsSync()) {
-          bytes = imgEpub.readAsBytesSync();
-        }
+      if (regMat == null) {
+        try {
+          final bytesMat = await sessionManager.readManifest(sessionId: uuidMat);
+          regMat = Registro.fromBuffer(bytesMat);
+        } catch (_) {}
       }
 
-      if (bytes != null) {
-        midiasDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
-      }
-    }
-
-    for (final uuid in videosUuids) {
-      Uint8List? bytes;
-
-      final posterPath = await sessionManager.getMediaFilePath(
-        sessionId: sid,
-        mediaUuid: '${uuid}_poster',
-        extension: '.webp',
-      );
-      final posterFile = File(posterPath);
-      if (posterFile.existsSync()) {
-        bytes = posterFile.readAsBytesSync();
-      }
-
-      if (bytes == null && _caminhoXhtmlFinal != null) {
-        final oebpsDir = File(_caminhoXhtmlFinal!).parent;
-        final posterEpub =
-            File(p.join(oebpsDir.path, 'midias', '${uuid}_poster.webp'));
-        if (posterEpub.existsSync()) {
-          bytes = posterEpub.readAsBytesSync();
-        }
-      }
-
-      if (bytes != null) {
-        posterDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      if (regMat != null) {
+        final midiasMat = await _carregarMidiasDataUri(
+          registro: regMat,
+          idSessaoAlvo: uuidMat,
+          sessionManager: sessionManager,
+          oebpsDirAlvo: oebpsMatDir,
+        );
+        materiaisAnexos.add(
+          RelatorioMaterialAnexo(
+            idSessao: uuidMat,
+            registro: regMat,
+            urlCanonica: 'https://fixalog.app/v/$uuidMat',
+            mapeamentoMidias: midiasMat.midiasDataUri,
+            posterFrames: midiasMat.posterDataUri,
+          ),
+        );
       }
     }
 
@@ -356,8 +497,9 @@ class _VisualizadorRelatorioScreenState
       registro: registro,
       idSessao: sid,
       urlCanonica: urlCanonica,
-      mapeamentoMidias: midiasDataUri,
-      posterFrames: posterDataUri,
+      mapeamentoMidias: midiasPrincipais.midiasDataUri,
+      posterFrames: midiasPrincipais.posterDataUri,
+      materiaisAnexos: materiaisAnexos,
     );
 
     if (isar != null) {

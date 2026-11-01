@@ -9,6 +9,54 @@ import '../models/proto/protos/registro.pb.dart';
 /// contendo regras para exibição interativa em tela e regras de impressão (@media print)
 /// para exportação de PDFs resumidos de protocolo.
 class EpubDocumentBuilder {
+  /// Extrai todas as [ReferenciaMidia] presentes em uma [Resposta],
+  /// seja como mídia única (`resp.hasMidia()`) ou dentro de `resp.lista`.
+  static List<ReferenciaMidia> extrairMidiasDeResposta(Resposta? resp) {
+    if (resp == null) return const [];
+    if (resp.hasMidia()) return [resp.midia];
+    if (resp.hasLista()) {
+      return resp.lista.valores
+          .where((v) => v.hasMidia())
+          .map((v) => v.midia)
+          .toList();
+    }
+    return const [];
+  }
+
+  /// Extrai de um [registro] o conjunto ordenado de UUIDs de materiais do catálogo referenciados.
+  static List<String> extrairUuidsMateriaisReferenciados(Registro registro) {
+    final Set<String> uuids = {};
+
+    void processarChaveValor(String chave, Resposta resposta) {
+      if (chave != 'lista_materiais_c' && !chave.startsWith('ref_mat')) return;
+      if (resposta.hasTexto()) {
+        for (final parte in resposta.texto.split(',')) {
+          final limpo = parte.trim();
+          if (limpo.isNotEmpty) {
+            uuids.add(limpo);
+          }
+        }
+      } else if (resposta.hasLista()) {
+        for (final item in resposta.lista.valores) {
+          if (item.hasTexto() && item.texto.trim().isNotEmpty) {
+            uuids.add(item.texto.trim());
+          }
+        }
+      }
+    }
+
+    for (final entrada in registro.respostas.entries) {
+      processarChaveValor(entrada.key, entrada.value);
+    }
+    for (final grupo in registro.listas) {
+      for (final entrada in grupo.respostasItem.entries) {
+        processarChaveValor(entrada.key, entrada.value);
+      }
+    }
+
+    return uuids.toList();
+  }
+
   /// Gera a folha de estilos CSS completa com regras para visualização em tela e impressão.
   String gerarCss() {
     return '''
@@ -29,6 +77,27 @@ body {
   background-color: var(--cor-fundo);
   margin: 0;
   padding: 24px;
+}
+
+.barra-navegacao-retorno {
+  margin-bottom: 16px;
+}
+
+.botao-voltar {
+  display: inline-block;
+  color: var(--cor-destaque);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border: 1px solid var(--cor-destaque);
+  border-radius: 6px;
+}
+
+.link-material {
+  color: var(--cor-destaque);
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 header {
@@ -84,6 +153,56 @@ h2 {
   margin: 16px 0;
 }
 
+.documento-pdf-container {
+  margin: 16px 0;
+}
+
+.acao-pdf-original {
+  margin: 8px 0 12px 0;
+}
+
+.link-pdf-original {
+  display: inline-block;
+  color: var(--cor-destaque);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border: 1px solid var(--cor-destaque);
+  border-radius: 6px;
+}
+
+.legenda-pagina-pdf {
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  margin: 4px 0;
+}
+
+.conteudo-markdown {
+  margin-top: 6px;
+}
+
+.conteudo-markdown p {
+  margin: 0 0 8px 0;
+}
+
+.conteudo-markdown h4, .conteudo-markdown h5 {
+  margin: 8px 0 4px 0;
+  color: var(--cor-destaque);
+}
+
+.conteudo-markdown ul, .conteudo-markdown ol {
+  margin: 4px 0 8px 20px;
+  padding: 0;
+}
+
+.conteudo-markdown code {
+  font-family: monospace;
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 /* Regras de Tela (@media screen) */
 @media screen {
   .cabecalho-versao-impressa {
@@ -108,10 +227,13 @@ h2 {
     color: #000000 !important;
     padding: 0;
   }
+  .barra-navegacao-retorno, .acao-pdf-original {
+    display: none !important;
+  }
   header {
     border-bottom: 2px solid #000000;
   }
-  h1, h2, .campo-chave {
+  h1, h2, .campo-chave, .link-material {
     color: #000000 !important;
   }
   .cabecalho-versao-impressa {
@@ -156,6 +278,204 @@ h2 {
 ''';
   }
 
+  String _renderizarTextoOuReferenciaMaterial(
+    String chave,
+    String valorTexto,
+    Map<String, String> titulosMateriais,
+  ) {
+    final ehCampoRefMaterial =
+        chave == 'lista_materiais_c' || chave.startsWith('ref_mat');
+    final tokens = valorTexto
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    final contemMaterialConhecido =
+        tokens.any((t) => titulosMateriais.containsKey(t));
+
+    if (!ehCampoRefMaterial && !contemMaterialConhecido) {
+      return _renderizarTextoOuMarkdown(valorTexto);
+    }
+
+    final links = tokens.map((token) {
+      if (ehCampoRefMaterial || titulosMateriais.containsKey(token)) {
+        final rotulo = titulosMateriais[token] ?? token;
+        return '<a href="materiais/$token/OEBPS/relatorio.xhtml" class="link-material">$rotulo</a>';
+      }
+      return '<span>$token</span>';
+    }).join(', ');
+
+    return '<span>$links</span>';
+  }
+
+  String _renderizarTextoOuMarkdown(String valorTexto) {
+    final normalizado = valorTexto.replaceAll('\r\n', '\n');
+    final possuiMultiplasLinhas = normalizado.contains('\n');
+    final possuiBlocoMarkdown = RegExp(
+      r'^(#{1,6}\s+|[-*]\s+|\d+\.\s+)',
+      multiLine: true,
+    ).hasMatch(normalizado);
+    final possuiInlineMarkdown = RegExp(
+      r'(\*\*[^*]+\*\*|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*)',
+    ).hasMatch(normalizado);
+
+    if (!possuiMultiplasLinhas && !possuiBlocoMarkdown) {
+      if (!possuiInlineMarkdown) {
+        return '<span>$valorTexto</span>';
+      }
+      return '<span>${_renderizarInlineMarkdown(normalizado)}</span>';
+    }
+
+    final linhas = normalizado.split('\n');
+    final buffer = StringBuffer('<div class="conteudo-markdown">');
+    final paragrafoAtual = <String>[];
+    String? tipoListaAberta; // 'ul' ou 'ol'
+
+    void fecharParagrafo() {
+      if (paragrafoAtual.isNotEmpty) {
+        buffer.write('<p>${paragrafoAtual.join('<br/>')}</p>');
+        paragrafoAtual.clear();
+      }
+    }
+
+    void fecharLista() {
+      if (tipoListaAberta != null) {
+        buffer.write('</$tipoListaAberta>');
+        tipoListaAberta = null;
+      }
+    }
+
+    for (final linhaBruta in linhas) {
+      final linha = linhaBruta.trimRight();
+      final limpa = linha.trim();
+
+      if (limpa.isEmpty) {
+        fecharParagrafo();
+        fecharLista();
+        continue;
+      }
+
+      final matchHeading = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(limpa);
+      if (matchHeading != null) {
+        fecharParagrafo();
+        fecharLista();
+        final nivel = matchHeading.group(1)!.length;
+        final tag = nivel <= 2 ? 'h4' : 'h5';
+        final conteudo = _renderizarInlineMarkdown(matchHeading.group(2)!);
+        buffer.write('<$tag>$conteudo</$tag>');
+        continue;
+      }
+
+      final matchUl = RegExp(r'^[-*]\s+(.*)$').firstMatch(limpa);
+      if (matchUl != null) {
+        fecharParagrafo();
+        if (tipoListaAberta != 'ul') {
+          fecharLista();
+          buffer.write('<ul>');
+          tipoListaAberta = 'ul';
+        }
+        buffer.write('<li>${_renderizarInlineMarkdown(matchUl.group(1)!)}</li>');
+        continue;
+      }
+
+      final matchOl = RegExp(r'^\d+\.\s+(.*)$').firstMatch(limpa);
+      if (matchOl != null) {
+        fecharParagrafo();
+        if (tipoListaAberta != 'ol') {
+          fecharLista();
+          buffer.write('<ol>');
+          tipoListaAberta = 'ol';
+        }
+        buffer.write('<li>${_renderizarInlineMarkdown(matchOl.group(1)!)}</li>');
+        continue;
+      }
+
+      fecharLista();
+      paragrafoAtual.add(_renderizarInlineMarkdown(limpa));
+    }
+
+    fecharParagrafo();
+    fecharLista();
+    buffer.write('</div>');
+    return buffer.toString();
+  }
+
+  String _renderizarInlineMarkdown(String texto) {
+    var escapado = texto
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+
+    escapado = escapado.replaceAllMapped(
+      RegExp(r'`([^`]+)`'),
+      (m) => '<code>${m.group(1)}</code>',
+    );
+    escapado = escapado.replaceAllMapped(
+      RegExp(r'\*\*([^*]+)\*\*'),
+      (m) => '<strong>${m.group(1)}</strong>',
+    );
+    escapado = escapado.replaceAllMapped(
+      RegExp(r'~~([^~]+)~~'),
+      (m) => '<del>${m.group(1)}</del>',
+    );
+    escapado = escapado.replaceAllMapped(
+      RegExp(r'\*([^*\n]+)\*'),
+      (m) => '<em>${m.group(1)}</em>',
+    );
+    return escapado;
+  }
+
+  String _renderizarMidiaDocumento(
+    ArquivoDocumento doc,
+    Map<String, String> mapeamentoMidias,
+  ) {
+    final uuid = doc.uuid;
+    final nome = doc.nomeOriginal.isNotEmpty ? doc.nomeOriginal : '$uuid.pdf';
+    final caminhoPdf = mapeamentoMidias[uuid] ?? '';
+
+    final paginasMapeadas = <({int numero, String caminho})>[];
+    final limiteBusca = doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 999;
+    for (var i = 1; i <= limiteBusca; i++) {
+      final caminhoPagina = mapeamentoMidias['${uuid}_p$i'] ?? '';
+      if (caminhoPagina.isNotEmpty) {
+        paginasMapeadas.add((numero: i, caminho: caminhoPagina));
+      } else if (doc.quantidadePaginas == 0) {
+        break;
+      }
+    }
+
+    if (caminhoPdf.isEmpty && paginasMapeadas.isEmpty) {
+      return '';
+    }
+
+    final totalPaginas = doc.quantidadePaginas > 0
+        ? doc.quantidadePaginas
+        : paginasMapeadas.length;
+
+    final buf = StringBuffer();
+    buf.write('<div class="documento-pdf-container">');
+    if (caminhoPdf.isNotEmpty) {
+      buf.write(
+        '<div class="acao-pdf-original">'
+        '<a href="$caminhoPdf" download="$nome" class="link-pdf-original">'
+        '📄 Baixar / Abrir PDF Original ($nome)'
+        '</a>'
+        '</div>',
+      );
+    }
+    for (final pag in paginasMapeadas) {
+      buf.write(
+        '<div class="midia-foto pagina-pdf">'
+        '<p class="legenda-pagina-pdf">$nome — Página ${pag.numero} de $totalPaginas</p>'
+        '<img src="${pag.caminho}" alt="Página ${pag.numero} de $nome"/>'
+        '</div>',
+      );
+    }
+    buf.write('</div>');
+    return buf.toString();
+  }
+
   /// Gera a marcação XHTML5 semântica para o relatório a partir dos dados do [registro].
   String gerarXhtml({
     required Registro registro,
@@ -165,6 +485,7 @@ h2 {
     Map<String, String> posterFrames = const {},
     Map<String, String> qrCodesVideos = const {},
     String? qrCodeCanonica,
+    Map<String, String> titulosMateriais = const {},
   }) {
     final buffer = StringBuffer();
 
@@ -179,6 +500,13 @@ h2 {
     buffer.writeln('  <link rel="stylesheet" type="text/css" href="estilo.css"/>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
+
+    // Barra de navegação de retorno (útil ao navegar da manutenção para a ficha do material)
+    buffer.writeln('  <nav class="barra-navegacao-retorno">');
+    buffer.writeln(
+      '    <a href="javascript:history.back()" class="botao-voltar">← Voltar para a página anterior</a>',
+    );
+    buffer.writeln('  </nav>');
 
     // Cabeçalho exclusivo para versão impressa (PDF Resumido)
     buffer.writeln('  <div class="cabecalho-versao-impressa">');
@@ -215,49 +543,75 @@ h2 {
         buffer.write('      <div class="campo-registro">');
         buffer.write('<span class="campo-chave">$chave:</span> ');
 
+        final midiasResposta = extrairMidiasDeResposta(resposta);
         if (resposta.hasTexto()) {
-          buffer.write('<span>${resposta.texto}</span>');
+          buffer.write(
+            _renderizarTextoOuReferenciaMaterial(
+              chave,
+              resposta.texto,
+              titulosMateriais,
+            ),
+          );
         } else if (resposta.hasNumero()) {
           buffer.write('<span>${resposta.numero}</span>');
         } else if (resposta.hasInteiro()) {
           buffer.write('<span>${resposta.inteiro}</span>');
         } else if (resposta.hasBooleano()) {
           buffer.write('<span>${resposta.booleano ? "Sim" : "Não"}</span>');
-        } else if (resposta.hasMidia()) {
-          final midia = resposta.midia;
-          if (midia.hasImagem()) {
-            final uuid = midia.imagem.uuid;
-            final caminho = mapeamentoMidias[uuid] ?? '';
-            if (caminho.isNotEmpty) {
+        } else if (midiasResposta.isNotEmpty) {
+          for (final midia in midiasResposta) {
+            if (midia.hasImagem()) {
+              final uuid = midia.imagem.uuid;
+              final caminho = mapeamentoMidias[uuid] ?? '';
+              if (caminho.isNotEmpty) {
+                buffer.write(
+                  '<div class="midia-foto"><img src="$caminho" alt="Foto da proteção $chave"/></div>',
+                );
+              }
+            } else if (midia.hasVideo()) {
+              final uuid = midia.video.uuid;
+              final caminhoVideo = mapeamentoMidias[uuid] ?? '';
+              final caminhoPoster = posterFrames[uuid] ?? '';
+              final caminhoQr = qrCodesVideos[uuid] ?? '';
+
+              buffer.write('<div class="container-video">');
+              // Player de tela
               buffer.write(
-                '<div class="midia-foto"><img src="$caminho" alt="Foto da proteção $chave"/></div>',
+                '<video controls="controls" poster="$caminhoPoster" class="player-video">'
+                '<source src="$caminhoVideo" type="video/mp4" />'
+                'Seu visualizador não suporta reprodução de vídeo.'
+                '</video>',
+              );
+              // Fallback de impressão (PDF)
+              buffer.write(
+                '<div class="poster-impressao">'
+                '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
+                '<div class="qr-box">'
+                '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
+                '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
+                '</div>'
+                '</div>',
+              );
+              buffer.write('</div>');
+            } else if (midia.hasDocumento()) {
+              buffer.write(
+                _renderizarMidiaDocumento(midia.documento, mapeamentoMidias),
               );
             }
-          } else if (midia.hasVideo()) {
-            final uuid = midia.video.uuid;
-            final caminhoVideo = mapeamentoMidias[uuid] ?? '';
-            final caminhoPoster = posterFrames[uuid] ?? '';
-            final caminhoQr = qrCodesVideos[uuid] ?? '';
-
-            buffer.write('<div class="container-video">');
-            // Player de tela
+          }
+        } else if (resposta.hasLista()) {
+          final textos = resposta.lista.valores
+              .where((v) => v.hasTexto() && v.texto.isNotEmpty)
+              .map((v) => v.texto)
+              .join(', ');
+          if (textos.isNotEmpty) {
             buffer.write(
-              '<video controls="controls" poster="$caminhoPoster" class="player-video">'
-              '<source src="$caminhoVideo" type="video/mp4" />'
-              'Seu visualizador não suporta reprodução de vídeo.'
-              '</video>',
+              _renderizarTextoOuReferenciaMaterial(
+                chave,
+                textos,
+                titulosMateriais,
+              ),
             );
-            // Fallback de impressão (PDF)
-            buffer.write(
-              '<div class="poster-impressao">'
-              '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
-              '<div class="qr-box">'
-              '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
-              '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
-              '</div>'
-              '</div>',
-            );
-            buffer.write('</div>');
           }
         }
         buffer.writeln('</div>');
@@ -281,52 +635,93 @@ h2 {
           buffer.write('        <div class="campo-registro">');
           buffer.write('<span class="campo-chave">$chaveItem:</span> ');
 
+          final midiasItem = extrairMidiasDeResposta(respItem);
           if (respItem.hasTexto()) {
-            buffer.write('<span>${respItem.texto}</span>');
+            buffer.write(
+              _renderizarTextoOuReferenciaMaterial(
+                chaveItem,
+                respItem.texto,
+                titulosMateriais,
+              ),
+            );
           } else if (respItem.hasNumero()) {
             buffer.write('<span>${respItem.numero}</span>');
           } else if (respItem.hasInteiro()) {
             buffer.write('<span>${respItem.inteiro}</span>');
           } else if (respItem.hasBooleano()) {
             buffer.write('<span>${respItem.booleano ? "Sim" : "Não"}</span>');
-          } else if (respItem.hasMidia()) {
-            final midia = respItem.midia;
-            if (midia.hasImagem()) {
-              final uuid = midia.imagem.uuid;
-              final caminho = mapeamentoMidias[uuid] ?? '';
-              if (caminho.isNotEmpty) {
+          } else if (midiasItem.isNotEmpty) {
+            for (final midia in midiasItem) {
+              if (midia.hasImagem()) {
+                final uuid = midia.imagem.uuid;
+                final caminho = mapeamentoMidias[uuid] ?? '';
+                if (caminho.isNotEmpty) {
+                  buffer.write(
+                    '<div class="midia-foto"><img src="$caminho" alt="Foto do item $chaveItem"/></div>',
+                  );
+                }
+              } else if (midia.hasVideo()) {
+                final uuid = midia.video.uuid;
+                final caminhoVideo = mapeamentoMidias[uuid] ?? '';
+                final caminhoPoster = posterFrames[uuid] ?? '';
+                final caminhoQr = qrCodesVideos[uuid] ?? '';
+
+                buffer.write('<div class="container-video">');
                 buffer.write(
-                  '<div class="midia-foto"><img src="$caminho" alt="Foto do item $chaveItem"/></div>',
+                  '<video controls="controls" poster="$caminhoPoster" class="player-video">'
+                  '<source src="$caminhoVideo" type="video/mp4" />'
+                  '</video>',
+                );
+                buffer.write(
+                  '<div class="poster-impressao">'
+                  '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
+                  '<div class="qr-box">'
+                  '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
+                  '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
+                  '</div>'
+                  '</div>',
+                );
+                buffer.write('</div>');
+              } else if (midia.hasDocumento()) {
+                buffer.write(
+                  _renderizarMidiaDocumento(midia.documento, mapeamentoMidias),
                 );
               }
-            } else if (midia.hasVideo()) {
-              final uuid = midia.video.uuid;
-              final caminhoVideo = mapeamentoMidias[uuid] ?? '';
-              final caminhoPoster = posterFrames[uuid] ?? '';
-              final caminhoQr = qrCodesVideos[uuid] ?? '';
-
-              buffer.write('<div class="container-video">');
+            }
+          } else if (respItem.hasLista()) {
+            final textos = respItem.lista.valores
+                .where((v) => v.hasTexto() && v.texto.isNotEmpty)
+                .map((v) => v.texto)
+                .join(', ');
+            if (textos.isNotEmpty) {
               buffer.write(
-                '<video controls="controls" poster="$caminhoPoster" class="player-video">'
-                '<source src="$caminhoVideo" type="video/mp4" />'
-                '</video>',
+                _renderizarTextoOuReferenciaMaterial(
+                  chaveItem,
+                  textos,
+                  titulosMateriais,
+                ),
               );
-              buffer.write(
-                '<div class="poster-impressao">'
-                '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
-                '<div class="qr-box">'
-                '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
-                '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
-                '</div>'
-                '</div>',
-              );
-              buffer.write('</div>');
             }
           }
           buffer.writeln('</div>');
         }
         buffer.writeln('      </div>');
       }
+      buffer.writeln('    </section>');
+    }
+
+    if (titulosMateriais.isNotEmpty) {
+      buffer.writeln('    <section class="secao-materiais-anexos">');
+      buffer.writeln('      <h2>Materiais Utilizados (Fichas Técnicas Anexas)</h2>');
+      buffer.writeln('      <ul>');
+      for (final entradaMat in titulosMateriais.entries) {
+        final uuidMat = entradaMat.key;
+        final tituloMat = entradaMat.value;
+        buffer.writeln(
+          '        <li><a href="materiais/$uuidMat/OEBPS/relatorio.xhtml" class="link-material">$tituloMat</a></li>',
+        );
+      }
+      buffer.writeln('      </ul>');
       buffer.writeln('    </section>');
     }
 

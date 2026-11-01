@@ -47,13 +47,25 @@ message ArquivoAudio {
   int32  versao_compressao = 6; // Versão do algoritmo de compressão de áudio
 }
 
+// Representa um documento PDF anexado (ex: nota fiscal eletrônica ou laudo de teste de qualidade).
+// O arquivo .pdf original é preservado intacto e cada página é rasterizada em uma imagem WebP.
+message ArquivoDocumento {
+  string uuid = 1;                        // Identificador único do documento
+  string tipo_original = 2;               // MIME type do arquivo original (application/pdf)
+  string hash_original = 3;               // SHA-256 do arquivo .pdf original intacto
+  string nome_original = 4;               // Nome original do arquivo selecionado
+  int32  quantidade_paginas = 5;          // Quantidade total de páginas rasterizadas
+  repeated string hashes_paginas_webp = 6; // SHA-256 de cada página WebP (<uuid>_p1.webp, <uuid>_p2.webp, ...)
+}
+
 // Um contêiner polimórfico (`oneof`) que aponta para qualquer tipo de mídia no disco local.
 // Substitui a inclusão direta de bytes no Protobuf, delegando a mídia para o SessionBundleManager.
 message ReferenciaMidia {
   oneof midia {
-    ArquivoImagem imagem = 1;
-    ArquivoVideo  video  = 2;
-    ArquivoAudio  audio  = 3;
+    ArquivoImagem    imagem    = 1;
+    ArquivoVideo     video     = 2;
+    ArquivoAudio     audio     = 3;
+    ArquivoDocumento documento = 4;
   }
 }
 

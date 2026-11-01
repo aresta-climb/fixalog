@@ -22,38 +22,53 @@ const SubmissionRecordSchema = CollectionSchema(
       name: r'dataInclusao',
       type: IsarType.dateTime,
     ),
-    r'enviadoNuvem': PropertySchema(
+    r'dataUltimaSelecao': PropertySchema(
       id: 1,
+      name: r'dataUltimaSelecao',
+      type: IsarType.dateTime,
+    ),
+    r'enviadoNuvem': PropertySchema(
+      id: 2,
       name: r'enviadoNuvem',
       type: IsarType.bool,
     ),
     r'hashAssinatura': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'hashAssinatura',
       type: IsarType.string,
     ),
     r'idProtocolo': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'idProtocolo',
       type: IsarType.string,
     ),
     r'idSessao': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'idSessao',
       type: IsarType.string,
     ),
     r'nomeProtocolo': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'nomeProtocolo',
       type: IsarType.string,
     ),
-    r'pdfPath': PropertySchema(id: 6, name: r'pdfPath', type: IsarType.string),
+    r'pdfPath': PropertySchema(id: 7, name: r'pdfPath', type: IsarType.string),
     r'protobufPath': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'protobufPath',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(id: 8, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 9, name: r'status', type: IsarType.string),
+    r'tipoRegistro': PropertySchema(
+      id: 10,
+      name: r'tipoRegistro',
+      type: IsarType.string,
+    ),
+    r'tituloExibicao': PropertySchema(
+      id: 11,
+      name: r'tituloExibicao',
+      type: IsarType.string,
+    ),
   },
 
   estimateSize: _submissionRecordEstimateSize,
@@ -98,6 +113,8 @@ int _submissionRecordEstimateSize(
   bytesCount += 3 + object.pdfPath.length * 3;
   bytesCount += 3 + object.protobufPath.length * 3;
   bytesCount += 3 + object.status.length * 3;
+  bytesCount += 3 + object.tipoRegistro.length * 3;
+  bytesCount += 3 + object.tituloExibicao.length * 3;
   return bytesCount;
 }
 
@@ -108,14 +125,17 @@ void _submissionRecordSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.dataInclusao);
-  writer.writeBool(offsets[1], object.enviadoNuvem);
-  writer.writeString(offsets[2], object.hashAssinatura);
-  writer.writeString(offsets[3], object.idProtocolo);
-  writer.writeString(offsets[4], object.idSessao);
-  writer.writeString(offsets[5], object.nomeProtocolo);
-  writer.writeString(offsets[6], object.pdfPath);
-  writer.writeString(offsets[7], object.protobufPath);
-  writer.writeString(offsets[8], object.status);
+  writer.writeDateTime(offsets[1], object.dataUltimaSelecao);
+  writer.writeBool(offsets[2], object.enviadoNuvem);
+  writer.writeString(offsets[3], object.hashAssinatura);
+  writer.writeString(offsets[4], object.idProtocolo);
+  writer.writeString(offsets[5], object.idSessao);
+  writer.writeString(offsets[6], object.nomeProtocolo);
+  writer.writeString(offsets[7], object.pdfPath);
+  writer.writeString(offsets[8], object.protobufPath);
+  writer.writeString(offsets[9], object.status);
+  writer.writeString(offsets[10], object.tipoRegistro);
+  writer.writeString(offsets[11], object.tituloExibicao);
 }
 
 SubmissionRecord _submissionRecordDeserialize(
@@ -126,15 +146,18 @@ SubmissionRecord _submissionRecordDeserialize(
 ) {
   final object = SubmissionRecord();
   object.dataInclusao = reader.readDateTime(offsets[0]);
-  object.enviadoNuvem = reader.readBool(offsets[1]);
-  object.hashAssinatura = reader.readString(offsets[2]);
+  object.dataUltimaSelecao = reader.readDateTimeOrNull(offsets[1]);
+  object.enviadoNuvem = reader.readBool(offsets[2]);
+  object.hashAssinatura = reader.readString(offsets[3]);
   object.id = id;
-  object.idProtocolo = reader.readString(offsets[3]);
-  object.idSessao = reader.readString(offsets[4]);
-  object.nomeProtocolo = reader.readString(offsets[5]);
-  object.pdfPath = reader.readString(offsets[6]);
-  object.protobufPath = reader.readString(offsets[7]);
-  object.status = reader.readString(offsets[8]);
+  object.idProtocolo = reader.readString(offsets[4]);
+  object.idSessao = reader.readString(offsets[5]);
+  object.nomeProtocolo = reader.readString(offsets[6]);
+  object.pdfPath = reader.readString(offsets[7]);
+  object.protobufPath = reader.readString(offsets[8]);
+  object.status = reader.readString(offsets[9]);
+  object.tipoRegistro = reader.readString(offsets[10]);
+  object.tituloExibicao = reader.readString(offsets[11]);
   return object;
 }
 
@@ -148,9 +171,9 @@ P _submissionRecordDeserializeProp<P>(
     case 0:
       return (reader.readDateTime(offset)) as P;
     case 1:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
@@ -162,6 +185,12 @@ P _submissionRecordDeserializeProp<P>(
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -422,6 +451,79 @@ extension SubmissionRecordQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'dataInclusao',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'dataUltimaSelecao'),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'dataUltimaSelecao'),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'dataUltimaSelecao', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dataUltimaSelecao',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dataUltimaSelecao',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  dataUltimaSelecaoBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dataUltimaSelecao',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -1481,6 +1583,288 @@ extension SubmissionRecordQueryFilter
       );
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tipoRegistro',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'tipoRegistro',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'tipoRegistro',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'tipoRegistro', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tipoRegistroIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'tipoRegistro', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tituloExibicao',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'tituloExibicao',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'tituloExibicao',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'tituloExibicao', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterFilterCondition>
+  tituloExibicaoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'tituloExibicao', value: ''),
+      );
+    });
+  }
 }
 
 extension SubmissionRecordQueryObject
@@ -1502,6 +1886,20 @@ extension SubmissionRecordQuerySortBy
   sortByDataInclusaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByDataUltimaSelecao() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataUltimaSelecao', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByDataUltimaSelecaoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataUltimaSelecao', Sort.desc);
     });
   }
 
@@ -1616,6 +2014,34 @@ extension SubmissionRecordQuerySortBy
       return query.addSortBy(r'status', Sort.desc);
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByTipoRegistro() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipoRegistro', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByTipoRegistroDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipoRegistro', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByTituloExibicao() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tituloExibicao', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  sortByTituloExibicaoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tituloExibicao', Sort.desc);
+    });
+  }
 }
 
 extension SubmissionRecordQuerySortThenBy
@@ -1631,6 +2057,20 @@ extension SubmissionRecordQuerySortThenBy
   thenByDataInclusaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dataInclusao', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByDataUltimaSelecao() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataUltimaSelecao', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByDataUltimaSelecaoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dataUltimaSelecao', Sort.desc);
     });
   }
 
@@ -1758,6 +2198,34 @@ extension SubmissionRecordQuerySortThenBy
       return query.addSortBy(r'status', Sort.desc);
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByTipoRegistro() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipoRegistro', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByTipoRegistroDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipoRegistro', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByTituloExibicao() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tituloExibicao', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QAfterSortBy>
+  thenByTituloExibicaoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tituloExibicao', Sort.desc);
+    });
+  }
 }
 
 extension SubmissionRecordQueryWhereDistinct
@@ -1766,6 +2234,13 @@ extension SubmissionRecordQueryWhereDistinct
   distinctByDataInclusao() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'dataInclusao');
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
+  distinctByDataUltimaSelecao() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'dataUltimaSelecao');
     });
   }
 
@@ -1831,6 +2306,23 @@ extension SubmissionRecordQueryWhereDistinct
       return query.addDistinctBy(r'status', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
+  distinctByTipoRegistro({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tipoRegistro', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, SubmissionRecord, QDistinct>
+  distinctByTituloExibicao({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'tituloExibicao',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
 }
 
 extension SubmissionRecordQueryProperty
@@ -1845,6 +2337,13 @@ extension SubmissionRecordQueryProperty
   dataInclusaoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dataInclusao');
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, DateTime?, QQueryOperations>
+  dataUltimaSelecaoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'dataUltimaSelecao');
     });
   }
 
@@ -1898,6 +2397,20 @@ extension SubmissionRecordQueryProperty
   QueryBuilder<SubmissionRecord, String, QQueryOperations> statusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'status');
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, String, QQueryOperations>
+  tipoRegistroProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tipoRegistro');
+    });
+  }
+
+  QueryBuilder<SubmissionRecord, String, QQueryOperations>
+  tituloExibicaoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tituloExibicao');
     });
   }
 }

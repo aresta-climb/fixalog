@@ -17,6 +17,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
   String? ultimoCaminhoSaida;
   Registro? ultimoRegistro;
   Map<String, String>? ultimoMapeamentoMidias;
+  List<RelatorioMaterialAnexo>? ultimosMateriaisAnexos;
   int chamadas = 0;
   final Duration? delay;
 
@@ -30,6 +31,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
     required String urlCanonica,
     Map<String, String> mapeamentoMidias = const {},
     Map<String, String> posterFrames = const {},
+    List<RelatorioMaterialAnexo> materiaisAnexos = const [],
     String? baseUrl,
   }) async {
     if (delay != null) {
@@ -39,6 +41,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
     ultimoCaminhoSaida = caminhoSaida;
     ultimoRegistro = registro;
     ultimoMapeamentoMidias = mapeamentoMidias;
+    ultimosMateriaisAnexos = materiaisAnexos;
     final file = File(caminhoSaida);
     file.createSync(recursive: true);
     file.writeAsStringSync('pdf content');
@@ -84,6 +87,8 @@ void main() {
     Future<void> Function(List<String> paths, {String? text, String? subject})?
         compartilharArquivosProxy,
     Future<void> Function(String path)? abrirArquivoProxy,
+    void Function(Future<bool> Function(String url) tratarUrl)?
+        aoRegistrarTratadorUrl,
     PdfPrintSummaryService? pdfSummaryService,
     SessionBundleManager? sessionManager,
     Widget Function(BuildContext context, String caminhoXhtml)? webViewBuilder,
@@ -108,6 +113,7 @@ void main() {
           sessionManager: sessionManager,
           compartilharArquivosProxy: compartilharArquivosProxy,
           abrirArquivoProxy: abrirArquivoProxy,
+          aoRegistrarTratadorUrl: aoRegistrarTratadorUrl,
           geradorPdfSobDemandaProxy: geradorPdfSobDemandaProxy,
           webViewBuilder: webViewBuilder ??
               (context, path) => Container(
@@ -556,4 +562,248 @@ void main() {
       } catch (_) {}
     }
   });
+
+  testWidgets(
+    'Geração padrão sob demanda inclui os relatórios dos materiais embutidos em OEBPS/materiais/<uuid>/',
+    (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_mat_test_');
+      try {
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final fakePdfService = FakePdfPrintSummaryService();
+        const sessionId = 'sessao-manut-mat-1';
+        const matUuid = 'uuid-mat-embutido';
+
+        final xhtmlFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/relatorio.xhtml',
+        );
+        xhtmlFile.parent.createSync(recursive: true);
+        xhtmlFile.writeAsStringSync('<html><body>Manutenção</body></html>');
+
+        final registroManut = Registro()
+          ..idProtocolo = 'manutencao_ferragens'
+          ..respostas['via_nome'] = (Resposta()..texto = 'Via Teste')
+          ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuid);
+        final pbFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.binarypb',
+        );
+        pbFile.parent.createSync(recursive: true);
+        pbFile.writeAsBytesSync(registroManut.writeToBuffer());
+
+        // Cria o material embutido em OEBPS/materiais/<matUuid>/OEBPS/dados/registro.binarypb e sua foto
+        final registroMat = Registro()
+          ..idProtocolo = 'cadastro_material'
+          ..respostas['mat_nome'] = (Resposta()..texto = 'Parabolt Inox Embutido')
+          ..respostas['nf_foto'] = (Resposta()
+            ..midia = (ReferenciaMidia()
+              ..imagem = (ArquivoImagem()..uuid = 'foto-nf-1')));
+        final pbMatFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/dados/registro.binarypb',
+        );
+        pbMatFile.parent.createSync(recursive: true);
+        pbMatFile.writeAsBytesSync(registroMat.writeToBuffer());
+
+        final fotoMatFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/midias/foto-nf-1.webp',
+        );
+        fotoMatFile.parent.createSync(recursive: true);
+        fotoMatFile.writeAsBytesSync([11, 22, 33]);
+
+        await tester.pumpWidget(criarTelaParaTeste(
+          caminhoEpub: '${tempDir.path}/manut.epub',
+          caminhoPdf: null,
+          caminhoXhtml: xhtmlFile.path,
+          idSessao: sessionId,
+          pdfSummaryService: fakePdfService,
+          sessionManager: sessionManager,
+          compartilharArquivosProxy: (paths, {text, subject}) async {},
+        ));
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('btn_compartilhar')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opcao_compartilhar_pdf')));
+        await tester.pumpAndSettle();
+
+        expect(fakePdfService.chamadas, equals(1));
+        expect(fakePdfService.ultimosMateriaisAnexos, isNotNull);
+        expect(fakePdfService.ultimosMateriaisAnexos!.length, equals(1));
+        expect(
+          fakePdfService.ultimosMateriaisAnexos!.first.idSessao,
+          equals(matUuid),
+        );
+        expect(
+          fakePdfService
+              .ultimosMateriaisAnexos!.first.registro.respostas['mat_nome']?.texto,
+          equals('Parabolt Inox Embutido'),
+        );
+        expect(
+          fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['foto-nf-1'],
+          startsWith('data:image/webp;base64,'),
+        );
+      } finally {
+        try {
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        } catch (_) {}
+      }
+    },
+  );
+
+  testWidgets(
+    'Geração padrão sob demanda carrega todas as páginas WebP de ArquivoDocumento da sessão e de materiais embutidos',
+    (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_pdf_doc_test_');
+      try {
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final fakePdfService = FakePdfPrintSummaryService();
+        const sessionId = 'sessao-doc-pdf-1';
+        const matUuid = 'uuid-mat-com-pdf';
+
+        // Páginas _p1_thumb.webp e _p2.webp na sessão principal
+        final pag1Thumb = File('${tempDir.path}/sessoes/$sessionId/doc-princ_p1_thumb.webp');
+        pag1Thumb.parent.createSync(recursive: true);
+        pag1Thumb.writeAsBytesSync([1, 2, 3]);
+
+        final pag2Main = File('${tempDir.path}/sessoes/$sessionId/doc-princ_p2.webp');
+        pag2Main.writeAsBytesSync([4, 5, 6]);
+
+        final xhtmlFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/relatorio.xhtml',
+        );
+        xhtmlFile.parent.createSync(recursive: true);
+        xhtmlFile.writeAsStringSync('<html><body>Manutenção</body></html>');
+
+        final registroManut = Registro()
+          ..idProtocolo = 'manutencao_ferragens'
+          ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuid)
+          ..respostas['laudo_pdf'] = (Resposta()
+            ..midia = (ReferenciaMidia()
+              ..documento = (ArquivoDocumento()
+                ..uuid = 'doc-princ'
+                ..nomeOriginal = 'laudo.pdf'
+                ..quantidadePaginas = 2)));
+        final pbFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.binarypb',
+        );
+        pbFile.parent.createSync(recursive: true);
+        pbFile.writeAsBytesSync(registroManut.writeToBuffer());
+
+        // Material embutido com um PDF de 2 páginas em OEBPS/materiais/<matUuid>/OEBPS/midias/
+        final grupoMat = GrupoRepetido()
+          ..idLista = 'lista_materiais_cadastro'
+          ..idItem = 'item_1'
+          ..idTipo = 'chapeleta'
+          ..respostasItem['mat_nota_fiscal'] = (Resposta()
+            ..midia = (ReferenciaMidia()
+              ..documento = (ArquivoDocumento()
+                ..uuid = 'nf-mat-pdf'
+                ..nomeOriginal = 'nf_chapeleta.pdf'
+                ..quantidadePaginas = 2)));
+        final registroMat = Registro()
+          ..idProtocolo = 'cadastro_material'
+          ..respostas['mat_nome'] = (Resposta()..texto = 'Chapeleta Inox')
+          ..listas.add(grupoMat);
+
+        final pbMatFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/dados/registro.binarypb',
+        );
+        pbMatFile.parent.createSync(recursive: true);
+        pbMatFile.writeAsBytesSync(registroMat.writeToBuffer());
+
+        final nfMatP1 = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/midias/nf-mat-pdf_p1.webp',
+        );
+        nfMatP1.parent.createSync(recursive: true);
+        nfMatP1.writeAsBytesSync([7, 8, 9]);
+
+        final nfMatP2 = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/midias/nf-mat-pdf_p2.webp',
+        );
+        nfMatP2.writeAsBytesSync([10, 11, 12]);
+
+        await tester.pumpWidget(criarTelaParaTeste(
+          caminhoEpub: '${tempDir.path}/manut.epub',
+          caminhoPdf: null,
+          caminhoXhtml: xhtmlFile.path,
+          idSessao: sessionId,
+          pdfSummaryService: fakePdfService,
+          sessionManager: sessionManager,
+          compartilharArquivosProxy: (paths, {text, subject}) async {},
+        ));
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('btn_compartilhar')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opcao_compartilhar_pdf')));
+        await tester.pumpAndSettle();
+
+        expect(fakePdfService.chamadas, equals(1));
+        expect(
+          fakePdfService.ultimoMapeamentoMidias!['doc-princ_p1'],
+          startsWith('data:image/webp;base64,'),
+        );
+        expect(
+          fakePdfService.ultimoMapeamentoMidias!['doc-princ_p2'],
+          startsWith('data:image/webp;base64,'),
+        );
+        expect(
+          fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['nf-mat-pdf_p1'],
+          startsWith('data:image/webp;base64,'),
+        );
+        expect(
+          fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['nf-mat-pdf_p2'],
+          startsWith('data:image/webp;base64,'),
+        );
+      } finally {
+        try {
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        } catch (_) {}
+      }
+    },
+  );
+
+  testWidgets(
+    'Tratador de URL do relatório intercepta links .pdf e abre o arquivo local via abrirArquivoProxy',
+    (tester) async {
+      final caminhosAbertos = <String>[];
+      Future<bool> Function(String url)? tratarUrl;
+
+      await tester.pumpWidget(criarTelaParaTeste(
+        caminhoXhtml: '/cache/sessao1/OEBPS/relatorio.xhtml',
+        abrirArquivoProxy: (path) async {
+          caminhosAbertos.add(path);
+        },
+        aoRegistrarTratadorUrl: (fn) {
+          tratarUrl = fn;
+        },
+      ));
+
+      await tester.pumpAndSettle();
+      expect(tratarUrl, isNotNull);
+
+      // URL que não é PDF deve retornar false
+      final ignorado = await tratarUrl!('materiais/uuid-1/OEBPS/relatorio.xhtml');
+      expect(ignorado, isFalse);
+      expect(caminhosAbertos, isEmpty);
+
+      // URL relativa de PDF dentro do EPUB extraído deve resolver e abrir
+      final interceptadoRel = await tratarUrl!('midias/nota_fiscal.pdf');
+      expect(interceptadoRel, isTrue);
+      expect(caminhosAbertos.last, endsWith('nota_fiscal.pdf'));
+
+      // URL file:// de PDF também deve ser resolvida e aberta
+      final interceptadoFile = await tratarUrl!('file:///tmp/laudo_govbr.pdf');
+      expect(interceptadoFile, isTrue);
+      expect(caminhosAbertos.last, contains('laudo_govbr.pdf'));
+    },
+  );
 }

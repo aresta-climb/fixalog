@@ -9,7 +9,8 @@ import 'package:archive/archive.dart';
 ///
 /// Monta a estrutura canônica de diretórios (mimetype sem compressão, META-INF e OEBPS),
 /// incluindo páginas XHTML, folhas de estilo CSS, dados brutos em Protobuf,
-/// ativos multimídia (fotos e vídeos) e assinaturas digitais W3C XML-DSig.
+/// ativos multimídia (fotos e vídeos), materiais aninhados (`OEBPS/materiais/<uuid>/`)
+/// e assinaturas digitais W3C XML-DSig.
 class EpubPackagerService {
   /// Determina o tipo MIME correspondente a partir da extensão do arquivo.
   String determinarTipoMime(String caminho) {
@@ -18,10 +19,25 @@ class EpubPackagerService {
     if (minusculo.endsWith('.jpg') || minusculo.endsWith('.jpeg')) return 'image/jpeg';
     if (minusculo.endsWith('.png')) return 'image/png';
     if (minusculo.endsWith('.mp4')) return 'video/mp4';
+    if (minusculo.endsWith('.pdf')) return 'application/pdf';
     if (minusculo.endsWith('.css')) return 'text/css';
     if (minusculo.endsWith('.xhtml') || minusculo.endsWith('.html')) return 'application/xhtml+xml';
+    if (minusculo.endsWith('.xml') || minusculo.endsWith('.opf')) return 'application/xml';
     if (minusculo.endsWith('.binarypb')) return 'application/x-protobuf';
     return 'application/octet-stream';
+  }
+
+  /// Extrai todos os arquivos internos de um pacote `.epub` de material (exceto `mimetype`)
+  /// para que possam ser aninhados intactos em `OEBPS/materiais/<uuid>/`.
+  Map<String, Uint8List> extrairArquivosDeEpubAninhado(Uint8List epubBytes) {
+    final zip = ZipDecoder().decodeBytes(epubBytes);
+    final resultado = <String, Uint8List>{};
+    for (final file in zip.files) {
+      if (!file.isFile) continue;
+      if (file.name == 'mimetype') continue;
+      resultado[file.name] = Uint8List.fromList(file.content as List<int>);
+    }
+    return resultado;
   }
 
   /// Empacota todos os recursos fornecidos em um arquivo binário ZIP compatível com a especificação EPUB 3.
@@ -32,6 +48,7 @@ class EpubPackagerService {
     required String cssConteudo,
     required Uint8List binarypb,
     Map<String, Uint8List> arquivosMidia = const {},
+    Map<String, Map<String, Uint8List>> materiaisAninhados = const {},
     String? signaturesXml,
   }) {
     final arquivoZip = Archive();
@@ -59,6 +76,13 @@ class EpubPackagerService {
     }
 
     // 4. OEBPS/nav.xhtml (Documento de navegação obrigatório no EPUB 3)
+    final itensNavMateriais = StringBuffer();
+    for (final uuidMat in materiaisAninhados.keys) {
+      itensNavMateriais.writeln(
+        '      <li><a href="materiais/$uuidMat/OEBPS/relatorio.xhtml">Material: $uuidMat</a></li>',
+      );
+    }
+
     final navXhtml = '''<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="pt-BR">
@@ -71,6 +95,7 @@ class EpubPackagerService {
     <h1>Sumário de Navegação</h1>
     <ol>
       <li><a href="relatorio.xhtml">Relatório de Vistoria</a></li>
+${itensNavMateriais.toString().trimRight()}
     </ol>
   </nav>
 </body>
@@ -95,9 +120,21 @@ class EpubPackagerService {
       arquivoZip.addFile(ArchiveFile(caminhoRelativo, bytesMidia.length, bytesMidia));
     }
 
+    // 7b. Materiais Aninhados em OEBPS/materiais/<uuid>/
+    for (final entradaMat in materiaisAninhados.entries) {
+      final uuidMat = entradaMat.key;
+      final arquivosDoMaterial = entradaMat.value;
+      for (final arquivoMat in arquivosDoMaterial.entries) {
+        final caminhoInterno = arquivoMat.key;
+        final bytesMat = arquivoMat.value;
+        final caminhoNoZip = 'OEBPS/materiais/$uuidMat/$caminhoInterno';
+        arquivoZip.addFile(ArchiveFile(caminhoNoZip, bytesMat.length, bytesMat));
+      }
+    }
+
     // 8. OEBPS/content.opf (Manifesto do pacote EPUB 3)
     final bufferOpf = StringBuffer();
-    final dataModificacao = DateTime.now().toUtc().toIso8601String().split('.').first + 'Z';
+    final dataModificacao = '${DateTime.now().toUtc().toIso8601String().split('.').first}Z';
 
     bufferOpf.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     bufferOpf.writeln('<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">');
@@ -120,6 +157,18 @@ class EpubPackagerService {
       final tipoMime = determinarTipoMime(caminhoNoOpf);
       bufferOpf.writeln('    <item id="$idItem" href="$caminhoNoOpf" media-type="$tipoMime"/>');
       contadorItem++;
+    }
+
+    var contadorMaterialItem = 1;
+    for (final entradaMat in materiaisAninhados.entries) {
+      final uuidMat = entradaMat.key;
+      for (final caminhoInterno in entradaMat.value.keys) {
+        final idItem = 'mat_$contadorMaterialItem';
+        final hrefNoOpf = 'materiais/$uuidMat/$caminhoInterno';
+        final tipoMime = determinarTipoMime(caminhoInterno);
+        bufferOpf.writeln('    <item id="$idItem" href="$hrefNoOpf" media-type="$tipoMime"/>');
+        contadorMaterialItem++;
+      }
     }
 
     bufferOpf.writeln('  </manifest>');

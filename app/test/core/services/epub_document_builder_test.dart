@@ -3,6 +3,7 @@
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xml/xml.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 
@@ -180,6 +181,215 @@ void main() {
 
       expect(xhtml, contains('<!DOCTYPE html>'));
       expect(xhtml, contains('Sessão ID:</strong> vazio'));
+    });
+
+    test('gerarXhtml deve incluir barra de retorno à página anterior e links para materiais anexados', () {
+      final grupo = GrupoRepetido()
+        ..idLista = 'lista_acoes_via_c'
+        ..idItem = 'acao_1'
+        ..idTipo = 'grampo'
+        ..respostasItem['ref_mat_grampo'] = (Resposta()..texto = 'uuid-mat-1,uuid-mat-2');
+
+      final registro = Registro()
+        ..idProtocolo = 'manutencao_ferragens'
+        ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-1,uuid-mat-2')
+        ..listas.add(grupo);
+
+      final xhtml = construtor.gerarXhtml(
+        registro: registro,
+        idSessao: 'sessao_manut_1',
+        urlCanonica: 'https://fixalog.app/v/sessao_manut_1',
+        titulosMateriais: {
+          'uuid-mat-1': 'Parabolt Inox 316L Petzl',
+          'uuid-mat-2': 'Chapeleta Bonier Dupla',
+        },
+      );
+
+      // Deve conter o botão de voltar à página anterior para navegação no EPUB
+      expect(xhtml, contains('href="javascript:history.back()"'));
+      expect(xhtml, contains('Voltar para a página anterior'));
+
+      // Deve conter hiperlinks apontando para materiais/<uuid>/OEBPS/relatorio.xhtml
+      expect(
+        xhtml,
+        contains('href="materiais/uuid-mat-1/OEBPS/relatorio.xhtml"'),
+      );
+      expect(
+        xhtml,
+        contains('Parabolt Inox 316L Petzl'),
+      );
+      expect(
+        xhtml,
+        contains('href="materiais/uuid-mat-2/OEBPS/relatorio.xhtml"'),
+      );
+      expect(
+        xhtml,
+        contains('Chapeleta Bonier Dupla'),
+      );
+    });
+
+    test('gerarXhtml deve renderizar documento PDF com link para download original e imagens das páginas em respostas e listas', () {
+      final grupo = GrupoRepetido()
+        ..idLista = 'lista_materiais_cadastro'
+        ..idItem = 'item_1'
+        ..idTipo = 'chumbador_mecanico'
+        ..respostasItem['mat_nota_fiscal'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..documento = (ArquivoDocumento()
+              ..uuid = 'uuid-doc-1'
+              ..tipoOriginal = 'application/pdf'
+              ..nomeOriginal = 'nota_petzl.pdf'
+              ..quantidadePaginas = 2)));
+
+      final registro = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..respostas['doc_laudo_geral'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..documento = (ArquivoDocumento()
+              ..uuid = 'uuid-doc-geral'
+              ..tipoOriginal = 'application/pdf'
+              ..nomeOriginal = ''
+              ..quantidadePaginas = 1)))
+        ..respostas['doc_sem_mapeamento'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..documento = (ArquivoDocumento()
+              ..uuid = 'uuid-doc-vazio'
+              ..tipoOriginal = 'application/pdf'
+              ..nomeOriginal = 'vazio.pdf'
+              ..quantidadePaginas = 1)))
+        ..listas.add(grupo);
+
+      final xhtml = construtor.gerarXhtml(
+        registro: registro,
+        idSessao: 'sessao_doc',
+        urlCanonica: 'https://fixalog.app/v/sessao_doc',
+        mapeamentoMidias: {
+          'uuid-doc-1': 'midias/uuid-doc-1.pdf',
+          'uuid-doc-1_p1': 'midias/uuid-doc-1_p1.webp',
+          'uuid-doc-1_p2': 'midias/uuid-doc-1_p2.webp',
+          'uuid-doc-geral': 'midias/uuid-doc-geral.pdf',
+          'uuid-doc-geral_p1': 'midias/uuid-doc-geral_p1.webp',
+        },
+      );
+
+      // Link para o PDF original no item repetido
+      expect(
+        xhtml,
+        contains('href="midias/uuid-doc-1.pdf" download="nota_petzl.pdf" class="link-pdf-original"'),
+      );
+      expect(xhtml, contains('Baixar / Abrir PDF Original (nota_petzl.pdf)'));
+      expect(xhtml, contains('nota_petzl.pdf — Página 1 de 2'));
+      expect(xhtml, contains('<img src="midias/uuid-doc-1_p1.webp" alt="Página 1 de nota_petzl.pdf"/>'));
+      expect(xhtml, contains('nota_petzl.pdf — Página 2 de 2'));
+      expect(xhtml, contains('<img src="midias/uuid-doc-1_p2.webp" alt="Página 2 de nota_petzl.pdf"/>'));
+
+      // Documento em resposta simples usando fallback de nome (<uuid>.pdf)
+      expect(
+        xhtml,
+        contains('href="midias/uuid-doc-geral.pdf" download="uuid-doc-geral.pdf" class="link-pdf-original"'),
+      );
+      expect(xhtml, contains('<img src="midias/uuid-doc-geral_p1.webp" alt="Página 1 de uuid-doc-geral.pdf"/>'));
+
+      // Documento sem mapeamento não deve renderizar container vazio
+      expect(xhtml, isNot(contains('vazio.pdf')));
+    });
+
+    test('gerarXhtml renderiza múltiplas mídias (fotos, vídeos e PDFs) contidas na mesma Resposta.lista', () {
+      final respostaMultiMidia = Resposta(
+        lista: ListaRespostas(
+          valores: [
+            Resposta(
+              midia: ReferenciaMidia(
+                imagem: ArquivoImagem(uuid: 'uuid-foto-multi'),
+              ),
+            ),
+            Resposta(
+              midia: ReferenciaMidia(
+                video: ArquivoVideo(uuid: 'uuid-video-multi'),
+              ),
+            ),
+            Resposta(
+              midia: ReferenciaMidia(
+                documento: ArquivoDocumento(
+                  uuid: 'uuid-pdf-multi',
+                  nomeOriginal: 'certificado_lote.pdf',
+                  quantidadePaginas: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final grupo = GrupoRepetido()
+        ..idLista = 'sub_detalhes'
+        ..idItem = 'etapa_1'
+        ..idTipo = 'detalhe_fabricacao'
+        ..respostasItem['det_foto'] = respostaMultiMidia;
+
+      final registro = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..respostas['etapa_raiz_midias'] = respostaMultiMidia
+        ..listas.add(grupo);
+
+      final xhtml = construtor.gerarXhtml(
+        registro: registro,
+        idSessao: 'sessao_multi',
+        urlCanonica: 'https://fixalog.app/v/sessao_multi',
+        mapeamentoMidias: {
+          'uuid-foto-multi': 'midias/uuid-foto-multi.webp',
+          'uuid-video-multi': 'midias/uuid-video-multi.mp4',
+          'uuid-pdf-multi': 'midias/uuid-pdf-multi.pdf',
+          'uuid-pdf-multi_p1': 'midias/uuid-pdf-multi_p1.webp',
+        },
+        posterFrames: {
+          'uuid-video-multi': 'midias/uuid-video-multi_poster.webp',
+        },
+        qrCodesVideos: {
+          'uuid-video-multi': 'data:image/svg+xml;utf8,qr',
+        },
+      );
+
+      expect(xhtml, contains('src="midias/uuid-foto-multi.webp"'));
+      expect(xhtml, contains('src="midias/uuid-video-multi.mp4"'));
+      expect(xhtml, contains('href="midias/uuid-pdf-multi.pdf" download="certificado_lote.pdf"'));
+      expect(xhtml, contains('src="midias/uuid-pdf-multi_p1.webp"'));
+    });
+
+    test('gerarXhtml converte descrições com Markdown e linhas em branco em elementos XHTML5 semânticos válidos', () {
+      const descricaoMarkdown = '''# Etapa de Soldagem
+
+Realizada solda **TIG** em aço *inox 316L* com código `LOTE-99` e ~~rebarba~~ removida.
+
+- Decapagem ácida
+- Passivação completa''';
+
+      final grupo = GrupoRepetido()
+        ..idLista = 'pb_detalhes'
+        ..idItem = 'det_1'
+        ..idTipo = 'detalhe_item'
+        ..respostasItem['det_descricao'] = (Resposta()..texto = descricaoMarkdown);
+
+      final registro = Registro()
+        ..idProtocolo = 'cadastro_material'
+        ..respostas['obs_geral'] = (Resposta()..texto = 'Parágrafo 1\n\nParágrafo 2 com **negrito**')
+        ..listas.add(grupo);
+
+      final xhtml = construtor.gerarXhtml(
+        registro: registro,
+        idSessao: 'sessao_md',
+        urlCanonica: 'https://fixalog.app/v/sessao_md',
+      );
+
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('<div class="conteudo-markdown">'));
+      expect(xhtml, contains('<h4>Etapa de Soldagem</h4>'));
+      expect(xhtml, contains('<strong>TIG</strong>'));
+      expect(xhtml, contains('<em>inox 316L</em>'));
+      expect(xhtml, contains('<code>LOTE-99</code>'));
+      expect(xhtml, contains('<del>rebarba</del>'));
+      expect(xhtml, contains('<ul><li>Decapagem ácida</li><li>Passivação completa</li></ul>'));
+      expect(xhtml, contains('<p>Parágrafo 1</p><p>Parágrafo 2 com <strong>negrito</strong></p>'));
     });
   });
 }

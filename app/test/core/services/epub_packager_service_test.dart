@@ -70,6 +70,7 @@ void main() {
           'midias/foto2.jpg': Uint8List.fromList([3, 4]),
           'midias/foto3.png': Uint8List.fromList([5, 6]),
           'midias/video1.mp4': Uint8List.fromList([7, 8]),
+          'midias/nota.pdf': Uint8List.fromList([0x25, 0x50, 0x44, 0x46]),
         },
       );
 
@@ -87,6 +88,7 @@ void main() {
       expect(opfConteudo, contains('href="midias/foto2.jpg" media-type="image/jpeg"'));
       expect(opfConteudo, contains('href="midias/foto3.png" media-type="image/png"'));
       expect(opfConteudo, contains('href="midias/video1.mp4" media-type="video/mp4"'));
+      expect(opfConteudo, contains('href="midias/nota.pdf" media-type="application/pdf"'));
     });
 
     test('empacotarEpub deve incluir META-INF/signatures.xml quando fornecido', () {
@@ -126,11 +128,79 @@ void main() {
       expect(empacotador.determinarTipoMime('teste.jpeg'), equals('image/jpeg'));
       expect(empacotador.determinarTipoMime('teste.png'), equals('image/png'));
       expect(empacotador.determinarTipoMime('teste.mp4'), equals('video/mp4'));
+      expect(empacotador.determinarTipoMime('teste.pdf'), equals('application/pdf'));
       expect(empacotador.determinarTipoMime('teste.css'), equals('text/css'));
       expect(empacotador.determinarTipoMime('teste.xhtml'), equals('application/xhtml+xml'));
       expect(empacotador.determinarTipoMime('teste.html'), equals('application/xhtml+xml'));
       expect(empacotador.determinarTipoMime('teste.binarypb'), equals('application/x-protobuf'));
       expect(empacotador.determinarTipoMime('teste.desconhecido'), equals('application/octet-stream'));
+    });
+
+    test('empacotarEpub deve incorporar a árvore extraída de materiais em OEBPS/materiais/<uuid>/ preservando signatures.xml e registro.binarypb originais', () {
+      final epubMaterialBytes = empacotador.empacotarEpub(
+        idSessao: 'uuid-mat-1',
+        idProtocolo: 'cadastro_material',
+        xhtmlConteudo: '<html><body>Ficha do Material</body></html>',
+        cssConteudo: 'body { color: #fff; }',
+        binarypb: Uint8List.fromList([0x0A, 0x0B, 0x0C]),
+        arquivosMidia: {
+          'midias/nota_fiscal.webp': Uint8List.fromList([9, 8, 7]),
+        },
+        signaturesXml: '<signatures><Signature id="AssinaturaMaterialOriginal"/></signatures>',
+      );
+
+      final arquivosExtraidosMat = empacotador.extrairArquivosDeEpubAninhado(epubMaterialBytes);
+      expect(arquivosExtraidosMat.containsKey('mimetype'), isFalse);
+      expect(arquivosExtraidosMat.containsKey('META-INF/signatures.xml'), isTrue);
+      expect(arquivosExtraidosMat.containsKey('OEBPS/dados/registro.binarypb'), isTrue);
+
+      final epubManutencaoBytes = empacotador.empacotarEpub(
+        idSessao: 'sessao_manut_99',
+        idProtocolo: 'manutencao_ferragens',
+        xhtmlConteudo: '<html><body>Manutenção Principal</body></html>',
+        cssConteudo: 'body {}',
+        binarypb: Uint8List.fromList([0x01, 0x02]),
+        materiaisAninhados: {
+          'uuid-mat-1': arquivosExtraidosMat,
+        },
+      );
+
+      final zip = ZipDecoder().decodeBytes(epubManutencaoBytes);
+      final nomesArquivos = zip.files.map((f) => f.name).toSet();
+
+      // Verifica se os arquivos originais do material estão preservados bit-a-bit em OEBPS/materiais/uuid-mat-1/
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/META-INF/signatures.xml'),
+      );
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.binarypb'),
+      );
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/relatorio.xhtml'),
+      );
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/midias/nota_fiscal.webp'),
+      );
+
+      // Garante que a mídia do material não foi duplicada na pasta raiz OEBPS/midias/
+      expect(nomesArquivos.contains('OEBPS/midias/nota_fiscal.webp'), isFalse);
+
+      final sigMat = zip.files.firstWhere(
+        (f) => f.name == 'OEBPS/materiais/uuid-mat-1/META-INF/signatures.xml',
+      );
+      expect(
+        utf8.decode(sigMat.content as List<int>),
+        contains('AssinaturaMaterialOriginal'),
+      );
+
+      final pbMat = zip.files.firstWhere(
+        (f) => f.name == 'OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.binarypb',
+      );
+      expect(pbMat.content, equals([0x0A, 0x0B, 0x0C]));
     });
   });
 }

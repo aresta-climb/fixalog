@@ -29,18 +29,32 @@ List<File> _getProtocolFiles() {
     ..sort((a, b) => a.path.compareTo(b.path));
 }
 
-
-/// Coleta os IDs de todos os ConteudoSteps do tipo listaAcoes no protocolo.
+/// Coleta recursivamente os IDs de todos os ConteudoSteps que podem fornecer materiais
+/// (tipo listaAcoes ou refMateriais com origemCatalogo) no protocolo.
 Set<String> _collectListaConteudoIds(DefinicaoProtocolo proto) {
   final ids = <String>{};
-  for (final bloco in proto.blocos) {
-    for (final step in bloco.steps) {
+  void visitSteps(List<Step> steps) {
+    for (final step in steps) {
       for (final c in step.conteudos) {
         if (c.whichTipo() == ConteudoStep_Tipo.listaAcoes) {
           ids.add(c.id);
+          for (final tipo in c.listaAcoes.tiposDisponiveis) {
+            visitSteps(tipo.steps);
+          }
+        } else if (c.whichTipo() == ConteudoStep_Tipo.refMateriais &&
+            c.refMateriais.origemCatalogo) {
+          ids.add(c.id);
+        } else if (c.whichTipo() == ConteudoStep_Tipo.selecaoRamo) {
+          for (final ramo in c.selecaoRamo.ramos) {
+            visitSteps(ramo.steps);
+          }
         }
       }
     }
+  }
+
+  for (final bloco in proto.blocos) {
+    visitSteps(bloco.steps);
   }
   return ids;
 }
@@ -193,7 +207,7 @@ void main() {
     );
 
     test(
-      'todos os StepRefMateriais referenciam um ConteudoStep listaAcoes existente',
+      'todos os StepRefMateriais referenciam um ConteudoStep existente ou o catálogo',
       () {
         for (final file in _getProtocolFiles()) {
           final name = file.uri.pathSegments.last;
@@ -207,12 +221,15 @@ void main() {
           }
 
           for (final ref in refs) {
+            if (ref.origemCatalogo && ref.idStepMateriais.isEmpty) {
+              continue;
+            }
             expect(
               listaIds,
               contains(ref.idStepMateriais),
               reason:
                   '$name: StepRefMateriais referencia "${ref.idStepMateriais}" '
-                  'que não existe como ConteudoStep listaAcoes no protocolo',
+                  'que não existe como fonte de materiais no protocolo',
             );
           }
         }
@@ -240,6 +257,14 @@ void main() {
         proto.blocos.map((b) => b.id).toList(),
         equals(['materiais', 'via', 'acoes', 'avaliacao']),
       );
+    });
+
+    test('bloco "materiais" tem ConteudoStep refMateriais "lista_materiais_c" com origemCatalogo=true', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'materiais');
+      final refC = _conteudoById(bloco.steps, 'lista_materiais_c');
+      expect(refC.whichTipo(), equals(ConteudoStep_Tipo.refMateriais));
+      expect(refC.refMateriais.origemCatalogo, isTrue);
+      expect(refC.refMateriais.obrigatorio, isTrue);
     });
 
     test(
@@ -322,55 +347,7 @@ void main() {
     });
 
     test(
-      'bloco "materiais" tem ConteudoStep listaAcoes com id "lista_materiais_c" e 5 tipos',
-      () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'materiais');
-        final listaC = _firstConteudoOfType(
-          bloco.steps,
-          ConteudoStep_Tipo.listaAcoes,
-        );
-
-        expect(listaC.id, equals('lista_materiais_c'));
-        expect(listaC.listaAcoes.minimo, equals(1));
-        expect(
-          listaC.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
-          equals([
-            'parabolt',
-            'chapeleta',
-            'argola',
-            'ancoragem_quimica',
-            'cola_quimica',
-          ]),
-        );
-      },
-    );
-
-    test(
-      'tipo "parabolt" tem step único com múltiplos conteudos (inclui lote obrigatório)',
-      () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'materiais');
-        final listaC = _firstConteudoOfType(
-          bloco.steps,
-          ConteudoStep_Tipo.listaAcoes,
-        );
-        final parabolt = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'parabolt',
-        );
-
-        expect(parabolt.steps.length, equals(1));
-        final pbStep = parabolt.steps.first;
-        expect(
-          pbStep.conteudos.length,
-          greaterThanOrEqualTo(4),
-        ); // aviso+marca+liga+lote...
-
-        final loteC = _conteudoById([pbStep], 'pb_lote');
-        expect(loteC.campoSimples.obrigatorio, isTrue);
-      },
-    );
-
-    test(
-      'bloco "acoes" tem ConteudoStep listaAcoes com id "lista_acoes_c" e 6 tipos',
+      'bloco "acoes" tem ConteudoStep listaAcoes com id "lista_acoes_c" e 5 tipos',
       () {
         final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
         final listaC = _firstConteudoOfType(
@@ -521,34 +498,213 @@ void main() {
     );
   });
 
-  // ── 5. Integridade global de referências ─────────────────────────────────────
+  // ── 5. Novos recursos do Parser para Materiais ──────────────────────────────
 
-  group('Integridade de referências RefMateriais', () {
-    test(
-      'todos os RefMateriais referenciam ConteudoStep listaAcoes existente',
-      () {
-        for (final file in _getProtocolFiles()) {
-          final name = file.uri.pathSegments.last;
-          final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+  group('Parsing de preencher_data_atual, origem_catalogo e listas aninhadas', () {
+    test('parseia preencher_data_atual em StepCampoSimples do tipo DATE', () {
+      const yaml = '''
+protocolo:
+  id: teste_data
+  nome: Teste Data
+  versao: "1.0.0"
+  blocos:
+    - id: b1
+      titulo: Bloco 1
+      steps:
+        - id: s1
+          conteudos:
+            - id: data_cadastro
+              campo_simples:
+                label: "Data de Registro"
+                tipo: DATE
+                preencher_data_atual: true
+                obrigatorio: true
+''';
+      final proto = ProtocolParser.fromYaml(yaml);
+      final conteudo = proto.blocos.first.steps.first.conteudos.first;
+      expect(conteudo.campoSimples.tipo, StepCampoSimples_TipoCampo.DATE);
+      expect(conteudo.campoSimples.preencherDataAtual, isTrue);
+    });
 
-          final listaIds = _collectListaConteudoIds(proto);
-          final refs = <StepRefMateriais>[];
+    test('parseia origem_catalogo em StepRefMateriais', () {
+      const yaml = '''
+protocolo:
+  id: teste_catalogo
+  nome: Teste Catalogo
+  versao: "1.0.0"
+  blocos:
+    - id: b1
+      titulo: Bloco 1
+      steps:
+        - id: s1
+          conteudos:
+            - id: selecao_catalogo
+              ref_materiais:
+                label: "Materiais do Catálogo"
+                origem_catalogo: true
+                obrigatorio: true
+''';
+      final proto = ProtocolParser.fromYaml(yaml);
+      final conteudo = proto.blocos.first.steps.first.conteudos.first;
+      expect(conteudo.refMateriais.origemCatalogo, isTrue);
+      expect(conteudo.refMateriais.obrigatorio, isTrue);
+    });
 
-          for (final bloco in proto.blocos) {
-            _collectRefMateriais(bloco.steps, refs);
-          }
+    test('parseia StepListaAcoes aninhada dentro de um TipoAcao', () {
+      const yaml = '''
+protocolo:
+  id: teste_lista_aninhada
+  nome: Teste Lista Aninhada
+  versao: "1.0.0"
+  blocos:
+    - id: b1
+      titulo: Materiais
+      steps:
+        - id: s_mat
+          conteudos:
+            - id: lista_materiais
+              lista_acoes:
+                label: "Materiais"
+                minimo: 1
+                tipos_disponiveis:
+                  - id: outro
+                    label: "Outro"
+                    steps:
+                      - id: s_outro
+                        conteudos:
+                          - id: sub_detalhes
+                            lista_acoes:
+                              label: "Detalhes / Processo de Fabricação"
+                              minimo: 0
+                              tipos_disponiveis:
+                                - id: detalhe_item
+                                  label: "Adicionar Detalhe"
+                                  steps:
+                                    - id: s_det
+                                      conteudos:
+                                        - id: det_texto
+                                          campo_simples:
+                                            label: "Descrição"
+                                            tipo: TEXT
+''';
+      final proto = ProtocolParser.fromYaml(yaml);
+      final listaPrincipal = proto.blocos.first.steps.first.conteudos.first.listaAcoes;
+      final tipoOutro = listaPrincipal.tiposDisponiveis.first;
+      final subListaConteudo = tipoOutro.steps.first.conteudos.first;
+      expect(subListaConteudo.id, equals('sub_detalhes'));
+      expect(subListaConteudo.whichTipo(), equals(ConteudoStep_Tipo.listaAcoes));
+      expect(
+        subListaConteudo.listaAcoes.tiposDisponiveis.first.id,
+        equals('detalhe_item'),
+      );
+    });
+  });
 
-          for (final ref in refs) {
-            expect(
-              listaIds,
-              contains(ref.idStepMateriais),
-              reason:
-                  '$name: RefMateriais referencia "${ref.idStepMateriais}" '
-                  'que não existe como ConteudoStep listaAcoes',
-            );
-          }
-        }
-      },
-    );
+  // ── 6. cadastro_material.yaml — Estrutura do Protocolo de Materiais ─────────
+
+  group('cadastro_material.yaml — Estrutura do Protocolo de Materiais', () {
+    test('contém identificação geral, 6 categorias de material com seção universal e assinatura', () {
+      final file = File('assets/protocols/cadastro_material.yaml');
+      expect(
+        file.existsSync(),
+        isTrue,
+        reason: 'cadastro_material.yaml deve existir em assets/protocols/',
+      );
+
+      final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+      expect(proto.id, equals('cadastro_material'));
+      expect(proto.blocos.length, equals(3));
+
+      // Bloco 1: Identificação Geral com mat_nome, mat_codigo_associacao e mat_data (preencher_data_atual: true)
+      final blocoIdent = proto.blocos[0];
+      final stepIdent = blocoIdent.steps.first;
+      final idsIdent = stepIdent.conteudos.map((c) => c.id).toList();
+      expect(idsIdent, containsAll(['mat_nome', 'mat_codigo_associacao', 'mat_data']));
+      final cData = stepIdent.conteudos.firstWhere((c) => c.id == 'mat_data');
+      expect(cData.campoSimples.preencherDataAtual, isTrue);
+
+      // Bloco 2: Lista de materiais com as 6 categorias exigidas
+      final blocoLista = proto.blocos[1];
+      final listaMateriais = blocoLista.steps.first.conteudos.first.listaAcoes;
+      expect(listaMateriais.minimo, equals(1));
+      final idsTipos = listaMateriais.tiposDisponiveis.map((t) => t.id).toList();
+      expect(
+        idsTipos,
+        equals([
+          'parabolt',
+          'chapeleta',
+          'chapeleta_argola',
+          'ancoragem_quimica',
+          'costura_permanente',
+          'outro',
+        ]),
+      );
+
+      // Verifica que todas as 6 categorias possuem sub-listas de Testes de Qualidade e Detalhes/Fabricação
+      for (final tipo in listaMateriais.tiposDisponiveis) {
+        final conteudosTipo = tipo.steps.expand((s) => s.conteudos).toList();
+        final campoNfAnexo = conteudosTipo.firstWhere(
+          (c) => c.id.endsWith('_nf_foto'),
+        );
+        expect(
+          campoNfAnexo.campoSimples.label,
+          equals('Foto ou PDF da Nota Fiscal / Comprovante'),
+        );
+
+        final subListas = conteudosTipo
+            .where((c) => c.whichTipo() == ConteudoStep_Tipo.listaAcoes)
+            .toList();
+        expect(
+          subListas.length,
+          greaterThanOrEqualTo(2),
+          reason: 'Categoria "${tipo.id}" deve ter sub-lista de Testes de Qualidade e de Detalhes/Fabricação',
+        );
+
+        final conteudosTestes = subListas[0]
+            .listaAcoes
+            .tiposDisponiveis
+            .first
+            .steps
+            .expand((s) => s.conteudos)
+            .toList();
+        expect(
+          conteudosTestes.any((c) => c.id == 'tq_video'),
+          isFalse,
+          reason: 'Categoria "${tipo.id}" deve ter campo único de mídias no teste sem tq_video separado',
+        );
+        final campoMidiasTeste = conteudosTestes.firstWhere((c) => c.id == 'tq_foto');
+        expect(
+          campoMidiasTeste.campoSimples.label,
+          equals('Anexar Mídias ao Teste / Laudo'),
+        );
+
+        final conteudosDetalhes = subListas[1]
+            .listaAcoes
+            .tiposDisponiveis
+            .first
+            .steps
+            .expand((s) => s.conteudos)
+            .toList();
+        expect(
+          conteudosDetalhes.any((c) => c.id == 'det_video'),
+          isFalse,
+          reason: 'Categoria "${tipo.id}" deve ter campo único de mídias na etapa sem det_video separado',
+        );
+        final campoMidiasDetalhe = conteudosDetalhes.firstWhere((c) => c.id == 'det_foto');
+        expect(
+          campoMidiasDetalhe.campoSimples.label,
+          equals('Anexar Mídias à Etapa / Detalhe'),
+        );
+      }
+
+      // Bloco 3: Assinatura obrigatória
+      final blocoAssinatura = proto.blocos[2];
+      final stepAssinatura = blocoAssinatura.steps.last;
+      expect(
+        stepAssinatura.conteudos.last.campoSimples.tipo,
+        equals(StepCampoSimples_TipoCampo.SIGNATURE),
+      );
+      expect(stepAssinatura.conteudos.last.campoSimples.obrigatorio, isTrue);
+    });
   });
 }

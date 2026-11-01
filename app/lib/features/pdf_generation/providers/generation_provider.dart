@@ -70,6 +70,7 @@ class GenerationState {
 /// Orquestra a esteira completa de geração e assinatura de relatórios de vistoria em Dart puro:
 /// - Processamento de mídias (fotos em WebP 4MP q=85 e vídeos em H.264 720p CRF 26 com poster frames).
 /// - Construtor de marcação XHTML semântica e CSS responsivo (@media print).
+/// - Incorporação de materiais assinados do catálogo local em `OEBPS/materiais/<uuid>/`.
 /// - Assinatura digital no padrão W3C XML-DSig (ECDSA secp256r1 com SHA-256 e certificado X.509).
 /// - Empacotamento de container canônico EPUB 3 em ZIP/OCF com Protobuf embutido.
 /// - Emissão de PDF Resumido de Protocolo com QR Codes.
@@ -106,6 +107,36 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         _cryptoService = cryptoService ?? CryptoService(),
         super(GenerationState());
 
+  String? _localizarCaminhoEpubDeRegistro(SubmissionRecord record) {
+    if (record.protobufPath.endsWith('.epub') &&
+        File(record.protobufPath).existsSync()) {
+      return record.protobufPath;
+    }
+    if (record.pdfPath.endsWith('.epub') && File(record.pdfPath).existsSync()) {
+      return record.pdfPath;
+    }
+    if (record.pdfPath.endsWith('.pdf')) {
+      final irmao = record.pdfPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
+      if (File(irmao).existsSync()) {
+        return irmao;
+      }
+    }
+    return null;
+  }
+
+  String _extrairTituloExibicaoDoRegistro(
+    Registro registro, {
+    required String fallback,
+  }) {
+    final matNome = registro.respostas['mat_nome']?.texto.trim() ?? '';
+    if (matNome.isNotEmpty) return matNome;
+
+    final viaNome = registro.respostas['via_nome']?.texto.trim() ?? '';
+    if (viaNome.isNotEmpty) return viaNome;
+
+    return fallback;
+  }
+
   /// Inicia a esteira de geração assíncrona do relatório técnico.
   Future<void> startGeneration(
     String title,
@@ -136,29 +167,35 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       // 1. Coletar mídias referenciadas no Registro
       final Set<String> fotosUuids = {};
       final Set<String> videosUuids = {};
+      final Map<String, ArquivoDocumento> documentosPorUuid = {};
 
       for (final resp in registro.respostas.values) {
-        if (resp.hasMidia()) {
-          if (resp.midia.hasImagem()) {
-            fotosUuids.add(resp.midia.imagem.uuid);
-          } else if (resp.midia.hasVideo()) {
-            videosUuids.add(resp.midia.video.uuid);
+        for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
+          if (midia.hasImagem()) {
+            fotosUuids.add(midia.imagem.uuid);
+          } else if (midia.hasVideo()) {
+            videosUuids.add(midia.video.uuid);
+          } else if (midia.hasDocumento()) {
+            documentosPorUuid[midia.documento.uuid] = midia.documento;
           }
         }
       }
       for (final grupo in registro.listas) {
         for (final resp in grupo.respostasItem.values) {
-          if (resp.hasMidia()) {
-            if (resp.midia.hasImagem()) {
-              fotosUuids.add(resp.midia.imagem.uuid);
-            } else if (resp.midia.hasVideo()) {
-              videosUuids.add(resp.midia.video.uuid);
+          for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
+            if (midia.hasImagem()) {
+              fotosUuids.add(midia.imagem.uuid);
+            } else if (midia.hasVideo()) {
+              videosUuids.add(midia.video.uuid);
+            } else if (midia.hasDocumento()) {
+              documentosPorUuid[midia.documento.uuid] = midia.documento;
             }
           }
         }
       }
 
-      final totalMidias = fotosUuids.length + videosUuids.length;
+      final totalMidias =
+          fotosUuids.length + videosUuids.length + documentosPorUuid.length;
       int processadas = 0;
 
       final Map<String, List<int>> arquivosMidias = {};
@@ -216,6 +253,139 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         );
       }
 
+      // 3a. Empacotar Documentos PDF originais e rasterizar páginas WebP
+      for (final entradaDoc in documentosPorUuid.entries) {
+        final uuid = entradaDoc.key;
+        final doc = entradaDoc.value;
+
+        final caminhoPdfOriginal = await _sessionManager.getMediaFilePath(
+          sessionId: sid,
+          mediaUuid: '${uuid}_original',
+          extension: '.pdf',
+        );
+        final pdfOriginalFile = File(caminhoPdfOriginal);
+        if (pdfOriginalFile.existsSync()) {
+          final bytesPdf = pdfOriginalFile.readAsBytesSync();
+          arquivosMidias['midias/$uuid.pdf'] = bytesPdf;
+          mapeamentoMidias[uuid] = 'midias/$uuid.pdf';
+        }
+
+        final paginasFiles = await _mediaService.rasterizarDocumentoPdfSessao(
+          sessionManager: _sessionManager,
+          sessionId: sid,
+          mediaUuid: uuid,
+        );
+        for (var i = 0; i < paginasFiles.length; i++) {
+          final numPag = i + 1;
+          final pagFile = paginasFiles[i];
+          if (pagFile.existsSync()) {
+            final bytesPag = pagFile.readAsBytesSync();
+            arquivosMidias['midias/${uuid}_p$numPag.webp'] = bytesPag;
+            mapeamentoMidias['${uuid}_p$numPag'] =
+                'midias/${uuid}_p$numPag.webp';
+          }
+        }
+        if (doc.quantidadePaginas == 0 && paginasFiles.isNotEmpty) {
+          doc.quantidadePaginas = paginasFiles.length;
+        }
+
+        processadas++;
+        state = state.copyWith(
+          progress:
+              0.2 + (processadas / (totalMidias > 0 ? totalMidias : 1) * 0.3),
+          status: 'Processando documentos PDF ($processadas/$totalMidias)...',
+        );
+      }
+
+      final epubPath = outputPath.endsWith('.epub')
+          ? outputPath
+          : (outputPath.endsWith('.pdf')
+              ? outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub')
+              : '$outputPath.epub');
+
+      // 3b. Resolver materiais do catálogo referenciados na manutenção (com fallback para EPUB anterior)
+      final uuidsMateriais =
+          EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(registro);
+      final Map<String, Map<String, Uint8List>> materiaisAninhados = {};
+      final Map<String, String> titulosMateriais = {};
+
+      Map<String, Uint8List>? arquivosEpubAnterior;
+      final epubFileExistente = File(epubPath);
+      if (uuidsMateriais.isNotEmpty && epubFileExistente.existsSync()) {
+        try {
+          final bytesAntigos = await epubFileExistente.readAsBytes();
+          arquivosEpubAnterior =
+              _epubPackager.extrairArquivosDeEpubAninhado(bytesAntigos);
+        } catch (_) {}
+      }
+
+      for (final uuidMat in uuidsMateriais) {
+        if (uuidMat == sid) continue;
+
+        SubmissionRecord? matRecord;
+        if (_isar != null) {
+          try {
+            matRecord = await _isar.submissionRecords
+                .filter()
+                .idSessaoEqualTo(uuidMat)
+                .findFirst();
+          } catch (_) {}
+        }
+
+        if (matRecord != null) {
+          final caminhoEpubMat = _localizarCaminhoEpubDeRegistro(matRecord);
+          if (caminhoEpubMat != null) {
+            try {
+              final bytesMat = await File(caminhoEpubMat).readAsBytes();
+              materiaisAninhados[uuidMat] =
+                  _epubPackager.extrairArquivosDeEpubAninhado(bytesMat);
+              titulosMateriais[uuidMat] =
+                  matRecord.tituloExibicao.trim().isNotEmpty
+                      ? matRecord.tituloExibicao.trim()
+                      : (matRecord.nomeProtocolo.trim().isNotEmpty
+                          ? matRecord.nomeProtocolo.trim()
+                          : uuidMat);
+            } catch (_) {}
+          }
+        }
+
+        // Fallback para cópia já embutida no EPUB anterior caso o material tenha sido removido do catálogo
+        if (!materiaisAninhados.containsKey(uuidMat) &&
+            arquivosEpubAnterior != null) {
+          final prefixo = 'OEBPS/materiais/$uuidMat/';
+          final recuperados = <String, Uint8List>{};
+          for (final entradaAntiga in arquivosEpubAnterior.entries) {
+            if (entradaAntiga.key.startsWith(prefixo)) {
+              recuperados[entradaAntiga.key.substring(prefixo.length)] =
+                  entradaAntiga.value;
+            }
+          }
+          if (recuperados.isNotEmpty) {
+            materiaisAninhados[uuidMat] = recuperados;
+          }
+        }
+
+        // Se ainda não temos o título amigável do material, tenta ler do registro.binarypb embutido
+        if (!titulosMateriais.containsKey(uuidMat) &&
+            materiaisAninhados.containsKey(uuidMat)) {
+          final pbBytes =
+              materiaisAninhados[uuidMat]!['OEBPS/dados/registro.binarypb'];
+          if (pbBytes != null) {
+            try {
+              final regMat = Registro.fromBuffer(pbBytes);
+              titulosMateriais[uuidMat] = _extrairTituloExibicaoDoRegistro(
+                regMat,
+                fallback: uuidMat,
+              );
+            } catch (_) {
+              titulosMateriais[uuidMat] = uuidMat;
+            }
+          } else {
+            titulosMateriais[uuidMat] = uuidMat;
+          }
+        }
+      }
+
       // 4. Construir Documento EPUB 3
       state =
           state.copyWith(progress: 0.6, status: 'Construindo relatório EPUB 3...');
@@ -233,6 +403,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         posterFrames: posterFrames,
         qrCodesVideos: qrCodesVideos,
         qrCodeCanonica: qrPrincipalDataUri,
+        titulosMateriais: titulosMateriais,
       );
 
       // 5. Assinatura Digital XML-DSig
@@ -256,7 +427,6 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final binarypbBytes = Uint8List.fromList(registro.writeToBuffer());
 
       final Map<String, List<int>> recursosAssinatura = {
-        'OEBPS/content.opf': [],
         'OEBPS/relatorio.xhtml': utf8.encode(relatorioXhtml),
         'OEBPS/estilo.css': utf8.encode(estiloCss),
         'OEBPS/dados/registro.binarypb': binarypbBytes,
@@ -265,6 +435,13 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       for (final entrada in arquivosMidias.entries) {
         recursosAssinatura['OEBPS/${entrada.key}'] = entrada.value;
         arquivosMidiaBytes[entrada.key] = Uint8List.fromList(entrada.value);
+      }
+      for (final entradaMat in materiaisAninhados.entries) {
+        final uuidMat = entradaMat.key;
+        for (final arqMat in entradaMat.value.entries) {
+          recursosAssinatura['OEBPS/materiais/$uuidMat/${arqMat.key}'] =
+              arqMat.value;
+        }
       }
 
       final signaturesXml = await _xmlSigner.gerarAssinaturaXml(
@@ -276,11 +453,6 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       // 6. Empacotamento do Container EPUB 3
       state = state.copyWith(
           progress: 0.8, status: 'Empacotando container EPUB 3...');
-      final epubPath = outputPath.endsWith('.epub')
-          ? outputPath
-          : (outputPath.endsWith('.pdf')
-              ? outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub')
-              : '$outputPath.epub');
 
       final epubBytes = _epubPackager.empacotarEpub(
         idSessao: sid,
@@ -289,6 +461,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         cssConteudo: estiloCss,
         binarypb: binarypbBytes,
         arquivosMidia: arquivosMidiaBytes,
+        materiaisAninhados: materiaisAninhados,
         signaturesXml: signaturesXml,
       );
 
@@ -305,7 +478,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         } catch (_) {}
       }
 
-      // 8. Gravação no Isar (mantém pdfPath pré-existente ou vazio para geração sob demanda)
+      // 8. Gravação no Isar
       String? pdfExistente;
       final isar = _isar;
       if (isar != null) {
@@ -318,10 +491,20 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         } catch (_) {}
 
         pdfExistente = existingRecord?.pdfPath;
+        final ehMaterial = registro.idProtocolo == 'cadastro_material' ||
+            (existingRecord?.isMaterial ?? false);
+        final tituloExtraido = _extrairTituloExibicaoDoRegistro(
+          registro,
+          fallback: (existingRecord?.tituloExibicao.isNotEmpty ?? false)
+              ? existingRecord!.tituloExibicao
+              : title,
+        );
 
         final record = existingRecord ?? SubmissionRecord()
           ..idSessao = sid
-          ..idProtocolo = sid
+          ..idProtocolo = registro.idProtocolo.isNotEmpty
+              ? registro.idProtocolo
+              : sid
           ..nomeProtocolo = title
           ..dataInclusao = DateTime.now()
           ..enviadoNuvem = false;
@@ -329,7 +512,11 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         record
           ..pdfPath = pdfExistente ?? ''
           ..protobufPath = epubFile.path
-          ..status = SubmissionStatus.gerado;
+          ..status = SubmissionStatus.gerado
+          ..tipoRegistro = ehMaterial
+              ? SubmissionTipoRegistro.material
+              : SubmissionTipoRegistro.manutencao
+          ..tituloExibicao = tituloExtraido;
 
         await isar.writeTxn(() async {
           await isar.collection<SubmissionRecord>().put(record);

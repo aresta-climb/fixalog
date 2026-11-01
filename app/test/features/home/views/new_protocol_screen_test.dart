@@ -80,13 +80,14 @@ void main() {
       expect(find.text('NOVO REGISTRO DE MANUTENÇÃO'), findsOneWidget);
     });
 
-    testWidgets('Exibe os três cards de protocolo', (tester) async {
+    testWidgets('Exibe os cards de protocolo incluindo Cadastro de Materiais', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
       expect(find.text('Manutenção de\nProteções Fixas'), findsOneWidget);
       expect(find.text('Inspeção Visual de\nProteções Fixas'), findsOneWidget);
       expect(find.text('Abertura de Via'), findsOneWidget);
+      expect(find.text('Cadastro de\nMateriais'), findsOneWidget);
     });
 
     testWidgets('Exibe tags de protocolo corretas', (tester) async {
@@ -95,14 +96,16 @@ void main() {
 
       expect(find.text('PROTOCOLO TÉCNICO'), findsNWidgets(2));
       expect(find.text('PROTOCOLO PREVENTIVO'), findsOneWidget);
+      expect(find.text('CATÁLOGO DE INSUMOS'), findsOneWidget);
     });
 
-    testWidgets('Exibe três botões INICIAR', (tester) async {
+    testWidgets('Exibe cinco botões INICIAR', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(find.text('INICIAR'), findsNWidgets(4));
+      expect(find.text('INICIAR'), findsNWidgets(5));
     });
+
     testWidgets('Navega para Express Form ao tocar em Registro Expresso', (
       tester,
     ) async {
@@ -112,7 +115,6 @@ void main() {
       await tester.tap(find.text('INICIAR').first);
       await tester.pumpAndSettle();
 
-      // ExpressFormScreen is shown
       expect(find.byType(WizardScreen), findsOneWidget);
     });
 
@@ -161,6 +163,26 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pump();
+    });
+
+    testWidgets('Navega para Cadastro de Materiais ao tocar no card', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_buildScreen());
+      await tester.pumpAndSettle();
+
+      final finder = find.text('INICIAR').at(4);
+      await tester.dragUntilVisible(
+        finder,
+        find.byType(SingleChildScrollView),
+        const Offset(0, -500),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WizardScreen), findsOneWidget);
+      expect(find.text('Nome do Material ou Conjunto'), findsOneWidget);
     });
   });
 }

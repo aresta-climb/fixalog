@@ -222,5 +222,52 @@ void main() {
 
       tempDir.deleteSync(recursive: true);
     });
+
+    testWidgets('Separa Manutenções e Materiais permitindo alternar entre as categorias e exibir tituloExibicao', (tester) async {
+      final logs = [
+        SubmissionRecord()
+          ..idSessao = 'manut_1'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção de Proteções Fixas'
+          ..tituloExibicao = 'Via Diedro Sul'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = DateTime(2026, 10, 10)
+          ..status = SubmissionStatus.gerado
+          ..protobufPath = '/path/to/manut.epub',
+        SubmissionRecord()
+          ..idSessao = 'mat_1'
+          ..idProtocolo = 'cadastro_material'
+          ..nomeProtocolo = 'Cadastro de Material de Manutenção'
+          ..tituloExibicao = 'Kit Parabolt Inox 316 + Chapeleta'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..dataInclusao = DateTime(2026, 10, 11)
+          ..status = SubmissionStatus.gerado
+          ..protobufPath = '/path/to/mat.epub',
+      ];
+
+      await tester.pumpWidget(_buildScreen(customLogs: logs));
+      await tester.pumpAndSettle();
+
+      // Por padrão, a aba MANUTENÇÕES está selecionada: mostra a manutenção e oculta o material
+      expect(find.text('MANUTENÇÕES'), findsOneWidget);
+      expect(find.text('MATERIAIS'), findsOneWidget);
+      expect(find.text('Via Diedro Sul'), findsOneWidget);
+      expect(find.text('Kit Parabolt Inox 316 + Chapeleta'), findsNothing);
+
+      // Alterna para a categoria MATERIAIS
+      await tester.tap(find.text('MATERIAIS'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kit Parabolt Inox 316 + Chapeleta'), findsOneWidget);
+      expect(find.text('Via Diedro Sul'), findsNothing);
+
+      // Verifica que o menu de contexto do material permite Abrir Relatório, Editar e Excluir
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Abrir Relatório'), findsOneWidget);
+      expect(find.text('Editar'), findsOneWidget);
+      expect(find.text('Excluir'), findsOneWidget);
+    });
   });
 }

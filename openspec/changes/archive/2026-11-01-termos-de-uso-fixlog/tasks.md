@@ -38,4 +38,4 @@
 - [x] 7.1 Executar a suíte de testes de integração (`flutter test integration_test/fluxo_termos_de_uso_test.dart`)
 - [x] 7.2 Executar a suíte completa de testes unitários (`flutter test --coverage`) e verificar conformidade estrita com 100% de cobertura
 - [x] 7.3 Executar análise estática de código (`flutter analyze`) para garantir zero warnings
-- [ ] 7.4 Pausar para revisão e aprovação explícita do usuário (@pm constraint)
+- [x] 7.4 Pausar para revisão e aprovação explícita do usuário (@pm constraint)

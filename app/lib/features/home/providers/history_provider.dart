@@ -43,11 +43,17 @@ class HistoryRepository {
   Future<void> deleteRecord(SubmissionRecord record) async {
     if (_isar == null) return;
     
-    // 2. Apagar o PDF
+    // 2. Apagar o PDF e eventual EPUB associado
     if (record.pdfPath.isNotEmpty) {
       final pdfFile = File(record.pdfPath);
       if (await pdfFile.exists()) {
         await pdfFile.delete();
+      }
+    }
+    if (record.protobufPath.endsWith('.epub')) {
+      final epubFile = File(record.protobufPath);
+      if (await epubFile.exists()) {
+        await epubFile.delete();
       }
     }
 
@@ -69,4 +75,18 @@ final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
 /// Provider auxiliar que expõe diretamente a stream de histórico pronta para a UI.
 final historyProvider = StreamProvider<List<SubmissionRecord>>((ref) {
   return ref.watch(historyRepositoryProvider).watchHistory();
+});
+
+/// Provider que filtra apenas os registros de manutenções do histórico.
+final historyManutencoesProvider = Provider<AsyncValue<List<SubmissionRecord>>>((ref) {
+  return ref.watch(historyProvider).whenData(
+        (records) => records.where((r) => r.isManutencao).toList(),
+      );
+});
+
+/// Provider que filtra apenas os registros de materiais do histórico.
+final historyMateriaisProvider = Provider<AsyncValue<List<SubmissionRecord>>>((ref) {
+  return ref.watch(historyProvider).whenData(
+        (records) => records.where((r) => r.isMaterial).toList(),
+      );
 });

@@ -22,7 +22,7 @@ A estratégia segue estritamente os princípios de engenharia definidos no [AGEN
 │   politica-de-privacidade-fixalog.md                                    │
 │ • Utilitário CLI tool/legal_updater para hash SHA-256 e versionamento   │
 │ • Workflow CI/CD .github/workflows/update_legal_terms.yml               │
-│ • Tela de consentimento inicial em Markdown + Auditoria no Isar         │
+│ • Tela de consentimento inicial em Markdown + Auditoria no SQLite       │
 │ • 100% de cobertura de testes unitários                                 │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
@@ -76,10 +76,10 @@ O Fixalog lida com auditoria de proteções, responsabilidade técnica, localiza
 4. **Interface e Persistência no App**:
    - Substituição do placeholder atual por uma tela de onboarding em Markdown (`flutter_markdown_plus`).
    - Modal inferior para leitura integral da Política de Privacidade.
-   - Persistência no Isar (`AppConfigRecord`) da versão aceita e do timestamp com precisão de minutos.
+   - Persistência no SQLite (`AppConfigRecord` via `BancoDadosLocal`) da versão aceita e do timestamp com precisão de minutos.
 5. **Testes Unitários**:
    - Teste do CLI `legal_updater`.
-   - Teste de renderização do Markdown e do fluxo de aceite com o Isar.
+   - Teste de renderização do Markdown e do fluxo de aceite com SQLite `:memory:`.
 
 ---
 
@@ -120,7 +120,7 @@ Transforma a terceira aba da `HomeScreen` (atualmente vazia com `_SettingsPlaceh
 2. **Sistema de In-App Feedback Offline**:
    - Integração com a biblioteca `feedback` com suporte a captura de tela e ferramentas de desenho (pincel, marcações).
    - `ColetorMetadadosFeedback`: Coleta modelo do dispositivo, SO, nível de bateria, conectividade e pilha de telas ativas.
-   - `FilaFeedbackServico`: Persistência local no Isar para que conquistadores em áreas remotas salvem feedbacks que serão transmitidos assim que o dispositivo recuperar conexão.
+   - `FilaFeedbackServico`: Persistência local em arquivos e metadados para que conquistadores em áreas remotas salvem feedbacks que serão transmitidos assim que o dispositivo recuperar conexão.
 3. **Testes Unitários**:
    - Testes de widgets para todos os blocos de configurações.
    - Teste do enfileiramento e despacho do feedback offline.

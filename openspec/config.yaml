@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Stack tecnológica: Flutter, Riverpod (Gerenciamento de Estado), Isar (Banco de Dados Local), Protobuf.
+  Stack tecnológica: Flutter, Riverpod (Gerenciamento de Estado), SQLite (`sqflite` em produção e `sqflite_common_ffi` `:memory:` em testes), Protobuf.
   Domínio: Fixalog - Catalogação, auditoria técnica e laudos periciais de proteções fixas durante a abertura ou manutenção de vias de escalada.
   Arquitetura: Estrutura de diretórios orientada a funcionalidades em `app/lib/features` e `app/lib/core`.
 

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/main.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 
 void main() {
   group('FixalogApp Root Widget Tests', () {
@@ -13,7 +13,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            isarProvider.overrideWithValue(null),
+            bancoDadosLocalProvider.overrideWithValue(null),
           ],
           child: const FixalogApp(),
         ),

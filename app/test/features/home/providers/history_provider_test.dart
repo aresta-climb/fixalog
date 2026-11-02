@@ -4,29 +4,24 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 
 void main() {
-  late Isar isar;
+  late BancoDadosLocal banco;
   late Directory tempDir;
   late SessionBundleManager sessionManager;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('history_prov_test');
-    await Isar.initializeIsarCore(download: true);
-    isar = await Isar.open(
-      [SubmissionRecordSchema],
-      directory: tempDir.path,
-    );
+    banco = await BancoDadosLocal.abrirEmMemoria();
     sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    await banco.fechar();
     try {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);
@@ -36,33 +31,35 @@ void main() {
 
   test('historyProvider retorna registros ordenados decrescente e separa manutenções de materiais', () async {
     final hoje = DateTime(2026, 11, 1, 12, 0);
-    await isar.writeTxn(() async {
-      await isar.submissionRecords.putAll([
-        SubmissionRecord()
-          ..idSessao = 'manut-antiga'
-          ..idProtocolo = 'manutencao_ferragens'
-          ..nomeProtocolo = 'Manutenção Antiga'
-          ..tipoRegistro = SubmissionTipoRegistro.manutencao
-          ..dataInclusao = hoje.subtract(const Duration(days: 2)),
-        SubmissionRecord()
-          ..idSessao = 'mat-1'
-          ..idProtocolo = 'cadastro_material'
-          ..nomeProtocolo = 'Cadastro de Material'
-          ..tituloExibicao = 'Chapeleta Bonier Inox 316L'
-          ..tipoRegistro = SubmissionTipoRegistro.material
-          ..dataInclusao = hoje.subtract(const Duration(days: 1)),
-        SubmissionRecord()
-          ..idSessao = 'manut-nova'
-          ..idProtocolo = 'manutencao_ferragens'
-          ..nomeProtocolo = 'Manutenção Nova'
-          ..tipoRegistro = SubmissionTipoRegistro.manutencao
-          ..dataInclusao = hoje,
-      ]);
-    });
+    await banco.salvarSubmissao(
+      SubmissionRecord()
+        ..idSessao = 'manut-antiga'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Manutenção Antiga'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..dataInclusao = hoje.subtract(const Duration(days: 2)),
+    );
+    await banco.salvarSubmissao(
+      SubmissionRecord()
+        ..idSessao = 'mat-1'
+        ..idProtocolo = 'cadastro_material'
+        ..nomeProtocolo = 'Cadastro de Material'
+        ..tituloExibicao = 'Chapeleta Bonier Inox 316L'
+        ..tipoRegistro = SubmissionTipoRegistro.material
+        ..dataInclusao = hoje.subtract(const Duration(days: 1)),
+    );
+    await banco.salvarSubmissao(
+      SubmissionRecord()
+        ..idSessao = 'manut-nova'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Manutenção Nova'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..dataInclusao = hoje,
+    );
 
     final container = ProviderContainer(
       overrides: [
-        isarProvider.overrideWithValue(isar),
+        bancoDadosLocalProvider.overrideWithValue(banco),
       ],
     );
     addTearDown(container.dispose);
@@ -78,14 +75,15 @@ void main() {
     expect(materiais.first.tituloExibicao, equals('Chapeleta Bonier Inox 316L'));
   });
 
-  test('HistoryRepository watchHistory() retorna lista vazia quando Isar é nulo', () async {
+  test('HistoryRepository watchHistory() e deleteRecord() tratam banco nulo com seguranca', () async {
     final repo = HistoryRepository(null, sessionManager);
     final history = await repo.watchHistory().first;
     expect(history, isEmpty);
+    await repo.deleteRecord(SubmissionRecord()..idSessao = 's1');
   });
 
-  test('HistoryRepository deleteRecord() apaga do Isar, remove arquivos gerados e deleta o SessionBundle', () async {
-    final repo = HistoryRepository(isar, sessionManager);
+  test('HistoryRepository deleteRecord() apaga do SQLite (por id e por idSessao), remove arquivos gerados e deleta o SessionBundle', () async {
+    final repo = HistoryRepository(banco, sessionManager);
 
     final relatorioPdf = File('${tempDir.path}/report.pdf')..writeAsStringSync('pdf bytes');
     final relatorioEpub = File('${tempDir.path}/report.epub')..writeAsStringSync('epub bytes');
@@ -99,20 +97,25 @@ void main() {
       ..pdfPath = relatorioPdf.path
       ..protobufPath = relatorioEpub.path;
 
-    await isar.writeTxn(() async {
-      await isar.submissionRecords.put(record);
-    });
+    await banco.salvarSubmissao(record);
 
     await repo.deleteRecord(record);
 
-    final restante = await isar.submissionRecords.where().idSessaoEqualTo('sessao_99').findFirst();
+    final restante = await banco.obterSubmissaoPorIdSessao('sessao_99');
     expect(restante, isNull);
     expect(relatorioPdf.existsSync(), isFalse);
     expect(relatorioEpub.existsSync(), isFalse);
+
+    // Exclusão quando id == 0 (usa idSessao)
+    final recordSemId = SubmissionRecord()..idSessao = 'sessao_sem_id';
+    await banco.salvarSubmissao(recordSemId);
+    recordSemId.id = 0;
+    await repo.deleteRecord(recordSemId);
+    expect(await banco.obterSubmissaoPorIdSessao('sessao_sem_id'), isNull);
   });
 
   test('HistoryRepository deleteRecord() exclui relatório legado com .epub irmão de pdfPath, artefato de assinatura e caminhos ausentes sem erro', () async {
-    final repo = HistoryRepository(isar, sessionManager);
+    final repo = HistoryRepository(banco, sessionManager);
 
     final relatorioPdf = File('${tempDir.path}/relatorio_antigo.pdf')..writeAsStringSync('pdf legado');
     final relatorioEpubIrmao = File('${tempDir.path}/relatorio_antigo.epub')..writeAsStringSync('epub legado');
@@ -132,14 +135,13 @@ void main() {
       ..pdfPath = '${tempDir.path}/nao_existe.pdf'
       ..protobufPath = '${tempDir.path}/nao_existe.epub';
 
-    await isar.writeTxn(() async {
-      await isar.submissionRecords.putAll([recordComIrmao, recordComArquivosAusentes]);
-    });
+    await banco.salvarSubmissao(recordComIrmao);
+    await banco.salvarSubmissao(recordComArquivosAusentes);
 
     await repo.deleteRecord(recordComIrmao);
     await repo.deleteRecord(recordComArquivosAusentes);
 
-    expect(await isar.submissionRecords.where().findAll(), isEmpty);
+    expect(await banco.listarSubmissoes(), isEmpty);
     expect(relatorioPdf.existsSync(), isFalse);
     expect(relatorioEpubIrmao.existsSync(), isFalse);
     expect(arqAssinaturaLegada.existsSync(), isFalse);

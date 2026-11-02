@@ -1,37 +1,32 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
-import 'package:fixalog/core/models/local/submission_record.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
-import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
 
-/// Repositório central para gerenciar o Histórico de Registros Expresso já concluídos.
+/// Repositório central para gerenciar o Histórico de Registros de manutenção e materiais.
 ///
-/// Encapsula o acesso aos bancos de dados locais (`Isar`) e orquestra operações
+/// Encapsula o acesso ao banco de dados local SQLite ([BancoDadosLocal]) e orquestra operações
 /// que envolvem múltiplas camadas, como deleção de arquivos no sistema de arquivos.
 class HistoryRepository {
-  final Isar? _isar;
+  final BancoDadosLocal? _banco;
   final SessionBundleManager _sessionManager;
 
-  HistoryRepository(this._isar, this._sessionManager);
+  HistoryRepository(this._banco, this._sessionManager);
 
-  /// Retorna um Stream reagindo a mudanças no banco de dados Isar.
-  /// 
+  /// Retorna um Stream reagindo a mudanças no banco de dados local SQLite.
+  ///
   /// Os registros (`SubmissionRecord`) são sempre emitidos em ordem decrescente
   /// pela data de inclusão, permitindo que a UI (HistoryScreen) reflita adições e deleções em tempo real.
   Stream<List<SubmissionRecord>> watchHistory() async* {
-    if (_isar == null) yield [];
-    try {
-      yield* _isar!.collection<SubmissionRecord>().where().watch(fireImmediately: true).map((records) {
-        records.sort((a, b) => b.dataInclusao.compareTo(a.dataInclusao));
-        return records;
-      });
-    } catch (e) {
+    if (_banco == null) {
       yield [];
+      return;
     }
+    yield* _banco.observarSubmissoes();
   }
 
   void _excluirArquivoSeExistir(String caminho) {
@@ -46,10 +41,10 @@ class HistoryRepository {
   ///
   /// Realiza as seguintes operações em cadeia para garantir ausência de lixo no dispositivo:
   /// 1. Verifica a existência e exclui o PDF renderizado, eventual EPUB irmão e manifesto associado.
-  /// 2. Remove a entidade `SubmissionRecord` do banco Isar de forma atômica.
+  /// 2. Remove a entidade `SubmissionRecord` do banco SQLite.
   /// 3. Deleta completamente o Session Bundle (`/sessoes/<sessionId>/`), incluindo as fotos/vídeos associados.
   Future<void> deleteRecord(SubmissionRecord record) async {
-    if (_isar == null) return;
+    if (_banco == null) return;
 
     _excluirArquivoSeExistir(record.pdfPath);
     if (record.pdfPath.toLowerCase().endsWith('.pdf')) {
@@ -59,9 +54,11 @@ class HistoryRepository {
     }
     _excluirArquivoSeExistir(record.protobufPath);
 
-    _isar.writeTxnSync(() {
-      _isar.collection<SubmissionRecord>().deleteSync(record.id);
-    });
+    if (record.id > 0) {
+      await _banco.deletarSubmissao(record.id);
+    } else {
+      await _banco.deletarSubmissaoPorIdSessao(record.idSessao);
+    }
 
     await _sessionManager.deleteSessionBundle(record.idSessao);
   }
@@ -70,7 +67,7 @@ class HistoryRepository {
 /// Provider para acesso ao repositório de histórico na árvore de dependências.
 final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
   return HistoryRepository(
-    ref.watch(isarProvider),
+    ref.watch(bancoDadosLocalProvider),
     ref.watch(sessionBundleManagerProvider),
   );
 });

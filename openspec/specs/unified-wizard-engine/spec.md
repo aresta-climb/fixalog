@@ -26,24 +26,24 @@ O `WizardScreen` DEVE ser capaz de renderizar e coordenar totalmente as etapas d
 - **THEN** o Wizard avança diretamente para o card de conclusão do protocolo para geração e assinatura digital criptográfica do relatório, sem exibir modal de assinatura manuscrita em tela
 
 ### Requirement: Pipeline de Persistência Unificado
-O motor do Wizard DEVE persistir continuamente as alterações no manifesto Protobuf (`registro.binarypb`) e no banco local `Isar` (`SubmissionRecord`) durante todo o ciclo de preenchimento, garantindo que nenhum progresso seja perdido caso o usuário saia da tela ou feche o app. Ao finalizar a última tela do Wizard, o motor consolida o registro para a geração do PDF.
+O motor do Wizard DEVE (MUST) persistir continuamente as alterações no manifesto Protobuf (`registro.binarypb`) e no banco local SQLite (`SubmissionRecord`) durante todo o ciclo de preenchimento, garantindo que nenhum progresso seja perdido caso o usuário saia da tela ou feche o app. Ao finalizar a última tela do Wizard, o motor consolida o registro para a geração do relatório final.
 
 #### Scenario: Auto-Save Reativo durante o Preenchimento
 - **WHEN** o usuário altera uma resposta de texto, captura uma mídia, seleciona um ramo ou adiciona um item de lista no Wizard
 - **THEN** o `WizardStateController` serializa o estado para `registro.binarypb` no Session Bundle
-- **THEN** o registro correspondente no banco Isar é criado ou atualizado com status `EM_PROGRESSO`
+- **THEN** o registro correspondente no banco local SQLite é criado ou atualizado com status `EM_PROGRESSO`
 
 #### Scenario: Flush ao Fechar a Tela
 - **WHEN** o usuário sai do `WizardScreen` antes de concluir a geração
-- **THEN** qualquer estado pendente é persistido em disco e no Isar
+- **THEN** qualquer estado pendente é persistido em disco e no banco local SQLite
 - **THEN** a sessão fica disponível no Histórico com status `EM_PROGRESSO`
 
 #### Scenario: Geração Final
 - **WHEN** o usuário clica em "GERAR RELATÓRIO" no final do Wizard
 - **THEN** as mídias são hasheadas (SHA-256) e movidas para o SessionBundle
 - **THEN** o manifesto `.binarypb` é gerado
-- **THEN** o registro no banco Isar é atualizado para o status `GERADO` após a conclusão do PDF
-- **THEN** a task de geração do PDF Rust/Typst é disparada com o diálogo de progresso
+- **THEN** o registro no banco local SQLite é atualizado para o status `GERADO` após a conclusão do relatório
+- **THEN** a task de geração do relatório é disparada com o diálogo de progresso
 
 ### Requirement: Isolamento de Estado para Wizards Encadeados
 O motor do Wizard DEVE isolar o estado de cada sessão em execução como uma instância independente, permitindo que uma tela `WizardScreen` (como o cadastro de um novo material) seja aberta de forma empilhada sobre outra tela `WizardScreen` em andamento (como uma manutenção) sem sobrescrever ou corromper os dados da sessão pai.

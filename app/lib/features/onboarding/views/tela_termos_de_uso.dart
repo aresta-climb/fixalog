@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/local/app_config_record.dart';
 import '../../../core/constantes/versao_legal.g.dart';
+import '../../../core/services/banco_dados_local.dart';
 import '../../identity/views/identity_setup_screen.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
 import '../../home/views/home_screen.dart';
@@ -121,15 +122,13 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
         await [Permission.camera, Permission.locationWhenInUse].request();
       }
 
-      final isar = ref.read(isarProvider);
-      if (isar != null) {
-        await isar.writeTxn(() async {
-          var config = await isar.appConfigRecords.get(1);
-          config ??= AppConfigRecord();
-          config.acceptedTermsVersion = kVersaoLegal;
-          config.dataHoraAceiteTermos = DateTime.now();
-          await isar.appConfigRecords.put(config);
-        });
+      final banco = ref.read(bancoDadosLocalProvider);
+      if (banco != null) {
+        var config = await banco.obterConfiguracao(1);
+        config ??= AppConfigRecord();
+        config.acceptedTermsVersion = kVersaoLegal;
+        config.dataHoraAceiteTermos = DateTime.now();
+        await banco.salvarConfiguracao(config);
       }
 
       if (!mounted) return;

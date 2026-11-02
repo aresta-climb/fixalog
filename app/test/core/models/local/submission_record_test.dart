@@ -1,29 +1,19 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 
 void main() {
-  late Isar isar;
-  late Directory tempDir;
+  late BancoDadosLocal banco;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('isar_test');
-    await Isar.initializeIsarCore(download: true);
-    isar = await Isar.open(
-      [SubmissionRecordSchema],
-      directory: tempDir.path,
-    );
+    banco = await BancoDadosLocal.abrirEmMemoria();
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
-    if (tempDir.existsSync()) {
-      tempDir.deleteSync(recursive: true);
-    }
+    await banco.fechar();
   });
 
   group('SubmissionRecord (TDD)', () {
@@ -38,11 +28,9 @@ void main() {
         ..protobufPath = '/path/to/registro.binarypb'
         ..enviadoNuvem = false;
 
-      await isar.writeTxn(() async {
-        await isar.submissionRecords.put(record);
-      });
+      await banco.salvarSubmissao(record);
 
-      final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('session-123').findFirst();
+      final retrieved = await banco.obterSubmissaoPorIdSessao('session-123');
 
       expect(retrieved, isNotNull);
       expect(retrieved!.protobufPath, '/path/to/registro.binarypb');
@@ -52,9 +40,10 @@ void main() {
       expect(retrieved.tipoRegistro, equals(SubmissionTipoRegistro.manutencao));
       expect(retrieved.isManutencao, isTrue);
       expect(retrieved.isMaterial, isFalse);
+      expect(retrieved.enviadoNuvem, isFalse);
     });
 
-    test('Deve permitir definir status como GERADO e validar getters', () async {
+    test('Deve permitir definir status como GERADO, enviadoNuvem true e validar getters', () async {
       final record = SubmissionRecord()
         ..idSessao = 'session-456'
         ..idProtocolo = 'proto-1'
@@ -64,18 +53,17 @@ void main() {
         ..pdfPath = '/path/to/pdf.pdf'
         ..protobufPath = '/path/to/registro.binarypb'
         ..status = SubmissionStatus.gerado
-        ..enviadoNuvem = false;
+        ..enviadoNuvem = true;
 
-      await isar.writeTxn(() async {
-        await isar.submissionRecords.put(record);
-      });
+      await banco.salvarSubmissao(record);
 
-      final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('session-456').findFirst();
+      final retrieved = await banco.obterSubmissaoPorIdSessao('session-456');
 
       expect(retrieved, isNotNull);
       expect(retrieved!.status, equals(SubmissionStatus.gerado));
       expect(retrieved.isGerado, isTrue);
       expect(retrieved.isEmProgresso, isFalse);
+      expect(retrieved.enviadoNuvem, isTrue);
     });
 
     test('Compatibilidade retroativa: status vazio com pdfPath presente deve ser considerado GERADO', () {
@@ -107,11 +95,9 @@ void main() {
         ..pdfPath = '/path/to/mat.epub'
         ..protobufPath = '/path/to/mat.binarypb';
 
-      await isar.writeTxn(() async {
-        await isar.submissionRecords.put(record);
-      });
+      await banco.salvarSubmissao(record);
 
-      final retrieved = await isar.submissionRecords.where().idSessaoEqualTo('mat-001').findFirst();
+      final retrieved = await banco.obterSubmissaoPorIdSessao('mat-001');
 
       expect(retrieved, isNotNull);
       expect(retrieved!.tipoRegistro, equals(SubmissionTipoRegistro.material));

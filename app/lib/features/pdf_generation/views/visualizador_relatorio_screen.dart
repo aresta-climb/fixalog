@@ -8,15 +8,13 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart'
-    show isarProvider;
 
 /// Tela para visualização no aplicativo do relatório técnico de manutenção gerado em EPUB 3 (XHTML responsivo).
 ///
@@ -32,7 +30,7 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
   final EpubExtratorService? extratorService;
   final PdfPrintSummaryService? pdfSummaryService;
   final SessionBundleManager? sessionManager;
-  final Isar? isar;
+  final BancoDadosLocal? bancoDados;
   final Future<void> Function(List<String> paths, {String? text, String? subject})?
       compartilharArquivosProxy;
   final Future<void> Function(String path)? abrirArquivoProxy;
@@ -55,7 +53,7 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
     this.extratorService,
     this.pdfSummaryService,
     this.sessionManager,
-    this.isar,
+    this.bancoDados,
     this.compartilharArquivosProxy,
     this.abrirArquivoProxy,
     this.aoRegistrarTratadorUrl,
@@ -77,7 +75,7 @@ class _VisualizadorRelatorioScreenState
   String? _caminhoPdfFinal;
   WebViewController? _webViewController;
 
-  Isar? _isar;
+  BancoDadosLocal? _banco;
 
   @override
   void initState() {
@@ -89,13 +87,13 @@ class _VisualizadorRelatorioScreenState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (widget.isar != null) {
-      _isar = widget.isar;
+    if (widget.bancoDados != null) {
+      _banco = widget.bancoDados;
     } else {
       try {
-        _isar = ref.read(isarProvider);
+        _banco = ref.read(bancoDadosLocalProvider);
       } catch (_) {
-        _isar = null;
+        _banco = null;
       }
     }
   }
@@ -347,26 +345,20 @@ class _VisualizadorRelatorioScreenState
 
   Future<String> _executarGeracaoPdfPadrao() async {
     final sessionManager = widget.sessionManager ?? SessionBundleManager();
-    final isar = _isar;
+    final banco = _banco;
 
     String? sid = widget.idSessao;
     SubmissionRecord? record;
 
-    if (isar != null) {
+    if (banco != null) {
       if (sid != null && sid.isNotEmpty) {
         try {
-          record = await isar.submissionRecords
-              .filter()
-              .idSessaoEqualTo(sid)
-              .findFirst();
+          record = await banco.obterSubmissaoPorIdSessao(sid);
         } catch (_) {}
       }
       if (record == null && widget.caminhoEpub != null) {
         try {
-          record = await isar.submissionRecords
-              .filter()
-              .protobufPathEqualTo(widget.caminhoEpub!)
-              .findFirst();
+          record = await banco.obterSubmissaoPorProtobufPath(widget.caminhoEpub!);
           if (record != null && (sid == null || sid.isEmpty)) {
             sid = record.idSessao;
           }
@@ -488,16 +480,11 @@ class _VisualizadorRelatorioScreenState
       materiaisAnexos: materiaisAnexos,
     );
 
-    if (isar != null) {
-      record ??= await isar.submissionRecords
-          .filter()
-          .idSessaoEqualTo(sid)
-          .findFirst();
+    if (banco != null) {
+      record ??= await banco.obterSubmissaoPorIdSessao(sid);
       if (record != null) {
         record.pdfPath = pdfFile.path;
-        await isar.writeTxn(() async {
-          await isar.submissionRecords.put(record!);
-        });
+        await banco.salvarSubmissao(record);
       }
     }
 

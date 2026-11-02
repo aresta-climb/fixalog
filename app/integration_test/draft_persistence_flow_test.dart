@@ -3,18 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:fixalog/main.dart';
 import 'package:fixalog/core/models/local/identity_record.dart';
-import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/local/app_config_record.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Fluxo de Integração: Auto-save contínuo de rascunho e retomada pelo histórico', (tester) async {
-
     final tempDir = await getTemporaryDirectory();
     final testDir = Directory('${tempDir.path}/test_draft_flow');
     if (await testDir.exists()) {
@@ -22,27 +20,22 @@ void main() {
     }
     await testDir.create();
 
-    final isar = await Isar.open(
-      [IdentityRecordSchema, SubmissionRecordSchema, AppConfigRecordSchema],
-      directory: testDir.path,
-    );
+    final banco = await BancoDadosLocal.abrirEmArquivo(testDir.path);
 
-    await isar.writeTxn(() async {
-      await isar.appConfigRecords.put(
-        AppConfigRecord()..id = 1..acceptedTermsVersion = 1,
-      );
-      await isar.identityRecords.put(
-        IdentityRecord()
-          ..nome = 'Escalador Teste'
-          ..clubeAssociacao = 'Clube ACEC'
-          ..dataRegistro = DateTime.now(),
-      );
-    });
+    await banco.salvarConfiguracao(
+      AppConfigRecord(id: 1, acceptedTermsVersion: 1),
+    );
+    await banco.salvarIdentidade(
+      IdentityRecord()
+        ..nome = 'Escalador Teste'
+        ..clubeAssociacao = 'Clube ACEC'
+        ..dataRegistro = DateTime.now(),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
         ],
         child: const FixalogApp(),
       ),
@@ -87,6 +80,6 @@ void main() {
     // Valida que estamos de volta no Wizard
     expect(find.text('AVANÇAR'), findsWidgets);
 
-    await isar.close(deleteFromDisk: true);
+    await banco.fechar();
   });
 }

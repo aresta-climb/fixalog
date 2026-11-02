@@ -14,9 +14,8 @@ import 'package:fixnum/fixnum.dart';
 import '../../../core/services/session_bundle_manager.dart';
 import '../../../core/services/protocol_parser.dart';
 import '../../media/services/media_compressor_service.dart';
-import 'package:isar_community/isar.dart';
 import '../../../core/models/local/submission_record.dart';
-import '../../identity/viewmodels/identity_form_view_model.dart' show isarProvider;
+import '../../../core/services/banco_dados_local.dart';
 import '../../../core/models/proto/protos/wizard.pb.dart';
 import '../../../core/models/proto/protos/registro.pb.dart';
 
@@ -956,18 +955,16 @@ class WizardStateController extends Notifier<WizardState> {
 
     if (recemSelecionados.isNotEmpty) {
       try {
-        final isar = ref.read(isarProvider);
-        if (isar != null) {
+        final banco = ref.read(bancoDadosLocalProvider);
+        if (banco != null) {
           final agora = DateTime.now();
-          isar.writeTxnSync(() {
-            for (final idMat in recemSelecionados) {
-              final record = isar.submissionRecords.getByIdSessaoSync(idMat);
-              if (record != null && record.isMaterial) {
-                record.dataUltimaSelecao = agora;
-                isar.submissionRecords.putSync(record);
-              }
+          for (final idMat in recemSelecionados) {
+            final record = banco.obterSubmissaoPorIdSessaoSync(idMat);
+            if (record != null && record.isMaterial) {
+              record.dataUltimaSelecao = agora;
+              banco.salvarSubmissaoSync(record);
             }
-          });
+          }
         }
       } catch (_) {}
     }
@@ -998,9 +995,9 @@ class WizardStateController extends Notifier<WizardState> {
   /// Obtém todos os materiais concluídos do catálogo local ordenados por [dataUltimaSelecao] decrescente.
   List<ListItemRecord> obterMateriaisDoCatalogo() {
     try {
-      final isar = ref.read(isarProvider);
-      if (isar == null) return [];
-      final todos = isar.submissionRecords.where().findAllSync();
+      final banco = ref.read(bancoDadosLocalProvider);
+      if (banco == null) return [];
+      final todos = banco.listarSubmissoesSync();
       final materiais = todos.where((r) => r.isMaterial && r.isGerado).toList();
 
       materiais.sort((a, b) {
@@ -1171,7 +1168,7 @@ class WizardStateController extends Notifier<WizardState> {
   Future<void>? _activeSaveFuture;
 
   /// Instancia o Registro Híbrido, persiste no disco
-  /// através do SessionBundleManager e registra no Isar. Retorna o sessionId.
+  /// através do SessionBundleManager e registra no banco local SQLite. Retorna o sessionId.
   Future<String> saveSession({String? status}) async {
     while (_activeSaveFuture != null) {
       try {
@@ -1201,11 +1198,11 @@ class WizardStateController extends Notifier<WizardState> {
       sessionManager = SessionBundleManager();
     }
 
-    Isar? isar;
+    BancoDadosLocal? banco;
     try {
-      isar = ref.read(isarProvider);
+      banco = ref.read(bancoDadosLocalProvider);
     } catch (_) {
-      isar = null;
+      banco = null;
     }
 
     final finalAnswers = Map<String, Resposta>.from(state.answers);
@@ -1251,17 +1248,17 @@ class WizardStateController extends Notifier<WizardState> {
       }
     }
 
-    // 4. Salvar binarypb e atualizar Isar
+    // 4. Salvar binarypb e atualizar banco local SQLite
     final binarypb = registro.writeToBuffer();
     await sessionManager.saveManifest(sessionId: sessionId, binarypb: binarypb);
 
-    if (isar != null) {
-      final isarDb = isar;
+    if (banco != null) {
+      final bancoDb = banco;
       final sessionDir = await sessionManager.getSessionDirectory(sessionId);
 
       SubmissionRecord? existingRecord;
       try {
-        existingRecord = await isarDb.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
+        existingRecord = await bancoDb.obterSubmissaoPorIdSessao(sessionId);
       } catch (_) {}
 
       final record = existingRecord ?? SubmissionRecord();
@@ -1306,9 +1303,7 @@ class WizardStateController extends Notifier<WizardState> {
         ..protobufPath = p.join(sessionDir.path, 'registro.binarypb')
         ..status = targetStatus;
 
-      await isarDb.writeTxn(() async {
-        await isarDb.submissionRecords.put(record);
-      });
+      await bancoDb.salvarSubmissao(record);
     }
 
     return sessionId;

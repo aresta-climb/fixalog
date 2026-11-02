@@ -2,17 +2,8 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import '../../../core/models/local/identity_record.dart';
-import '../viewmodels/identity_form_view_model.dart' show isarProvider;
-
-// Import local do isarProvider que atualmente mora no main ou controller
-// Vamos defini-lo aqui temporariamente até termos um core/providers,
-// ou simplesmente importar do controller antigo por enquanto.
-// Como o isarProvider está no identity_form_controller.dart atualmente,
-// precisamos repensar onde ele mora.
-// O ideal é definir isarProvider em um arquivo no core.
-// Por hora, declararemos a interface e implementação.
+import '../../../core/services/banco_dados_local.dart';
 
 abstract class IdentityRepository {
   Future<bool> hasIdentity();
@@ -20,37 +11,32 @@ abstract class IdentityRepository {
   Future<void> saveIdentity(IdentityRecord identity);
 }
 
-class IsarIdentityRepository implements IdentityRepository {
-  final Isar? _isar;
+/// Implementação do repositório de identidade persistida em SQLite via [BancoDadosLocal].
+class SqliteIdentityRepository implements IdentityRepository {
+  final BancoDadosLocal? _banco;
 
-  IsarIdentityRepository(this._isar);
+  SqliteIdentityRepository(this._banco);
 
   @override
   Future<bool> hasIdentity() async {
-    if (_isar == null) return false;
-    final count = await _isar.identityRecords.count();
-    return count > 0;
+    if (_banco == null) return false;
+    return await _banco.possuiIdentidade();
   }
 
   @override
   Future<IdentityRecord?> getCurrentIdentity() async {
-    if (_isar == null) return null;
-    return await _isar.identityRecords.where().findFirst();
+    if (_banco == null) return null;
+    return await _banco.obterIdentidadeAtual();
   }
 
   @override
   Future<void> saveIdentity(IdentityRecord identity) async {
-    if (_isar == null) throw Exception('Isar instance is null');
-    await _isar.writeTxn(() async {
-      await _isar.identityRecords.put(identity);
-    });
+    if (_banco == null) throw Exception('BancoDadosLocal instance is null');
+    await _banco.salvarIdentidade(identity);
   }
 }
 
-// TODO: isarProvider currently lives in the identity controller/viewmodel.
-// Import it dynamically or move it to a core file later.
-
 final identityRepositoryProvider = Provider<IdentityRepository>((ref) {
-  final isar = ref.watch(isarProvider);
-  return IsarIdentityRepository(isar);
+  final banco = ref.watch(bancoDadosLocalProvider);
+  return SqliteIdentityRepository(banco);
 });

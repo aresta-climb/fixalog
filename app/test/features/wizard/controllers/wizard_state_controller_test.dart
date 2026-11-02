@@ -14,17 +14,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_image_compress_platform_interface/flutter_image_compress_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:isar_community/isar.dart';
 
 import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/video_transcoder_service.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import 'package:fixnum/fixnum.dart';
 
 class _FakeImageCompressPlatform extends Fake
@@ -776,20 +775,16 @@ void main() {
   // ── 7. Data Atual, Listas Aninhadas e Persistência de Material ──────────────
 
   group('WizardStateController — preencher_data_atual, listas aninhadas e SubmissionRecord', () {
-    late Isar isar;
+    late BancoDadosLocal banco;
     late Directory tempDir;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('wizard_ctrl_test');
-      await Isar.initializeIsarCore(download: true);
-      isar = await Isar.open(
-        [SubmissionRecordSchema],
-        directory: tempDir.path,
-      );
+      banco = await BancoDadosLocal.abrirEmMemoria();
     });
 
     tearDown(() async {
-      await isar.close(deleteFromDisk: true);
+      await banco.fechar();
       try {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
@@ -903,7 +898,7 @@ protocolo:
 
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(
             SessionBundleManager(baseDirectoryGetter: () async => tempDir),
           ),
@@ -946,11 +941,11 @@ protocolo:
       expect(notifier.confirmListItem(subListKey, subItemId), isTrue);
       expect(notifier.confirmListItem('s_lista', parentItemId), isTrue);
 
-      // Persiste a sessão no disco e no Isar
+      // Persiste a sessão no disco e no banco local
       final sessionId = await notifier.saveSession();
 
-      // Verifica o SubmissionRecord salvo no Isar
-      final record = await isar.submissionRecords.filter().idSessaoEqualTo(sessionId).findFirst();
+      // Verifica o SubmissionRecord salvo no banco local
+      final record = await banco.obterSubmissaoPorIdSessao(sessionId);
       expect(record, isNotNull);
       expect(record!.tipoRegistro, equals(SubmissionTipoRegistro.material));
       expect(record.isMaterial, isTrue);
@@ -959,7 +954,7 @@ protocolo:
       // Reconstrói em um novo container via loadSession
       final container2 = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(
             SessionBundleManager(baseDirectoryGetter: () async => tempDir),
           ),
@@ -979,36 +974,38 @@ protocolo:
     });
 
     test('obterItensParaRefMateriais lista materiais do catálogo ordenados por dataUltimaSelecao e filtra nas ações', () async {
-      await isar.writeTxn(() async {
-        await isar.submissionRecords.putAll([
-          SubmissionRecord()
-            ..idSessao = 'mat-antigo'
-            ..idProtocolo = 'cadastro_material'
-            ..tipoRegistro = SubmissionTipoRegistro.material
-            ..tituloExibicao = 'Material Antigo'
-            ..status = SubmissionStatus.gerado
-            ..dataInclusao = DateTime(2026, 1, 1)
-            ..dataUltimaSelecao = DateTime(2026, 5, 1),
-          SubmissionRecord()
-            ..idSessao = 'mat-recente'
-            ..idProtocolo = 'cadastro_material'
-            ..tipoRegistro = SubmissionTipoRegistro.material
-            ..tituloExibicao = 'Material Recente'
-            ..status = SubmissionStatus.gerado
-            ..dataInclusao = DateTime(2026, 1, 2)
-            ..dataUltimaSelecao = DateTime(2026, 10, 1),
-          SubmissionRecord()
-            ..idSessao = 'manut-1'
-            ..idProtocolo = 'manutencao_ferragens'
-            ..tipoRegistro = SubmissionTipoRegistro.manutencao
-            ..tituloExibicao = 'Via Sul'
-            ..status = SubmissionStatus.gerado,
-        ]);
-      });
+      await banco.salvarSubmissao(
+        SubmissionRecord()
+          ..idSessao = 'mat-antigo'
+          ..idProtocolo = 'cadastro_material'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..tituloExibicao = 'Material Antigo'
+          ..status = SubmissionStatus.gerado
+          ..dataInclusao = DateTime(2026, 1, 1)
+          ..dataUltimaSelecao = DateTime(2026, 5, 1),
+      );
+      await banco.salvarSubmissao(
+        SubmissionRecord()
+          ..idSessao = 'mat-recente'
+          ..idProtocolo = 'cadastro_material'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..tituloExibicao = 'Material Recente'
+          ..status = SubmissionStatus.gerado
+          ..dataInclusao = DateTime(2026, 1, 2)
+          ..dataUltimaSelecao = DateTime(2026, 10, 1),
+      );
+      await banco.salvarSubmissao(
+        SubmissionRecord()
+          ..idSessao = 'manut-1'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..tituloExibicao = 'Via Sul'
+          ..status = SubmissionStatus.gerado,
+      );
 
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(
             SessionBundleManager(baseDirectoryGetter: () async => tempDir),
           ),
@@ -1066,7 +1063,7 @@ protocolo:
 
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
           mediaCompressorProvider.overrideWithValue(mediaCompressor),
         ],
@@ -1128,7 +1125,7 @@ protocolo:
 
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
           mediaCompressorProvider.overrideWithValue(mediaCompressor),
         ],
@@ -1227,7 +1224,7 @@ protocolo:
       final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
         ],
       );
@@ -1290,7 +1287,7 @@ protocolo:
       final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
           videoTranscoderServiceProvider.overrideWithValue(
             VideoTranscoderService(executador: (cmd) async => true),
@@ -1368,7 +1365,7 @@ protocolo:
 
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
           mediaCompressorProvider.overrideWithValue(mediaCompressor),
         ],
@@ -1425,7 +1422,7 @@ protocolo:
       final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
       final container = ProviderContainer(
         overrides: [
-          isarProvider.overrideWithValue(isar),
+          bancoDadosLocalProvider.overrideWithValue(banco),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
         ],
       );

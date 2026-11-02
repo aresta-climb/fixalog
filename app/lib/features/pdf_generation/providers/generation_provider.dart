@@ -15,10 +15,8 @@ import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart'
-    show isarProvider;
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 // Estado da Geração
@@ -74,7 +72,7 @@ class GenerationState {
 /// - Assinatura digital no padrão W3C XML-DSig (ECDSA secp256r1 com SHA-256 e certificado X.509).
 /// - Empacotamento de container canônico EPUB 3 em ZIP/OCF com Protobuf embutido.
 /// - Emissão de PDF Resumido de Protocolo com QR Codes.
-/// - Persistência do registro de submissão no banco de dados local (Isar).
+/// - Persistência do registro de submissão no banco de dados local (SQLite).
 class GenerationNotifier extends StateNotifier<GenerationState> {
   // Mantido no construtor para compatibilidade de assinatura nos provedores
   // ignore: unused_field
@@ -82,7 +80,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   final MediaCompressorService _mediaService;
   final GenerationRecoveryService _recoveryService;
   final SessionBundleManager _sessionManager;
-  final Isar? _isar;
+  final BancoDadosLocal? _banco;
   final EpubDocumentBuilder _epubBuilder;
   final EpubPackagerService _epubPackager;
   final XmlDsigSigner _xmlSigner;
@@ -96,7 +94,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
     this._mediaService,
     this._recoveryService,
     this._sessionManager, [
-    this._isar,
+    this._banco,
     EpubDocumentBuilder? epubBuilder,
     EpubPackagerService? epubPackager,
     XmlDsigSigner? xmlSigner,
@@ -329,12 +327,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         if (uuidMat == sid) continue;
 
         SubmissionRecord? matRecord;
-        if (_isar != null) {
+        if (_banco != null) {
           try {
-            matRecord = await _isar.submissionRecords
-                .filter()
-                .idSessaoEqualTo(uuidMat)
-                .findFirst();
+            matRecord = await _banco.obterSubmissaoPorIdSessao(uuidMat);
           } catch (_) {}
         }
 
@@ -475,16 +470,13 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       await epubFile.create(recursive: true);
       await epubFile.writeAsBytes(epubBytes);
 
-      // 7. Gravação no Isar
+      // 7. Gravação no banco local SQLite
       String? pdfExistente;
-      final isar = _isar;
-      if (isar != null) {
+      final banco = _banco;
+      if (banco != null) {
         SubmissionRecord? existingRecord;
         try {
-          existingRecord = await isar.submissionRecords
-              .filter()
-              .idSessaoEqualTo(sid)
-              .findFirst();
+          existingRecord = await banco.obterSubmissaoPorIdSessao(sid);
         } catch (_) {}
 
         pdfExistente = existingRecord?.pdfPath;
@@ -515,9 +507,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
               : SubmissionTipoRegistro.manutencao
           ..tituloExibicao = tituloExtraido;
 
-        await isar.writeTxn(() async {
-          await isar.collection<SubmissionRecord>().put(record);
-        });
+        await banco.salvarSubmissao(record);
       }
 
       state = state.copyWith(
@@ -547,9 +537,9 @@ final xmlDsigSignerProvider = Provider((ref) => XmlDsigSigner());
 final generationProvider =
     StateNotifierProvider<GenerationNotifier, GenerationState>((ref) {
   final sessionManager = SessionBundleManager();
-  Isar? isar;
+  BancoDadosLocal? banco;
   try {
-    isar = ref.watch(isarProvider);
+    banco = ref.watch(bancoDadosLocalProvider);
   } catch (_) {}
 
   return GenerationNotifier(
@@ -557,7 +547,7 @@ final generationProvider =
     ref.read(mediaCompressorProvider),
     ref.read(generationRecoveryProvider),
     sessionManager,
-    isar,
+    banco,
     ref.read(epubDocumentBuilderProvider),
     ref.read(epubPackagerServiceProvider),
     ref.read(xmlDsigSignerProvider),

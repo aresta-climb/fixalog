@@ -3,30 +3,24 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
 import 'features/onboarding/views/tela_termos_de_uso.dart' as fixalog_onboarding;
 import 'core/constantes/versao_legal.g.dart';
-import 'core/models/local/identity_record.dart';
-import 'core/models/local/submission_record.dart';
-import 'core/models/local/app_config_record.dart';
+import 'core/services/banco_dados_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open(
-    [IdentityRecordSchema, SubmissionRecordSchema, AppConfigRecordSchema],
-    directory: dir.path,
-  );
+  final banco = await BancoDadosLocal.abrirEmArquivo(dir.path);
 
   runApp(
     ProviderScope(
       overrides: [
-        isarProvider.overrideWithValue(isar),
+        bancoDadosLocalProvider.overrideWithValue(banco),
       ],
       child: const FixalogApp(),
     ),
@@ -93,13 +87,12 @@ class FixalogApp extends StatelessWidget {
 class _StartupRouter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Primeiro avaliamos se o Isar carregou e tem os termos aceitos
-    final isar = ref.watch(isarProvider);
-    if (isar == null) {
+    final banco = ref.watch(bancoDadosLocalProvider);
+    if (banco == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final config = isar.appConfigRecords.getSync(1);
+    final config = banco.obterConfiguracaoSync(1);
     final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= kVersaoLegal;
 
     if (!acceptedTerms) {

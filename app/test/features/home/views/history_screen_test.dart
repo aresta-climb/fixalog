@@ -5,13 +5,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/features/home/views/history_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/pdf_viewer_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
-import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import 'package:open_filex/open_filex.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
@@ -275,7 +274,7 @@ void main() {
 
     testWidgets('Permite excluir relatório legado com artefato de assinatura e EPUB irmão sem erros', (tester) async {
       late Directory tempDir;
-      late Isar isar;
+      late BancoDadosLocal banco;
       late SessionBundleManager sessionManager;
       late File relatorioPdf;
       late File relatorioEpubIrmao;
@@ -285,11 +284,7 @@ void main() {
 
       await tester.runAsync(() async {
         tempDir = await Directory.systemTemp.createTemp('hist_screen_del_');
-        await Isar.initializeIsarCore(download: true);
-        isar = await Isar.open(
-          [SubmissionRecordSchema],
-          directory: tempDir.path,
-        );
+        banco = await BancoDadosLocal.abrirEmMemoria();
         sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
 
         relatorioPdf = File('${tempDir.path}/laudo_legado.pdf')..writeAsStringSync('pdf');
@@ -311,15 +306,13 @@ void main() {
           ..pdfPath = relatorioPdf.path
           ..protobufPath = arqManifesto.path;
 
-        await isar.writeTxn(() async {
-          await isar.submissionRecords.put(record);
-        });
+        await banco.salvarSubmissao(record);
       });
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            isarProvider.overrideWithValue(isar),
+            bancoDadosLocalProvider.overrideWithValue(banco),
             sessionBundleManagerProvider.overrideWithValue(sessionManager),
             historyProvider.overrideWith((ref) => Stream.value([record])),
           ],
@@ -343,10 +336,10 @@ void main() {
       expect(relatorioEpubIrmao.existsSync(), isFalse);
       expect(arqAssinatura.existsSync(), isFalse);
       expect(dirSessao.existsSync(), isFalse);
-      expect(isar.submissionRecords.where().findAllSync(), isEmpty);
+      expect(banco.listarSubmissoesSync(), isEmpty);
 
       await tester.runAsync(() async {
-        await isar.close(deleteFromDisk: true);
+        await banco.fechar();
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
         }

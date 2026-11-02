@@ -3,6 +3,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 
 void main() {
   group('AppConfigRecord', () {
@@ -25,15 +26,28 @@ void main() {
       expect(config.versaoTermosAceita, equals(10));
     });
 
-    test('Armazena e recupera dataHoraAceiteTermos com sucesso', () {
-      final config = AppConfigRecord();
-      final agora = DateTime.now();
+    test('Serializa e desserializa via toMap/fromMap e banco SQLite em memoria', () async {
+      final banco = await BancoDadosLocal.abrirEmMemoria();
+      addTearDown(() async => await banco.fechar());
 
-      config.dataHoraAceiteTermos = agora;
-      expect(config.dataHoraAceiteTermos, equals(agora));
+      final agora = DateTime(2026, 11, 2, 12, 30);
+      final config = AppConfigRecord(
+        id: 1,
+        acceptedTermsVersion: 3,
+        dataHoraAceiteTermos: agora,
+      );
 
-      config.dataHoraAceiteTermos = null;
-      expect(config.dataHoraAceiteTermos, isNull);
+      await banco.salvarConfiguracao(config);
+      final recuperado = await banco.obterConfiguracao(1);
+
+      expect(recuperado, isNotNull);
+      expect(recuperado!.id, equals(1));
+      expect(recuperado.versaoTermosAceita, equals(3));
+      expect(recuperado.dataHoraAceiteTermos, equals(agora));
+
+      final semData = AppConfigRecord.fromMap({'id': 1, 'versao_termos_aceita': 2});
+      expect(semData.dataHoraAceiteTermos, isNull);
+      expect(semData.versaoTermosAceita, equals(2));
     });
   });
 }

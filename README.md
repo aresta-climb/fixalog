@@ -10,7 +10,7 @@ Faz parte do ecossistema de código aberto da **Aresta Climb**.
 
 ## ⚡ Principais Funcionalidades
 
-- **📱 Funcionamento 100% Offline-First**: Projetado para operar em ambientes remotos de montanha sem conexão à internet, com persistência local reativa via Isar Database.
+- **📱 Funcionamento 100% Offline-First**: Projetado para operar em ambientes remotos de montanha sem conexão à internet, com persistência local reativa via SQLite (`sqflite`).
 - **🔐 Laudos Periciais em EPUB 3 com XML-DSig**: Geração de containers padronizados em EPUB 3 contendo fotos e vídeos comprimidos, dados brutos em Protobuf e assinatura digital criptográfica (X.509) do responsável técnico.
 - **📄 Sumários Executivos em PDF**: Emissão de relatórios resumidos em PDF com QR Code canônico para validação de autenticidade no domínio `https://fixalog.app/v/<id>`.
 - **📍 Auditoria de Localização e Antifraude**: Coleta e validação de coordenadas geográficas (GPS) com marca d'água forense e registro de cadeia de custódia.
@@ -24,7 +24,7 @@ O Fixalog é construído inteiramente em **Flutter/Dart** puro, sem necessidade 
 
 - **Framework**: [Flutter](https://flutter.dev) (Dart 3.x)
 - **Gerenciamento de Estado**: [Riverpod](https://riverpod.dev)
-- **Banco de Dados Local**: [Isar Database](https://isar.dev)
+- **Banco de Dados Local**: [SQLite (`sqflite`)](https://pub.dev/packages/sqflite) e `sqflite_common_ffi` (`:memory:` em testes)
 - **Criptografia e Assinatura Digital**: [PointyCastle](https://pub.dev/packages/pointycastle) & X.509
 - **Geração de Documentos**: `pdf`, `printing` e `archive` (EPUB 3)
 - **Serialização de Protocolos**: [Protocol Buffers (Protobuf)](https://protobuf.dev)

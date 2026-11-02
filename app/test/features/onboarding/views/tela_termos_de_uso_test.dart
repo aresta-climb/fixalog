@@ -5,10 +5,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/features/onboarding/views/tela_termos_de_uso.dart';
-import 'package:fixalog/core/models/local/app_config_record.dart';
 import 'package:fixalog/core/constantes/versao_legal.g.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
@@ -32,47 +31,21 @@ class PacoteAssetsTeste extends Fake implements AssetBundle {
   }
 }
 
-class FakeIsarTxn extends Fake implements Isar {
-  bool salvou = false;
-  int versaoSalva = 0;
-  DateTime? dataSalva;
-  late final _collection = FakeAppConfigCollection(this);
-
-  @override
-  Future<T> writeTxn<T>(Future<T> Function() callback, {bool silent = false}) async {
-    return await callback();
-  }
-
-  @override
-  IsarCollection<R> collection<R>() {
-    return _collection as IsarCollection<R>;
-  }
-}
-
-class FakeAppConfigCollection extends Fake implements IsarCollection<AppConfigRecord> {
-  final FakeIsarTxn fakeIsar;
-  FakeAppConfigCollection(this.fakeIsar);
-
-  @override
-  Future<AppConfigRecord?> get(Id id) async => null; // Testando criacao do AppConfigRecord() quando nulo
-
-  @override
-  Future<Id> put(AppConfigRecord object) async {
-    fakeIsar.salvou = true;
-    fakeIsar.versaoSalva = object.acceptedTermsVersion;
-    fakeIsar.dataSalva = object.dataHoraAceiteTermos;
-    return 1;
-  }
-}
-
 void main() {
   late PacoteAssetsTeste assetsTeste;
+  late BancoDadosLocal banco;
 
-  setUp(() {
+  setUp(() async {
+    banco = await BancoDadosLocal.abrirEmMemoria();
     assetsTeste = PacoteAssetsTeste({
-      'legal/repo/public/docs/termos-de-uso-fixalog.md': '# Termos Fixalog\n\nTexto dos termos.',
+      'legal/repo/public/docs/termos-de-uso-fixalog.md':
+          '# Termos Fixalog\n\nTexto dos termos.\n\n[Privacidade Inline](https://arestaclimb.com/privacidade)',
       'legal/repo/public/docs/politica-de-privacidade-fixalog.md': '# Politica Fixalog\n\nConteudo de privacidade.',
     });
+  });
+
+  tearDown(() async {
+    await banco.fechar();
   });
 
   Widget criarWidgetDeTeste({
@@ -83,7 +56,7 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
-        isarProvider.overrideWithValue(null),
+        bancoDadosLocalProvider.overrideWithValue(banco),
         ...overrides,
       ],
       child: MaterialApp(
@@ -137,10 +110,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.close), findsNothing);
+
+    // Também abre o modal clicando em link de privacidade dentro do Markdown
+    await tester.tap(find.text('Privacidade Inline', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Política de Privacidade - Fixalog'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Exibe mensagem amigavel e botao de tentar novamente em caso de erro no asset', (tester) async {
-    final assetsComErro = PacoteAssetsTeste({}); // Sem os arquivos necessarios
+    final assetsComErro = PacoteAssetsTeste({});
     await tester.pumpWidget(criarWidgetDeTeste(bundle: assetsComErro));
     await tester.pumpAndSettle();
 
@@ -151,14 +131,10 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('Clicar no botao habilitado grava dados no Isar e chama aoAceitar', (tester) async {
-    final fakeIsar = FakeIsarTxn();
+  testWidgets('Clicar no botao habilitado grava dados no banco SQLite em memoria e chama aoAceitar', (tester) async {
     var foiAceito = false;
 
     await tester.pumpWidget(criarWidgetDeTeste(
-      overrides: [
-        isarProvider.overrideWithValue(fakeIsar),
-      ],
       aoAceitar: () {
         foiAceito = true;
       },
@@ -172,9 +148,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(foiAceito, isTrue);
-    expect(fakeIsar.salvou, isTrue);
-    expect(fakeIsar.versaoSalva, equals(kVersaoLegal));
-    expect(fakeIsar.dataSalva, isNotNull);
+    final configSalva = await banco.obterConfiguracao(1);
+    expect(configSalva, isNotNull);
+    expect(configSalva!.versaoTermosAceita, equals(kVersaoLegal));
+    expect(configSalva.dataHoraAceiteTermos, isNotNull);
   });
 
   testWidgets('Navega para HomeScreen quando aoAceitar for nulo e o usuario tiver identidade', (tester) async {

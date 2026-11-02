@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 import '../../../core/models/local/identity_record.dart';
 import '../../../core/services/crypto_service.dart';
 import '../repositories/identity_repository.dart';
@@ -70,10 +69,6 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
   }
 }
 
-// TODO: isarProvider moved to identity_repository.dart. We must define it here if we want to keep it here,
-// but it's better to export it from identity_repository.dart since other providers depend on it.
-// Actually, it's already in identity_repository.dart and we imported it there. But `hasIdentityProvider` needs `isarProvider` or `identityRepositoryProvider`.
-
 final identityFormViewModelProvider =
     StateNotifierProvider<IdentityFormViewModel, IdentityFormState>((ref) {
       final repository = ref.watch(identityRepositoryProvider);
@@ -81,7 +76,6 @@ final identityFormViewModelProvider =
       return IdentityFormViewModel(repository, cryptoService);
     });
 
-// Refactored to use repository instead of isar directly
 final hasIdentityProvider = FutureProvider<bool>((ref) async {
   final repository = ref.watch(identityRepositoryProvider);
   return await repository.hasIdentity();
@@ -91,8 +85,3 @@ final currentIdentityProvider = FutureProvider<IdentityRecord?>((ref) async {
   final repository = ref.watch(identityRepositoryProvider);
   return await repository.getCurrentIdentity();
 });
-
-// Exposing isarProvider here for backward compatibility during refactoring
-// if any other file imports it from here.
-
-final isarProvider = Provider<Isar?>((ref) => throw UnimplementedError());

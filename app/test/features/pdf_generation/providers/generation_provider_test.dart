@@ -8,9 +8,9 @@ import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_community/isar.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
@@ -115,7 +115,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tempDir;
-  late Isar isar;
+  late BancoDadosLocal banco;
   late SessionBundleManager sessionManager;
   late _FakeGenerationRecoveryService recoveryService;
   late _FakeMediaCompressorService mediaService;
@@ -127,18 +127,10 @@ void main() {
   late PdfPrintSummaryService pdfSummaryService;
   late GenerationNotifier notifier;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
-
   setUp(() async {
     FlutterSecureStorage.setMockInitialValues({});
     tempDir = Directory.systemTemp.createTempSync('fixalog_gen_provider_test_');
-    isar = await Isar.open(
-      [SubmissionRecordSchema],
-      directory: tempDir.path,
-      name: 'test_gen_${DateTime.now().microsecondsSinceEpoch}',
-    );
+    banco = await BancoDadosLocal.abrirEmMemoria();
     sessionManager = SessionBundleManager(
       baseDirectoryGetter: () async => tempDir,
     );
@@ -158,7 +150,7 @@ void main() {
       mediaService,
       recoveryService,
       sessionManager,
-      isar,
+      banco,
       epubBuilder,
       epubPackager,
       xmlSigner,
@@ -168,9 +160,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (isar.isOpen) {
-      await isar.close(deleteFromDisk: true);
-    }
+    await banco.fechar();
     try {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);
@@ -197,7 +187,7 @@ void main() {
     expect(draftService.chamadas, equals(0));
   });
 
-  test('Deve gravar um SubmissionRecord no Isar após a geração do relatório', () async {
+  test('Deve gravar um SubmissionRecord no banco local SQLite após a geração do relatório', () async {
     final registro = Registro()..idProtocolo = 'Test Protocol';
     await sessionManager.saveManifest(
       sessionId: '123',
@@ -207,10 +197,7 @@ void main() {
     final outPath = '${tempDir.path}/output_final.pdf';
     await notifier.startGeneration('Teste Protocolo', outPath, sessionId: '123');
 
-    final savedRecord = await isar.submissionRecords
-        .filter()
-        .idSessaoEqualTo('123')
-        .findFirst();
+    final savedRecord = await banco.obterSubmissaoPorIdSessao('123');
     expect(savedRecord, isNotNull);
     expect(savedRecord!.nomeProtocolo, 'Teste Protocolo');
     expect(savedRecord.pdfPath, '');
@@ -235,7 +222,7 @@ void main() {
       mediaService,
       recoveryService,
       sessionManager,
-      isar,
+      banco,
       epubBuilder,
       epubPackager,
       xmlSigner,
@@ -296,7 +283,7 @@ void main() {
       mediaService,
       recoveryService,
       sessionManager,
-      isar,
+      banco,
       epubBuilder,
       epubPackager,
       xmlSigner,
@@ -397,10 +384,7 @@ void main() {
     );
     expect(notifier.state.isComplete, isTrue);
 
-    final matRecordV1 = await isar.submissionRecords
-        .filter()
-        .idSessaoEqualTo('uuid-mat-inox')
-        .findFirst();
+    final matRecordV1 = await banco.obterSubmissaoPorIdSessao('uuid-mat-inox');
     expect(matRecordV1, isNotNull);
     expect(matRecordV1!.isMaterial, isTrue);
     expect(matRecordV1.tituloExibicao, 'Chumbador Químico Inox 316 v1');
@@ -526,9 +510,7 @@ void main() {
     expect(xhtmlMatEmbutidoV2, contains('Chumbador Químico Inox 316 v2 Repassivado'));
 
     // 5. Excluir o material do catálogo local e re-gerar a manutenção -> deve manter fallback da cópia v2 já embutida!
-    await isar.writeTxn(() async {
-      await isar.submissionRecords.deleteByIdSessao('uuid-mat-inox');
-    });
+    await banco.deletarSubmissaoPorIdSessao('uuid-mat-inox');
     File(caminhoEpubMat).deleteSync();
 
     await notifier.startGeneration(
@@ -557,7 +539,7 @@ void main() {
       mediaService,
       recoveryComFalha,
       sessionManager,
-      isar,
+      banco,
       epubBuilder,
       epubPackager,
       xmlSigner,
@@ -662,7 +644,7 @@ void main() {
       mediaService,
       recoveryService,
       sessionManager,
-      isar,
+      banco,
       epubBuilder,
       epubPackager,
       xmlSigner,

@@ -76,6 +76,8 @@ class GenerationState {
 /// - Emissão de PDF Resumido de Protocolo com QR Codes.
 /// - Persistência do registro de submissão no banco de dados local (Isar).
 class GenerationNotifier extends StateNotifier<GenerationState> {
+  // Mantido no construtor para compatibilidade de assinatura nos provedores
+  // ignore: unused_field
   final PdfDraftService? _draftService;
   final MediaCompressorService _mediaService;
   final GenerationRecoveryService _recoveryService;
@@ -204,27 +206,29 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final Map<String, String> qrCodesVideos = {};
       final urlCanonica = 'https://fixalog.app/v/$sid';
 
-      // 2. Comprimir Fotos em WebP 4MP q85
-      for (final uuid in fotosUuids) {
-        final fotoFile = await _mediaService.comprimirImagemSessao(
-          sessionManager: _sessionManager,
-          sessionId: sid,
-          mediaUuid: uuid,
-        );
-        if (fotoFile != null && await fotoFile.exists()) {
-          final bytes = await fotoFile.readAsBytes();
-          arquivosMidias['midias/$uuid.webp'] = bytes;
-          mapeamentoMidias[uuid] = 'midias/$uuid.webp';
-        }
-        processadas++;
-        state = state.copyWith(
-          progress:
-              0.2 + (processadas / (totalMidias > 0 ? totalMidias : 1) * 0.3),
-          status: 'Comprimindo fotos e vídeos ($processadas/$totalMidias)...',
-        );
-      }
+      // 2. Comprimir Fotos em WebP 4MP q85 (em paralelo; o pool do MediaCompressorService limita a concorrência)
+      await Future.wait(
+        fotosUuids.map((uuid) async {
+          final fotoFile = await _mediaService.comprimirImagemSessao(
+            sessionManager: _sessionManager,
+            sessionId: sid,
+            mediaUuid: uuid,
+          );
+          if (fotoFile != null && await fotoFile.exists()) {
+            final bytes = await fotoFile.readAsBytes();
+            arquivosMidias['midias/$uuid.webp'] = bytes;
+            mapeamentoMidias[uuid] = 'midias/$uuid.webp';
+          }
+          processadas++;
+          state = state.copyWith(
+            progress:
+                0.2 + (processadas / (totalMidias > 0 ? totalMidias : 1) * 0.3),
+            status: 'Comprimindo fotos e vídeos ($processadas/$totalMidias)...',
+          );
+        }),
+      );
 
-      // 3. Transcodificar Vídeos para H.264 720p CRF 26 + poster frame
+      // 3. Transcodificar Vídeos para H.264 720p CRF 26 + poster frame em JPEG
       for (final uuid in videosUuids) {
         final res = await _mediaService.transcodificarVideoSessao(
           sessionManager: _sessionManager,
@@ -238,8 +242,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         }
         if (res.poster != null && await res.poster!.exists()) {
           final bytes = await res.poster!.readAsBytes();
-          arquivosMidias['midias/${uuid}_poster.webp'] = bytes;
-          posterFrames[uuid] = 'midias/${uuid}_poster.webp';
+          arquivosMidias['midias/${uuid}_poster.jpg'] = bytes;
+          posterFrames[uuid] = 'midias/${uuid}_poster.jpg';
         }
         final qrSvg = PdfPrintSummaryService.gerarQrCodeSvg('$urlCanonica#video-$uuid');
         qrCodesVideos[uuid] =
@@ -253,49 +257,51 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         );
       }
 
-      // 3a. Empacotar Documentos PDF originais e rasterizar páginas WebP
-      for (final entradaDoc in documentosPorUuid.entries) {
-        final uuid = entradaDoc.key;
-        final doc = entradaDoc.value;
+      // 3a. Empacotar Documentos PDF originais e rasterizar páginas WebP em paralelo
+      await Future.wait(
+        documentosPorUuid.entries.map((entradaDoc) async {
+          final uuid = entradaDoc.key;
+          final doc = entradaDoc.value;
 
-        final caminhoPdfOriginal = await _sessionManager.getMediaFilePath(
-          sessionId: sid,
-          mediaUuid: '${uuid}_original',
-          extension: '.pdf',
-        );
-        final pdfOriginalFile = File(caminhoPdfOriginal);
-        if (pdfOriginalFile.existsSync()) {
-          final bytesPdf = pdfOriginalFile.readAsBytesSync();
-          arquivosMidias['midias/$uuid.pdf'] = bytesPdf;
-          mapeamentoMidias[uuid] = 'midias/$uuid.pdf';
-        }
-
-        final paginasFiles = await _mediaService.rasterizarDocumentoPdfSessao(
-          sessionManager: _sessionManager,
-          sessionId: sid,
-          mediaUuid: uuid,
-        );
-        for (var i = 0; i < paginasFiles.length; i++) {
-          final numPag = i + 1;
-          final pagFile = paginasFiles[i];
-          if (pagFile.existsSync()) {
-            final bytesPag = pagFile.readAsBytesSync();
-            arquivosMidias['midias/${uuid}_p$numPag.webp'] = bytesPag;
-            mapeamentoMidias['${uuid}_p$numPag'] =
-                'midias/${uuid}_p$numPag.webp';
+          final caminhoPdfOriginal = await _sessionManager.getMediaFilePath(
+            sessionId: sid,
+            mediaUuid: '${uuid}_original',
+            extension: '.pdf',
+          );
+          final pdfOriginalFile = File(caminhoPdfOriginal);
+          if (pdfOriginalFile.existsSync()) {
+            final bytesPdf = pdfOriginalFile.readAsBytesSync();
+            arquivosMidias['midias/$uuid.pdf'] = bytesPdf;
+            mapeamentoMidias[uuid] = 'midias/$uuid.pdf';
           }
-        }
-        if (doc.quantidadePaginas == 0 && paginasFiles.isNotEmpty) {
-          doc.quantidadePaginas = paginasFiles.length;
-        }
 
-        processadas++;
-        state = state.copyWith(
-          progress:
-              0.2 + (processadas / (totalMidias > 0 ? totalMidias : 1) * 0.3),
-          status: 'Processando documentos PDF ($processadas/$totalMidias)...',
-        );
-      }
+          final paginasFiles = await _mediaService.rasterizarDocumentoPdfSessao(
+            sessionManager: _sessionManager,
+            sessionId: sid,
+            mediaUuid: uuid,
+          );
+          for (var i = 0; i < paginasFiles.length; i++) {
+            final numPag = i + 1;
+            final pagFile = paginasFiles[i];
+            if (pagFile.existsSync()) {
+              final bytesPag = pagFile.readAsBytesSync();
+              arquivosMidias['midias/${uuid}_p$numPag.webp'] = bytesPag;
+              mapeamentoMidias['${uuid}_p$numPag'] =
+                  'midias/${uuid}_p$numPag.webp';
+            }
+          }
+          if (doc.quantidadePaginas == 0 && paginasFiles.isNotEmpty) {
+            doc.quantidadePaginas = paginasFiles.length;
+          }
+
+          processadas++;
+          state = state.copyWith(
+            progress:
+                0.2 + (processadas / (totalMidias > 0 ? totalMidias : 1) * 0.3),
+            status: 'Processando documentos PDF ($processadas/$totalMidias)...',
+          );
+        }),
+      );
 
       final epubPath = outputPath.endsWith('.epub')
           ? outputPath
@@ -469,16 +475,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       await epubFile.create(recursive: true);
       await epubFile.writeAsBytes(epubBytes);
 
-      // 7. Se houver draftService legado, chamamos para compatibilidade se mockado
-      if (_draftService != null) {
-        try {
-          final workspace = await _recoveryService.getWorkspaceDir();
-          final draftPath = '${workspace.path}/draft.pdf';
-          await _draftService.drawDraft(registro, draftPath, (uuid) => '');
-        } catch (_) {}
-      }
-
-      // 8. Gravação no Isar
+      // 7. Gravação no Isar
       String? pdfExistente;
       final isar = _isar;
       if (isar != null) {

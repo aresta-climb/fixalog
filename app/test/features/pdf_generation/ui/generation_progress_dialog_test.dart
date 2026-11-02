@@ -95,5 +95,43 @@ void main() {
       expect(find.byIcon(Icons.error), findsOneWidget);
       expect(find.text('FECHAR'), findsOneWidget);
     });
+
+    testWidgets(
+      'renderiza estado concluído sem erro de layout quando ElevatedButtonTheme tem minimumSize(double.infinity, 56)',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              generationProvider.overrideWith(
+                (ref) => _FakeGenerationNotifier(
+                  GenerationState(
+                    progress: 1.0,
+                    status: 'Selo Fixalog aplicado com sucesso!',
+                    isComplete: true,
+                    outputPath: '/path/to/laudo.epub',
+                  ),
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              themeMode: ThemeMode.dark,
+              darkTheme: ThemeData(
+                brightness: Brightness.dark,
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 56),
+                  ),
+                ),
+              ),
+              home: const Scaffold(body: GenerationProgressDialog()),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
+      },
+    );
   });
 }

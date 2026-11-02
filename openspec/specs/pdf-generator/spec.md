@@ -7,11 +7,11 @@ Exportação de resumo impresso A4 do relatório de manutenção (@media print) 
 ## Requirements
 
 ### Requirement: O sistema DEVE gerar um Rascunho Visual
-O módulo gerador de PDF MUST gerar o documento PDF Resumido sob demanda no momento em que o usuário solicita o compartilhamento da versão impressa ou a abertura via histórico, utilizando miniaturas de impressão otimizadas e folhas de estilo (@media print) sem bloquear a finalização do fluxo do Wizard.
+O módulo gerador de PDF DEVE gerar o documento PDF Resumido A4 sob demanda no momento em que o usuário solicita o compartilhamento da versão impressa ou a abertura via histórico, construindo o arquivo PDF nativamente em Dart sem depender de WebView ou conversão HTML/Base64 e reutilizando diretamente as imagens JPEG de 2MP (`<uuid>_thumb.jpg` e `<uuid>_poster.jpg`) pré-processadas da sessão.
 
 #### Scenario: Geração do PDF Resumido para protocolo
 - **WHEN** o usuário solicita o compartilhamento da versão resumida em PDF de uma vistoria
-- **THEN** o sistema gera o arquivo PDF A4 sob demanda utilizando miniaturas de impressão leves e abre a folha de compartilhamento
+- **THEN** o sistema constrói o arquivo PDF A4 sob demanda lendo diretamente os arquivos JPEG de 2MP pré-processados (sem re-processar as imagens originais nem codificá-las em Base64) e abre a folha de compartilhamento
 
 ### Requirement: O PDF DEVE exibir cabeçalho de versão resumida e QR Code de rastreabilidade
 O documento PDF gerado DEVE conter no topo da primeira página uma faixa/cabeçalho informando explicitamente que se trata de uma versão impressa/resumida, acompanhada de link textual clicável e QR Code apontando para a página canônica da vistoria na Web.
@@ -42,8 +42,8 @@ Ao gerar o documento PDF Resumido de uma manutenção que utiliza materiais cada
 - **THEN** o sistema produz um único arquivo PDF contendo nas primeiras páginas o relatório da manutenção e nas páginas seguintes as fichas completas de todos os materiais utilizados
 
 ### Requirement: Renderização Integral das Páginas de Documentos PDF Anexados no PDF Resumido
-Ao gerar o PDF Resumido de um registro que contenha documentos PDF anexados (`ArquivoDocumento`), o gerador de PDF DEVE incorporar sequencialmente todas as páginas rasterizadas (`<uuid>_p1.webp` até `<uuid>_pN.webp`) do documento anexado na seção correspondente do relatório impresso.
+Ao gerar o PDF Resumido de um registro que contenha documentos PDF anexados (`ArquivoDocumento`), o gerador de PDF DEVE incorporar sequencialmente todas as páginas pré-processadas (`<uuid>_p1_thumb.jpg` até `<uuid>_pN_thumb.jpg`, com fallback para as imagens de página disponíveis) do documento anexado na seção correspondente do relatório impresso.
 
 #### Scenario: Exportação de PDF Resumido contendo comprovante PDF de múltiplas páginas
 - **WHEN** o usuário exporta o PDF Resumido de um material ou manutenção que possui um comprovante PDF de 3 páginas anexado
-- **THEN** o documento PDF gerado renderiza as 3 páginas rasterizadas do comprovante em sequência, identificadas com o nome original do documento e a numeração de página
+- **THEN** o documento PDF gerado renderiza as 3 páginas pré-processadas do comprovante em sequência, identificadas com o nome original do documento e a numeração de página

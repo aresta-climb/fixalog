@@ -1,21 +1,15 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:qr/qr.dart';
 import '../models/proto/protos/registro.pb.dart';
 import 'epub_document_builder.dart';
-
-/// Assinatura da função conversora de HTML para PDF (permite injeção em testes).
-typedef ConversorHtmlParaPdf = Future<Uint8List> Function({
-  required String html,
-  String? baseUrl,
-  required PdfPageFormat format,
-});
 
 /// Representa os dados de um material vinculado a uma manutenção para inclusão sequencial ao final do PDF Resumido.
 class RelatorioMaterialAnexo {
@@ -36,18 +30,16 @@ class RelatorioMaterialAnexo {
 
 /// Serviço responsável pela exportação de PDF Resumido para protocolo burocrático e órgãos ambientais/SEI.
 ///
-/// O documento é derivado da mesma marcação XHTML semântica do relatório oficial via regras
-/// de impressão (`@media print`), incluindo cabeçalho explicativo, link canônico, QR Codes
-/// para rastreabilidade e reprodução de vídeos online, e concatenação das fichas de materiais utilizados.
+/// Constrói o documento A4 nativamente via `package:pdf` (`pw.Document` / `pw.MultiPage`),
+/// renderizando cabeçalho explicativo, link canônico, QR Codes vetoriais (`pw.BarcodeWidget`),
+/// textos com suporte a Markdown, imagens JPEG de 2MP pré-processadas (`pw.MemoryImage`)
+/// e concatenação das fichas técnicas de materiais utilizados.
 class PdfPrintSummaryService {
   final EpubDocumentBuilder _documentBuilder;
-  final ConversorHtmlParaPdf _converter;
 
   PdfPrintSummaryService({
     EpubDocumentBuilder? documentBuilder,
-    ConversorHtmlParaPdf? converter,
-  })  : _documentBuilder = documentBuilder ?? EpubDocumentBuilder(),
-        _converter = converter ?? _converterPadrao;
+  }) : _documentBuilder = documentBuilder ?? EpubDocumentBuilder();
 
   /// Gera a marcação SVG vetorial para um QR Code contendo o [texto] informado.
   static String gerarQrCodeSvg(String texto, {int moduloTamanho = 4}) {
@@ -83,10 +75,7 @@ class PdfPrintSummaryService {
       r'<body[^>]*>([\s\S]*?)<\/body>',
       caseSensitive: false,
     ).firstMatch(xhtml);
-    if (match != null) {
-      return match.group(1) ?? xhtml;
-    }
-    return xhtml;
+    return match!.group(1)!;
   }
 
   /// Constrói o documento HTML completo com CSS de impressão embutido, QR Codes vetoriais injetados
@@ -99,12 +88,10 @@ class PdfPrintSummaryService {
     Map<String, String> posterFrames = const {},
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
   }) {
-    // 1. Gera QR Code principal institucional
     final qrPrincipalSvg = gerarQrCodeSvg(urlCanonica);
     final qrPrincipalDataUri =
         'data:image/svg+xml;utf8,${Uri.encodeComponent(qrPrincipalSvg)}';
 
-    // 2. Gera mini QR Code dedicado para cada vídeo
     final Map<String, String> qrCodesVideos = {};
     for (final entrada in posterFrames.entries) {
       final uuid = entrada.key;
@@ -114,17 +101,10 @@ class PdfPrintSummaryService {
           'data:image/svg+xml;utf8,${Uri.encodeComponent(qrVideoSvg)}';
     }
 
-    final Map<String, String> titulosMateriais = {};
-    for (final mat in materiaisAnexos) {
-      final nomeMat = mat.registro.respostas['mat_nome']?.texto.trim() ?? '';
-      titulosMateriais[mat.idSessao] = nomeMat.isNotEmpty
-          ? nomeMat
-          : (mat.registro.idProtocolo.isNotEmpty
-              ? mat.registro.idProtocolo
-              : mat.idSessao);
-    }
+    final Map<String, String> titulosMateriais = _resolverTitulosMateriais(
+      materiaisAnexos,
+    );
 
-    // 3. Monta o XHTML semântico principal
     var xhtml = _documentBuilder.gerarXhtml(
       registro: registro,
       idSessao: idSessao,
@@ -136,7 +116,6 @@ class PdfPrintSummaryService {
       titulosMateriais: titulosMateriais,
     );
 
-    // 3b. Concatena ao final do documento as fichas completas de todos os materiais anexos
     if (materiaisAnexos.isNotEmpty) {
       final bufferAnexos = StringBuffer();
       for (final mat in materiaisAnexos) {
@@ -152,7 +131,7 @@ class PdfPrintSummaryService {
               'data:image/svg+xml;utf8,${Uri.encodeComponent(qrVidSvg)}';
         }
 
-        final tituloMat = titulosMateriais[mat.idSessao] ?? mat.idSessao;
+        final tituloMat = titulosMateriais[mat.idSessao]!;
         final xhtmlMat = _documentBuilder.gerarXhtml(
           registro: mat.registro,
           idSessao: mat.idSessao,
@@ -180,23 +159,476 @@ class PdfPrintSummaryService {
       );
     }
 
-    // 4. Incorpora a folha de estilo diretamente em uma tag <style> para rendering autocontido
     final css = _documentBuilder.gerarCss();
     final htmlCompleto = xhtml.replaceFirst(
       '<link rel="stylesheet" type="text/css" href="estilo.css"/>',
       '<style>$css</style>',
     );
 
-    // 5. Remove tags <video> para evitar que o WebView tente carregar ou decodificar mídias pesadas durante a impressão
-    final htmlLimpo = htmlCompleto.replaceAll(
+    return htmlCompleto.replaceAll(
       RegExp(r'<video[\s\S]*?<\/video>', caseSensitive: false),
       '',
     );
-
-    return htmlLimpo;
   }
 
-  /// Gera os bytes do PDF A4 formatado a partir da renderização do HTML.
+  Map<String, String> _resolverTitulosMateriais(
+    List<RelatorioMaterialAnexo> materiaisAnexos,
+  ) {
+    final Map<String, String> titulosMateriais = {};
+    for (final mat in materiaisAnexos) {
+      final nomeMat = mat.registro.respostas['mat_nome']?.texto.trim() ?? '';
+      titulosMateriais[mat.idSessao] =
+          nomeMat.isNotEmpty ? nomeMat : mat.idSessao;
+    }
+    return titulosMateriais;
+  }
+
+  pw.MemoryImage? _carregarImagemMemoria(String? referencia) {
+    if (referencia == null || referencia.isEmpty) return null;
+    if (referencia.startsWith('data:image/') &&
+        referencia.contains(';base64,')) {
+      final base64Parte = referencia.split(';base64,').last;
+      return pw.MemoryImage(base64Decode(base64Parte));
+    }
+    final arquivo = File(referencia);
+    if (arquivo.existsSync()) {
+      return pw.MemoryImage(arquivo.readAsBytesSync());
+    }
+    return null;
+  }
+
+  String _formatarTextoReferenciaMaterial(
+    String chave,
+    String valorBruto,
+    Map<String, String> titulosMateriais,
+  ) {
+    if (chave != 'lista_materiais_c' && !chave.startsWith('ref_mat')) {
+      return valorBruto;
+    }
+    return valorBruto
+        .split(',')
+        .map((id) {
+          final limpo = id.trim();
+          return titulosMateriais[limpo] ?? limpo;
+        })
+        .join(', ');
+  }
+
+  List<pw.Widget> _construirWidgetsMidia({
+    required ReferenciaMidia midia,
+    required String urlCanonica,
+    required Map<String, String> mapeamentoMidias,
+    required Map<String, String> posterFrames,
+  }) {
+    final widgets = <pw.Widget>[];
+
+    if (midia.hasImagem()) {
+      final uuid = midia.imagem.uuid;
+      final img = _carregarImagemMemoria(mapeamentoMidias[uuid]);
+      if (img != null) {
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(vertical: 6),
+            height: 180,
+            child: pw.Image(img, fit: pw.BoxFit.contain),
+          ),
+        );
+      }
+    } else if (midia.hasVideo()) {
+      final uuid = midia.video.uuid;
+      final imgPoster = _carregarImagemMemoria(posterFrames[uuid]);
+      final videoUrl = '$urlCanonica#video-$uuid';
+
+      widgets.add(
+        pw.Container(
+          margin: const pw.EdgeInsets.symmetric(vertical: 6),
+          padding: const pw.EdgeInsets.all(8),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColors.grey500),
+          ),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              if (imgPoster != null) ...[
+                pw.Container(
+                  width: 150,
+                  height: 110,
+                  child: pw.Image(imgPoster, fit: pw.BoxFit.contain),
+                ),
+                pw.SizedBox(width: 12),
+              ],
+              pw.BarcodeWidget(
+                barcode: pw.Barcode.qrCode(),
+                data: videoUrl,
+                width: 48,
+                height: 48,
+              ),
+              pw.SizedBox(width: 10),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Escaneie para assistir ao vídeo desta proteção online',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      videoUrl,
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else if (midia.hasDocumento()) {
+      final doc = midia.documento;
+      final nome = doc.nomeOriginal.isNotEmpty
+          ? doc.nomeOriginal
+          : '${doc.uuid}.pdf';
+      final totalPaginas =
+          doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 1;
+
+      for (var i = 1; i <= totalPaginas; i++) {
+        final chavePag = '${doc.uuid}_p$i';
+        final imgPag = _carregarImagemMemoria(mapeamentoMidias[chavePag]);
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
+            child: pw.Text(
+              '$nome - Página $i de $totalPaginas',
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+        if (imgPag != null) {
+          widgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 8),
+              height: 220,
+              child: pw.Image(imgPag, fit: pw.BoxFit.contain),
+            ),
+          );
+        }
+      }
+    }
+
+    return widgets;
+  }
+
+  List<pw.Widget> _construirWidgetsResposta({
+    required String chave,
+    required Resposta resposta,
+    required String urlCanonica,
+    required Map<String, String> mapeamentoMidias,
+    required Map<String, String> posterFrames,
+    required Map<String, String> titulosMateriais,
+  }) {
+    final widgets = <pw.Widget>[];
+    String valorTexto = '';
+
+    if (resposta.hasTexto()) {
+      valorTexto = _formatarTextoReferenciaMaterial(
+        chave,
+        resposta.texto,
+        titulosMateriais,
+      );
+    } else if (resposta.hasNumero()) {
+      valorTexto = resposta.numero.toString();
+    } else if (resposta.hasInteiro()) {
+      valorTexto = resposta.inteiro.toString();
+    } else if (resposta.hasBooleano()) {
+      valorTexto = resposta.booleano ? 'Sim' : 'Não';
+    } else if (resposta.hasLista()) {
+      final textos = resposta.lista.valores
+          .where((v) => v.hasTexto() && v.texto.isNotEmpty)
+          .map((v) => v.texto)
+          .join(', ');
+      if (textos.isNotEmpty) {
+        valorTexto = _formatarTextoReferenciaMaterial(
+          chave,
+          textos,
+          titulosMateriais,
+        );
+      }
+    }
+
+    if (valorTexto.isNotEmpty) {
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 4),
+          child: _construirTextoMarkdownPdf(
+            prefixoChave: '$chave: ',
+            texto: valorTexto,
+          ),
+        ),
+      );
+    }
+
+    for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resposta)) {
+      widgets.addAll(
+        _construirWidgetsMidia(
+          midia: midia,
+          urlCanonica: urlCanonica,
+          mapeamentoMidias: mapeamentoMidias,
+          posterFrames: posterFrames,
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  List<pw.Widget> _construirSecaoRegistro({
+    required Registro registro,
+    required String idSessao,
+    required String urlCanonica,
+    required Map<String, String> mapeamentoMidias,
+    required Map<String, String> posterFrames,
+    required Map<String, String> titulosMateriais,
+    String? tituloAnexo,
+  }) {
+    final widgets = <pw.Widget>[];
+
+    if (tituloAnexo != null) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(pw.Divider(thickness: 1.5));
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(vertical: 6),
+          child: pw.Text(
+            'Anexo - Ficha Técnica de Material: $tituloAnexo',
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    // Cabeçalho Institucional da Versão Resumida com QR Code vetorial
+    widgets.add(
+      pw.Container(
+        padding: const pw.EdgeInsets.all(10),
+        margin: const pw.EdgeInsets.only(bottom: 12),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey700),
+        ),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Fixalog - Relatório Técnico de Manutenção (Versão Resumida)',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Este documento é uma representação impressa. O relatório canônico oficial está disponível em:',
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                  pw.Text(
+                    urlCanonica,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Protocolo: ${registro.idProtocolo} | Sessão ID: $idSessao',
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(width: 12),
+            pw.BarcodeWidget(
+              barcode: pw.Barcode.qrCode(),
+              data: urlCanonica,
+              width: 56,
+              height: 56,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (registro.respostas.isNotEmpty) {
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
+          child: pw.Text(
+            'Dados Coletados',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
+      );
+      for (final entrada in registro.respostas.entries) {
+        widgets.addAll(
+          _construirWidgetsResposta(
+            chave: entrada.key,
+            resposta: entrada.value,
+            urlCanonica: urlCanonica,
+            mapeamentoMidias: mapeamentoMidias,
+            posterFrames: posterFrames,
+            titulosMateriais: titulosMateriais,
+          ),
+        );
+      }
+    }
+
+    if (registro.listas.isNotEmpty) {
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 10, bottom: 4),
+          child: pw.Text(
+            'Itens Catalogados',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
+      );
+      for (final grupo in registro.listas) {
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 6, bottom: 2),
+            child: pw.Text(
+              '${grupo.idLista} (${grupo.idTipo})',
+              style: pw.TextStyle(
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+        for (final item in grupo.respostasItem.entries) {
+          widgets.addAll(
+            _construirWidgetsResposta(
+              chave: item.key,
+              resposta: item.value,
+              urlCanonica: urlCanonica,
+              mapeamentoMidias: mapeamentoMidias,
+              posterFrames: posterFrames,
+              titulosMateriais: titulosMateriais,
+            ),
+          );
+        }
+      }
+    }
+
+    return widgets;
+  }
+
+  pw.Widget _construirTextoMarkdownPdf({
+    String prefixoChave = '',
+    required String texto,
+  }) {
+    final normalizado = texto.replaceAll('\r\n', '\n');
+    final spans = <pw.InlineSpan>[];
+    if (prefixoChave.isNotEmpty) {
+      spans.add(
+        pw.TextSpan(
+          text: prefixoChave,
+          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+        ),
+      );
+    }
+
+    final linhas = normalizado.split('\n');
+    for (var i = 0; i < linhas.length; i++) {
+      if (i > 0) {
+        spans.add(const pw.TextSpan(text: '\n'));
+      }
+      var linha = linhas[i];
+      final matchHeading = RegExp(r'^#{1,6}\s+(.*)$').firstMatch(linha.trim());
+      if (matchHeading != null) {
+        spans.add(
+          pw.TextSpan(
+            text: matchHeading.group(1)!,
+            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+          ),
+        );
+        continue;
+      }
+      final matchBullet = RegExp(r'^[-*]\s+(.*)$').firstMatch(linha.trim());
+      if (matchBullet != null) {
+        linha = '- ${matchBullet.group(1)!}';
+      }
+      spans.addAll(_parseInlineMarkdownSpansPdf(linha));
+    }
+
+    return pw.RichText(
+      text: pw.TextSpan(
+        style: const pw.TextStyle(fontSize: 11),
+        children: spans,
+      ),
+    );
+  }
+
+  List<pw.InlineSpan> _parseInlineMarkdownSpansPdf(String linha) {
+    final padrao =
+        RegExp(r'(\*\*([^*]+)\*\*|~~([^~]+)~~|`([^`]+)`|\*([^*]+)\*)');
+    final resultado = <pw.InlineSpan>[];
+    var inicio = 0;
+
+    for (final match in padrao.allMatches(linha)) {
+      if (match.start > inicio) {
+        resultado.add(pw.TextSpan(text: linha.substring(inicio, match.start)));
+      }
+      if (match.group(2) != null) {
+        resultado.add(
+          pw.TextSpan(
+            text: match.group(2)!,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
+        );
+      } else if (match.group(3) != null) {
+        resultado.add(
+          pw.TextSpan(
+            text: match.group(3)!,
+            style: const pw.TextStyle(
+              decoration: pw.TextDecoration.lineThrough,
+            ),
+          ),
+        );
+      } else if (match.group(4) != null) {
+        resultado.add(
+          pw.TextSpan(
+            text: match.group(4)!,
+            style: pw.TextStyle(font: pw.Font.courier()),
+          ),
+        );
+      } else if (match.group(5) != null) {
+        resultado.add(
+          pw.TextSpan(
+            text: match.group(5)!,
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+          ),
+        );
+      }
+      inicio = match.end;
+    }
+
+    if (inicio < linha.length) {
+      resultado.add(pw.TextSpan(text: linha.substring(inicio)));
+    }
+    return resultado;
+  }
+
+  /// Gera os bytes do PDF A4 formatado nativamente via `package:pdf` sem WebView.
   Future<Uint8List> gerarPdfResumidoBytes({
     required Registro registro,
     required String idSessao,
@@ -206,20 +638,46 @@ class PdfPrintSummaryService {
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
     String? baseUrl,
   }) async {
-    final html = gerarHtmlParaImpressao(
-      registro: registro,
-      idSessao: idSessao,
-      urlCanonica: urlCanonica,
-      mapeamentoMidias: mapeamentoMidias,
-      posterFrames: posterFrames,
-      materiaisAnexos: materiaisAnexos,
+    final pdf = pw.Document(compress: false);
+    final titulosMateriais = _resolverTitulosMateriais(materiaisAnexos);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(28),
+        build: (pw.Context context) {
+          final widgets = <pw.Widget>[
+            ..._construirSecaoRegistro(
+              registro: registro,
+              idSessao: idSessao,
+              urlCanonica: urlCanonica,
+              mapeamentoMidias: mapeamentoMidias,
+              posterFrames: posterFrames,
+              titulosMateriais: titulosMateriais,
+            ),
+          ];
+
+          for (final mat in materiaisAnexos) {
+            final tituloMat = titulosMateriais[mat.idSessao]!;
+            widgets.addAll(
+              _construirSecaoRegistro(
+                registro: mat.registro,
+                idSessao: mat.idSessao,
+                urlCanonica: mat.urlCanonica,
+                mapeamentoMidias: mat.mapeamentoMidias,
+                posterFrames: mat.posterFrames,
+                titulosMateriais: const {},
+                tituloAnexo: tituloMat,
+              ),
+            );
+          }
+
+          return widgets;
+        },
+      ),
     );
 
-    return _converter(
-      html: html,
-      baseUrl: baseUrl,
-      format: PdfPageFormat.a4,
-    );
+    return pdf.save();
   }
 
   /// Exporta o PDF Resumido e grava o arquivo no disco local em [caminhoSaida].
@@ -246,18 +704,6 @@ class PdfPrintSummaryService {
     final arquivo = File(caminhoSaida);
     await arquivo.create(recursive: true);
     return arquivo.writeAsBytes(bytes);
-  }
-
-  static Future<Uint8List> _converterPadrao({
-    required String html,
-    String? baseUrl,
-    required PdfPageFormat format,
-  }) {
-    return Printing.convertHtml(
-      html: html,
-      baseUrl: baseUrl,
-      format: format,
-    );
   }
 }
 

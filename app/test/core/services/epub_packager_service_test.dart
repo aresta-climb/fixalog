@@ -202,5 +202,48 @@ void main() {
       );
       expect(pbMat.content, equals([0x0A, 0x0B, 0x0C]));
     });
+
+    test('empacotarEpub armazena mídias já comprimidas (.mp4, .webp, .jpg, .jpeg, .png, .pdf) com CompressionType.none e mantém DEFLATE para textos e protobuf', () {
+      // Usa payloads grandes o suficiente (> 64 bytes repetidos) para que o ZipEncoder aplique DEFLATE quando habilitado
+      final payloadRepetido = Uint8List.fromList(List<int>.filled(256, 65));
+      final epubBytes = empacotador.empacotarEpub(
+        idSessao: 'sessao_store',
+        idProtocolo: 'via_store',
+        xhtmlConteudo: '<html><body>${'Texto repetido ' * 20}</body></html>',
+        cssConteudo: 'body { color: #000000; margin: 0; padding: 0; } ' * 5,
+        binarypb: payloadRepetido,
+        arquivosMidia: {
+          'midias/foto.webp': payloadRepetido,
+          'midias/video.mp4': payloadRepetido,
+          'midias/poster.jpg': payloadRepetido,
+          'midias/extra.jpeg': payloadRepetido,
+          'midias/assinatura.png': payloadRepetido,
+          'midias/comprovante.pdf': payloadRepetido,
+        },
+        materiaisAninhados: {
+          'mat-1': {
+            'OEBPS/relatorio.xhtml': payloadRepetido,
+            'OEBPS/midias/mat_foto.webp': payloadRepetido,
+          },
+        },
+      );
+
+      final zip = ZipDecoder().decodeBytes(epubBytes);
+      ArchiveFile encontrar(String nome) => zip.files.firstWhere((f) => f.name == nome);
+
+      expect(encontrar('OEBPS/midias/foto.webp').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/midias/video.mp4').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/midias/poster.jpg').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/midias/extra.jpeg').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/midias/assinatura.png').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/midias/comprovante.pdf').compression, equals(CompressionType.none));
+      expect(encontrar('OEBPS/materiais/mat-1/OEBPS/midias/mat_foto.webp').compression, equals(CompressionType.none));
+
+      expect(encontrar('OEBPS/relatorio.xhtml').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/estilo.css').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/content.opf').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/dados/registro.binarypb').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/materiais/mat-1/OEBPS/relatorio.xhtml').compression, equals(CompressionType.deflate));
+    });
   });
 }

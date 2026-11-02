@@ -62,7 +62,7 @@ class FakeMediaCompressorService extends MediaCompressorService {
     required String mediaUuid,
   }) async {
     final video = File('${dir.path}/$mediaUuid.mp4');
-    final poster = File('${dir.path}/${mediaUuid}_poster.webp');
+    final poster = File('${dir.path}/${mediaUuid}_poster.jpg');
     await video.writeAsBytes(Uint8List.fromList([4, 5, 6]));
     await poster.writeAsBytes(Uint8List.fromList([7, 8, 9]));
     return (video: video, poster: poster);
@@ -205,7 +205,7 @@ void main() {
       expect(nomesArquivos, contains('OEBPS/dados/registro.binarypb'));
       expect(nomesArquivos, contains('OEBPS/midias/foto_p1.webp'));
       expect(nomesArquivos, contains('OEBPS/midias/video_p1.mp4'));
-      expect(nomesArquivos, contains('OEBPS/midias/video_p1_poster.webp'));
+      expect(nomesArquivos, contains('OEBPS/midias/video_p1_poster.jpg'));
     });
   });
 }

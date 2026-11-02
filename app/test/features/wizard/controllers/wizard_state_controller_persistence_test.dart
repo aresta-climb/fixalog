@@ -39,6 +39,16 @@ void main() {
 
     when(() => mockSessionManager.getSessionDirectory(any()))
         .thenAnswer((_) async => tempDir);
+
+    when(() => mockSessionManager.getMediaFilePath(
+          sessionId: any(named: 'sessionId'),
+          mediaUuid: any(named: 'mediaUuid'),
+          extension: any(named: 'extension'),
+        )).thenAnswer((inv) async {
+      final uuid = inv.namedArguments[#mediaUuid] as String;
+      final ext = inv.namedArguments[#extension] as String;
+      return '${tempDir.path}/$uuid$ext';
+    });
     
     when(() => mockSessionManager.saveOriginalMedia(
           sessionId: any(named: 'sessionId'),

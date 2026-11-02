@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -120,19 +119,19 @@ void main() {
       expect(fakeImageCompress.lastMinHeight, equals(2048));
     });
 
-    test('compressThumbnail comprime para WebP qualidade 85 e 600x600', () async {
-      final imgOriginal = File('${tempDir.path}/foto.jpg');
+    test('compressThumbnail comprime para JPEG qualidade 80 e 2MP (1440x1440)', () async {
+      final imgOriginal = File('${tempDir.path}/foto.webp');
       await imgOriginal.writeAsBytes([10, 20, 30]);
 
-      final outPath = '${tempDir.path}/foto_thumb.webp';
+      final outPath = '${tempDir.path}/foto_thumb.jpg';
       final resultado = await service.compressThumbnail(imgOriginal, outPath);
 
       expect(resultado, isNotNull);
       expect(resultado!.path, equals(outPath));
-      expect(fakeImageCompress.lastFormat, equals(CompressFormat.webp));
-      expect(fakeImageCompress.lastQuality, equals(85));
-      expect(fakeImageCompress.lastMinWidth, equals(600));
-      expect(fakeImageCompress.lastMinHeight, equals(600));
+      expect(fakeImageCompress.lastFormat, equals(CompressFormat.jpeg));
+      expect(fakeImageCompress.lastQuality, equals(80));
+      expect(fakeImageCompress.lastMinWidth, equals(1440));
+      expect(fakeImageCompress.lastMinHeight, equals(1440));
     });
 
     test('compressThumbnail retorna null quando arquivo de entrada não existe', () async {
@@ -221,7 +220,7 @@ void main() {
       expect(resultado, isNull);
     });
 
-    test('comprimirImagemSessao preserva arquivo original intacto e gera webp e miniatura _thumb.webp', () async {
+    test('comprimirImagemSessao preserva arquivo original intacto e gera webp 4MP e miniatura _thumb.jpg 2MP sem gerar _thumb.webp', () async {
       const sessionId = 'sessao-1';
       const mediaUuid = 'foto-uuid';
 
@@ -245,17 +244,24 @@ void main() {
       expect(await originalFile.exists(), isTrue);
       expect(await originalFile.readAsBytes(), equals([1, 2, 3, 4, 5]));
 
-      // Miniatura de impressão também deve existir no bundle
-      final thumbPath = await sessionManager.getMediaFilePath(
+      // Miniatura de impressão deve ser gerada em _thumb.jpg (2MP JPEG)
+      final thumbJpgPath = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_thumb',
+        extension: '.jpg',
+      );
+      expect(await File(thumbJpgPath).exists(), isTrue);
+
+      // E não deve gerar o legado _thumb.webp
+      final thumbWebpPath = await sessionManager.getMediaFilePath(
         sessionId: sessionId,
         mediaUuid: '${mediaUuid}_thumb',
         extension: '.webp',
       );
-      final thumbFile = File(thumbPath);
-      expect(await thumbFile.exists(), isTrue);
+      expect(await File(thumbWebpPath).exists(), isFalse);
     });
 
-    test('comprimirFotoSessao delega para comprimirImagemSessao gerando imagem e miniatura', () async {
+    test('comprimirFotoSessao delega para comprimirImagemSessao gerando imagem e miniatura _thumb.jpg', () async {
       const sessionId = 'sessao-alias';
       const mediaUuid = 'foto-alias-uuid';
 
@@ -278,7 +284,7 @@ void main() {
       final thumbPath = await sessionManager.getMediaFilePath(
         sessionId: sessionId,
         mediaUuid: '${mediaUuid}_thumb',
-        extension: '.webp',
+        extension: '.jpg',
       );
       expect(await File(thumbPath).exists(), isTrue);
     });
@@ -317,7 +323,7 @@ void main() {
       expect(resultado, isNull);
     });
 
-    test('transcodificarVideoSessao preserva vídeo original e extrai poster frame', () async {
+    test('transcodificarVideoSessao preserva vídeo original e extrai poster frame em .jpg', () async {
       const sessionId = 'sessao-video-1';
       const mediaUuid = 'video-uuid';
 
@@ -337,7 +343,7 @@ void main() {
       expect(resultado.video, isNotNull);
       expect(resultado.poster, isNotNull);
       expect(resultado.video!.path, endsWith('$mediaUuid.mp4'));
-      expect(resultado.poster!.path, endsWith('${mediaUuid}_poster.webp'));
+      expect(resultado.poster!.path, endsWith('${mediaUuid}_poster.jpg'));
       // Arquivo original intacto
       expect(await originalFile.exists(), isTrue);
     });
@@ -455,6 +461,99 @@ void main() {
       );
 
       expect(paginas, isEmpty);
+    });
+
+    test('comprimirImagemSessao reutiliza arquivos .webp e _thumb.jpg já prontos sem recomprimir e ignora arquivos .tmp incompletos', () async {
+      const sessionId = 'sessao-cache';
+      const mediaUuid = 'foto-cache';
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.jpg',
+        bytes: Uint8List.fromList([1, 2, 3]),
+      );
+
+      // Cria um arquivo .tmp órfão para simular interrupção anterior
+      final tmpOrfaoPath = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '$mediaUuid.tmp',
+        extension: '.webp',
+      );
+      File(tmpOrfaoPath).writeAsBytesSync([99]);
+
+      // 1ª execução gera os artefatos finais
+      final res1 = await service.comprimirImagemSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+      expect(res1, isNotNull);
+      expect(File(tmpOrfaoPath).existsSync(), isFalse);
+
+      // Se a compressão fosse chamada de novo, falharia porque ligamos shouldFail = true
+      fakeImageCompress.shouldFail = true;
+
+      // 2ª execução deve reutilizar o que já está pronto em disco!
+      final res2 = await service.comprimirImagemSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+      expect(res2, isNotNull);
+      expect(res2!.path, equals(res1!.path));
+    });
+
+    test('rasterizarDocumentoPdfSessao reaproveita páginas <uuid>_p<N>_original.jpg já extraídas sem re-executar rasterizadorPdf', () async {
+      const sessionId = 'sessao-pdf-ja-extraido';
+      const mediaUuid = 'doc-rapido';
+
+      var rasterizadorChamado = false;
+      final servicoComPdf = MediaCompressorService(
+        rasterizadorPdf: (pdfBytes, {double dpi = 150.0}) async {
+          rasterizadorChamado = true;
+          return [Uint8List.fromList([1, 2, 3])];
+        },
+      );
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.pdf',
+        bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46]),
+      );
+
+      // Páginas já extraídas pelo SeletorDocumentoService no momento do anexo
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_p1',
+        extension: '.jpg',
+        bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xD9]),
+      );
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_p2',
+        extension: '.jpg',
+        bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xD9]),
+      );
+
+      final paginas = await servicoComPdf.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
+      expect(rasterizadorChamado, isFalse);
+      expect(paginas.length, equals(2));
+      expect(paginas[0].path, endsWith('${mediaUuid}_p1.webp'));
+      expect(paginas[1].path, endsWith('${mediaUuid}_p2.webp'));
+
+      final thumb1 = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_p1_thumb',
+        extension: '.jpg',
+      );
+      expect(File(thumb1).existsSync(), isTrue);
     });
   });
 }

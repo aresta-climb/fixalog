@@ -17,6 +17,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
   String? ultimoCaminhoSaida;
   Registro? ultimoRegistro;
   Map<String, String>? ultimoMapeamentoMidias;
+  Map<String, String>? ultimoPosterFrames;
   List<RelatorioMaterialAnexo>? ultimosMateriaisAnexos;
   int chamadas = 0;
   final Duration? delay;
@@ -41,6 +42,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
     ultimoCaminhoSaida = caminhoSaida;
     ultimoRegistro = registro;
     ultimoMapeamentoMidias = mapeamentoMidias;
+    ultimoPosterFrames = posterFrames;
     ultimosMateriaisAnexos = materiaisAnexos;
     final file = File(caminhoSaida);
     file.createSync(recursive: true);
@@ -489,7 +491,7 @@ void main() {
   });
 
   testWidgets(
-    'Geração padrão sob demanda utiliza miniaturas _thumb.webp do bundle da sessão e exporta PDF',
+    'Geração padrão sob demanda utiliza caminhos diretos de _thumb.jpg e _poster.jpg (sem Base64) do bundle da sessão e exporta PDF',
     (tester) async {
       final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_test_');
       try {
@@ -499,11 +501,14 @@ void main() {
         final fakePdfService = FakePdfPrintSummaryService();
         const sessionId = 'sessao-integ-1';
 
-        // 1. Cria a miniatura _thumb.webp no bundle da sessão
+        // 1. Cria a miniatura _thumb.jpg e o poster _poster.jpg no bundle da sessão
         final thumbBytes = Uint8List.fromList([10, 20, 30, 40]);
-        final thumbFile = File('${tempDir.path}/sessoes/$sessionId/foto1_thumb.webp');
+        final thumbFile = File('${tempDir.path}/sessoes/$sessionId/foto1_thumb.jpg');
         thumbFile.parent.createSync(recursive: true);
         thumbFile.writeAsBytesSync(thumbBytes);
+
+        final posterFile = File('${tempDir.path}/sessoes/$sessionId/vid1_poster.jpg');
+        posterFile.writeAsBytesSync(thumbBytes);
 
         // 2. Cria o arquivo XHTML e Protobuf da vistoria
         final xhtmlFile = File('${tempDir.path}/relatorios_cache/$sessionId/OEBPS/relatorio.xhtml');
@@ -514,7 +519,10 @@ void main() {
           ..idProtocolo = 'Protocolo Teste'
           ..respostas['r1'] = (Resposta()
             ..midia = (ReferenciaMidia()
-              ..imagem = (ArquivoImagem()..uuid = 'foto1')));
+              ..imagem = (ArquivoImagem()..uuid = 'foto1')))
+          ..respostas['r2'] = (Resposta()
+            ..midia = (ReferenciaMidia()
+              ..video = (ArquivoVideo()..uuid = 'vid1')));
         final pbFile = File('${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.binarypb');
         pbFile.parent.createSync(recursive: true);
         pbFile.writeAsBytesSync(registro.writeToBuffer());
@@ -543,13 +551,20 @@ void main() {
         await tester.tap(find.byKey(const Key('opcao_compartilhar_pdf')));
         await tester.pumpAndSettle();
 
-      // Verifica que o serviço padrão de impressão foi invocado
+      // Verifica que o serviço padrão de impressão foi invocado com caminhos diretos sem Base64
       expect(fakePdfService.chamadas, equals(1));
       expect(fakePdfService.ultimoMapeamentoMidias, isNotNull);
-      // Verifica que a miniatura [10, 20, 30, 40] foi injetada como data URI
       expect(
         fakePdfService.ultimoMapeamentoMidias!['foto1'],
-        startsWith('data:image/webp;base64,'),
+        endsWith('foto1_thumb.jpg'),
+      );
+      expect(
+        fakePdfService.ultimoMapeamentoMidias!['foto1']!.startsWith('data:'),
+        isFalse,
+      );
+      expect(
+        fakePdfService.ultimoPosterFrames!['vid1'],
+        endsWith('vid1_poster.jpg'),
       );
       // E o arquivo gerado foi compartilhado
       expect(arquivosCompartilhados, isNotNull);
@@ -564,7 +579,7 @@ void main() {
   });
 
   testWidgets(
-    'Geração padrão sob demanda inclui os relatórios dos materiais embutidos em OEBPS/materiais/<uuid>/',
+    'Geração padrão sob demanda inclui os relatórios dos materiais embutidos em OEBPS/materiais/<uuid>/ com fallback para .webp sem Base64',
     (tester) async {
       final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_mat_test_');
       try {
@@ -641,7 +656,7 @@ void main() {
         );
         expect(
           fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['foto-nf-1'],
-          startsWith('data:image/webp;base64,'),
+          endsWith('foto-nf-1.webp'),
         );
       } finally {
         try {
@@ -654,7 +669,7 @@ void main() {
   );
 
   testWidgets(
-    'Geração padrão sob demanda carrega todas as páginas WebP de ArquivoDocumento da sessão e de materiais embutidos',
+    'Geração padrão sob demanda carrega todas as páginas de ArquivoDocumento priorizando _thumb.jpg e com fallback para .webp sem Base64',
     (tester) async {
       final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_pdf_doc_test_');
       try {
@@ -665,8 +680,8 @@ void main() {
         const sessionId = 'sessao-doc-pdf-1';
         const matUuid = 'uuid-mat-com-pdf';
 
-        // Páginas _p1_thumb.webp e _p2.webp na sessão principal
-        final pag1Thumb = File('${tempDir.path}/sessoes/$sessionId/doc-princ_p1_thumb.webp');
+        // Páginas _p1_thumb.jpg e _p2.webp na sessão principal
+        final pag1Thumb = File('${tempDir.path}/sessoes/$sessionId/doc-princ_p1_thumb.jpg');
         pag1Thumb.parent.createSync(recursive: true);
         pag1Thumb.writeAsBytesSync([1, 2, 3]);
 
@@ -747,19 +762,19 @@ void main() {
         expect(fakePdfService.chamadas, equals(1));
         expect(
           fakePdfService.ultimoMapeamentoMidias!['doc-princ_p1'],
-          startsWith('data:image/webp;base64,'),
+          endsWith('doc-princ_p1_thumb.jpg'),
         );
         expect(
           fakePdfService.ultimoMapeamentoMidias!['doc-princ_p2'],
-          startsWith('data:image/webp;base64,'),
+          endsWith('doc-princ_p2.webp'),
         );
         expect(
           fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['nf-mat-pdf_p1'],
-          startsWith('data:image/webp;base64,'),
+          endsWith('nf-mat-pdf_p1.webp'),
         );
         expect(
           fakePdfService.ultimosMateriaisAnexos!.first.mapeamentoMidias['nf-mat-pdf_p2'],
-          startsWith('data:image/webp;base64,'),
+          endsWith('nf-mat-pdf_p2.webp'),
         );
       } finally {
         try {

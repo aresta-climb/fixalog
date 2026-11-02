@@ -8,9 +8,12 @@
 // Uso: flutter test test/wizard_state_controller_test.dart
 
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_image_compress_platform_interface/flutter_image_compress_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:isar_community/isar.dart';
 
 import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
@@ -20,8 +23,37 @@ import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
+import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import 'package:fixnum/fixnum.dart';
+
+class _FakeImageCompressPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements FlutterImageCompressPlatform {
+  @override
+  FlutterImageCompressValidator get validator =>
+      FlutterImageCompressValidator(const MethodChannel('flutter_image_compress'));
+
+  @override
+  Future<XFile?> compressAndGetFile(
+    String path,
+    String targetPath, {
+    int minWidth = 1920,
+    int minHeight = 1080,
+    int inSampleSize = 1,
+    int quality = 95,
+    int rotate = 0,
+    bool autoCorrectionAngle = true,
+    CompressFormat format = CompressFormat.jpeg,
+    bool keepExif = false,
+    int numberOfRetries = 5,
+  }) async {
+    final file = File(targetPath);
+    await file.create(recursive: true);
+    await file.writeAsBytes([1, 2, 3, 4]);
+    return XFile(targetPath);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Builders para construir protos de teste sem YAML
@@ -1084,6 +1116,9 @@ protocolo:
     test('permite anexar múltiplas mídias (fotos, vídeos e PDFs) no mesmo campo, remover individualmente e restaurar na sessão', () async {
       final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
       final mediaCompressor = MediaCompressorService(
+        videoTranscoderService: VideoTranscoderService(
+          executador: (cmd) async => true,
+        ),
         rasterizadorPdf: (pdfBytes, {double dpi = 150.0}) async {
           return [
             Uint8List.fromList([137, 80, 78, 71, 10]),
@@ -1281,6 +1316,9 @@ protocolo:
         overrides: [
           isarProvider.overrideWithValue(isar),
           sessionBundleManagerProvider.overrideWithValue(sessionManager),
+          videoTranscoderServiceProvider.overrideWithValue(
+            VideoTranscoderService(executador: (cmd) async => true),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -1329,6 +1367,81 @@ protocolo:
       expect(midias, hasLength(2));
       expect(midias[0].hasImagem(), isTrue);
       expect(midias[1].hasVideo(), isTrue);
+      await notifier.flushAutoSave();
+    });
+
+    test('dispara pré-processamento não-bloqueante em background no MediaCompressorService ao anexar fotos e vídeos', () async {
+      FlutterImageCompressPlatform.instance = _FakeImageCompressPlatform();
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final comandosVideo = <String>[];
+      final transcoder = VideoTranscoderService(
+        executador: (cmd) async {
+          comandosVideo.add(cmd);
+          final match = RegExp(r'-y "([^"]+)"').firstMatch(cmd);
+          if (match != null) {
+            final outFile = File(match.group(1)!);
+            await outFile.create(recursive: true);
+            await outFile.writeAsBytes([9, 9, 9]);
+          }
+          return true;
+        },
+      );
+      final mediaCompressor = MediaCompressorService(
+        videoTranscoderService: transcoder,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          isarProvider.overrideWithValue(isar),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+          mediaCompressorProvider.overrideWithValue(mediaCompressor),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      notifier.loadProtocol(
+        makeProtocol([
+          makeStep('s1', [
+            campoConteudo(
+              id: 'campo_midia',
+              tipo: StepCampoSimples_TipoCampo.IMAGE,
+            ),
+          ]),
+        ]),
+      );
+
+      // 1. Anexa foto via saveMediaAnswerBytes
+      await notifier.saveMediaAnswerBytes(
+        'campo_midia',
+        Uint8List.fromList([10, 20, 30]),
+        '.jpg',
+        StepCampoSimples_TipoCampo.IMAGE,
+      );
+
+      // 2. Anexa vídeo via saveMultipleMediaAnswers
+      final arqVideo = File('${tempDir.path}/video_bg.mp4')
+        ..writeAsBytesSync([1, 2, 3, 4]);
+      await notifier.saveMultipleMediaAnswers(
+        'campo_midia',
+        [(filePath: arqVideo.path, tipo: StepCampoSimples_TipoCampo.VIDEO)],
+      );
+
+      final state = container.read(wizardControllerProvider);
+      final midias = WizardStateController.extrairMidiasDeResposta(state.answers['campo_midia']);
+      expect(midias, hasLength(2));
+      final uuidFoto = midias[0].imagem.uuid;
+      final uuidVideo = midias[1].video.uuid;
+
+      // Aguarda conclusão das tarefas disparadas automaticamente em background pelo controller
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final dirSessao = await sessionManager.getSessionDirectory(state.sessionId);
+      expect(File('${dirSessao.path}/$uuidFoto.webp').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/${uuidFoto}_thumb.jpg').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/$uuidVideo.mp4').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/${uuidVideo}_poster.jpg').existsSync(), isTrue);
+      expect(comandosVideo, isNotEmpty);
       await notifier.flushAutoSave();
     });
   });

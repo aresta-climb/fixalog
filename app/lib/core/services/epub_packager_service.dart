@@ -40,6 +40,17 @@ class EpubPackagerService {
     return resultado;
   }
 
+  /// Indica se o arquivo já é uma mídia comprimida e deve ser armazenado com método STORE (`CompressionType.none`).
+  bool _deveArmazenarSemCompressao(String caminho) {
+    final minusculo = caminho.toLowerCase();
+    return minusculo.endsWith('.mp4') ||
+        minusculo.endsWith('.webp') ||
+        minusculo.endsWith('.jpg') ||
+        minusculo.endsWith('.jpeg') ||
+        minusculo.endsWith('.png') ||
+        minusculo.endsWith('.pdf');
+  }
+
   /// Empacota todos os recursos fornecidos em um arquivo binário ZIP compatível com a especificação EPUB 3.
   Uint8List empacotarEpub({
     required String idSessao,
@@ -117,7 +128,11 @@ ${itensNavMateriais.toString().trimRight()}
     for (final entrada in arquivosMidia.entries) {
       final caminhoRelativo = entrada.key.startsWith('OEBPS/') ? entrada.key : 'OEBPS/${entrada.key}';
       final bytesMidia = entrada.value;
-      arquivoZip.addFile(ArchiveFile(caminhoRelativo, bytesMidia.length, bytesMidia));
+      final arquivo = ArchiveFile(caminhoRelativo, bytesMidia.length, bytesMidia)
+        ..compression = _deveArmazenarSemCompressao(caminhoRelativo)
+            ? CompressionType.none
+            : CompressionType.deflate;
+      arquivoZip.addFile(arquivo);
     }
 
     // 7b. Materiais Aninhados em OEBPS/materiais/<uuid>/
@@ -128,7 +143,11 @@ ${itensNavMateriais.toString().trimRight()}
         final caminhoInterno = arquivoMat.key;
         final bytesMat = arquivoMat.value;
         final caminhoNoZip = 'OEBPS/materiais/$uuidMat/$caminhoInterno';
-        arquivoZip.addFile(ArchiveFile(caminhoNoZip, bytesMat.length, bytesMat));
+        final arquivo = ArchiveFile(caminhoNoZip, bytesMat.length, bytesMat)
+          ..compression = _deveArmazenarSemCompressao(caminhoInterno)
+              ? CompressionType.none
+              : CompressionType.deflate;
+        arquivoZip.addFile(arquivo);
       }
     }
 

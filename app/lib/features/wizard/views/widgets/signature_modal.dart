@@ -139,15 +139,24 @@ class _SignatureModalState extends State<SignatureModal> {
                             style: TextStyle(color: Colors.white54),
                           ),
                         ),
-                        ElevatedButton(
-                          onPressed: () => _save(tamanhoCanvas: tamanhoCanvas),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF6B00),
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text(
-                            'SALVAR ASSINATURA',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: ElevatedButton(
+                            onPressed: () => _save(tamanhoCanvas: tamanhoCanvas),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF6B00),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: const Text(
+                              'SALVAR ASSINATURA',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                       ],

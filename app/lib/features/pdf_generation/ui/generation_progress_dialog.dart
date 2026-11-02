@@ -49,6 +49,8 @@ class GenerationProgressDialog extends ConsumerWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B00),
                 foregroundColor: Colors.white,
+                minimumSize: const Size(0, 48),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               icon: const Icon(Icons.visibility),
               label: const Text('VISUALIZAR RELATÓRIO'),

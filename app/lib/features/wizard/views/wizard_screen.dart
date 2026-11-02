@@ -14,7 +14,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'widgets/signature_modal.dart';
 import '../../media/services/seletor_documento_service.dart';

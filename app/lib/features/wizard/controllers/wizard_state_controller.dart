@@ -511,6 +511,32 @@ class WizardStateController extends Notifier<WizardState> {
     return (bytes: bytes, hash: hash);
   }
 
+  void _dispararPreProcessamentoEmBackground({
+    required SessionBundleManager sessionManager,
+    required String sessionId,
+    required String mediaUuid,
+    required StepCampoSimples_TipoCampo tipo,
+  }) {
+    final mediaService = ref.read(mediaCompressorProvider);
+    if (tipo == StepCampoSimples_TipoCampo.IMAGE) {
+      unawaited(
+        mediaService.comprimirImagemSessao(
+          sessionManager: sessionManager,
+          sessionId: sessionId,
+          mediaUuid: mediaUuid,
+        ),
+      );
+    } else if (tipo == StepCampoSimples_TipoCampo.VIDEO) {
+      unawaited(
+        mediaService.transcodificarVideoSessao(
+          sessionManager: sessionManager,
+          sessionId: sessionId,
+          mediaUuid: mediaUuid,
+        ),
+      );
+    }
+  }
+
   /// Salva uma mídia no SessionBundle, calcula o hash e já armazena como ReferenciaMidia.
   Future<void> saveMediaAnswerBytes(
     String conteudoId,
@@ -531,6 +557,13 @@ class WizardStateController extends Notifier<WizardState> {
         mediaUuid: mediaUuid,
         extension: extension,
         bytes: bytes,
+      );
+
+      _dispararPreProcessamentoEmBackground(
+        sessionManager: sessionManager,
+        sessionId: state.sessionId,
+        mediaUuid: mediaUuid,
+        tipo: tipo,
       );
 
       final refMidia = ReferenciaMidia();
@@ -624,6 +657,13 @@ class WizardStateController extends Notifier<WizardState> {
           bytes: lido.bytes,
         );
 
+        _dispararPreProcessamentoEmBackground(
+          sessionManager: sessionManager,
+          sessionId: state.sessionId,
+          mediaUuid: mediaUuid,
+          tipo: item.tipo,
+        );
+
         final refMidia = ReferenciaMidia();
         final mimeExt = ext.replaceAll('.', '');
         if (item.tipo == StepCampoSimples_TipoCampo.VIDEO) {
@@ -686,12 +726,7 @@ class WizardStateController extends Notifier<WizardState> {
     _definirProcessandoMidia(key, 1);
     try {
       final sessionManager = ref.read(sessionBundleManagerProvider);
-      MediaCompressorService mediaService;
-      try {
-        mediaService = ref.read(mediaCompressorProvider);
-      } catch (_) {
-        mediaService = MediaCompressorService();
-      }
+      final mediaService = ref.read(mediaCompressorProvider);
 
       final docUuid = const Uuid().v4();
       final hashOriginal = await _calcularSha256Assincrono(pdfBytes);

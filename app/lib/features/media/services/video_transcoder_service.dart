@@ -13,16 +13,16 @@ typedef ExecutadorFfmpeg = Future<bool> Function(String comando);
 /// e extração de poster frames estáticos para o relatório EPUB 3 e PDF.
 ///
 /// Calibração oficial conforme especificações:
-/// - Vídeo: H.264 (High profile), 720p a 30fps, CRF 26, preset fast, -movflags +faststart.
+/// - Vídeo: H.264 (High profile), 720p a 30fps, CRF 26, preset veryfast, -movflags +faststart.
 /// - Áudio: AAC mono a 64 kbps (-ac 1 -b:a 64k).
-/// - Poster frame: Extração estática aos 0.5s (-ss 0.5 -vframes 1).
+/// - Poster frame: Extração estática aos 0.5s (-ss 0.5 -vframes 1) em formato JPEG.
 class VideoTranscoderService {
   final ExecutadorFfmpeg _executador;
 
   VideoTranscoderService({ExecutadorFfmpeg? executador})
       : _executador = executador ?? executarFfmpeg;
 
-  /// Transcodifica um arquivo de vídeo para H.264 720p 30fps CRF 26 com áudio mono AAC 64k.
+  /// Transcodifica um arquivo de vídeo para H.264 720p 30fps CRF 26 (preset veryfast) com áudio mono AAC 64k.
   ///
   /// Retorna o [File] gerado em [caminhoSaida] em caso de sucesso, ou `null` se houver falha
   /// ou se [arquivoEntrada] não existir.
@@ -36,7 +36,7 @@ class VideoTranscoderService {
 
     final inputPath = arquivoEntrada.absolute.path;
     final comando =
-        '-i "$inputPath" -vf scale=-2:720 -r 30 -c:v libx264 -crf 26 -preset fast -c:a aac -ac 1 -b:a 64k -movflags +faststart -y "$caminhoSaida"';
+        '-i "$inputPath" -vf scale=-2:720 -r 30 -c:v libx264 -crf 26 -preset veryfast -c:a aac -ac 1 -b:a 64k -movflags +faststart -y "$caminhoSaida"';
 
     final sucesso = await _executador(comando);
     if (sucesso) {

@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -257,8 +255,8 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
-  Future<({Map<String, String> midiasDataUri, Map<String, String> posterDataUri})>
-      _carregarMidiasDataUri({
+  Future<({Map<String, String> caminhosMidias, Map<String, String> caminhosPosters})>
+      _resolverCaminhosMidiasPreProcessadas({
     required Registro registro,
     required String idSessaoAlvo,
     required SessionBundleManager sessionManager,
@@ -274,44 +272,42 @@ class _VisualizadorRelatorioScreenState
       documentosPorUuid,
     );
 
-    final Map<String, String> midiasDataUri = {};
-    final Map<String, String> posterDataUri = {};
+    final Map<String, String> caminhosMidias = {};
+    final Map<String, String> caminhosPosters = {};
 
-    Future<Uint8List?> lerBytesWebpPorChave(String chaveMidia) async {
-      final thumbPath = await sessionManager.getMediaFilePath(
+    Future<String?> localizarCaminhoImagemPorChave(String chaveMidia) async {
+      final thumbJpgPath = await sessionManager.getMediaFilePath(
         sessionId: idSessaoAlvo,
         mediaUuid: '${chaveMidia}_thumb',
-        extension: '.webp',
+        extension: '.jpg',
       );
-      final thumbFile = File(thumbPath);
-      if (thumbFile.existsSync()) {
-        return thumbFile.readAsBytesSync();
+      if (File(thumbJpgPath).existsSync()) {
+        return thumbJpgPath;
       }
 
-      final mainPath = await sessionManager.getMediaFilePath(
+      final mainWebpPath = await sessionManager.getMediaFilePath(
         sessionId: idSessaoAlvo,
         mediaUuid: chaveMidia,
         extension: '.webp',
       );
-      final mainFile = File(mainPath);
-      if (mainFile.existsSync()) {
-        return mainFile.readAsBytesSync();
+      if (File(mainWebpPath).existsSync()) {
+        return mainWebpPath;
       }
 
       if (oebpsDirAlvo != null) {
         final imgEpub =
             File(p.join(oebpsDirAlvo.path, 'midias', '$chaveMidia.webp'));
         if (imgEpub.existsSync()) {
-          return imgEpub.readAsBytesSync();
+          return imgEpub.path;
         }
       }
       return null;
     }
 
     for (final uuid in fotosUuids) {
-      final bytes = await lerBytesWebpPorChave(uuid);
-      if (bytes != null) {
-        midiasDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
+      final caminho = await localizarCaminhoImagemPorChave(uuid);
+      if (caminho != null) {
+        caminhosMidias[uuid] = caminho;
       }
     }
 
@@ -320,10 +316,9 @@ class _VisualizadorRelatorioScreenState
           doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 999;
       for (var i = 1; i <= limitePaginas; i++) {
         final chavePagina = '${doc.uuid}_p$i';
-        final bytes = await lerBytesWebpPorChave(chavePagina);
-        if (bytes != null) {
-          midiasDataUri[chavePagina] =
-              'data:image/webp;base64,${base64Encode(bytes)}';
+        final caminho = await localizarCaminhoImagemPorChave(chavePagina);
+        if (caminho != null) {
+          caminhosMidias[chavePagina] = caminho;
         } else if (doc.quantidadePaginas == 0) {
           break;
         }
@@ -331,32 +326,23 @@ class _VisualizadorRelatorioScreenState
     }
 
     for (final uuid in videosUuids) {
-      Uint8List? bytes;
-
-      final posterPath = await sessionManager.getMediaFilePath(
+      final posterJpgPath = await sessionManager.getMediaFilePath(
         sessionId: idSessaoAlvo,
         mediaUuid: '${uuid}_poster',
-        extension: '.webp',
+        extension: '.jpg',
       );
-      final posterFile = File(posterPath);
-      if (posterFile.existsSync()) {
-        bytes = posterFile.readAsBytesSync();
-      }
-
-      if (bytes == null && oebpsDirAlvo != null) {
-        final posterEpub =
-            File(p.join(oebpsDirAlvo.path, 'midias', '${uuid}_poster.webp'));
-        if (posterEpub.existsSync()) {
-          bytes = posterEpub.readAsBytesSync();
+      if (File(posterJpgPath).existsSync()) {
+        caminhosPosters[uuid] = posterJpgPath;
+      } else if (oebpsDirAlvo != null) {
+        final posterEpubJpg =
+            File(p.join(oebpsDirAlvo.path, 'midias', '${uuid}_poster.jpg'));
+        if (posterEpubJpg.existsSync()) {
+          caminhosPosters[uuid] = posterEpubJpg.path;
         }
-      }
-
-      if (bytes != null) {
-        posterDataUri[uuid] = 'data:image/webp;base64,${base64Encode(bytes)}';
       }
     }
 
-    return (midiasDataUri: midiasDataUri, posterDataUri: posterDataUri);
+    return (caminhosMidias: caminhosMidias, caminhosPosters: caminhosPosters);
   }
 
   Future<String> _executarGeracaoPdfPadrao() async {
@@ -418,7 +404,7 @@ class _VisualizadorRelatorioScreenState
 
     registro ??= (Registro()..idProtocolo = widget.titulo);
 
-    final midiasPrincipais = await _carregarMidiasDataUri(
+    final midiasPrincipais = await _resolverCaminhosMidiasPreProcessadas(
       registro: registro,
       idSessaoAlvo: sid,
       sessionManager: sessionManager,
@@ -469,7 +455,7 @@ class _VisualizadorRelatorioScreenState
       }
 
       if (regMat != null) {
-        final midiasMat = await _carregarMidiasDataUri(
+        final midiasMat = await _resolverCaminhosMidiasPreProcessadas(
           registro: regMat,
           idSessaoAlvo: uuidMat,
           sessionManager: sessionManager,
@@ -480,8 +466,8 @@ class _VisualizadorRelatorioScreenState
             idSessao: uuidMat,
             registro: regMat,
             urlCanonica: 'https://fixalog.app/v/$uuidMat',
-            mapeamentoMidias: midiasMat.midiasDataUri,
-            posterFrames: midiasMat.posterDataUri,
+            mapeamentoMidias: midiasMat.caminhosMidias,
+            posterFrames: midiasMat.caminhosPosters,
           ),
         );
       }
@@ -497,8 +483,8 @@ class _VisualizadorRelatorioScreenState
       registro: registro,
       idSessao: sid,
       urlCanonica: urlCanonica,
-      mapeamentoMidias: midiasPrincipais.midiasDataUri,
-      posterFrames: midiasPrincipais.posterDataUri,
+      mapeamentoMidias: midiasPrincipais.caminhosMidias,
+      posterFrames: midiasPrincipais.caminhosPosters,
       materiaisAnexos: materiaisAnexos,
     );
 

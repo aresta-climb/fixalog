@@ -1,47 +1,42 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdf/pdf.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:printing/src/interface.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 
-class FakePrintingPlatform extends Fake
-    with MockPlatformInterfaceMixin
-    implements PrintingPlatform {
-  String? lastHtml;
-  PdfPageFormat? lastFormat;
-
-  @override
-  Future<Uint8List> convertHtml(
-    String html,
-    String? baseUrl,
-    PdfPageFormat format,
-  ) async {
-    lastHtml = html;
-    lastFormat = format;
-    return Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34]); // %PDF-1.4
-  }
-}
+/// Bytes de um JPEG 1x1 válido para testes de embutimento via pw.MemoryImage.
+final Uint8List kJpegValidoBytes = Uint8List.fromList([
+  0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+  0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
+  0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC0, 0x00, 0x0B, 0x08,
+  0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x14,
+  0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xC4, 0x00, 0x14, 0x10, 0x01,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00,
+  0x3F, 0x00, 0x3F, 0xFF, 0xD9,
+]);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tempDir;
-  late FakePrintingPlatform fakePrinting;
   late PdfPrintSummaryService service;
   late Registro registroExemplo;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('pdf_summary_test_');
-    fakePrinting = FakePrintingPlatform();
-    PrintingPlatform.instance = fakePrinting;
-
     service = PdfPrintSummaryService();
 
     registroExemplo = Registro()
@@ -90,41 +85,49 @@ void main() {
           'uuid-vid-1': 'midias/uuid-vid-1.mp4',
         },
         posterFrames: {
-          'uuid-vid-1': 'midias/uuid-vid-1_poster.webp',
+          'uuid-vid-1': 'midias/uuid-vid-1_poster.jpg',
         },
       );
 
-      // Cabeçalho explicativo
       expect(html, contains('Fixalog — Relatório Técnico de Manutenção (Versão Resumida)'));
       expect(html, contains('Este documento é uma representação impressa'));
       expect(html, contains('https://fixalog.app/v/sessao-abc'));
       expect(html, contains('data:image/svg+xml;utf8,'));
-
-      // CSS incorporado com regras de impressão
       expect(html, contains('<style>'));
       expect(html, contains('@media print'));
-      expect(html, contains('.cabecalho-versao-impressa'));
-      expect(html, contains('.poster-impressao'));
-      expect(html, contains('page-break-inside: avoid'));
-
-      // Substituição de vídeo por poster frame com mini QR Code
       expect(html, contains('class="poster-impressao"'));
-      expect(html, contains('src="midias/uuid-vid-1_poster.webp"'));
+      expect(html, contains('src="midias/uuid-vid-1_poster.jpg"'));
       expect(html, contains('Escaneie para assistir ao vídeo desta proteção online'));
-      expect(html, contains('alt="QR Code do Vídeo"'));
     });
 
-    test('gerarPdfResumidoBytes invoca Printing.convertHtml com A4 e retorna bytes válidos', () async {
+    test('gerarPdfResumidoBytes constrói PDF A4 nativamente via package:pdf sem WebView com cabeçalho, QR Codes e imagens JPEG pré-processadas', () async {
+      final fotoThumb = File('${tempDir.path}/uuid-foto-1_thumb.jpg')
+        ..writeAsBytesSync(kJpegValidoBytes);
+      final posterJpg = File('${tempDir.path}/uuid-vid-1_poster.jpg')
+        ..writeAsBytesSync(kJpegValidoBytes);
+
       final bytes = await service.gerarPdfResumidoBytes(
         registro: registroExemplo,
         idSessao: 'sessao-abc',
         urlCanonica: 'https://fixalog.app/v/sessao-abc',
+        mapeamentoMidias: {
+          'uuid-foto-1': fotoThumb.path,
+        },
+        posterFrames: {
+          'uuid-vid-1': posterJpg.path,
+        },
       );
 
       expect(bytes, isNotEmpty);
       expect(bytes.sublist(0, 4), equals([0x25, 0x50, 0x44, 0x46])); // %PDF
-      expect(fakePrinting.lastFormat, equals(PdfPageFormat.a4));
-      expect(fakePrinting.lastHtml, contains('Fixalog — Relatório Técnico de Manutenção'));
+
+      final textoPdf = latin1.decode(bytes, allowInvalid: true);
+      expect(textoPdf, contains('Fixalog'));
+      expect(textoPdf, contains('Relatório'));
+      expect(textoPdf, contains('https://fixalog.app/v/sessao-abc'));
+      expect(textoPdf, contains('Falésia'));
+      expect(textoPdf, contains('Escaneie'));
+      expect(textoPdf, contains('/DCTDecode'));
     });
 
     test('exportarPdfResumido grava arquivo PDF em disco no caminho solicitado', () async {
@@ -139,26 +142,8 @@ void main() {
 
       expect(arquivo.path, equals(destino));
       expect(await arquivo.exists(), isTrue);
-      expect(await arquivo.readAsBytes(), isNotEmpty);
-    });
-
-    test('permite injetar conversor customizado no construtor', () async {
-      bool conversorCustomizadoChamado = false;
-      final servicoCustom = PdfPrintSummaryService(
-        converter: ({required html, baseUrl, required format}) async {
-          conversorCustomizadoChamado = true;
-          return Uint8List.fromList([1, 2, 3]);
-        },
-      );
-
-      final bytes = await servicoCustom.gerarPdfResumidoBytes(
-        registro: registroExemplo,
-        idSessao: '123',
-        urlCanonica: 'https://fixalog.app/v/123',
-      );
-
-      expect(conversorCustomizadoChamado, isTrue);
-      expect(bytes, equals([1, 2, 3]));
+      final bytes = await arquivo.readAsBytes();
+      expect(bytes.sublist(0, 4), equals([0x25, 0x50, 0x44, 0x46]));
     });
 
     test('pdfPrintSummaryServiceProvider provê instância funcional', () {
@@ -167,13 +152,22 @@ void main() {
       expect(inst, isA<PdfPrintSummaryService>());
     });
 
-    test('gerarHtmlParaImpressao e exportarPdfResumido concatenam relatórios dos materiais anexos ao final do documento', () async {
+    test('gerarPdfResumidoBytes e exportarPdfResumido concatenam relatórios dos materiais anexos e todos os tipos de campos ao final do documento', () async {
       final grupoMaterial = GrupoRepetido()
         ..idLista = 'lista_itens_material_c'
         ..idItem = 'item_mat_1'
         ..idTipo = 'parabolt'
         ..respostasItem['parabolt_marca'] = (Resposta()..texto = 'Petzl Coeur Pulse')
-        ..respostasItem['nf_descricao'] = (Resposta()..texto = 'NF-e 998877');
+        ..respostasItem['nf_descricao'] = (Resposta()..texto = 'NF-e 998877')
+        ..respostasItem['qtd_lote'] = (Resposta()..inteiro = Int64(50))
+        ..respostasItem['diametro_mm'] = (Resposta()..numero = 12.5)
+        ..respostasItem['inox_certificado'] = (Resposta()..booleano = true)
+        ..respostasItem['tags_item'] = (Resposta()
+          ..lista = (ListaRespostas()
+            ..valores.addAll([
+              Resposta()..texto = 'TAG-A',
+              Resposta()..texto = 'TAG-B',
+            ])));
 
       final grupoFabricacao = GrupoRepetido()
         ..idLista = 'sublista_detalhes_fabricacao__item_mat_1'
@@ -185,12 +179,18 @@ void main() {
         ..idProtocolo = 'cadastro_material'
         ..respostas['mat_nome'] = (Resposta()..texto = 'Conjunto Parabolt Inox 316L')
         ..respostas['mat_codigo_associacao'] = (Resposta()..texto = 'ASSOC-2026-01')
+        ..respostas['mat_qtd'] = (Resposta()..inteiro = Int64(10))
+        ..respostas['mat_peso'] = (Resposta()..numero = 1.25)
+        ..respostas['mat_ativo'] = (Resposta()..booleano = false)
         ..listas.addAll([grupoMaterial, grupoFabricacao]);
 
       final registroManut = Registro()
         ..idProtocolo = 'manutencao_ferragens'
         ..respostas['via_nome'] = (Resposta()..texto = 'Via Aresta Solar')
-        ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-anexo-1');
+        ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-anexo-1')
+        ..respostas['refs_extras'] = (Resposta()
+          ..lista = (ListaRespostas()
+            ..valores.add(Resposta()..texto = 'uuid-mat-anexo-1')));
 
       final anexo = RelatorioMaterialAnexo(
         idSessao: 'uuid-mat-anexo-1',
@@ -204,17 +204,8 @@ void main() {
         urlCanonica: 'https://fixalog.app/v/sessao-manut-99',
         materiaisAnexos: [anexo],
       );
-
-      // O relatório principal deve vir antes do relatório do material anexo
-      final posManut = html.indexOf('Via Aresta Solar');
-      final posMaterial = html.indexOf('Conjunto Parabolt Inox 316L');
-      final posFabricacao = html.indexOf('Corte e Repassivação Ácida');
-
-      expect(posManut, isNonNegative);
-      expect(posMaterial, greaterThan(posManut));
-      expect(posFabricacao, greaterThan(posManut));
-      expect(html, contains('NF-e 998877'));
-      expect(html, contains('page-break-before: always'));
+      expect(html, contains('Via Aresta Solar'));
+      expect(html, contains('Conjunto Parabolt Inox 316L'));
 
       final destino = '${tempDir.path}/manut_com_materiais.pdf';
       final arquivo = await service.exportarPdfResumido(
@@ -226,14 +217,34 @@ void main() {
       );
 
       expect(await arquivo.exists(), isTrue);
-      expect(fakePrinting.lastHtml, contains('Corte e Repassivação Ácida'));
+      final textoPdf = latin1.decode(await arquivo.readAsBytes(), allowInvalid: true);
+      final posManut = textoPdf.indexOf('Aresta');
+      final posMaterial = textoPdf.indexOf('316L');
+      final posFabricacao = textoPdf.indexOf('Repassivação');
+
+      expect(posManut, isNonNegative);
+      expect(posMaterial, greaterThan(posManut));
+      expect(posFabricacao, greaterThan(posManut));
+      expect(textoPdf, contains('998877'));
     });
 
-    test('gerarHtmlParaImpressao renderiza todas as páginas WebP de documentos PDF no relatório principal e nos materiais anexos', () {
+    test('gerarPdfResumidoBytes renderiza páginas de documentos PDF e mídias em listas tanto por caminho de arquivo quanto por data URI', () async {
+      final arqPag1 = File('${tempDir.path}/laudo_p1_thumb.jpg')
+        ..writeAsBytesSync(kJpegValidoBytes);
+      final arqPag2 = File('${tempDir.path}/laudo_p2_thumb.jpg')
+        ..writeAsBytesSync(kJpegValidoBytes);
+      final dataUriJpeg = 'data:image/jpeg;base64,${base64Encode(kJpegValidoBytes)}';
+
       final grupoMat = GrupoRepetido()
         ..idLista = 'lista_materiais_cadastro'
         ..idItem = 'item_mat_1'
         ..idTipo = 'chumbador_mecanico'
+        ..respostasItem['mat_foto'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..imagem = (ArquivoImagem()..uuid = 'uuid-foto-lista')))
+        ..respostasItem['mat_video'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..video = (ArquivoVideo()..uuid = 'uuid-vid-lista')))
         ..respostasItem['mat_nota_fiscal'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..documento = (ArquivoDocumento()
@@ -260,55 +271,55 @@ void main() {
         registro: registroMat,
         urlCanonica: 'https://fixalog.app/v/uuid-mat-pdf',
         mapeamentoMidias: {
-          'uuid-nf-anexo_p1': 'data:image/webp;base64,AAA1',
-          'uuid-nf-anexo_p2': 'data:image/webp;base64,AAA2',
+          'uuid-foto-lista': dataUriJpeg,
+          'uuid-nf-anexo_p1': dataUriJpeg,
+          'uuid-nf-anexo_p2': dataUriJpeg,
+        },
+        posterFrames: {
+          'uuid-vid-lista': dataUriJpeg,
         },
       );
 
-      final html = service.gerarHtmlParaImpressao(
+      final bytes = await service.gerarPdfResumidoBytes(
         registro: registroManut,
         idSessao: 'sessao-manut-pdf',
         urlCanonica: 'https://fixalog.app/v/sessao-manut-pdf',
         mapeamentoMidias: {
-          'uuid-laudo-princ_p1': 'data:image/webp;base64,BBB1',
-          'uuid-laudo-princ_p2': 'data:image/webp;base64,BBB2',
+          'uuid-laudo-princ_p1': arqPag1.path,
+          'uuid-laudo-princ_p2': arqPag2.path,
         },
         materiaisAnexos: [anexo],
       );
 
-      expect(html, contains('laudo_principal.pdf — Página 1 de 2'));
-      expect(html, contains('src="data:image/webp;base64,BBB1"'));
-      expect(html, contains('laudo_principal.pdf — Página 2 de 2'));
-      expect(html, contains('src="data:image/webp;base64,BBB2"'));
-
-      expect(html, contains('nf_anexo.pdf — Página 1 de 2'));
-      expect(html, contains('src="data:image/webp;base64,AAA1"'));
-      expect(html, contains('nf_anexo.pdf — Página 2 de 2'));
-      expect(html, contains('src="data:image/webp;base64,AAA2"'));
+      final textoPdf = latin1.decode(bytes, allowInvalid: true);
+      expect(textoPdf, contains('laudo_principal.pdf'));
+      expect(textoPdf, contains('nf_anexo.pdf'));
     });
 
-    test('gerarHtmlParaImpressao reflete formatação Markdown e linhas em branco nas descrições do PDF Resumido', () {
+    test('gerarPdfResumidoBytes reflete formatação Markdown (títulos, negrito, itálico, código, tachado e listas) e linhas em branco', () async {
       final grupo = GrupoRepetido()
         ..idLista = 'pb_detalhes'
         ..idItem = 'det_1'
         ..idTipo = 'detalhe_item'
         ..respostasItem['det_descricao'] = (Resposta()
-          ..texto = '# Tratamento Térmico\n\nAquecimento a **1050°C** com resfriamento *rápido*.\n\n- Ensaio aprovado');
+          ..texto = '# Tratamento Térmico\r\n\r\nAquecimento a **1050°C** com resfriamento *rápido* em `forno_v2` e ~~escória~~.\r\n\r\n- Ensaio aprovado');
 
       final registro = Registro()
         ..idProtocolo = 'cadastro_material'
+        ..respostas['obs_geral'] = (Resposta()..texto = '# Resumo Geral\n\nTexto **importante**.')
         ..listas.add(grupo);
 
-      final html = service.gerarHtmlParaImpressao(
+      final bytes = await service.gerarPdfResumidoBytes(
         registro: registro,
         idSessao: 'sessao-md-pdf',
         urlCanonica: 'https://fixalog.app/v/sessao-md-pdf',
       );
 
-      expect(html, contains('<h4>Tratamento Térmico</h4>'));
-      expect(html, contains('<strong>1050°C</strong>'));
-      expect(html, contains('<em>rápido</em>'));
-      expect(html, contains('<ul><li>Ensaio aprovado</li></ul>'));
+      final textoPdf = latin1.decode(bytes, allowInvalid: true);
+      expect(textoPdf, contains('Tratamento'));
+      expect(textoPdf, contains('1050°C'));
+      expect(textoPdf, contains('forno_v2'));
+      expect(textoPdf, contains('aprovado'));
     });
   });
 }

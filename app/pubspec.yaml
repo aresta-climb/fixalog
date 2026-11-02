@@ -41,6 +41,8 @@ dependencies:
   url_launcher: ^6.3.1
   webview_flutter: ^4.14.1
   file_picker: ^13.3.0
+  archive: any
+  qr: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -55,6 +57,10 @@ dev_dependencies:
   geolocator_platform_interface: any
   plugin_platform_interface: any
   isar_community_generator: ^3.3.2
+  path_provider_platform_interface: any
+  flutter_image_compress_platform_interface: any
+  ffmpeg_kit_flutter_platform_interface: any
+  cross_file: any
 flutter:
   uses-material-design: true
 

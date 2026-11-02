@@ -151,8 +151,6 @@ void main() {
     xmlSigner = XmlDsigSigner();
     pdfSummaryService = PdfPrintSummaryService(
       documentBuilder: epubBuilder,
-      converter: ({required html, baseUrl, required format}) async =>
-          Uint8List.fromList(utf8.encode(html)),
     );
 
     notifier = GenerationNotifier(
@@ -196,6 +194,7 @@ void main() {
     expect(notifier.state.epubPath, isNotNull);
     expect(File(notifier.state.epubPath!).existsSync(), isTrue);
     expect(notifier.state.pdfPath, isNull);
+    expect(draftService.chamadas, equals(0));
   });
 
   test('Deve gravar um SubmissionRecord no Isar após a geração do relatório', () async {
@@ -220,10 +219,10 @@ void main() {
     expect(savedRecord.status, SubmissionStatus.gerado);
   });
 
-  test('Deve processar fotos e vídeos referenciados no Registro', () async {
+  test('Deve processar fotos e vídeos referenciados no Registro empacotando poster em .jpg', () async {
     final fotoFile = File('${tempDir.path}/foto.webp')..writeAsBytesSync([1, 2]);
     final videoFile = File('${tempDir.path}/video.mp4')..writeAsBytesSync([3, 4]);
-    final posterFile = File('${tempDir.path}/poster.webp')..writeAsBytesSync([5, 6]);
+    final posterFile = File('${tempDir.path}/poster.jpg')..writeAsBytesSync([5, 6]);
 
     mediaService = _FakeMediaCompressorService(
       imagensComprimidas: {'uuid-foto': fotoFile},
@@ -269,6 +268,10 @@ void main() {
     expect(notifier.state.hasError, isFalse);
     expect(mediaService.fotosSolicitadas, contains('uuid-foto'));
     expect(mediaService.videosSolicitados, contains('uuid-video'));
+
+    final zip = ZipDecoder().decodeBytes(File(outPath).readAsBytesSync());
+    final nomes = zip.files.map((f) => f.name).toSet();
+    expect(nomes, contains('OEBPS/midias/uuid-video_poster.jpg'));
   });
 
   test('Deve empacotar documento PDF original bit-a-bit e páginas WebP rasterizadas no EPUB 3 com assinatura XML-DSig válida', () async {

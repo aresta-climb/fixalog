@@ -50,7 +50,7 @@ void main() {
       expect(comandoExecutado, contains('scale=-2:720'));
       expect(comandoExecutado, contains('-c:v libx264'));
       expect(comandoExecutado, contains('-crf 26'));
-      expect(comandoExecutado, contains('-preset fast'));
+      expect(comandoExecutado, contains('-preset veryfast'));
       expect(comandoExecutado, contains('-c:a aac'));
       expect(comandoExecutado, contains('-ac 1'));
       expect(comandoExecutado, contains('-b:a 64k'));
@@ -96,7 +96,7 @@ void main() {
         },
       );
 
-      final posterPath = '${tempDir.path}/poster.webp';
+      final posterPath = '${tempDir.path}/poster.jpg';
       final resultado = await service.extrairPosterFrame(
         arquivoEntrada: videoOriginal,
         caminhoSaida: posterPath,
@@ -120,7 +120,7 @@ void main() {
         },
       );
 
-      final posterPath = '${tempDir.path}/poster_custom.webp';
+      final posterPath = '${tempDir.path}/poster_custom.jpg';
       final resultado = await service.extrairPosterFrame(
         arquivoEntrada: videoOriginal,
         caminhoSaida: posterPath,

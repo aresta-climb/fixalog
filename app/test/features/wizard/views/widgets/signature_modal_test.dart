@@ -200,5 +200,62 @@ void main() {
         tester.view.resetViewInsets();
       });
     });
+
+    testWidgets(
+      'Deve renderizar e assinar sem crash quando o tema global define ElevatedButton com minimumSize(double.infinity, 56) e textScaler 1.25',
+      (tester) async {
+        Uint8List? resultado;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            themeMode: ThemeMode.dark,
+            builder: (context, child) {
+              final mq = MediaQuery.of(context);
+              return MediaQuery(
+                data: mq.copyWith(textScaler: const TextScaler.linear(1.25)),
+                child: child!,
+              );
+            },
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                ),
+              ),
+            ),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () async {
+                    resultado = await showDialog<Uint8List>(
+                      context: context,
+                      builder: (_) => const SignatureModal(),
+                    );
+                  },
+                  child: const Text('ABRIR'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('ABRIR'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('ASSINATURA DIGITAL'), findsOneWidget);
+
+        final signatureFinder = find.byType(Signature);
+        await tester.drag(signatureFinder, const Offset(50, 30));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('SALVAR ASSINATURA'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(resultado, isNotNull);
+      },
+    );
   });
 }

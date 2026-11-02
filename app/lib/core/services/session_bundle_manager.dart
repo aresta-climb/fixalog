@@ -126,8 +126,8 @@ class SessionBundleManager {
   /// É invocada na rotina de lixeira quando o usuário deleta um log do Histórico.
   Future<void> deleteSessionBundle(String sessionId) async {
     final dir = await getSessionDirectory(sessionId);
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
     }
   }
 }

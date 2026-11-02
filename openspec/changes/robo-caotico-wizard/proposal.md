@@ -2,7 +2,7 @@
 
 ## Why
 
-O fluxo de preenchimento de protocolos periciais de inspeção técnica (`WizardScreen`) no FixLog é complexo e dinâmico, envolvendo árvores condicionais em YAML/Protobuf, validações de campos obrigatórios, fotos, assinaturas digitais e metadados de GPS. Testes unitários convencionais costumam seguir caminhos felizes (*happy paths*) previsíveis e deixam de detectar combinações caóticas de ações rápidas, rotações de tela e preenchimentos parciais que ocorrem com frequência no manuseio de smartphones em falésias.
+O fluxo de preenchimento de protocolos periciais de inspeção técnica (`WizardScreen`) no Fixalog é complexo e dinâmico, envolvendo árvores condicionais em YAML/Protobuf, listas aninhadas (`StepListaAcoes`), catálogo de materiais (`StepRefMateriais`), validações de campos obrigatórios, fotos, vídeos, documentos PDF e metadados de GPS. Testes unitários convencionais costumam seguir caminhos felizes (*happy paths*) previsíveis e deixam de detectar combinações caóticas de ações rápidas, rotações de tela e preenchimentos parciais que ocorrem com frequência no manuseio de smartphones em falésias.
 
 Inspirado no motor de caos do `aresta_app`, a introdução do **Robô Caótico** (*Monkey / Fuzzing Testing*) autônomo sobre o `WizardScreen` permite exercitar o aplicativo com milhares de interações aleatórias guiadas por semente determinística (`seed`). O algoritmo de *Delta Debugging* (`ddmin`) reduz automaticamente qualquer falha encontrada à sua sequência mínima de passos, gravando uma receita JSON em `test/caos/caminhos_regressao/` que passa a ser executada em menos de 1 segundo nos testes diários e na esteira de CI, garantindo imunidade permanente a regressões.
 

@@ -1,3 +1,9 @@
+# Motor Unificado de Wizard
+
+## Purpose
+
+Fornece o motor declarativo universal orientado a protocolos YAML e Protobuf para coleta guiada de dados, mídias (fotos, vídeos com salvamento no rolo da câmera e PDFs), coordenadas GPS, listas aninhadas e persistência contínua offline em sessões isoladas.
+
 ## Requirements
 
 ### Requirement: Arquitetura Protobuf Híbrida
@@ -9,16 +15,15 @@ O sistema DEVE utilizar um schema Protobuf genérico (`Registro`) capaz de armaz
 - **THEN** o sistema assina o arquivo binário garantindo integridade
 
 ### Requirement: Motor Universal de Interface (YAML)
-O `WizardScreen` DEVE ser capaz de renderizar e coordenar totalmente as etapas de captura, incluindo componentes nativos de mídia, ditados apenas pelo arquivo YAML fornecido, servindo como única tela para qualquer formulário no app. O modal de captura de assinatura (`SIGNATURE`) DEVE utilizar restrições explícitas de layout para evitar render boxes sem dimensões calculadas.
+O `WizardScreen` DEVE ser capaz de renderizar e coordenar totalmente as etapas de captura, incluindo componentes nativos de mídia e localização ditados apenas pelo arquivo YAML fornecido, servindo como única tela para qualquer formulário no app, encerrando o último passo diretamente na confirmação de geração sem exigir coleta de assinatura manuscrita em tela.
 
 #### Scenario: Integração de Recursos Nativos
-- **WHEN** um `StepCampoSimples` for do tipo `IMAGE`, `GPS` ou `SIGNATURE`
-- **THEN** a interface deve invocar respectivamente a Câmera nativa, o serviço de Localização, e o Canvas de Assinatura, ao invés de usar mocks, salvando a saída física no `SessionBundleManager`
+- **WHEN** um `StepCampoSimples` for do tipo `IMAGE`, `VIDEO` ou `GPS`
+- **THEN** a interface deve invocar respectivamente a Câmera/Galeria nativa e o serviço de Localização, salvando a saída física no `SessionBundleManager`
 
 #### Scenario: Coleta de Assinatura Digital sem Crash
-- **WHEN** o usuário toca no campo de assinatura digital do mantenedor
-- **THEN** o `SignatureModal` é exibido com dimensões finitas delimitadas via `LayoutBuilder`
-- **THEN** o usuário consegue assinar livremente no canvas sem disparar exceção de hit test
+- **WHEN** o usuário preenche os campos obrigatórios do último passo do protocolo e aciona o botão de conclusão do passo
+- **THEN** o Wizard avança diretamente para o card de conclusão do protocolo para geração e assinatura digital criptográfica do relatório, sem exibir modal de assinatura manuscrita em tela
 
 ### Requirement: Pipeline de Persistência Unificado
 O motor do Wizard DEVE persistir continuamente as alterações no manifesto Protobuf (`registro.binarypb`) e no banco local `Isar` (`SubmissionRecord`) durante todo o ciclo de preenchimento, garantindo que nenhum progresso seja perdido caso o usuário saia da tela ou feche o app. Ao finalizar a última tela do Wizard, o motor consolida o registro para a geração do PDF.
@@ -46,7 +51,7 @@ O motor do Wizard DEVE isolar o estado de cada sessão em execução como uma in
 #### Scenario: Abrir cadastro de material durante uma manutenção
 - **WHEN** o usuário está preenchendo um protocolo de manutenção e aciona a opção de cadastrar um novo material na hora
 - **THEN** uma nova instância isolada do `WizardScreen` é aberta para o cadastro do material mantendo o estado da manutenção intacto em segundo plano
-- **THEN** ao concluir e assinar o novo material, a tela retorna à manutenção com os dados anteriores preservados e o novo material disponível e selecionado
+- **THEN** ao concluir e gerar o relatório assinado digitalmente do novo material, a tela retorna à manutenção com os dados anteriores preservados e o novo material disponível e selecionado
 
 ### Requirement: Preenchimento Automático Editável de Data Atual
 O motor do Wizard DEVE suportar uma configuração em campos do tipo `DATE` (`preencher_data_atual`) que inicialize automaticamente a resposta do campo com a data corrente do dispositivo no momento do carregamento do passo ou criação do item, permitindo que o usuário altere a data manualmente caso deseje.
@@ -74,7 +79,7 @@ O componente `StepRefMateriais` DEVE permitir selecionar materiais previamente c
 
 #### Scenario: Cadastrar novo material a partir da seleção na manutenção
 - **WHEN** o usuário clica no botão de cadastrar novo material dentro da etapa de seleção de materiais da manutenção
-- **THEN** o sistema abre o Wizard de cadastro de materiais em tela dedicada e, após sua conclusão e assinatura, inclui e seleciona automaticamente o novo material na manutenção atual
+- **THEN** o sistema abre o Wizard de cadastro de materiais em tela dedicada e, após sua conclusão e geração, inclui e seleciona automaticamente o novo material na manutenção atual
 
 ### Requirement: Seleção e Rasterização de Documentos PDF em Campos de Mídia
 Quando um campo do Wizard permitir captura de documento ou imagem, a interface DEVE oferecer, além da captura por câmera e galeria de fotos, a opção de selecionar um arquivo PDF do dispositivo, armazenando o binário `.pdf` original intacto e as imagens `.webp` rasterizadas de cada página no `SessionBundleManager`.
@@ -83,3 +88,26 @@ Quando um campo do Wizard permitir captura de documento ou imagem, a interface D
 - **WHEN** o usuário toca para anexar um comprovante em um campo que aceita documento ou imagem e escolhe a opção de selecionar arquivo PDF
 - **THEN** o sistema abre o seletor de arquivos filtrando por extensão `.pdf`
 - **THEN** após a escolha do PDF, o arquivo original é copiado para a sessão, cada página é rasterizada em um arquivo `.webp` numerado e o campo exibe a confirmação visual do documento anexado com sua contagem de páginas
+
+### Requirement: Salvamento no Rolo da Câmera para Mídias Capturadas pela Câmera
+Quando o usuário capturar uma foto ou gravar um vídeo diretamente pela câmera do dispositivo dentro do Wizard, o sistema DEVE salvar a mídia original tanto no armazenamento da sessão (`SessionBundleManager`) quanto diretamente no rolo da câmera da galeria do dispositivo, sem criar álbum separado e sem interromper o fluxo do laudo caso o sistema operacional recuse o salvamento na galeria.
+
+#### Scenario: Captura de foto ou vídeo pela câmera nativa
+- **WHEN** o usuário escolhe "Tirar Foto com a Câmera" ou "Gravar com a Câmera" em um campo de mídia do Wizard e confirma a captura
+- **THEN** o arquivo capturado é salvo no `SessionBundleManager` da sessão atual com cálculo de hash SHA-256
+- **THEN** uma cópia do arquivo é salva diretamente no rolo da câmera do dispositivo
+
+#### Scenario: Seleção de mídia já existente na galeria
+- **WHEN** o usuário escolhe "Escolher da Galeria" em um campo de mídia do Wizard
+- **THEN** os arquivos selecionados são salvos apenas no `SessionBundleManager` da sessão atual, sem duplicá-los no rolo da câmera do dispositivo
+
+#### Scenario: Falha ou permissão negada ao salvar no rolo da câmera
+- **WHEN** o usuário captura uma foto ou vídeo pela câmera mas o sistema operacional nega permissão de escrita na galeria ou ocorre falha na API da galeria
+- **THEN** a mídia continua salva e anexada normalmente na sessão do relatório sem lançar erro bloqueante para o usuário
+
+### Requirement: Compatibilidade Retroativa com Sessões Legadas que Continham Assinatura em Tela
+Ao carregar, editar ou analisar o YAML de uma sessão ou relatório antigo que contenha definições ou respostas do tipo legado `SIGNATURE`, o sistema DEVE ignorar e remover silenciosamente os campos, passos e blocos exclusivos de assinatura manuscrita, permitindo abrir, editar e re-gerar o relatório sem erros.
+
+#### Scenario: Abertura ou edição de relatório antigo contendo passo de assinatura no YAML salvo
+- **WHEN** o usuário abre para continuar preenchimento ou editar um registro antigo cujo `yamlConteudo` ou mapa de respostas contenha o tipo `SIGNATURE` (`assinatura_c` ou `mat_assinatura_c`)
+- **THEN** o parser e o controlador descartam os conteúdos e passos de assinatura manuscrita e carregam todos os demais dados do relatório normalmente sem apresentar erro

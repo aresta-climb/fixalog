@@ -701,23 +701,3 @@ protocolo:
                                             tipo: IMAGE
                                             ui_hint: CAMERA_ACTION
 
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 3 — Certificação e Assinatura
-    # ═══════════════════════════════════════════════════════════════
-    - id: encerramento_material
-      titulo: "Bloco 3 — Certificação e Assinatura"
-      subtitulo: "Assinatura do responsável técnico pelo cadastro e rastreabilidade do material"
-
-      steps:
-        - id: assinatura_material
-          conteudos:
-            - id: mat_assinatura_instrucao
-              instrucao:
-                titulo: "Declaração de Rastreabilidade do Material"
-                corpo: "Ao assinar abaixo, declaro que os dados de origem, notas fiscais, ensaios e etapas de fabricação informados neste registro correspondem fielmente ao lote/conjunto cadastrado."
-                nivel_alerta: INFO
-            - id: mat_assinatura_c
-              campo_simples:
-                label: "Assinatura do responsável"
-                tipo: SIGNATURE
-                obrigatorio: true

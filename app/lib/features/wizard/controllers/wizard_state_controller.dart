@@ -290,19 +290,20 @@ class WizardStateController extends Notifier<WizardState> {
       throw Exception("O registro antigo não contém o YAML original salvo. Não é possível recriar a interface.");
     }
 
-    if (registro.idProtocolo == 'cadastro_material' &&
-        (yamlStr.contains('det_video') ||
+    if ((registro.idProtocolo == 'cadastro_material' ||
+            registro.idProtocolo == 'manutencao_ferragens') &&
+        (yamlStr.contains('SIGNATURE') ||
+            yamlStr.contains('det_video') ||
             yamlStr.contains('tq_video') ||
             yamlStr.contains('Foto da Etapa / Detalhe') ||
             yamlStr.contains('Mídias da Etapa / Detalhe'))) {
       try {
-        final arquivoLocal = File('assets/protocols/cadastro_material.yaml');
+        final caminhoAsset = 'assets/protocols/${registro.idProtocolo}.yaml';
+        final arquivoLocal = File(caminhoAsset);
         if (arquivoLocal.existsSync()) {
           yamlStr = arquivoLocal.readAsStringSync();
         } else {
-          yamlStr = await rootBundle.loadString(
-            'assets/protocols/cadastro_material.yaml',
-          );
+          yamlStr = await rootBundle.loadString(caminhoAsset);
         }
       } catch (_) {}
     }
@@ -345,9 +346,11 @@ class WizardStateController extends Notifier<WizardState> {
       }
     }
 
-    // Achata todas as respostas
+    // Achata todas as respostas (ignorando chaves legadas de assinatura manuscrita)
     final allAnswers = <String, Resposta>{};
     allAnswers.addAll(registro.respostas);
+    allAnswers.remove('assinatura_c');
+    allAnswers.remove('mat_assinatura_c');
 
     for (final grupo in registro.listas) {
       for (final entry in grupo.respostasItem.entries) {
@@ -568,8 +571,7 @@ class WizardStateController extends Notifier<WizardState> {
 
       final refMidia = ReferenciaMidia();
       final mimeExt = extension.replaceAll('.', '');
-      if (tipo == StepCampoSimples_TipoCampo.IMAGE ||
-          tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
+      if (tipo == StepCampoSimples_TipoCampo.IMAGE) {
         refMidia.imagem = ArquivoImagem(
           uuid: mediaUuid,
           hashOriginal: hash,
@@ -583,13 +585,8 @@ class WizardStateController extends Notifier<WizardState> {
         );
       }
 
-      final Resposta novaResposta;
-      if (tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
-        novaResposta = Resposta(midia: refMidia);
-      } else {
-        final atuais = extrairMidiasDeResposta(state.answers[key]);
-        novaResposta = _empacotarMidiasEmResposta([...atuais, refMidia]);
-      }
+      final atuais = extrairMidiasDeResposta(state.answers[key]);
+      final novaResposta = _empacotarMidiasEmResposta([...atuais, refMidia]);
       final updated = Map<String, Resposta>.from(state.answers)
         ..[key] = novaResposta;
       final updatedProc = Map<String, int>.from(state.processandoMidiasPorCampo)
@@ -680,13 +677,7 @@ class WizardStateController extends Notifier<WizardState> {
           );
         }
 
-        if (item.tipo == StepCampoSimples_TipoCampo.SIGNATURE) {
-          atuais
-            ..clear()
-            ..add(refMidia);
-        } else {
-          atuais.add(refMidia);
-        }
+        atuais.add(refMidia);
         restantes--;
 
         final updatedAnswers = Map<String, Resposta>.from(state.answers)

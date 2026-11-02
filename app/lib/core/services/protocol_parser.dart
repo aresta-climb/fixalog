@@ -38,7 +38,9 @@ class ProtocolParser {
       nome: m['nome'] as String? ?? '',
       descricao: m['descricao'] as String? ?? '',
       versao: m['versao'] as String? ?? '',
-      blocos: (m['blocos'] as YamlList? ?? YamlList.wrap([])).map(_parseBloco),
+      blocos: (m['blocos'] as YamlList? ?? YamlList.wrap([]))
+          .map(_parseBloco)
+          .where((b) => b.steps.isNotEmpty),
     );
   }
 
@@ -48,11 +50,22 @@ class ProtocolParser {
       id: m['id'] as String? ?? '',
       titulo: m['titulo'] as String? ?? '',
       subtitulo: m['subtitulo'] as String? ?? '',
-      steps: (m['steps'] as YamlList? ?? YamlList.wrap([])).map(_parseStep),
+      steps: (m['steps'] as YamlList? ?? YamlList.wrap([]))
+          .map(_parseStep)
+          .where((s) => s.conteudos.isNotEmpty),
     );
   }
 
   // ─── Step (card) ─────────────────────────────────────────────────────────
+
+  static bool _ehConteudoLegadoAssinatura(YamlMap m) {
+    final id = m['id'] as String? ?? '';
+    if (id == 'assinatura_instrucao' || id == 'mat_assinatura_instrucao') {
+      return true;
+    }
+    final campoSimples = m['campo_simples'] as YamlMap?;
+    return campoSimples != null && campoSimples['tipo'] == 'SIGNATURE';
+  }
 
   static Step _parseStep(dynamic s) {
     final m = s as YamlMap;
@@ -62,7 +75,9 @@ class ProtocolParser {
     if (m.containsKey('conteudos')) {
       return Step(
         id: id,
-        conteudos: (m['conteudos'] as YamlList).map(_parseConteudoStep),
+        conteudos: (m['conteudos'] as YamlList)
+            .where((c) => !_ehConteudoLegadoAssinatura(c as YamlMap))
+            .map(_parseConteudoStep),
       );
     }
 
@@ -196,7 +211,6 @@ class ProtocolParser {
     'BOOLEAN' => StepCampoSimples_TipoCampo.BOOLEAN,
     'GPS' => StepCampoSimples_TipoCampo.GPS,
     'VIDEO' => StepCampoSimples_TipoCampo.VIDEO,
-    'SIGNATURE' => StepCampoSimples_TipoCampo.SIGNATURE,
     'DATE' => StepCampoSimples_TipoCampo.DATE,
     _ => StepCampoSimples_TipoCampo.TEXT,
   };

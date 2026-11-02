@@ -286,16 +286,18 @@ void main() {
       },
     );
 
-    test('step "assinatura" tem instrucao + SIGNATURE em sequência', () {
+    test('bloco "avaliacao" encerra em "avaliacao_geral" sem step de assinatura', () {
       final bloco = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
-      final step = bloco.steps.firstWhere((s) => s.id == 'assinatura');
+      final stepIds = bloco.steps.map((s) => s.id).toList();
+      expect(stepIds, isNot(contains('assinatura')));
+      expect(bloco.steps.last.id, equals('avaliacao_geral'));
 
-      expect(step.conteudos.length, greaterThanOrEqualTo(2));
-      expect(step.conteudos.first.whichTipo(), ConteudoStep_Tipo.instrucao);
-      final lastC = step.conteudos.last;
-      expect(lastC.whichTipo(), ConteudoStep_Tipo.campoSimples);
-      expect(lastC.campoSimples.tipo, StepCampoSimples_TipoCampo.SIGNATURE);
-      expect(lastC.campoSimples.obrigatorio, isTrue);
+      final tiposCampo = bloco.steps
+          .expand((s) => s.conteudos)
+          .where((c) => c.whichTipo() == ConteudoStep_Tipo.campoSimples)
+          .map((c) => c.campoSimples.tipo)
+          .toList();
+      expect(tiposCampo, isNot(contains(StepCampoSimples_TipoCampo.SIGNATURE)));
     });
 
     test(
@@ -613,7 +615,8 @@ protocolo:
 
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
       expect(proto.id, equals('cadastro_material'));
-      expect(proto.blocos.length, equals(3));
+      expect(proto.blocos.length, equals(2));
+      expect(proto.blocos.map((b) => b.id), isNot(contains('encerramento_material')));
 
       // Bloco 1: Identificação Geral com mat_nome, mat_codigo_associacao e mat_data (preencher_data_atual: true)
       final blocoIdent = proto.blocos[0];
@@ -697,14 +700,69 @@ protocolo:
         );
       }
 
-      // Bloco 3: Assinatura obrigatória
-      final blocoAssinatura = proto.blocos[2];
-      final stepAssinatura = blocoAssinatura.steps.last;
+      // Nenhum bloco ou step de cadastro_material deve conter campo do tipo SIGNATURE
+      final todosConteudos = proto.blocos
+          .expand((b) => b.steps)
+          .expand((s) => s.conteudos)
+          .toList();
       expect(
-        stepAssinatura.conteudos.last.campoSimples.tipo,
-        equals(StepCampoSimples_TipoCampo.SIGNATURE),
+        todosConteudos.any(
+          (c) =>
+              c.whichTipo() == ConteudoStep_Tipo.campoSimples &&
+              c.campoSimples.tipo == StepCampoSimples_TipoCampo.SIGNATURE,
+        ),
+        isFalse,
       );
-      expect(stepAssinatura.conteudos.last.campoSimples.obrigatorio, isTrue);
+    });
+
+    test('fromYaml filtra silenciosamente conteúdos, steps e blocos legados de SIGNATURE', () {
+      const yamlLegadoComAssinatura = '''
+protocolo:
+  id: protocolo_legado
+  nome: "Protocolo Legado com Assinatura"
+  versao: "1.0.0"
+  blocos:
+    - id: avaliacao
+      titulo: "Avaliação"
+      steps:
+        - id: observacoes_finais
+          conteudos:
+            - id: obs_c
+              campo_simples:
+                label: "Observações"
+                tipo: TEXT_LONG
+        - id: assinatura
+          conteudos:
+            - id: assinatura_instrucao
+              instrucao:
+                titulo: "Declaração"
+                texto: "Texto da declaração"
+            - id: assinatura_c
+              campo_simples:
+                label: "Assinatura"
+                tipo: SIGNATURE
+                obrigatorio: true
+    - id: encerramento_material
+      titulo: "Assinatura e Responsabilidade"
+      steps:
+        - id: assinatura_material
+          conteudos:
+            - id: mat_assinatura_instrucao
+              instrucao:
+                titulo: "Responsabilidade"
+                texto: "Declaro..."
+            - id: mat_assinatura_c
+              campo_simples:
+                label: "Assinatura"
+                tipo: SIGNATURE
+                obrigatorio: true
+''';
+
+      final proto = ProtocolParser.fromYaml(yamlLegadoComAssinatura);
+      expect(proto.blocos, hasLength(1));
+      expect(proto.blocos.first.id, equals('avaliacao'));
+      expect(proto.blocos.first.steps, hasLength(1));
+      expect(proto.blocos.first.steps.first.id, equals('observacoes_finais'));
     });
   });
 }

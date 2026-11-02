@@ -5,10 +5,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar_community/isar.dart';
 import 'package:fixalog/features/home/views/history_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart' show isarProvider;
 import 'package:open_filex/open_filex.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
@@ -268,6 +271,86 @@ void main() {
       expect(find.text('Abrir Relatório'), findsOneWidget);
       expect(find.text('Editar'), findsOneWidget);
       expect(find.text('Excluir'), findsOneWidget);
+    });
+
+    testWidgets('Permite excluir relatório legado com artefato de assinatura e EPUB irmão sem erros', (tester) async {
+      late Directory tempDir;
+      late Isar isar;
+      late SessionBundleManager sessionManager;
+      late File relatorioPdf;
+      late File relatorioEpubIrmao;
+      late Directory dirSessao;
+      late File arqAssinatura;
+      late SubmissionRecord record;
+
+      await tester.runAsync(() async {
+        tempDir = await Directory.systemTemp.createTemp('hist_screen_del_');
+        await Isar.initializeIsarCore(download: true);
+        isar = await Isar.open(
+          [SubmissionRecordSchema],
+          directory: tempDir.path,
+        );
+        sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+
+        relatorioPdf = File('${tempDir.path}/laudo_legado.pdf')..writeAsStringSync('pdf');
+        relatorioEpubIrmao = File('${tempDir.path}/laudo_legado.epub')..writeAsStringSync('epub');
+        dirSessao = await sessionManager.getSessionDirectory('sessao_legada_1');
+        arqAssinatura = File('${dirSessao.path}/assinatura_c_original.png')
+          ..writeAsBytesSync([1, 2, 3]);
+        final arqManifesto = File('${dirSessao.path}/registro.binarypb')
+          ..writeAsBytesSync([4, 5, 6]);
+
+        record = SubmissionRecord()
+          ..idSessao = 'sessao_legada_1'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção Antiga com Assinatura'
+          ..tituloExibicao = 'Via Legada Com Assinatura'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = DateTime(2025, 8, 10)
+          ..status = SubmissionStatus.gerado
+          ..pdfPath = relatorioPdf.path
+          ..protobufPath = arqManifesto.path;
+
+        await isar.writeTxn(() async {
+          await isar.submissionRecords.put(record);
+        });
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            isarProvider.overrideWithValue(isar),
+            sessionBundleManagerProvider.overrideWithValue(sessionManager),
+            historyProvider.overrideWith((ref) => Stream.value([record])),
+          ],
+          child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Via Legada Com Assinatura'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Excluir Protocolo'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(relatorioPdf.existsSync(), isFalse);
+      expect(relatorioEpubIrmao.existsSync(), isFalse);
+      expect(arqAssinatura.existsSync(), isFalse);
+      expect(dirSessao.existsSync(), isFalse);
+      expect(isar.submissionRecords.where().findAllSync(), isEmpty);
+
+      await tester.runAsync(() async {
+        await isar.close(deleteFromDisk: true);
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
     });
   });
 }

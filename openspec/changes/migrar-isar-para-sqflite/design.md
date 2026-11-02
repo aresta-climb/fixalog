@@ -16,7 +16,7 @@ Atualmente o Fixalog utiliza o `isar_community` para persistir apenas três enti
 **Non-Goals:**
 - Alterar o formato dos *Session Bundles* no sistema de arquivos ou dos manifestos Protobuf (`registro.binarypb`).
 - Utilizar ORMs baseados em geração de código como `drift` ou `floor`.
-- Migrar bancos Isar legados de campo (o app ainda está em fase pré-lançamento `0.1.4-dev`, e os relatórios reais residem nos diretórios de sessão em disco).
+- Manter dependência transitória do `isar_community` para ler o arquivo binário `default.isar` (em vez disso, os registros de relatórios e rascunhos serão reconstruídos diretamente dos *Session Bundles* já salvos em `app_docs/sessoes/`).
 
 ## Decisions
 
@@ -42,6 +42,16 @@ Atualmente o Fixalog utiliza o `isar_community` para persistir apenas três enti
 ### 4. Reatividade na Aba de Histórico sem Polling
 - **Decisão**: O `BancoDadosLocal` (ou `HistoryRepository`) mantém um `StreamController<void>.broadcast()` que emite um evento sempre que uma mutação (`salvarSubmissao`, `deletarSubmissaoPorIdSessao`, etc.) ocorre na tabela `submissoes`. O método `watchHistory()` emite imediatamente a consulta atual ordenada por `data_inclusao DESC` e re-executa a consulta a cada evento do stream.
 - **Por que**: Substitui o `.watch(fireImmediately: true)` do Isar com menos de 15 linhas de código Dart puro e determinístico.
+
+### 5. Reindexação Automática a partir de `app_docs/sessoes/` (Auto-Healing e Migração sem Isar)
+- **Decisão**: Ao inicializar o `BancoDadosLocal` em arquivo, executar `sincronizarSessoesDoDisco(Directory diretorioBase)`:
+  1. Se existirem arquivos `default.isar` ou `default.isar.lock` no diretório base de documentos, removê-los silenciosamente.
+  2. Verificar o diretório `<diretorioBase>/sessoes/`. Para cada pasta `<id_sessao>` que não possua registro correspondente (`id_sessao`) na tabela `submissoes`:
+     - Ler `registro.binarypb` (ou extrair de `relatorio.epub` se aplicável) deserializando a mensagem Protobuf `Registro`.
+     - Determinar `idProtocolo`, `nomeProtocolo` (a partir do `yamlConteudo` ou ID), `tituloExibicao` (buscando as respostas `mat_nome`, `via_nome` ou `nome_via`), `tipoRegistro` (`MATERIAL` quando `idProtocolo == 'cadastro_material'`, caso contrário `MANUTENCAO`) e `dataInclusao` (a partir de `utcTimestampInicio` ou data de modificação da pasta).
+     - Verificar se existe `relatorio.epub` na pasta da sessão: se existir, definir `status = 'GERADO'` e `protobufPath = '<pasta>/relatorio.epub'`; caso contrário, definir `status = 'EM_PROGRESSO'` e `protobufPath = '<pasta>/registro.binarypb'`. Se existir PDF resumido na pasta, preencher `pdfPath`.
+     - Inserir o `SubmissionRecord` reconstruído na tabela `submissoes`.
+- **Por que**: Permite remover o Isar imediatamente sem perder nenhum relatório ou rascunho já criado no celular do usuário, além de dotar o aplicativo de capacidade de *auto-healing* do Histórico a partir dos *Session Bundles*.
 
 ## Risks / Trade-offs
 

@@ -9,7 +9,7 @@
 
 - [ ] 2.1 [TDD - Red] Escrever testes unitários em `app/test/core/services/registro_logger_test.dart` cobrindo `logInfo`, `logAviso`, `logError`, `logCrash` e o filtro `isFalhaConexaoOuTimeout`
 - [ ] 2.2 [TDD - Green] Implementar a classe `RegistroLogger` em `app/lib/core/services/registro_logger.dart` com envio dual e proteção de falhas transitórias
-- [ ] 2.3 Implementar a biblioteca test-only `RegistroLoggerFake` em `app/test/core/services/registro_logger_fake.dart` e validar com `registro_logger_fake_test.dart` (Princípio V)
+- [ ] 2.3 Implementar a biblioteca test-only `RegistroLoggerFake` em `app/test/fakes/registro_logger_fake.dart` e validar com `app/test/fakes/registro_logger_fake_test.dart` (Princípio V)
 
 ## 3. Gestão Adaptativa de Memória do Hardware
 

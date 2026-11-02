@@ -18,9 +18,9 @@ O assistente de catalogação pericial do FixLog (`WizardScreen`) gerencia estad
 
 ## Decisions
 
-### 1. Foco Inicial no `WizardScreen` e `NewProtocolScreen`
-- **Decisão**: Configurar o `motor_robo_caotico.dart` para inicializar a árvore de widgets a partir do formulário de protocolo técnico.
-- **Por que**: É a área de maior densidade lógica e com mais entradas do usuário, onde o retorno sobre o investimento de testes de fuzzing é mais alto.
+### 1. Foco Inicial no `WizardScreen` e `NewProtocolScreen` com Banco SQLite `In-Memory`
+- **Decisão**: Configurar o `motor_robo_caotico.dart` para inicializar a árvore de widgets a partir do formulário de protocolo técnico com banco SQLite em memória (`BancoDadosLocal.abrirEmMemoria()`) e os fakes de fronteira de hardware em `app/test/fakes/` (`ServicoGaleriaDispositivoFake`, etc.).
+- **Por que**: É a área de maior densidade lógica e com mais entradas do usuário, onde o retorno sobre o investimento de testes de fuzzing é mais alto, exercitando inclusive o auto-save reativo no SQLite `:memory:` sem I/O bloqueante.
 
 ### 2. Algoritmo Delta Debugging (`ddmin`)
 - **Decisão**: Implementar a classe `EncolhedorCaminhoCrash` que particiona a lista de passos em pedaços e remove subconjuntos até que nenhum passo adicional possa ser removido sem que o teste volte a passar.

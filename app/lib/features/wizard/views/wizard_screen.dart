@@ -15,8 +15,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:path/path.dart' as p;
-import 'widgets/signature_modal.dart';
 import '../../media/services/seletor_documento_service.dart';
+import '../../media/services/servico_galeria_dispositivo.dart';
 import '../../pdf_generation/providers/generation_provider.dart';
 import '../../pdf_generation/ui/generation_progress_dialog.dart';
 
@@ -87,34 +87,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   Future<void> _onNextPressed() async {
     FocusManager.instance.primaryFocus?.unfocus();
     HapticFeedback.lightImpact();
-    final state = ref.read(wizardControllerProvider);
     final notifier = ref.read(wizardControllerProvider.notifier);
-
-    final currentFlowStep = state.currentFlowStep;
-    if (currentFlowStep != null) {
-      for (final conteudo in currentFlowStep.step.conteudos) {
-        if (conteudo.whichTipo() == ConteudoStep_Tipo.campoSimples &&
-            conteudo.campoSimples.tipo == StepCampoSimples_TipoCampo.SIGNATURE &&
-            conteudo.campoSimples.obrigatorio &&
-            !state.answers.containsKey(conteudo.id)) {
-          final signatureBytes = await showDialog<Uint8List>(
-            context: context,
-            builder: (ctx) => const SignatureModal(),
-          );
-          if (!mounted) return;
-          if (signatureBytes != null) {
-            await notifier.saveMediaAnswerBytes(
-              conteudo.id,
-              signatureBytes,
-              '.png',
-              conteudo.campoSimples.tipo,
-            );
-          } else {
-            return;
-          }
-        }
-      }
-    }
 
     final idxBefore = ref.read(wizardControllerProvider).currentIndex;
     final success = notifier.nextStep();
@@ -539,7 +512,7 @@ class _NextButton extends ConsumerWidget {
 
     // Verificar se todos os conteudos obrigatórios estão satisfeitos
     bool allSatisfied = true;
-    String label = isLastStep ? 'ASSINAR E CONCLUIR' : 'SEGUINTE';
+    String label = isLastStep ? 'CONCLUIR' : 'SEGUINTE';
 
     for (final c in flowStep.step.conteudos) {
       final kind = c.whichTipo();
@@ -1912,6 +1885,11 @@ class _CampoSimplesContent extends ConsumerWidget {
                           StepCampoSimples_TipoCampo.IMAGE,
                           listItemId: listItemId,
                         );
+                    try {
+                      await ref
+                          .read(servicoGaleriaDispositivoProvider)
+                          .salvarFotoNoRoloDaCamera(image.path);
+                    } catch (_) {}
                   }
                 } else if (origem == _OrigemMidia.videoCamera) {
                   final video = await picker.pickVideo(source: ImageSource.camera);
@@ -1924,6 +1902,11 @@ class _CampoSimplesContent extends ConsumerWidget {
                           StepCampoSimples_TipoCampo.VIDEO,
                           listItemId: listItemId,
                         );
+                    try {
+                      await ref
+                          .read(servicoGaleriaDispositivoProvider)
+                          .salvarVideoNoRoloDaCamera(video.path);
+                    } catch (_) {}
                   }
                 } else if (origem == _OrigemMidia.galeria) {
                   final arquivos = await picker.pickMultipleMedia();
@@ -1975,63 +1958,6 @@ class _CampoSimplesContent extends ConsumerWidget {
               ),
             ),
           ],
-        );
-
-      case StepCampoSimples_TipoCampo.SIGNATURE:
-        final has = answer != null && answer.isNotEmpty;
-        return GestureDetector(
-          onTap: () async {
-            final Uint8List? signatureBytes = await showDialog<Uint8List>(
-              context: context,
-              builder: (ctx) => const SignatureModal(),
-            );
-
-            if (signatureBytes != null) {
-              await ref.read(wizardControllerProvider.notifier).saveMediaAnswerBytes(
-                    conteudoId,
-                    signatureBytes,
-                    '.png',
-                    campo.tipo,
-                    listItemId: listItemId,
-                  );
-            }
-          },
-          child: Container(
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.black38,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: has
-                    ? const Color(0xFFFF6B00).withValues(alpha: 0.4)
-                    : Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    has ? Icons.check_circle : Icons.gesture,
-                    color: has ? const Color(0xFFFF6B00) : Colors.white12,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    has ? 'ASSINATURA REGISTRADA' : 'TOQUE PARA ASSINAR',
-                    style: TextStyle(
-                      color: has
-                          ? const Color(0xFFFF6B00)
-                          : Colors.white.withValues(alpha: 0.2),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         );
 
       default:

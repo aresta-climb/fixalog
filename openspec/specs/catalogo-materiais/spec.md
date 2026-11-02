@@ -22,11 +22,11 @@ O protocolo de cadastro de materiais DEVE coletar na etapa de identificação ge
 - **THEN** o usuário informa o nome identificador e opcionalmente o código interno da associação
 
 ### Requirement: Suporte a Material Único ou Conjunto de Materiais
-O protocolo de cadastro de materiais DEVE permitir adicionar um ou múltiplos materiais dentro do mesmo registro antes da assinatura final, possibilitando cadastrar tanto um item isolado quanto um conjunto pronto (como chumbador somado a chapeleta e argola).
+O protocolo de cadastro de materiais DEVE permitir adicionar um ou múltiplos materiais dentro do mesmo registro antes da geração final, possibilitando cadastrar tanto um item isolado quanto um conjunto pronto (como chumbador somado a chapeleta e argola).
 
 #### Scenario: Cadastro de conjunto com múltiplos componentes
 - **WHEN** o usuário adiciona um item do tipo "Chumbador Mecânico / Parabolt" e em seguida adiciona um item do tipo "Chapeleta" na lista de materiais do cadastro
-- **THEN** ambos os itens são validados e empacotados dentro do mesmo registro de material assinado ao final
+- **THEN** ambos os itens são validados e empacotados dentro do mesmo registro de material assinado digitalmente ao final
 
 ### Requirement: Categorias Pré-definidas e Categoria Livre de Material
 Ao adicionar um material na lista do cadastro, o sistema DEVE oferecer as opções "Chumbador Mecânico / Parabolt", "Chapeleta", "Chapeleta com Argola", "Ancoragem Química", "Costura permanente" e "Outro". As cinco primeiras opções DEVEM apresentar campos pré-selecionados de produto pronto (como marca, liga metálica, lote, validade para químicos e foto), enquanto a opção "Outro" DEVE omitir campos engessados de produto pronto e focar diretamente na identificação livre e na seção padronizada de detalhes.
@@ -51,8 +51,8 @@ Independentemente da categoria escolhida dentre as seis opções, cada material 
 - **THEN** o sistema preserva o documento PDF original intacto na sessão e gera uma imagem WebP para cada página do documento para exibição e inclusão no relatório
 
 ### Requirement: Emissão e Edição de Relatório Assinado de Material
-Ao concluir o cadastro de um material, o sistema DEVE exigir a assinatura do mantenedor e gerar um pacote EPUB 3 assinado digitalmente para aquele material, permitindo sua visualização, exportação isolada em EPUB/PDF ou posterior edição e re-assinatura a partir do Histórico.
+Ao concluir o cadastro de um material, o sistema DEVE gerar diretamente um pacote EPUB 3 assinado digitalmente via XML-DSig para aquele material, sem exigir assinatura manuscrita em tela, permitindo sua visualização, exportação isolada em EPUB/PDF ou posterior edição e re-geração a partir do Histórico.
 
 #### Scenario: Conclusão e assinatura de material
-- **WHEN** o usuário assina e conclui o cadastro de um material
-- **THEN** o sistema gera o arquivo EPUB 3 assinado do material e o disponibiliza na seção de Materiais do Histórico e na lista de seleção das manutenções
+- **WHEN** o usuário conclui o preenchimento dos dados do cadastro de um material e solicita a geração do relatório
+- **THEN** o sistema gera o arquivo EPUB 3 assinado digitalmente do material e o disponibiliza na seção de Materiais do Histórico e na lista de seleção das manutenções

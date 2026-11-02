@@ -14,6 +14,9 @@ Migrar para **`sqflite`** (com **`sqflite_common_ffi`** rodando instâncias SQLi
   - Adição de `sqflite` em `dependencies` e `sqflite_common_ffi` em `dev_dependencies` no `app/pubspec.yaml`.
 - **Módulo de Banco de Dados SQLite (`BancoDadosLocal` / `provedorBancoDados`)**:
   - Criação de serviço centralizado em `app/lib/core/services/banco_dados_local.dart` responsável pela abertura e criação das tabelas SQLite (`configuracao_app`, `identidade`, `submissoes`) tanto em arquivo local (produção) quanto em memória (`inMemoryDatabasePath` via `databaseFactoryFfiNoIsolate` para testes).
+- **Reconstrução Automática de Sessões pelo Disco (`reindexarSessoesDoDisco`) e Limpeza do Isar Legado**:
+  - Rotina automática executada na abertura do `BancoDadosLocal` que inspeciona `app_docs/sessoes/<id_sessao>/`, lê os manifestos `registro.binarypb` (e verifica a presença de `relatorio.epub` / `.pdf`) e reconstrói no SQLite todos os registros `SubmissionRecord` (rascunhos e relatórios gerados, de manutenção ou material) que ainda não estejam indexados, garantindo perda zero dos relatórios existentes no celular sem manter dependência do Isar.
+  - Exclusão automática de arquivos residuais `default.isar` e `default.isar.lock` caso existam no diretório de documentos.
 - **Modelos Locais em Dart Puro (Princípio I e VI)**:
   - Conversão de `AppConfigRecord`, `IdentityRecord` e `SubmissionRecord` para classes Dart puras com serialização explícita `toMap()` / `fromMap()`, sem anotações nem geração de código.
 - **Reatividade e Eliminação de Nulabilidade Artificial (Princípio IV)**:

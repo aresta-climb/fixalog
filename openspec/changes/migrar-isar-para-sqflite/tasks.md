@@ -7,7 +7,7 @@
 ## 2. Modelos Locais em Dart Puro e Serviço `BancoDadosLocal` (Library-First & TDD)
 
 - [ ] 2.1 [TDD] Reescrever os testes unitários espelhados `app/test/core/models/local/app_config_record_test.dart`, `identity_record_test.dart` e `submission_record_test.dart` validando serialização (`toMap`/`fromMap`) e persistência real em banco SQLite `:memory:`, e converter `app/lib/core/models/local/app_config_record.dart`, `identity_record.dart` e `submission_record.dart` para classes Dart puras sem anotações do Isar, verificando que os 3 arquivos de teste passam com 100% de cobertura.
-- [ ] 2.2 [TDD] Criar `app/test/core/services/banco_dados_local_test.dart` e implementar `app/lib/core/services/banco_dados_local.dart` (com `abrirEmArquivo`, `abrirEmMemoria` via `databaseFactoryFfiNoIsolate`, operações CRUD para `configuracao_app`, `identidade` e `submissoes`, e stream reativo de submissões), verificando que `flutter test test/core/services/banco_dados_local_test.dart` passa com 100% de cobertura.
+- [ ] 2.2 [TDD] Criar `app/test/core/services/banco_dados_local_test.dart` e implementar `app/lib/core/services/banco_dados_local.dart` (com `abrirEmArquivo`, `abrirEmMemoria` via `databaseFactoryFfiNoIsolate`, operações CRUD para `configuracao_app`, `identidade` e `submissoes`, stream reativo de submissões, reindexação automática de pastas em `sessoes/<id_sessao>/` a partir de `registro.binarypb`/`relatorio.epub` e limpeza de `default.isar` legado), verificando que `flutter test test/core/services/banco_dados_local_test.dart` passa com 100% de cobertura.
 
 ## 3. Migração de Onboarding, Identidade e Histórico (TDD & In-Memory SQLite)
 

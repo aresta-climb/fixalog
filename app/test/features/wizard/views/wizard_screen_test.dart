@@ -3,16 +3,18 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/seletor_documento_service.dart';
+import 'package:fixalog/features/media/services/servico_galeria_dispositivo.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
+import '../../../fakes/servico_galeria_dispositivo_fake.dart';
 
 void main() {
   const testYaml = '''
@@ -64,7 +66,7 @@ blocos:
 
       final nextButtonFinder = find.widgetWithText(
         ElevatedButton,
-        'ASSINAR E CONCLUIR',
+        'CONCLUIR',
       );
       expect(nextButtonFinder, findsOneWidget);
 
@@ -1059,17 +1061,17 @@ blocos:
       expect(rectDetalhe.bottom, lessThanOrEqualTo(650.0));
     });
 
-    testWidgets('Permite tocar em TOQUE PARA ASSINAR no passo de assinatura logo após confirmar os itens obrigatórios dos passos anteriores e concluir a assinatura', (tester) async {
-      final tempDir = Directory.systemTemp.createTempSync('wizard_signature_test_');
+    testWidgets('Exibe botão CONCLUIR no último passo após confirmar os itens obrigatórios dos passos anteriores e avança direto para o card de conclusão sem assinatura na tela', (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('wizard_conclusao_test_');
       addTearDown(() {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
         }
       });
 
-      const assinaturaYaml = '''
-id: "protocolo_assinatura"
-nome: "Protocolo com Assinatura"
+      const protocoloYaml = '''
+id: "protocolo_conclusao"
+nome: "Protocolo Conclusão Direta"
 versao: "1.0.0"
 blocos:
   - id: "b1"
@@ -1109,11 +1111,11 @@ blocos:
     steps:
       - id: "s3"
         conteudos:
-          - id: "mat_assinatura_c"
+          - id: "obs_finais"
             campo_simples:
-              label: "Assinatura do responsável"
-              tipo: "SIGNATURE"
-              obrigatorio: true
+              label: "Observações finais"
+              tipo: "TEXT"
+              obrigatorio: false
 ''';
 
       final container = ProviderContainer(
@@ -1129,7 +1131,7 @@ blocos:
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
-            home: WizardScreen(initialYaml: assinaturaYaml),
+            home: WizardScreen(initialYaml: protocoloYaml),
           ),
         ),
       );
@@ -1141,7 +1143,7 @@ blocos:
       await tester.tap(find.text('SEGUINTE'));
       await tester.pumpAndSettle();
 
-      // Passo 2: adiciona e confirma o item obrigatório
+      // Passo 2: adiciona e confirma o item obrigatório e avança para o último passo
       await tester.tap(find.text('ADICIONAR ITEM'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Parabolt'));
@@ -1150,27 +1152,22 @@ blocos:
       await tester.pumpAndSettle();
       await tester.tap(find.text('CONFIRMAR ITEM'));
       await tester.pumpAndSettle();
-
-      // O usuário rola direto até 'TOQUE PARA ASSINAR' no Passo 3 (sem precisar clicar antes em CONCLUIR LISTA)
-      final btnToqueAssinar = find.text('TOQUE PARA ASSINAR');
-      await tester.ensureVisible(btnToqueAssinar);
-      await tester.pumpAndSettle();
-      await tester.tap(btnToqueAssinar);
+      await tester.tap(find.text('CONCLUIR LISTA (1)'));
       await tester.pumpAndSettle();
 
-      // O modal 'ASSINATURA DIGITAL' deve abrir!
-      expect(find.text('ASSINATURA DIGITAL'), findsOneWidget);
+      // No último passo, o botão deve exibir 'CONCLUIR' (sem modal de assinatura)
+      expect(find.text('ASSINAR E CONCLUIR'), findsNothing);
+      final btnConcluir = find.text('CONCLUIR');
+      expect(btnConcluir, findsOneWidget);
 
-      // Desenha um traço no canvas de assinatura e clica em SALVAR ASSINATURA
-      final canvasFinder = find.byKey(const Key('canvas_assinatura'));
-      await tester.drag(canvasFinder, const Offset(80, 30));
+      await tester.ensureVisible(btnConcluir);
+      await tester.pumpAndSettle();
+      await tester.tap(btnConcluir);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('SALVAR ASSINATURA'));
-      await tester.pumpAndSettle();
-
-      // A assinatura deve estar registrada!
-      expect(find.text('ASSINATURA REGISTRADA'), findsOneWidget);
+      // Avança diretamente para o card de conclusão sem abrir modal de assinatura
+      expect(find.text('ASSINATURA DIGITAL'), findsNothing);
+      expect(find.text('PROTOCOLO CONCLUÍDO'), findsOneWidget);
     });
 
     testWidgets('Campo TEXT_AREA suporta linhas em branco com Enter sem fechar teclado e aplica estilo Markdown in-place preservando o texto escrito', (tester) async {
@@ -1259,6 +1256,120 @@ blocos:
         filhos.any((s) => s.text!.contains('TIG-01') && s.style?.fontFamily == 'monospace'),
         isTrue,
       );
+    });
+
+    testWidgets('Salva fotos e vídeos capturados pela câmera no rolo da câmera sem duplicar mídias da galeria e tolera falha de permissão', (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('wizard_camera_roll_test_');
+      const canalImagePicker = MethodChannel('plugins.flutter.io/image_picker');
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(canalImagePicker, null);
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+
+      final arqFotoCamera = File('${tempDir.path}/foto_camera_1.jpg')
+        ..writeAsBytesSync([1, 2, 3, 4]);
+      final arqVideoCamera = File('${tempDir.path}/video_camera_1.mp4')
+        ..writeAsBytesSync([5, 6, 7, 8]);
+      final arqFotoGaleria = File('${tempDir.path}/foto_galeria_1.jpg')
+        ..writeAsBytesSync([9, 10, 11]);
+      final arqFotoCameraSemPermissao = File('${tempDir.path}/foto_camera_2.jpg')
+        ..writeAsBytesSync([12, 13, 14]);
+
+      String proximaFotoCamera = arqFotoCamera.path;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(canalImagePicker, (call) async {
+        if (call.method == 'pickImage') {
+          return proximaFotoCamera;
+        }
+        if (call.method == 'pickVideo') {
+          return arqVideoCamera.path;
+        }
+        if (call.method == 'pickMultiImage' || call.method == 'pickMedia') {
+          return <String>[arqFotoGaleria.path];
+        }
+        return null;
+      });
+
+      const midiaYaml = '''
+id: "protocolo_camera_galeria"
+nome: "Protocolo Câmera Galeria"
+versao: "1.0.0"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "f_midia"
+            campo_simples:
+              label: "Evidências Fotográficas e de Vídeo"
+              tipo: "IMAGE"
+              obrigatorio: false
+''';
+
+      final galeriaFake = ServicoGaleriaDispositivoFake();
+      final container = ProviderContainer(
+        overrides: [
+          sessionBundleManagerProvider.overrideWithValue(
+            SessionBundleManager(baseDirectoryGetter: () async => tempDir),
+          ),
+          servicoGaleriaDispositivoProvider.overrideWithValue(galeriaFake),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: WizardScreen(initialYaml: midiaYaml),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1. Captura foto com a câmera -> salva na sessão E no rolo da câmera
+      await tester.tap(find.text('ABRIR CÂMERA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tirar Foto com a Câmera'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FOTO CAPTURADA'), findsOneWidget);
+      expect(galeriaFake.fotosSalvas, equals([arqFotoCamera.path]));
+      expect(galeriaFake.videosSalvos, isEmpty);
+
+      // 2. Grava vídeo com a câmera -> salva na sessão E no rolo da câmera
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gravar com a Câmera'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('VÍDEO GRAVADO'), findsOneWidget);
+      expect(galeriaFake.videosSalvos, equals([arqVideoCamera.path]));
+
+      // 3. Escolhe mídia existente da galeria -> anexa na sessão SEM duplicar no rolo da câmera
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Escolher da Galeria'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FOTO CAPTURADA'), findsNWidgets(2));
+      expect(galeriaFake.fotosSalvas, equals([arqFotoCamera.path]));
+      expect(galeriaFake.videosSalvos, equals([arqVideoCamera.path]));
+
+      // 4. Se o salvamento no rolo da câmera falhar (ex: permissão negada), a foto ainda é salva na sessão normalmente
+      galeriaFake.simularFalha = true;
+      proximaFotoCamera = arqFotoCameraSemPermissao.path;
+
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tirar Foto com a Câmera'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('FOTO CAPTURADA'), findsNWidgets(3));
     });
   });
 }

@@ -1,3 +1,9 @@
+# Histórico de Registros
+
+## Purpose
+
+Gerencia a persistência local, listagem, filtragem por categoria (Manutenções e Materiais), retomada de rascunhos, edição e exclusão resiliente dos registros e relatórios periciais no banco de dados local do aplicativo.
+
 ## Requirements
 
 ### Requirement: Salvar Registros e Rascunhos no Histórico
@@ -40,4 +46,11 @@ A tela de Histórico e o banco de dados local DEVEM distinguir os registros de p
 
 #### Scenario: Editar e re-assinar um material existente pelo Histórico
 - **WHEN** o usuário escolhe a opção de editar um material já gerado na seção de Materiais do Histórico
-- **THEN** o sistema carrega os dados daquele material no `WizardScreen` mantendo seu identificador único (`idSessao`) e permitindo modificar informações e re-assinar para atualizar o pacote do material no catálogo
+- **THEN** o sistema carrega os dados daquele material no `WizardScreen` mantendo seu identificador único (`idSessao`) e permitindo modificar informações e re-gerar para atualizar o pacote assinado digitalmente do material no catálogo
+
+### Requirement: Exclusão Resiliente de Relatórios e Artefatos Legados
+Ao excluir qualquer registro pelo Histórico (seja um rascunho ou um relatório antigo ou recente), o sistema DEVE remover o registro do banco de dados local e limpar de forma resiliente todos os arquivos associados (`.pdf`, `.epub` principal ou irmão e diretório de sessão), sem falhar caso algum arquivo já tenha sido removido ou pertença ao formato legado com assinatura em tela.
+
+#### Scenario: Exclusão de relatório antigo com arquivos parciais ou legados
+- **WHEN** o usuário confirma a exclusão de um relatório antigo no Histórico
+- **THEN** o sistema remove os arquivos `.pdf`, `.epub` e o diretório da sessão correspondentes (ignorando com segurança arquivos inexistentes ou falhas isoladas de I/O) e exclui o registro do banco local sem exibir erro

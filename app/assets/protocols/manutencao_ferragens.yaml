@@ -323,7 +323,7 @@ protocolo:
     # ═══════════════════════════════════════════════════════════════
     - id: avaliacao
       titulo: "Bloco 4 — Avaliação e Encerramento"
-      subtitulo: "Avaliação final da via e assinatura do mantenedor"
+      subtitulo: "Avaliação final da via e observações"
 
       steps:
         # Card com condição + comentários em sequência (Feature 1)
@@ -353,17 +353,3 @@ protocolo:
                 label: "Comentários adicionais (opcional)"
                 tipo: TEXT
                 ui_hint: TEXT_AREA
-
-        # Card de assinatura com declaração + campo em sequência (Feature 1)
-        - id: assinatura
-          conteudos:
-            - id: assinatura_instrucao
-              instrucao:
-                titulo: "Declaração do Mantenedor"
-                corpo: "Ao assinar abaixo, declaro que todas as informações registradas são verdadeiras e que a manutenção foi realizada conforme as normas da ACEC-MG e as boas práticas de escalada."
-                nivel_alerta: INFO
-            - id: assinatura_c
-              campo_simples:
-                label: "Assinatura do mantenedor"
-                tipo: SIGNATURE
-                obrigatorio: true

@@ -30,8 +30,8 @@ O FixLog opera primariamente em locais remotos de montanha sem conexão com a in
 - **Por que**: Em montanha, desconexão é o estado padrão, não uma exceção de software. Rebaixar esses erros para breadcrumbs (`logAviso`) evita ruído e fadiga de alertas na equipe de engenharia.
 
 ### 3. Fakes Determinísticos para Testes (Princípio V)
-- **Decisão**: Criar `registro_logger_fake.dart` em `app/test/core/services/` com capacidade de registrar chamadas em memória e simular falhas, sem utilizar `mocktail` ou `mockito`.
-- **Por que**: O `PRINCIPIOS.md` proíbe estritamente mocks para código interno e exige fakes testados como bibliotecas de primeira classe.
+- **Decisão**: Criar `registro_logger_fake.dart` em `app/test/fakes/` (e seu teste espelhado `app/test/fakes/registro_logger_fake_test.dart`) com capacidade de registrar chamadas em memória e simular falhas, sem utilizar `mocktail` ou `mockito`.
+- **Por que**: O `AGENTS.md` proíbe estritamente mocks para código interno e exige fakes testados como bibliotecas de primeira classe em `app/test/fakes/`.
 
 ### 4. Classificação de Memória por `/proc/meminfo`
 - **Decisão**: No Android, ler `/proc/meminfo` (com injeção de provedor para testes determinísticos) para obter a memória física real e aplicar o teto de `imageCache` correspondente:

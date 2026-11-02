@@ -70,6 +70,8 @@
 		</array>
 		<key>NSCameraUsageDescription</key>
 		<string>Precisamos da sua câmera para registrar a manutenção.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Precisamos de permissão para salvar no rolo da câmera as fotos e vídeos capturados durante a manutenção.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

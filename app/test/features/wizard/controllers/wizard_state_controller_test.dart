@@ -1150,10 +1150,6 @@ protocolo:
               campo_simples:
                 label: "Mídias da Etapa"
                 tipo: IMAGE
-            - id: "assinatura_auditor"
-              campo_simples:
-                label: "Assinatura"
-                tipo: SIGNATURE
 ''';
 
       final notifier = container.read(wizardControllerProvider.notifier);
@@ -1198,27 +1194,7 @@ protocolo:
       expect(midias[2].hasDocumento(), isTrue);
       expect(midias[2].documento.nomeOriginal, equals('laudo_etapa.pdf'));
 
-      // 4. Assinatura (SIGNATURE) sempre substitui em vez de acumular
-      await notifier.saveMediaAnswerBytes(
-        'assinatura_auditor',
-        Uint8List.fromList([10, 20]),
-        '.png',
-        StepCampoSimples_TipoCampo.SIGNATURE,
-      );
-      await notifier.saveMediaAnswerBytes(
-        'assinatura_auditor',
-        Uint8List.fromList([30, 40]),
-        '.png',
-        StepCampoSimples_TipoCampo.SIGNATURE,
-      );
-      state = container.read(wizardControllerProvider);
-      expect(state.answers['assinatura_auditor']!.hasMidia(), isTrue);
-      expect(
-        WizardStateController.extrairMidiasDeResposta(state.answers['assinatura_auditor']),
-        hasLength(1),
-      );
-
-      // 5. Recarrega sessão via loadSession e verifica que ListaRespostas de mídias não contamina refSelections
+      // 4. Recarrega sessão via loadSession e verifica que ListaRespostas de mídias não contamina refSelections
       final sessionId = state.sessionId;
       await notifier.loadSession(sessionId);
       state = container.read(wizardControllerProvider);
@@ -1443,6 +1419,73 @@ protocolo:
       expect(File('${dirSessao.path}/${uuidVideo}_poster.jpg').existsSync(), isTrue);
       expect(comandosVideo, isNotEmpty);
       await notifier.flushAutoSave();
+    });
+
+    test('loadSession remove respostas legadas assinatura_c/mat_assinatura_c e migra YAML legado com SIGNATURE', () async {
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final container = ProviderContainer(
+        overrides: [
+          isarProvider.overrideWithValue(isar),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      const yamlLegadoAssinatura = '''
+protocolo:
+  id: manutencao_ferragens
+  nome: "Manutenção de Ferragens"
+  versao: "1.0.0"
+  blocos:
+    - id: avaliacao
+      titulo: "Avaliação Final"
+      steps:
+        - id: observacoes_finais
+          conteudos:
+            - id: obs_c
+              campo_simples:
+                label: "Observações"
+                tipo: TEXT_LONG
+        - id: assinatura
+          conteudos:
+            - id: assinatura_instrucao
+              instrucao:
+                titulo: "Declaração"
+                texto: "Declaro..."
+            - id: assinatura_c
+              campo_simples:
+                label: "Assinatura"
+                tipo: SIGNATURE
+                obrigatorio: true
+''';
+
+      final sessionId = 'sessao-legada-assinatura';
+      final registroLegado = Registro(
+        idSessao: sessionId,
+        idProtocolo: 'manutencao_ferragens',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: yamlLegadoAssinatura,
+        respostas: [
+          MapEntry('obs_c', Resposta(texto: 'Via em bom estado')),
+          MapEntry('assinatura_c', Resposta(texto: 'uuid-assinatura-antiga')),
+          MapEntry('mat_assinatura_c', Resposta(texto: 'uuid-mat-assinatura-antiga')),
+        ],
+      );
+      await sessionManager.saveManifest(
+        sessionId: sessionId,
+        binarypb: registroLegado.writeToBuffer(),
+      );
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      await notifier.loadSession(sessionId);
+
+      final state = container.read(wizardControllerProvider);
+      expect(state.answers['obs_c']?.texto, equals('Via em bom estado'));
+      expect(state.answers.containsKey('assinatura_c'), isFalse);
+      expect(state.answers.containsKey('mat_assinatura_c'), isFalse);
+      expect(state.protocolRawYaml.contains('SIGNATURE'), isFalse);
+      final todosStepIds = state.protocol!.blocos.expand((b) => b.steps).map((s) => s.id).toList();
+      expect(todosStepIds, isNot(contains('assinatura')));
     });
   });
 }

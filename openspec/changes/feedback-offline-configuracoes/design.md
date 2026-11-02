@@ -32,4 +32,4 @@ O FixLog é utilizado em montanha onde o contato com desenvolvedores é impossib
 ## Risks / Trade-offs
 
 - [Acúmulo de imagens no disco] → O serviço de fila deleta os arquivos de imagem temporários locais após a confirmação bem-sucedida de envio.
-- [Conflito de renderização com canvas de assinatura] → O feedback congela a tela renderizada antes de abrir as ferramentas de desenho, sem interagir com estados de formulário ativos.
+- [Isolamento durante captura de tela no Wizard e Visualizador] → O feedback congela o quadro renderizado atual antes de abrir as ferramentas de desenho, sem interferir no estado das respostas do `WizardScreen` nem na visualização de relatórios.

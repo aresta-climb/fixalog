@@ -110,4 +110,39 @@ void main() {
     expect(relatorioPdf.existsSync(), isFalse);
     expect(relatorioEpub.existsSync(), isFalse);
   });
+
+  test('HistoryRepository deleteRecord() exclui relatório legado com .epub irmão de pdfPath, artefato de assinatura e caminhos ausentes sem erro', () async {
+    final repo = HistoryRepository(isar, sessionManager);
+
+    final relatorioPdf = File('${tempDir.path}/relatorio_antigo.pdf')..writeAsStringSync('pdf legado');
+    final relatorioEpubIrmao = File('${tempDir.path}/relatorio_antigo.epub')..writeAsStringSync('epub legado');
+    final dirSessao = await sessionManager.getSessionDirectory('sessao_legada_assinatura');
+    final arqAssinaturaLegada = File('${dirSessao.path}/assinatura_uuid_original.png')
+      ..writeAsBytesSync([137, 80, 78, 71]);
+    final arqManifesto = File('${dirSessao.path}/registro.binarypb')
+      ..writeAsBytesSync([1, 2, 3]);
+
+    final recordComIrmao = SubmissionRecord()
+      ..idSessao = 'sessao_legada_assinatura'
+      ..pdfPath = relatorioPdf.path
+      ..protobufPath = arqManifesto.path;
+
+    final recordComArquivosAusentes = SubmissionRecord()
+      ..idSessao = 'sessao_arquivos_ausentes'
+      ..pdfPath = '${tempDir.path}/nao_existe.pdf'
+      ..protobufPath = '${tempDir.path}/nao_existe.epub';
+
+    await isar.writeTxn(() async {
+      await isar.submissionRecords.putAll([recordComIrmao, recordComArquivosAusentes]);
+    });
+
+    await repo.deleteRecord(recordComIrmao);
+    await repo.deleteRecord(recordComArquivosAusentes);
+
+    expect(await isar.submissionRecords.where().findAll(), isEmpty);
+    expect(relatorioPdf.existsSync(), isFalse);
+    expect(relatorioEpubIrmao.existsSync(), isFalse);
+    expect(arqAssinaturaLegada.existsSync(), isFalse);
+    expect(dirSessao.existsSync(), isFalse);
+  });
 }

@@ -34,42 +34,45 @@ class HistoryRepository {
     }
   }
 
+  void _excluirArquivoSeExistir(String caminho) {
+    if (caminho.isEmpty) return;
+    final arquivo = File(caminho);
+    if (arquivo.existsSync()) {
+      arquivo.deleteSync();
+    }
+  }
+
   /// Exclui um registro do histórico permanentemente.
   ///
   /// Realiza as seguintes operações em cadeia para garantir ausência de lixo no dispositivo:
-  /// 1. Verifica a existência e exclui o PDF renderizado no diretório de Documentos.
+  /// 1. Verifica a existência e exclui o PDF renderizado, eventual EPUB irmão e manifesto associado.
   /// 2. Remove a entidade `SubmissionRecord` do banco Isar de forma atômica.
   /// 3. Deleta completamente o Session Bundle (`/sessoes/<sessionId>/`), incluindo as fotos/vídeos associados.
   Future<void> deleteRecord(SubmissionRecord record) async {
     if (_isar == null) return;
-    
-    // 2. Apagar o PDF e eventual EPUB associado
-    if (record.pdfPath.isNotEmpty) {
-      final pdfFile = File(record.pdfPath);
-      if (await pdfFile.exists()) {
-        await pdfFile.delete();
-      }
-    }
-    if (record.protobufPath.endsWith('.epub')) {
-      final epubFile = File(record.protobufPath);
-      if (await epubFile.exists()) {
-        await epubFile.delete();
-      }
-    }
 
-    // 3. Apagar do Isar
-    await _isar.writeTxn(() async {
-      await _isar.collection<SubmissionRecord>().delete(record.id);
+    _excluirArquivoSeExistir(record.pdfPath);
+    if (record.pdfPath.toLowerCase().endsWith('.pdf')) {
+      final caminhoEpubIrmao =
+          '${record.pdfPath.substring(0, record.pdfPath.length - 4)}.epub';
+      _excluirArquivoSeExistir(caminhoEpubIrmao);
+    }
+    _excluirArquivoSeExistir(record.protobufPath);
+
+    _isar.writeTxnSync(() {
+      _isar.collection<SubmissionRecord>().deleteSync(record.id);
     });
 
-    // 4. Deletar o Session Bundle
     await _sessionManager.deleteSessionBundle(record.idSessao);
   }
 }
 
 /// Provider para acesso ao repositório de histórico na árvore de dependências.
 final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
-  return HistoryRepository(ref.watch(isarProvider), SessionBundleManager());
+  return HistoryRepository(
+    ref.watch(isarProvider),
+    ref.watch(sessionBundleManagerProvider),
+  );
 });
 
 /// Provider auxiliar que expõe diretamente a stream de histórico pronta para a UI.

@@ -70,16 +70,16 @@ O motor do Wizard DEVE suportar a definição, renderização inline, validaçã
 - **THEN** ao salvar a sessão, os sub-itens são persistidos no manifesto `Registro` preservando o vínculo hierárquico com o item pai
 
 ### Requirement: Seleção de Materiais do Catálogo Local e Criação Sob Demanda
-O componente `StepRefMateriais` DEVE permitir selecionar materiais previamente cadastrados e gerados no catálogo local do dispositivo, exibindo-os ordenados pela data da última seleção (mais recentemente selecionados primeiro), além de disponibilizar um botão para cadastrar um novo material na hora e atualizar o timestamp de última seleção dos materiais escolhidos.
+O componente `StepRefMateriais` DEVE (MUST) permitir selecionar materiais previamente cadastrados e gerados no catálogo local do dispositivo diretamente no passo ou dentro do item de ação onde o material é utilizado (`origem_catalogo: true`), exibindo-os ordenados pela data da última seleção (mais recentemente selecionados primeiro), além de disponibilizar um botão para cadastrar um novo material na hora e atualizar o timestamp de última seleção dos materiais escolhidos, sem exigir pré-seleção em bloco anterior.
 
 #### Scenario: Seleção de materiais pré-cadastrados ordenados por uso recente
-- **WHEN** o usuário acessa a etapa de seleção de materiais no início de uma manutenção
-- **THEN** o sistema lista os materiais cadastrados no aplicativo ordenados pelos selecionados mais recentemente no topo
+- **WHEN** o usuário expande uma ação que utiliza materiais (como substituição de ancoragem, novo ponto de ancoragem, proteção instalada ou parada)
+- **THEN** o sistema lista os materiais cadastrados no catálogo local ordenados pelos selecionados mais recentemente no topo
 - **THEN** ao selecionar um material, o registro de última seleção daquele material é atualizado
 
 #### Scenario: Cadastrar novo material a partir da seleção na manutenção
-- **WHEN** o usuário clica no botão de cadastrar novo material dentro da etapa de seleção de materiais da manutenção
-- **THEN** o sistema abre o Wizard de cadastro de materiais em tela dedicada e, após sua conclusão e geração, inclui e seleciona automaticamente o novo material na manutenção atual
+- **WHEN** o usuário clica no botão de cadastrar novo material dentro do campo `StepRefMateriais` de uma ação da manutenção ou abertura
+- **THEN** o sistema abre o Wizard de cadastro de materiais em sessão isolada e, após sua conclusão e geração, inclui e seleciona automaticamente o novo material na ação atual
 
 ### Requirement: Seleção e Rasterização de Documentos PDF em Campos de Mídia
 Quando um campo do Wizard permitir captura de documento ou imagem, a interface DEVE oferecer, além da captura por câmera e galeria de fotos, a opção de selecionar um arquivo PDF do dispositivo, armazenando o binário `.pdf` original intacto e as imagens `.webp` rasterizadas de cada página no `SessionBundleManager`.
@@ -88,6 +88,13 @@ Quando um campo do Wizard permitir captura de documento ou imagem, a interface D
 - **WHEN** o usuário toca para anexar um comprovante em um campo que aceita documento ou imagem e escolhe a opção de selecionar arquivo PDF
 - **THEN** o sistema abre o seletor de arquivos filtrando por extensão `.pdf`
 - **THEN** após a escolha do PDF, o arquivo original é copiado para a sessão, cada página é rasterizada em um arquivo `.webp` numerado e o campo exibe a confirmação visual do documento anexado com sua contagem de páginas
+
+### Requirement: Captura Unificada de Mídias em Campos do Wizard
+Qualquer campo de mídia do Wizard DEVE (MUST) apresentar um botão de ação unificado (`ADICIONAR MÍDIA` com subtítulo `Fotos, vídeos ou PDFs`) e abrir o seletor unificado permitindo capturar foto pela câmera, gravar vídeo pela câmera, selecionar fotos/vídeos da galeria ou anexar documento PDF no mesmo campo.
+
+#### Scenario: Exibição e acionamento de campo de mídia vazio ou preenchido
+- **WHEN** um passo ou item de lista exibe um campo de captura de mídia no Wizard
+- **THEN** o botão de captura apresenta o rótulo unificado de adição de mídia e permite anexar tanto fotos quanto vídeos e arquivos PDF no mesmo campo
 
 ### Requirement: Salvamento no Rolo da Câmera para Mídias Capturadas pela Câmera
 Quando o usuário capturar uma foto ou gravar um vídeo diretamente pela câmera do dispositivo dentro do Wizard, o sistema DEVE salvar a mídia original tanto no armazenamento da sessão (`SessionBundleManager`) quanto diretamente no rolo da câmera da galeria do dispositivo, sem criar álbum separado e sem interromper o fluxo do laudo caso o sistema operacional recuse o salvamento na galeria.
@@ -106,8 +113,8 @@ Quando o usuário capturar uma foto ou gravar um vídeo diretamente pela câmera
 - **THEN** a mídia continua salva e anexada normalmente na sessão do relatório sem lançar erro bloqueante para o usuário
 
 ### Requirement: Compatibilidade Retroativa com Sessões Legadas que Continham Assinatura em Tela
-Ao carregar, editar ou analisar o YAML de uma sessão ou relatório antigo que contenha definições ou respostas do tipo legado `SIGNATURE`, o sistema DEVE ignorar e remover silenciosamente os campos, passos e blocos exclusivos de assinatura manuscrita, permitindo abrir, editar e re-gerar o relatório sem erros.
+Ao carregar, editar ou duplicar uma sessão existente, o sistema DEVE (MUST) delegar a normalização e atualização do `Registro` ao motor de migração de protocolos (`MigradorProtocoloRegistro`), que remove silenciosamente campos e passos legados de assinatura manuscrita (`SIGNATURE`, `assinatura_c`, `mat_assinatura_c`) e migra o registro para a versão inteira atual do protocolo antes de construir o estado do Wizard.
 
 #### Scenario: Abertura ou edição de relatório antigo contendo passo de assinatura no YAML salvo
-- **WHEN** o usuário abre para continuar preenchimento ou editar um registro antigo cujo `yamlConteudo` ou mapa de respostas contenha o tipo `SIGNATURE` (`assinatura_c` ou `mat_assinatura_c`)
-- **THEN** o parser e o controlador descartam os conteúdos e passos de assinatura manuscrita e carregam todos os demais dados do relatório normalmente sem apresentar erro
+- **WHEN** o usuário abre para continuar preenchimento, editar ou duplicar um registro antigo cujo `yamlConteudo` ou mapa de respostas pertença a uma versão anterior ou contenha o tipo `SIGNATURE` (`assinatura_c` ou `mat_assinatura_c`)
+- **THEN** o motor de migração transforma o `Registro` para a versão atual do protocolo descartando os campos de assinatura manuscrita e preservando todos os demais dados sem apresentar erro

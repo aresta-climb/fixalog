@@ -1,42 +1,243 @@
-# inspecao_visual.yaml
-#
-# Protocolo: Inspeção Visual de Proteções Fixas
-# Schema: wizard.proto > DefinicaoProtocolo
-
 protocolo:
-  id: "inspecao_visual_v1"
+  id: inspecao_visual
   nome: "Inspeção Visual de Proteções Fixas"
-  versao: "1.0.0"
-  descricao: "Relatório de monitoramento periódico de proteções fixas existentes."
+  descricao: "Relatório de monitoramento periódico e inspeção visual ponto a ponto de proteções fixas existentes sem intervenção mecânica."
+  versao: 2
 
   blocos:
-    - id: "inspecao"
-      titulo: "Inspeção"
-      subtitulo: "Avalie o estado atual das proteções."
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 1 — Identificação da Via
+    # ═══════════════════════════════════════════════════════════════
+    - id: via
+      titulo: "Bloco 1 — Identificação da Via"
+      subtitulo: "Dados de data, localização e identificação da via inspecionada"
+
       steps:
-        - id: "estado_geral"
-          campo_simples:
-            label: "Estado Geral da Proteção"
-            sublabel: "Avalie visualmente a integridade física do metal."
-            tipo: DROPDOWN
-            ui_hint: LARGE_TILES
-            obrigatorio: true
-            opcoes:
-              - { valor: "bom", label: "Bom", sublabel: "SEM ALTERAÇÕES", icon_name: "check_circle" }
-              - { valor: "desgastado", label: "Desgastado", sublabel: "OBSERVAR", icon_name: "visibility" }
-              - { valor: "critico", label: "Crítico", sublabel: "SUBSTITUIÇÃO IMEDIATA", icon_name: "warning" }
+        - id: via_localizacao
+          conteudos:
+            - id: via_aviso
+              instrucao:
+                titulo: "Identificação da Via"
+                corpo: "Preencha os dados de localização e data da inspeção visual. A coordenada GPS é obrigatória."
+                nivel_alerta: INFO
+            - id: via_data
+              campo_simples:
+                label: "Data da Inspeção"
+                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                tipo: DATE
+                obrigatorio: true
+                preencher_data_atual: true
+            - id: via_gps
+              campo_simples:
+                label: "Localização GPS"
+                tipo: GPS
+                obrigatorio: true
+            - id: via_nome
+              campo_simples:
+                label: "Nome da via"
+                tipo: TEXT
+                obrigatorio: true
+            - id: via_setor
+              campo_simples:
+                label: "Setor / Bloco"
+                tipo: TEXT
+            - id: via_pico
+              campo_simples:
+                label: "Pico / Área"
+                tipo: TEXT
 
-        - id: "corrosao"
-          campo_simples:
-            label: "Presença de Corrosão?"
-            sublabel: "Verifique sinais de oxidação ou 'pitting'."
-            tipo: BOOLEAN
-            obrigatorio: true
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 2 — Inspeção Ponto a Ponto
+    # ═══════════════════════════════════════════════════════════════
+    - id: inspecao
+      titulo: "Bloco 2 — Inspeção Ponto a Ponto"
+      subtitulo: "Registre o estado visual de cada ponto avaliado ao longo da via. Mínimo 1."
 
-        - id: "foto_evidencia"
-          campo_simples:
-            label: "Foto de Evidência"
-            sublabel: "Foto macro do ponto mais crítico encontrado."
-            tipo: IMAGE
-            ui_hint: CAMERA_ACTION
-            obrigatorio: false
+      steps:
+        - id: lista_inspecao
+          conteudos:
+            - id: lista_inspecao_c
+              lista_acoes:
+                label: "Pontos Inspecionados"
+                sublabel: "Adicione cada proteção, parada ou condição da rocha avaliada. Mínimo 1."
+                minimo: 1
+                maximo: 0
+                tipos_disponiveis:
+
+                  # ── 1. Proteção / Ancoragem Intermediária ─────────
+                  - id: protecao_ancoragem
+                    label: "Proteção / Ancoragem"
+                    sublabel: "Chapeleta, parabolt, grampo ou químico intermediário"
+                    icon_name: search
+                    steps:
+                      - id: iv_pa_dados
+                        conteudos:
+                          - id: iv_pa_posicao
+                            campo_simples:
+                              label: "Posição / Identificação do Ponto"
+                              sublabel: "Ex.: 1ª proteção, 3º grampo, proteção do crux"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: iv_pa_estado
+                            campo_simples:
+                              label: "Estado Geral da Proteção"
+                              sublabel: "Avalie visualmente a integridade física do metal e fixação."
+                              tipo: DROPDOWN
+                              ui_hint: LARGE_TILES
+                              obrigatorio: true
+                              opcoes:
+                                - valor: bom
+                                  label: "Bom"
+                                  sublabel: "SEM ALTERAÇÕES"
+                                  icon_name: check_circle
+                                - valor: desgastado
+                                  label: "Desgastado / Atenção"
+                                  sublabel: "MONITORAR"
+                                  icon_name: visibility
+                                - valor: critico
+                                  label: "Crítico / Condenado"
+                                  sublabel: "REQUER SUBSTITUIÇÃO"
+                                  icon_name: warning
+                          - id: iv_pa_corrosao
+                            campo_simples:
+                              label: "Presença de Corrosão ou Folga?"
+                              sublabel: "Verifique sinais de oxidação, trincas ou giro da chapeleta."
+                              tipo: BOOLEAN
+                              obrigatorio: true
+                          - id: iv_pa_nota
+                            campo_simples:
+                              label: "Observações"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                          - id: iv_pa_midia
+                            campo_simples:
+                              label: "Mídias de Evidência"
+                              sublabel: "Anexe fotos ou vídeos mostrando o estado do ponto"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+
+                  # ── 2. Parada / Rapel ─────────────────────────────
+                  - id: parada_rapel
+                    label: "Parada / Rapel"
+                    sublabel: "Conjunto de parada dupla/tripla, argolas ou correntes"
+                    icon_name: radio_button_unchecked
+                    steps:
+                      - id: iv_pr_dados
+                        conteudos:
+                          - id: iv_pr_posicao
+                            campo_simples:
+                              label: "Identificação da Parada"
+                              sublabel: "Ex.: Parada P1, Parada Final"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: iv_pr_estado
+                            campo_simples:
+                              label: "Estado Geral da Parada"
+                              tipo: DROPDOWN
+                              ui_hint: LARGE_TILES
+                              obrigatorio: true
+                              opcoes:
+                                - valor: bom
+                                  label: "Bom"
+                                  sublabel: "SEM ALTERAÇÕES"
+                                  icon_name: check_circle
+                                - valor: desgastado
+                                  label: "Desgastado / Atenção"
+                                  sublabel: "MONITORAR DESGASTE DE ARGOLA/ELO"
+                                  icon_name: visibility
+                                - valor: critico
+                                  label: "Crítico / Condenado"
+                                  sublabel: "REQUER MANUTENÇÃO IMEDIATA"
+                                  icon_name: warning
+                          - id: iv_pr_corrosao
+                            campo_simples:
+                              label: "Presença de Corrosão ou Sulco Profundo?"
+                              tipo: BOOLEAN
+                              obrigatorio: true
+                          - id: iv_pr_nota
+                            campo_simples:
+                              label: "Observações"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                          - id: iv_pr_midia
+                            campo_simples:
+                              label: "Mídias de Evidência"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+
+                  # ── 3. Rocha / Ambiente ───────────────────────────
+                  - id: rocha_ambiente
+                    label: "Rocha / Ambiente"
+                    sublabel: "Bloco solto, laca instável, vegetação ou acesso"
+                    icon_name: terrain
+                    steps:
+                      - id: iv_ra_dados
+                        conteudos:
+                          - id: iv_ra_descricao
+                            campo_simples:
+                              label: "Localização e Descrição da Ocorrência"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                              obrigatorio: true
+                          - id: iv_ra_estado
+                            campo_simples:
+                              label: "Nível de Atenção"
+                              tipo: DROPDOWN
+                              ui_hint: LARGE_TILES
+                              obrigatorio: true
+                              opcoes:
+                                - valor: informativo
+                                  label: "Informativo / Baixo Risco"
+                                  sublabel: "Sem impacto imediato na segurança"
+                                  icon_name: check_circle
+                                - valor: atencao
+                                  label: "Atenção"
+                                  sublabel: "Requer cuidado ao escalar ou limpeza futura"
+                                  icon_name: visibility
+                                - valor: critico
+                                  label: "Risco Crítico"
+                                  sublabel: "Risco de queda de bloco ou acidente"
+                                  icon_name: warning
+                          - id: iv_ra_midia
+                            campo_simples:
+                              label: "Mídias de Evidência (opcional)"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 3 — Resumo da Situação Final da Via
+    # ═══════════════════════════════════════════════════════════════
+    - id: avaliacao
+      titulo: "Bloco 3 — Situação Final da Via"
+      subtitulo: "Resumo geral do estado da via após a inspeção visual"
+
+      steps:
+        - id: avaliacao_geral
+          conteudos:
+            - id: avaliacao_condicao
+              campo_simples:
+                label: "Situação final da via para escalada"
+                tipo: DROPDOWN
+                ui_hint: LARGE_TILES
+                obrigatorio: true
+                opcoes:
+                  - valor: liberada
+                    label: "Liberada para escalada"
+                    sublabel: "Proteções em boas condições visuais"
+                    icon_name: check_circle
+                  - valor: liberada_restricao
+                    label: "Liberada com restrição"
+                    sublabel: "Pontos exigem atenção — verificar observações"
+                    icon_name: warning
+                  - valor: interditada
+                    label: "Interditada / Aguardando Manutenção"
+                    sublabel: "Não escalar até realização de manutenção"
+                    icon_name: block
+            - id: avaliacao_comentarios
+              campo_simples:
+                label: "Resumo e observações gerais da inspeção (opcional)"
+                tipo: TEXT
+                ui_hint: TEXT_AREA

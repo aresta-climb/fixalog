@@ -1,61 +1,87 @@
-id: "registro_expresso"
-nome: "Registro Expresso"
-versao: "1.0.0"
-blocos:
-  - id: "bloco_evidencias"
-    titulo: "Evidências"
-    steps:
-      - conteudos:
-          - id: "lista_fotos"
-            lista_acoes:
-              label: "Fotos e Vídeos"
-              sublabel: "Adicione fotos ou vídeos com breves descrições sobre o que encontrou na via."
-              minimo: 0
-              maximo: 0
-              tipos_disponiveis:
-                - id: "acao_foto"
-                  label: "Adicionar Foto"
-                  sublabel: ""
-                  icon_name: "camera"
-                  steps:
-                    - conteudos:
-                        - id: "foto"
-                          campo_simples:
-                            label: "Foto"
-                            tipo: "IMAGE"
-                            ui_hint: "CAMERA_ACTION"
-                            obrigatorio: true
-                        - id: "descricao"
-                          campo_simples:
-                            label: "Descrição (opcional)"
-                            tipo: "TEXT"
-                            ui_hint: "TEXT_AREA"
-                            obrigatorio: false
-                - id: "acao_video"
-                  label: "Gravar Vídeo"
-                  sublabel: ""
-                  icon_name: "video"
-                  steps:
-                    - conteudos:
-                        - id: "video"
-                          campo_simples:
-                            label: "Vídeo"
-                            tipo: "VIDEO"
-                            ui_hint: "CAMERA_ACTION"
-                            obrigatorio: true
-                        - id: "descricao"
-                          campo_simples:
-                            label: "Descrição (opcional)"
-                            tipo: "TEXT"
-                            ui_hint: "TEXT_AREA"
-                            obrigatorio: false
-  - id: "bloco_localizacao"
-    titulo: "Localização"
-    steps:
-      - conteudos:
-          - id: "gps"
-            campo_simples:
-              label: "Coordenadas GPS"
-              sublabel: "Capture a localização atual."
-              tipo: "GPS"
-              obrigatorio: false
+protocolo:
+  id: registro_expresso
+  nome: "Registro Expresso"
+  descricao: "Registro livre e rápido de ocorrências, mídias, coordenadas e materiais sem estrutura pré-estabelecida."
+  versao: 2
+
+  blocos:
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 1 — Identificação e Localização
+    # ═══════════════════════════════════════════════════════════════
+    - id: bloco_identificacao
+      titulo: "Bloco 1 — Identificação e Local"
+      subtitulo: "Título do registro, data e localização opcional"
+
+      steps:
+        - id: step_identificacao
+          conteudos:
+            - id: via_nome
+              campo_simples:
+                label: "Título / Identificação do Registro"
+                sublabel: "Nome da via, local ou assunto para identificar este registro no Histórico"
+                tipo: TEXT
+                obrigatorio: true
+            - id: via_data
+              campo_simples:
+                label: "Data do Registro"
+                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                tipo: DATE
+                obrigatorio: true
+                preencher_data_atual: true
+            - id: via_gps
+              campo_simples:
+                label: "Coordenadas GPS (opcional)"
+                sublabel: "Capture a localização atual se desejar."
+                tipo: GPS
+                obrigatorio: false
+            - id: observacoes_gerais
+              campo_simples:
+                label: "Observações Gerais (opcional)"
+                tipo: TEXT
+                ui_hint: TEXT_AREA
+                obrigatorio: false
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 2 — Evidências e Materiais Opcionais
+    # ═══════════════════════════════════════════════════════════════
+    - id: bloco_evidencias
+      titulo: "Bloco 2 — Evidências e Materiais"
+      subtitulo: "Adicione mídias com descrições e vincule materiais do catálogo se desejar"
+
+      steps:
+        - id: step_evidencias
+          conteudos:
+            - id: lista_evidencias
+              lista_acoes:
+                label: "Evidências (Fotos, Vídeos ou PDFs)"
+                sublabel: "Adicione quantos registros de mídia e anotações desejar (opcional)."
+                minimo: 0
+                maximo: 0
+                tipos_disponiveis:
+                  - id: item_evidencia
+                    label: "Evidência / Anotação"
+                    sublabel: "Fotos, vídeos ou PDFs com descrição"
+                    icon_name: camera
+                    steps:
+                      - id: step_item_evidencia
+                        conteudos:
+                          - id: ev_midia
+                            campo_simples:
+                              label: "Mídias da Evidência"
+                              sublabel: "Anexe fotos, vídeos ou PDFs"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+                          - id: ev_descricao
+                            campo_simples:
+                              label: "Descrição (opcional)"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                              obrigatorio: false
+            - id: ref_mat_expresso
+              ref_materiais:
+                label: "Materiais Relacionados (opcional)"
+                sublabel: "Selecione materiais do catálogo local caso este registro envolva algum insumo"
+                origem_catalogo: true
+                obrigatorio: false

@@ -78,11 +78,11 @@ blocos:
       expect(color, equals(const Color(0xFFFF6B00)));
     });
 
-    testWidgets('ao clicar em GRAVAR VÍDEO exibe modal de seleção entre Câmera e Galeria', (tester) async {
+    testWidgets('ao clicar em ADICIONAR MÍDIA em campo VIDEO exibe modal unificado de Foto, Vídeo, Galeria e PDF', (tester) async {
       const videoYaml = '''
 id: "video_protocol"
 nome: "Protocolo Vídeo"
-versao: "1.0.0"
+versao: 1
 blocos:
   - id: "b1"
     nome: "Bloco 1"
@@ -107,10 +107,12 @@ blocos:
 
       await tester.pumpAndSettle();
 
-      final videoButtonFinder = find.text('GRAVAR VÍDEO');
-      expect(videoButtonFinder, findsOneWidget);
+      expect(find.text('GRAVAR VÍDEO'), findsNothing);
+      final mediaButtonFinder = find.text('ADICIONAR MÍDIA');
+      expect(mediaButtonFinder, findsOneWidget);
+      expect(find.text('Fotos, vídeos ou PDFs'), findsOneWidget);
 
-      await tester.tap(videoButtonFinder);
+      await tester.tap(mediaButtonFinder);
       await tester.pumpAndSettle();
 
       expect(find.text('ADICIONAR MÍDIA (FOTO, VÍDEO OU PDF)'), findsOneWidget);
@@ -123,11 +125,11 @@ blocos:
       expect(find.text('ADICIONAR MÍDIA (FOTO, VÍDEO OU PDF)'), findsNothing);
     });
 
-    testWidgets('ao clicar em ABRIR CÂMERA exibe modal de seleção entre Câmera e Galeria para fotos', (tester) async {
+    testWidgets('ao clicar em ADICIONAR MÍDIA em campo IMAGE exibe modal unificado de Foto, Vídeo, Galeria e PDF', (tester) async {
       const fotoYaml = '''
 id: "foto_protocol"
 nome: "Protocolo Foto"
-versao: "1.0.0"
+versao: 1
 blocos:
   - id: "b1"
     nome: "Bloco 1"
@@ -152,8 +154,10 @@ blocos:
 
       await tester.pumpAndSettle();
 
-      final fotoButtonFinder = find.text('ABRIR CÂMERA');
+      expect(find.text('ABRIR CÂMERA'), findsNothing);
+      final fotoButtonFinder = find.text('ADICIONAR MÍDIA');
       expect(fotoButtonFinder, findsOneWidget);
+      expect(find.text('Fotos, vídeos ou PDFs'), findsOneWidget);
 
       await tester.tap(fotoButtonFinder);
       await tester.pumpAndSettle();
@@ -405,6 +409,80 @@ blocos:
       );
     });
 
+    testWidgets('RefMateriais inline dentro de uma ação (ref_mat_*) exibe CADASTRAR NOVO MATERIAL e vincula o material criado ao item da ação', (tester) async {
+      const yamlAcaoComMaterial = '''
+id: "manutencao_acao_catalogo"
+nome: "Manutenção Ação Direta"
+versao: 2
+blocos:
+  - id: "acoes"
+    titulo: "Ações"
+    steps:
+      - id: "lista_acoes"
+        conteudos:
+          - id: "lista_acoes_c"
+            lista_acoes:
+              label: "Ações realizadas"
+              minimo: 1
+              tipos_disponiveis:
+                - id: "novo_ponto"
+                  label: "Adição de Novo Ponto"
+                  icon_name: "add_location_alt"
+                  steps:
+                    - id: "np_detalhes"
+                      conteudos:
+                        - id: "ref_mat_novo_ponto"
+                          ref_materiais:
+                            label: "Materiais instalados"
+                            origem_catalogo: true
+                            obrigatorio: true
+''';
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: WizardScreen(initialYaml: yamlAcaoComMaterial),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('ADICIONAR ITEM'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adição de Novo Ponto'));
+      await tester.pumpAndSettle();
+
+      final itemId = container
+          .read(wizardControllerProvider)
+          .lists['lista_acoes_c']!
+          .first
+          .id;
+
+      final btnCadastrar = find.text('CADASTRAR NOVO MATERIAL');
+      expect(btnCadastrar, findsOneWidget);
+      await tester.ensureVisible(btnCadastrar);
+      await tester.pumpAndSettle();
+
+      await tester.tap(btnCadastrar);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nome do Material ou Conjunto'), findsOneWidget);
+      final childCtx = tester.element(find.text('Nome do Material ou Conjunto'));
+      Navigator.of(childCtx).pop('mat-acao-uuid');
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(wizardControllerProvider)
+            .refSelections['ref_mat_novo_ponto__$itemId'],
+        contains('mat-acao-uuid'),
+      );
+    });
+
     testWidgets('BottomSheet de seleção de tipo permite rolar sem overflow e selecionar a 6ª opção Outro', (tester) async {
       final yamlCadastroMat = File('assets/protocols/cadastro_material.yaml').readAsStringSync();
 
@@ -507,7 +585,7 @@ blocos:
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('ABRIR CÂMERA'));
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
       await tester.pumpAndSettle();
 
       expect(find.text('Tirar Foto com a Câmera'), findsOneWidget);
@@ -799,7 +877,7 @@ blocos:
       await tester.pumpAndSettle();
 
       // Abre o modal de mídia e verifica que oferece opções de Foto, Vídeo e PDF simultaneamente
-      await tester.tap(find.text('ABRIR CÂMERA'));
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
       await tester.pumpAndSettle();
 
       expect(find.text('Tirar Foto com a Câmera'), findsOneWidget);
@@ -913,7 +991,7 @@ blocos:
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('ABRIR CÂMERA'));
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Selecionar Arquivo PDF'));
       // Avança um frame para fechar o modal e iniciar o processamento em background
@@ -1332,7 +1410,7 @@ blocos:
       await tester.pumpAndSettle();
 
       // 1. Captura foto com a câmera -> salva na sessão E no rolo da câmera
-      await tester.tap(find.text('ABRIR CÂMERA'));
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tirar Foto com a Câmera'));
       await tester.pumpAndSettle();

@@ -1,49 +1,33 @@
 protocolo:
-  id: manutencao_ferragens
+  id: manutencao
   nome: "Manutenção de Proteções Fixas"
-  descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas e ancoragens)"
-  versao: "2.1.0"
+  descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas, ancoragens, limpeza e blocos soltos)"
+  versao: 2
 
   blocos:
 
     # ═══════════════════════════════════════════════════════════════
-    # BLOCO 1 — Materiais a instalar (selecionados do catálogo local)
-    # ═══════════════════════════════════════════════════════════════
-    - id: materiais
-      titulo: "Bloco 1 — Materiais a Instalar"
-      subtitulo: "Selecione os materiais cadastrados que serão utilizados nesta manutenção ou cadastre um novo agora"
-
-      steps:
-        - id: lista_materiais
-          conteudos:
-            - id: materiais_aviso
-              instrucao:
-                titulo: "Seleção de Materiais para a Manutenção"
-                corpo: "Selecione abaixo os materiais ou conjuntos do seu catálogo local que serão utilizados nesta via. Caso ainda não tenha cadastrado algum material, toque em Cadastrar Novo Material."
-                nivel_alerta: INFO
-            - id: lista_materiais_c
-              ref_materiais:
-                label: "Materiais a instalar"
-                sublabel: "Ordenados pelos materiais utilizados mais recentemente. Mínimo 1."
-                origem_catalogo: true
-                obrigatorio: true
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 2 — Identificação da via
+    # BLOCO 1 — Identificação da via
     # ═══════════════════════════════════════════════════════════════
     - id: via
-      titulo: "Bloco 2 — Identificação da Via"
-      subtitulo: "Dados de localização e identificação da via manutenida"
+      titulo: "Bloco 1 — Identificação da Via"
+      subtitulo: "Dados de data, localização e identificação da via manutenida"
 
       steps:
-        # Card único com GPS + nome + setor + pico em sequência (Feature 1)
         - id: via_localizacao
           conteudos:
             - id: via_aviso
               instrucao:
                 titulo: "Identificação da Via"
-                corpo: "Preencha os dados de localização da via. A coordenada GPS é obrigatória."
+                corpo: "Preencha os dados de localização e data da manutenção. A coordenada GPS é obrigatória."
                 nivel_alerta: INFO
+            - id: via_data
+              campo_simples:
+                label: "Data da Manutenção"
+                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                tipo: DATE
+                obrigatorio: true
+                preencher_data_atual: true
             - id: via_gps
               campo_simples:
                 label: "Localização GPS"
@@ -63,7 +47,6 @@ protocolo:
                 label: "Pico / Área"
                 tipo: TEXT
 
-        # Segundo card: permissão do conquistador
         - id: via_permissao
           conteudos:
             - id: via_tem_permissao
@@ -73,15 +56,15 @@ protocolo:
                 obrigatorio: true
             - id: via_foto_permissao
               campo_simples:
-                label: "Foto da permissão (se houver)"
+                label: "Mídia da permissão (se houver)"
                 tipo: IMAGE
                 ui_hint: CAMERA_ACTION
 
     # ═══════════════════════════════════════════════════════════════
-    # BLOCO 3 — Ações de manutenção
+    # BLOCO 2 — Ações de manutenção
     # ═══════════════════════════════════════════════════════════════
     - id: acoes
-      titulo: "Bloco 3 — Ações de Manutenção"
+      titulo: "Bloco 2 — Ações de Manutenção"
       subtitulo: "Registre cada ação realizada nesta via. Mínimo 1."
 
       steps:
@@ -101,17 +84,16 @@ protocolo:
                     sublabel: "Avaliação do estado de uma ancoragem existente"
                     icon_name: search
                     steps:
-                      # Card 1: Foto + resultado em um único card (Feature 1!)
                       - id: ia_avaliacao
                         conteudos:
                           - id: ia_instrucao
                             instrucao:
                               titulo: "Avaliação Visual e Mecânica"
-                              corpo: "Fotografe o estado atual antes de qualquer intervenção. Em seguida, avalie visualmente (corrosão, trincas) e mecanicamente (reaperto). Classifique o resultado."
+                              corpo: "Registre o estado atual antes de qualquer intervenção. Em seguida, avalie visualmente (corrosão, trincas) e mecanicamente (reaperto). Classifique o resultado."
                               nivel_alerta: ATENCAO
                           - id: ia_foto_antes
                             campo_simples:
-                              label: "Foto antes da intervenção"
+                              label: "Mídia antes da intervenção"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
@@ -155,7 +137,6 @@ protocolo:
                                   sublabel: "Ancoragem com dano estrutural"
                                   icon_name: swap_horiz
                                   steps:
-                                    # Card com instrução + sub-branching (Feature 1 recursivo)
                                     - id: ia_sub_estrategia
                                       conteudos:
                                         - id: ia_sub_aviso
@@ -175,15 +156,15 @@ protocolo:
                                                 steps:
                                                   - id: ia_sub_rf_dados
                                                     conteudos:
-                                                      - id: ia_sub_rf_materiais
+                                                      - id: ref_mat_reusar_furo
                                                         ref_materiais:
                                                           label: "Materiais utilizados"
-                                                          sublabel: "Selecione os materiais do Bloco 1 usados nesta ancoragem"
-                                                          id_step_materiais: "lista_materiais_c"
+                                                          sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+                                                          origem_catalogo: true
                                                           obrigatorio: true
                                                       - id: ia_sub_rf_foto
                                                         campo_simples:
-                                                          label: "Foto após instalação"
+                                                          label: "Mídia após instalação"
                                                           tipo: IMAGE
                                                           ui_hint: CAMERA_ACTION
                                                           obrigatorio: true
@@ -195,11 +176,11 @@ protocolo:
                                                 steps:
                                                   - id: ia_sub_nl_dados
                                                     conteudos:
-                                                      - id: ia_sub_nl_materiais
+                                                      - id: ref_mat_novo_local
                                                         ref_materiais:
                                                           label: "Materiais utilizados"
-                                                          sublabel: "Selecione os materiais usados nesta ancoragem"
-                                                          id_step_materiais: "lista_materiais_c"
+                                                          sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+                                                          origem_catalogo: true
                                                           obrigatorio: true
                                                       - id: ia_sub_nl_nota
                                                         campo_simples:
@@ -208,7 +189,7 @@ protocolo:
                                                           ui_hint: TEXT_AREA
                                                       - id: ia_sub_nl_foto
                                                         campo_simples:
-                                                          label: "Foto após instalação"
+                                                          label: "Mídia após instalação"
                                                           tipo: IMAGE
                                                           ui_hint: CAMERA_ACTION
                                                           obrigatorio: true
@@ -224,17 +205,17 @@ protocolo:
                           - id: np_instrucao
                             instrucao:
                               titulo: "Novo ponto de ancoragem"
-                              corpo: "Registre os materiais utilizados e fotografe após a instalação."
+                              corpo: "Selecione os materiais instalados do seu catálogo local e registre mídias após a instalação."
                               nivel_alerta: INFO
-                          - id: np_materiais
+                          - id: ref_mat_novo_ponto
                             ref_materiais:
                               label: "Materiais utilizados"
-                              sublabel: "Selecione os materiais do Bloco 1 instalados"
-                              id_step_materiais: "lista_materiais_c"
+                              sublabel: "Selecione os materiais do catálogo instalados neste ponto ou cadastre um novo"
+                              origem_catalogo: true
                               obrigatorio: true
                           - id: np_foto
                             campo_simples:
-                              label: "Foto após instalação"
+                              label: "Mídia após instalação"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
@@ -265,12 +246,12 @@ protocolo:
                                   label: "Grande (maior que melancia)"
                           - id: rb_foto_antes
                             campo_simples:
-                              label: "Foto antes da remoção"
+                              label: "Mídia antes da remoção"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                           - id: rb_foto_depois
                             campo_simples:
-                              label: "Foto após remoção"
+                              label: "Mídia após remoção"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
 
@@ -284,7 +265,7 @@ protocolo:
                         conteudos:
                           - id: lv_foto_antes
                             campo_simples:
-                              label: "Foto antes da limpeza"
+                              label: "Mídia antes da limpeza"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                           - id: lv_nota
@@ -294,7 +275,7 @@ protocolo:
                               ui_hint: TEXT_AREA
                           - id: lv_foto_depois
                             campo_simples:
-                              label: "Foto após limpeza"
+                              label: "Mídia após limpeza"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
 
@@ -312,21 +293,26 @@ protocolo:
                               tipo: TEXT
                               ui_hint: TEXT_AREA
                               obrigatorio: true
+                          - id: ref_mat_outro
+                            ref_materiais:
+                              label: "Materiais utilizados (opcional)"
+                              sublabel: "Caso esta ação tenha utilizado materiais do catálogo, selecione-os abaixo"
+                              origem_catalogo: true
+                              obrigatorio: false
                           - id: out_foto
                             campo_simples:
-                              label: "Foto (opcional)"
+                              label: "Mídia (opcional)"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
 
     # ═══════════════════════════════════════════════════════════════
-    # BLOCO 4 — Avaliação e Encerramento
+    # BLOCO 3 — Avaliação e Encerramento
     # ═══════════════════════════════════════════════════════════════
     - id: avaliacao
-      titulo: "Bloco 4 — Avaliação e Encerramento"
+      titulo: "Bloco 3 — Avaliação e Encerramento"
       subtitulo: "Avaliação final da via e observações"
 
       steps:
-        # Card com condição + comentários em sequência (Feature 1)
         - id: avaliacao_geral
           conteudos:
             - id: avaliacao_condicao

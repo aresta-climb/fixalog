@@ -32,12 +32,22 @@ class ProtocolParser {
     return _parseDefinicaoProtocolo(proto);
   }
 
+  /// Normaliza o valor textual da versão do protocolo para um número inteiro sequencial positivo (`>= 1`).
+  ///
+  /// Strings em formato semver legado (como `"1.0.0"` ou `"2.1.0"`), strings vazias ou
+  /// números menores que `1` são convertidos para a versão base `1`.
+  static int extrairVersaoInteira(String versaoBruta) {
+    final parsed = int.tryParse(versaoBruta.trim());
+    if (parsed == null || parsed < 1) return 1;
+    return parsed;
+  }
+
   static DefinicaoProtocolo _parseDefinicaoProtocolo(YamlMap m) {
     return DefinicaoProtocolo(
       id: m['id'] as String? ?? '',
       nome: m['nome'] as String? ?? '',
       descricao: m['descricao'] as String? ?? '',
-      versao: m['versao'] as String? ?? '',
+      versao: m['versao']?.toString() ?? '',
       blocos: (m['blocos'] as YamlList? ?? YamlList.wrap([]))
           .map(_parseBloco)
           .where((b) => b.steps.isNotEmpty),
@@ -81,17 +91,9 @@ class ProtocolParser {
       );
     }
 
-    // Formato shorthand: conteúdo direto no step — retrocompatível
-    // O ConteudoStep herda o id do Step para manter refs existentes.
-    final conteudo = _parseConteudoStepShorthand(id, m);
-    if (conteudo != null) {
-      return Step(id: id, conteudos: [conteudo]);
-    }
-
-    throw FormatException(
-      'Step "$id" não tem conteúdo reconhecido. '
-      'Chaves encontradas: ${m.keys.toList()}',
-    );
+    // Formato shorthand: conteúdo direto no step — retrocompatível.
+    // O ConteudoStep herda o id do Step para manter referências existentes.
+    return Step(id: id, conteudos: [_parseConteudoStep(m)]);
   }
 
   // ─── ConteudoStep ─────────────────────────────────────────────────────────
@@ -135,42 +137,6 @@ class ProtocolParser {
       'ConteudoStep "$id" não tem tipo reconhecido. '
       'Chaves encontradas: ${m.keys.toList()}',
     );
-  }
-
-  /// Retrocompatibilidade: lê o tipo de conteúdo diretamente do YamlMap do
-  /// Step e devolve um [ConteudoStep] com o mesmo id do Step.
-  static ConteudoStep? _parseConteudoStepShorthand(String stepId, YamlMap m) {
-    if (m.containsKey('instrucao')) {
-      return ConteudoStep(
-        id: stepId,
-        instrucao: _parseStepInstrucao(m['instrucao'] as YamlMap),
-      );
-    }
-    if (m.containsKey('campo_simples')) {
-      return ConteudoStep(
-        id: stepId,
-        campoSimples: _parseStepCampoSimples(m['campo_simples'] as YamlMap),
-      );
-    }
-    if (m.containsKey('selecao_ramo')) {
-      return ConteudoStep(
-        id: stepId,
-        selecaoRamo: _parseStepSelecaoRamo(m['selecao_ramo'] as YamlMap),
-      );
-    }
-    if (m.containsKey('lista_acoes')) {
-      return ConteudoStep(
-        id: stepId,
-        listaAcoes: _parseStepListaAcoes(m['lista_acoes'] as YamlMap),
-      );
-    }
-    if (m.containsKey('ref_materiais')) {
-      return ConteudoStep(
-        id: stepId,
-        refMateriais: _parseStepRefMateriais(m['ref_materiais'] as YamlMap),
-      );
-    }
-    return null;
   }
 
   // ─── Tipos de ConteudoStep ─────────────────────────────────────────────────

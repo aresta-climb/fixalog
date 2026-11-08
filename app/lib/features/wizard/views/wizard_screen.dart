@@ -997,6 +997,13 @@ double _obterRecuoInferiorModal(
   return maior;
 }
 
+Future<String> _carregarYamlCadastroMaterial() {
+  return rootBundle.loadString(
+    'assets/protocols/cadastro_material.yaml',
+    cache: false,
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // StepRefMateriais (fluxo principal)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1026,9 +1033,7 @@ class RefMateriaisWidget extends ConsumerWidget {
       },
       onCadastrarNovoMaterial: refStep.origemCatalogo
           ? () async {
-              final yaml = await rootBundle.loadString(
-                'assets/protocols/cadastro_material.yaml',
-              );
+              final yaml = await _carregarYamlCadastroMaterial();
               if (!context.mounted) return;
               final novoId = await WizardScreen.abrirSessaoIsolada(
                 context,
@@ -1510,9 +1515,7 @@ class InlineConteudoRenderer extends ConsumerWidget {
           },
           onCadastrarNovoMaterial: refStep.origemCatalogo
               ? () async {
-                  final yaml = await rootBundle.loadString(
-                    'assets/protocols/cadastro_material.yaml',
-                  );
+                  final yaml = await _carregarYamlCadastroMaterial();
                   if (!context.mounted) return;
                   final novoId = await WizardScreen.abrirSessaoIsolada(
                     context,
@@ -1948,9 +1951,7 @@ class _CampoSimplesContent extends ConsumerWidget {
                 icon: midias.isEmpty
                     ? (isVid ? Icons.videocam_outlined : Icons.camera_alt_outlined)
                     : Icons.add_circle_outline,
-                label: midias.isEmpty
-                    ? (isVid ? 'GRAVAR VÍDEO' : 'ABRIR CÂMERA')
-                    : 'ADICIONAR MÍDIA',
+                label: 'ADICIONAR MÍDIA',
                 sub: midias.isEmpty
                     ? 'Fotos, vídeos ou PDFs'
                     : 'Adicionar outra foto, vídeo ou PDF',

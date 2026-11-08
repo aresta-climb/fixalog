@@ -80,14 +80,20 @@ void main() {
       expect(find.text('NOVO REGISTRO DE MANUTENÇÃO'), findsOneWidget);
     });
 
-    testWidgets('Exibe os cards de protocolo incluindo Cadastro de Materiais', (tester) async {
+    testWidgets('Exibe os 5 cards de protocolo na ordem: Inspeção Visual, Manutenção, Abertura de Via, Registro Expresso e Cadastro de Materiais', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
 
-      expect(find.text('Manutenção de\nProteções Fixas'), findsOneWidget);
-      expect(find.text('Inspeção Visual de\nProteções Fixas'), findsOneWidget);
-      expect(find.text('Abertura de Via'), findsOneWidget);
-      expect(find.text('Cadastro de\nMateriais'), findsOneWidget);
+      final yInspecao = tester.getTopLeft(find.text('Inspeção Visual de\nProteções Fixas')).dy;
+      final yManutencao = tester.getTopLeft(find.text('Manutenção de\nProteções Fixas')).dy;
+      final yAbertura = tester.getTopLeft(find.text('Abertura de Via')).dy;
+      final yExpresso = tester.getTopLeft(find.text('Registro Expresso\n(Fotos + Local)')).dy;
+      final yMateriais = tester.getTopLeft(find.text('Cadastro de\nMateriais')).dy;
+
+      expect(yInspecao, lessThan(yManutencao));
+      expect(yManutencao, lessThan(yAbertura));
+      expect(yAbertura, lessThan(yExpresso));
+      expect(yExpresso, lessThan(yMateriais));
     });
 
     testWidgets('Exibe tags de protocolo corretas', (tester) async {
@@ -106,77 +112,71 @@ void main() {
       expect(find.text('INICIAR'), findsNWidgets(5));
     });
 
-    testWidgets('Navega para Express Form ao tocar em Registro Expresso', (
+    testWidgets('Navega para Inspeção Visual ao tocar no 1º card', (
       tester,
     ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('INICIAR').first);
+      await tester.tap(find.text('INICIAR').at(0));
       await tester.pumpAndSettle();
 
       expect(find.byType(WizardScreen), findsOneWidget);
+      expect(find.text('Data da Inspeção'), findsOneWidget);
     });
 
-    testWidgets('Tenta navegar para Manutenção de Proteções Fixas', (
+    testWidgets('Navega para Manutenção de Proteções Fixas (manutencao.yaml) ao tocar no 2º card', (
       tester,
     ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(1);
-      await tester.dragUntilVisible(
-        finder,
-        find.byType(SingleChildScrollView),
-        const Offset(0, -500),
-      );
+      await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WizardScreen), findsOneWidget);
+      expect(find.text('Data da Manutenção'), findsOneWidget);
     });
 
-    testWidgets('Tenta navegar para Inspeção Visual', (tester) async {
+    testWidgets('Navega para Abertura de Via ao tocar no 3º card', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(2);
-      await tester.dragUntilVisible(
-        finder,
-        find.byType(SingleChildScrollView),
-        const Offset(0, -500),
-      );
+      await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WizardScreen), findsOneWidget);
+      expect(find.text('Data da Abertura / Conquista'), findsOneWidget);
     });
 
-    testWidgets('Tenta navegar para Abertura de Via', (tester) async {
+    testWidgets('Navega para Registro Expresso ao tocar no 4º card', (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(3);
-      await tester.dragUntilVisible(
-        finder,
-        find.byType(SingleChildScrollView),
-        const Offset(0, -500),
-      );
+      await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WizardScreen), findsOneWidget);
+      expect(find.text('Título / Identificação do Registro'), findsOneWidget);
     });
 
-    testWidgets('Navega para Cadastro de Materiais ao tocar no card', (
+    testWidgets('Navega para Cadastro de Materiais ao tocar no 5º card', (
       tester,
     ) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pumpAndSettle();
 
       final finder = find.text('INICIAR').at(4);
-      await tester.dragUntilVisible(
-        finder,
-        find.byType(SingleChildScrollView),
-        const Offset(0, -500),
-      );
+      await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);
       await tester.pumpAndSettle();

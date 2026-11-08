@@ -1,44 +1,275 @@
-# abertura_vias.yaml
-#
-# Protocolo: Abertura de Via
-# Schema: wizard.proto > DefinicaoProtocolo
-
 protocolo:
-  id: "abertura_via_v1"
+  id: abertura_vias
   nome: "Abertura de Via"
-  versao: "1.0.0"
-  descricao: "Registro técnico de conquista ou abertura de novas rotas de escalada."
+  descricao: "Registro técnico pericial de conquista ou abertura de novas rotas de escalada e proteções fixas instaladas."
+  versao: 2
 
   blocos:
-    - id: "identificacao"
-      titulo: "Identificação da Via"
-      subtitulo: "Dados técnicos da nova rota."
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 1 — Identificação da Nova Via
+    # ═══════════════════════════════════════════════════════════════
+    - id: via
+      titulo: "Bloco 1 — Identificação da Nova Via"
+      subtitulo: "Dados técnicos de localização, conquistadores e linha da nova rota"
+
       steps:
-        - id: "nome_via"
-          campo_simples:
-            label: "Nome Sugerido"
-            sublabel: "Nome dado à via pelo(s) conquistador(es)."
-            tipo: TEXT
-            obrigatorio: true
+        - id: via_localizacao
+          conteudos:
+            - id: via_aviso
+              instrucao:
+                titulo: "Identificação da Conquista"
+                corpo: "Preencha os dados da nova via, coordenadas GPS da base e registre a imagem da linha/croqui do setor."
+                nivel_alerta: INFO
+            - id: via_data
+              campo_simples:
+                label: "Data da Abertura / Conquista"
+                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                tipo: DATE
+                obrigatorio: true
+                preencher_data_atual: true
+            - id: via_gps
+              campo_simples:
+                label: "Localização GPS da Base"
+                sublabel: "Capture as coordenadas geográficas exatas da base da via"
+                tipo: GPS
+                obrigatorio: true
+            - id: via_nome
+              campo_simples:
+                label: "Nome da Via"
+                sublabel: "Nome dado à via pelo(s) conquistador(es)"
+                tipo: TEXT
+                obrigatorio: true
+            - id: via_conquistadores
+              campo_simples:
+                label: "Conquistador(es)"
+                sublabel: "Nomes dos conquistadores participantes"
+                tipo: TEXT
+            - id: via_graduacao
+              campo_simples:
+                label: "Graduação Estimada"
+                sublabel: "Ex.: 6º sup D1 E2, 7b, V sup"
+                tipo: TEXT
+            - id: via_extensao
+              campo_simples:
+                label: "Extensão / Enfiadas"
+                sublabel: "Ex.: 25m (esportiva) ou 150m / 4 enfiadas"
+                tipo: TEXT
+            - id: via_setor
+              campo_simples:
+                label: "Setor / Bloco"
+                tipo: TEXT
+            - id: via_pico
+              campo_simples:
+                label: "Pico / Área"
+                tipo: TEXT
+            - id: via_foto_linha
+              campo_simples:
+                label: "Mídia do Setor / Linha da Via"
+                sublabel: "Anexe foto, vídeo ou PDF mostrando a linha da via ou croqui"
+                tipo: IMAGE
+                ui_hint: CAMERA_ACTION
+                obrigatorio: true
 
-        - id: "graduacao"
-          campo_simples:
-            label: "Graduação Estimada"
-            sublabel: "Ex: 6sup, IXa, 7a, etc."
-            tipo: TEXT
-            obrigatorio: false
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 2 — Proteções Instaladas e Ações na Conquista
+    # ═══════════════════════════════════════════════════════════════
+    - id: acoes
+      titulo: "Bloco 2 — Proteções e Ações da Conquista"
+      subtitulo: "Registre cada proteção fixa, parada ou limpeza realizada na abertura. Mínimo 1."
 
-        - id: "setor_gps"
-          campo_simples:
-            label: "Localização da Base"
-            sublabel: "Capture as coordenadas geográficas exatas."
-            tipo: GPS
-            obrigatorio: true
+      steps:
+        - id: lista_acoes
+          conteudos:
+            - id: lista_acoes_c
+              lista_acoes:
+                label: "Proteções e Ações Realizadas"
+                sublabel: "Adicione cada proteção fixa instalada, parada ou intervenção na rocha. Mínimo 1."
+                minimo: 1
+                maximo: 0
+                tipos_disponiveis:
 
-        - id: "foto_linha"
-          campo_simples:
-            label: "Foto do Setor"
-            sublabel: "Tire uma foto que mostre a linha provável da via."
-            tipo: IMAGE
-            ui_hint: CAMERA_ACTION
-            obrigatorio: true
+                  # ── 1. Proteção Fixa Instalada ────────────────────
+                  - id: protecao_instalada
+                    label: "Proteção Fixa Instalada"
+                    sublabel: "Instalação de chapeleta, parabolt, grampo ou ancoragem química"
+                    icon_name: add_location
+                    steps:
+                      - id: pi_dados
+                        conteudos:
+                          - id: pi_posicao
+                            campo_simples:
+                              label: "Posição / Identificação da Proteção"
+                              sublabel: "Ex.: 1ª proteção, Enfiada 2 - 4ª chapeleta"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: ref_mat_protecao
+                            ref_materiais:
+                              label: "Materiais utilizados"
+                              sublabel: "Selecione os materiais do catálogo instalados neste ponto ou cadastre um novo"
+                              origem_catalogo: true
+                              obrigatorio: true
+                          - id: pi_foto
+                            campo_simples:
+                              label: "Mídia após instalação"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+                          - id: pi_nota
+                            campo_simples:
+                              label: "Observações (opcional)"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+
+                  # ── 2. Parada / Rapel Instalado ───────────────────
+                  - id: parada_rapel
+                    label: "Parada / Rapel Instalado"
+                    sublabel: "Instalação de parada dupla/tripla ou estação de rapel"
+                    icon_name: radio_button_unchecked
+                    steps:
+                      - id: pr_dados
+                        conteudos:
+                          - id: pr_posicao
+                            campo_simples:
+                              label: "Identificação da Parada"
+                              sublabel: "Ex.: Parada P1, Parada Final"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: ref_mat_parada
+                            ref_materiais:
+                              label: "Materiais utilizados na parada"
+                              sublabel: "Selecione os materiais do catálogo instalados nesta parada ou cadastre um novo"
+                              origem_catalogo: true
+                              obrigatorio: true
+                          - id: pr_foto
+                            campo_simples:
+                              label: "Mídia após instalação"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                              obrigatorio: true
+                          - id: pr_nota
+                            campo_simples:
+                              label: "Observações (opcional)"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+
+                  # ── 3. Remoção de Bloco Solto ─────────────────────
+                  - id: remocao_bloco
+                    label: "Remoção de Bloco Solto"
+                    sublabel: "Retirada de pedra ou laca instável durante a abertura"
+                    icon_name: delete_forever
+                    steps:
+                      - id: rb_dados
+                        conteudos:
+                          - id: rb_aviso
+                            instrucao:
+                              titulo: "ATENÇÃO — Zona de Risco"
+                              corpo: "A remoção de blocos deve ser feita com a base isolada e sem presença de pessoas abaixo."
+                              nivel_alerta: PERIGO
+                          - id: rb_tamanho
+                            campo_simples:
+                              label: "Tamanho aproximado do bloco"
+                              tipo: DROPDOWN
+                              opcoes:
+                                - valor: pequeno
+                                  label: "Pequeno (tamanho de punho)"
+                                - valor: medio
+                                  label: "Médio (tamanho de melancia)"
+                                - valor: grande
+                                  label: "Grande (maior que melancia)"
+                          - id: rb_foto_antes
+                            campo_simples:
+                              label: "Mídia antes da remoção"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: rb_foto_depois
+                            campo_simples:
+                              label: "Mídia após remoção"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+
+                  # ── 4. Limpeza de Vegetação ───────────────────────
+                  - id: limpeza_vegetacao
+                    label: "Limpeza de Vegetação"
+                    sublabel: "Limpeza de agarras ou canaletas na linha da conquista"
+                    icon_name: grass
+                    steps:
+                      - id: lv_dados
+                        conteudos:
+                          - id: lv_foto_antes
+                            campo_simples:
+                              label: "Mídia antes da limpeza"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+                          - id: lv_nota
+                            campo_simples:
+                              label: "Descrição da limpeza"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                          - id: lv_foto_depois
+                            campo_simples:
+                              label: "Mídia após limpeza"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+
+                  # ── 5. Outra Ação ─────────────────────────────────
+                  - id: outro
+                    label: "Outra Ação"
+                    sublabel: "Ação ou registro adicional da abertura"
+                    icon_name: more_horiz
+                    steps:
+                      - id: out_dados
+                        conteudos:
+                          - id: out_descricao
+                            campo_simples:
+                              label: "Descrição da ação realizada"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                              obrigatorio: true
+                          - id: ref_mat_outro
+                            ref_materiais:
+                              label: "Materiais utilizados (opcional)"
+                              sublabel: "Caso esta ação tenha utilizado materiais do catálogo, selecione-os abaixo"
+                              origem_catalogo: true
+                              obrigatorio: false
+                          - id: out_foto
+                            campo_simples:
+                              label: "Mídia (opcional)"
+                              tipo: IMAGE
+                              ui_hint: CAMERA_ACTION
+
+    # ═══════════════════════════════════════════════════════════════
+    # BLOCO 3 — Avaliação e Encerramento
+    # ═══════════════════════════════════════════════════════════════
+    - id: avaliacao
+      titulo: "Bloco 3 — Avaliação e Encerramento"
+      subtitulo: "Condição da via e equipamento necessário para repetição"
+
+      steps:
+        - id: avaliacao_geral
+          conteudos:
+            - id: avaliacao_condicao
+              campo_simples:
+                label: "Condição atual da via"
+                tipo: DROPDOWN
+                ui_hint: LARGE_TILES
+                obrigatorio: true
+                opcoes:
+                  - valor: liberada
+                    label: "Liberada para escalada"
+                    sublabel: "Conquista concluída e pronta para repetições"
+                    icon_name: check_circle
+                  - valor: em_conquista
+                    label: "Em conquista / Projeto em aberto"
+                    sublabel: "Via ainda não finalizada"
+                    icon_name: build
+                  - valor: liberada_restricao
+                    label: "Liberada com restrição"
+                    sublabel: "Verificar recomendações antes de repetir"
+                    icon_name: warning
+            - id: avaliacao_comentarios
+              campo_simples:
+                label: "Equipamento sugerido para repetição e comentários (opcional)"
+                sublabel: "Ex.: 12 costuras, jogo de friends #0.5 a #2, corda de 60m"
+                tipo: TEXT
+                ui_hint: TEXT_AREA

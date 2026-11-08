@@ -239,46 +239,44 @@ void main() {
 
   // ── 2. Feature 1: Multi-conteúdo por step ───────────────────────────────────
 
-  group('manutencao_ferragens.yaml — Feature 1 (multi-conteúdo)', () {
+  group('manutencao.yaml — Feature 1 (multi-conteúdo e sem Bloco 1 de materiais)', () {
     late DefinicaoProtocolo proto;
 
     setUp(() {
-      final file = File('assets/protocols/manutencao_ferragens.yaml');
+      final file = File('assets/protocols/manutencao.yaml');
       expect(
         file.existsSync(),
         isTrue,
-        reason: 'manutencao_ferragens.yaml não encontrado',
+        reason: 'manutencao.yaml não encontrado',
       );
       proto = ProtocolParser.fromYaml(file.readAsStringSync());
     });
 
-    test('tem 4 blocos na ordem correta', () {
+    test('tem id "manutencao", versao "2" e 3 blocos na ordem correta (via, acoes, avaliacao)', () {
+      expect(proto.id, equals('manutencao'));
+      expect(proto.versao, equals('2'));
       expect(
         proto.blocos.map((b) => b.id).toList(),
-        equals(['materiais', 'via', 'acoes', 'avaliacao']),
+        equals(['via', 'acoes', 'avaliacao']),
       );
     });
 
-    test('bloco "materiais" tem ConteudoStep refMateriais "lista_materiais_c" com origemCatalogo=true', () {
-      final bloco = proto.blocos.firstWhere((b) => b.id == 'materiais');
-      final refC = _conteudoById(bloco.steps, 'lista_materiais_c');
-      expect(refC.whichTipo(), equals(ConteudoStep_Tipo.refMateriais));
-      expect(refC.refMateriais.origemCatalogo, isTrue);
-      expect(refC.refMateriais.obrigatorio, isTrue);
-    });
-
     test(
-      'step "via_localizacao" tem múltiplos conteudos (instrucao + GPS + campos)',
+      'step "via_localizacao" tem múltiplos conteudos (instrucao + data automática + GPS + campos)',
       () {
         final bloco = proto.blocos.firstWhere((b) => b.id == 'via');
         final step = bloco.steps.firstWhere((s) => s.id == 'via_localizacao');
 
         expect(
           step.conteudos.length,
-          greaterThanOrEqualTo(3),
+          greaterThanOrEqualTo(4),
           reason:
-              'via_localizacao deve ter instrucao + GPS + nome (mínimo 3 conteudos)',
+              'via_localizacao deve ter instrucao + data + GPS + nome (mínimo 4 conteudos)',
         );
+
+        final dataC = _conteudoById([step], 'via_data');
+        expect(dataC.campoSimples.tipo, equals(StepCampoSimples_TipoCampo.DATE));
+        expect(dataC.campoSimples.preencherDataAtual, isTrue);
 
         final tipos = step.conteudos.map((c) => c.whichTipo()).toList();
         expect(tipos, contains(ConteudoStep_Tipo.instrucao));
@@ -339,12 +337,12 @@ void main() {
 
   // ── 3. Feature 2: Lista de ações inline ─────────────────────────────────────
 
-  group('manutencao_ferragens.yaml — Feature 2 (listas inline)', () {
+  group('manutencao.yaml — Feature 2 (listas inline)', () {
     late DefinicaoProtocolo proto;
 
     setUp(() {
       proto = ProtocolParser.fromYaml(
-        File('assets/protocols/manutencao_ferragens.yaml').readAsStringSync(),
+        File('assets/protocols/manutencao.yaml').readAsStringSync(),
       );
     });
 
@@ -375,12 +373,12 @@ void main() {
 
   // ── 4. Branching recursivo ───────────────────────────────────────────────────
 
-  group('manutencao_ferragens.yaml — branching recursivo', () {
+  group('manutencao.yaml — branching recursivo e ref_mat_* direto do catálogo', () {
     late DefinicaoProtocolo proto;
 
     setUp(() {
       proto = ProtocolParser.fromYaml(
-        File('assets/protocols/manutencao_ferragens.yaml').readAsStringSync(),
+        File('assets/protocols/manutencao.yaml').readAsStringSync(),
       );
     });
 
@@ -439,7 +437,7 @@ void main() {
     );
 
     test(
-      'sub-ramo "reusar_furo" tem RefMateriais apontando para "lista_materiais_c"',
+      'sub-ramos "reusar_furo" e "novo_local" têm RefMateriais com origemCatalogo=true',
       () {
         final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
         final listaC = _firstConteudoOfType(
@@ -462,23 +460,29 @@ void main() {
         final ramoReusar = subRamoC.selecaoRamo.ramos.firstWhere(
           (r) => r.id == 'reusar_furo',
         );
-
-        expect(
-          _hasConteudoOfType(ramoReusar.steps, ConteudoStep_Tipo.refMateriais),
-          isTrue,
-          reason: 'Sub-ramo "reusar_furo" deve ter RefMateriais',
-        );
-
-        final refC = _firstConteudoOfType(
+        final refReusar = _firstConteudoOfType(
           ramoReusar.steps,
           ConteudoStep_Tipo.refMateriais,
         );
-        expect(refC.refMateriais.idStepMateriais, equals('lista_materiais_c'));
+        expect(refReusar.id, equals('ref_mat_reusar_furo'));
+        expect(refReusar.refMateriais.origemCatalogo, isTrue);
+        expect(refReusar.refMateriais.obrigatorio, isTrue);
+
+        final ramoNovoLocal = subRamoC.selecaoRamo.ramos.firstWhere(
+          (r) => r.id == 'novo_local',
+        );
+        final refNovoLocal = _firstConteudoOfType(
+          ramoNovoLocal.steps,
+          ConteudoStep_Tipo.refMateriais,
+        );
+        expect(refNovoLocal.id, equals('ref_mat_novo_local'));
+        expect(refNovoLocal.refMateriais.origemCatalogo, isTrue);
+        expect(refNovoLocal.refMateriais.obrigatorio, isTrue);
       },
     );
 
     test(
-      '"novo_ponto" tem RefMateriais que referencia "lista_materiais_c"',
+      '"novo_ponto" e "outro" têm RefMateriais com origemCatalogo=true (obrigatório e opcional respectivamente)',
       () {
         final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
         final listaC = _firstConteudoOfType(
@@ -494,13 +498,60 @@ void main() {
           ConteudoStep_Tipo.refMateriais,
           reason: 'novo_ponto deve ter RefMateriais',
         );
-        expect(refC.refMateriais.idStepMateriais, equals('lista_materiais_c'));
+        expect(refC.id, equals('ref_mat_novo_ponto'));
+        expect(refC.refMateriais.origemCatalogo, isTrue);
         expect(refC.refMateriais.obrigatorio, isTrue);
+
+        final outro = listaC.listaAcoes.tiposDisponiveis.firstWhere(
+          (t) => t.id == 'outro',
+        );
+        final refOutro = _firstConteudoOfType(
+          outro.steps,
+          ConteudoStep_Tipo.refMateriais,
+          reason: 'outro deve ter RefMateriais opcional',
+        );
+        expect(refOutro.id, equals('ref_mat_outro'));
+        expect(refOutro.refMateriais.origemCatalogo, isTrue);
+        expect(refOutro.refMateriais.obrigatorio, isFalse);
       },
     );
   });
 
   // ── 5. Novos recursos do Parser para Materiais ──────────────────────────────
+
+  group('Versionamento inteiro e extrairVersaoInteira', () {
+    test('parseia versao declarada como número inteiro no YAML e normaliza via extrairVersaoInteira', () {
+      const yaml = '''
+protocolo:
+  id: teste_versao_inteira
+  nome: Teste Versão Inteira
+  versao: 2
+  blocos:
+    - id: b1
+      titulo: Bloco 1
+      steps:
+        - id: s1
+          conteudos:
+            - id: c1
+              campo_simples:
+                label: "Campo"
+                tipo: TEXT
+''';
+      final proto = ProtocolParser.fromYaml(yaml);
+      expect(proto.versao, equals('2'));
+      expect(ProtocolParser.extrairVersaoInteira(proto.versao), equals(2));
+    });
+
+    test('extrairVersaoInteira converte versões semver legadas ou vazias para 1 e inteiros positivos para seu valor', () {
+      expect(ProtocolParser.extrairVersaoInteira('1.0.0'), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira('2.1.0'), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira(''), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira('0'), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira('-3'), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira('1'), equals(1));
+      expect(ProtocolParser.extrairVersaoInteira('3'), equals(3));
+    });
+  });
 
   group('Parsing de preencher_data_atual, origem_catalogo e listas aninhadas', () {
     test('parseia preencher_data_atual em StepCampoSimples do tipo DATE', () {
@@ -615,6 +666,7 @@ protocolo:
 
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
       expect(proto.id, equals('cadastro_material'));
+      expect(proto.versao, equals('1'));
       expect(proto.blocos.length, equals(2));
       expect(proto.blocos.map((b) => b.id), isNot(contains('encerramento_material')));
 
@@ -763,6 +815,187 @@ protocolo:
       expect(proto.blocos.first.id, equals('avaliacao'));
       expect(proto.blocos.first.steps, hasLength(1));
       expect(proto.blocos.first.steps.first.id, equals('observacoes_finais'));
+    });
+  });
+
+  // ── 7. inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (v2) ──
+
+  group('inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (versão 2)', () {
+    test('inspecao_visual.yaml tem id "inspecao_visual", versao "2", 3 blocos e lista ponto-a-ponto sem materiais', () {
+      final file = File('assets/protocols/inspecao_visual.yaml');
+      final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+
+      expect(proto.id, equals('inspecao_visual'));
+      expect(proto.versao, equals('2'));
+      expect(
+        proto.blocos.map((b) => b.id).toList(),
+        equals(['via', 'inspecao', 'avaliacao']),
+      );
+
+      final stepVia = proto.blocos[0].steps.first;
+      final idsVia = stepVia.conteudos.map((c) => c.id).toList();
+      expect(
+        idsVia,
+        containsAll(['via_data', 'via_gps', 'via_nome', 'via_setor', 'via_pico']),
+      );
+      expect(_conteudoById([stepVia], 'via_data').campoSimples.preencherDataAtual, isTrue);
+
+      final listaInspecao = _firstConteudoOfType(
+        proto.blocos[1].steps,
+        ConteudoStep_Tipo.listaAcoes,
+      );
+      expect(listaInspecao.id, equals('lista_inspecao_c'));
+      expect(listaInspecao.listaAcoes.minimo, equals(1));
+      expect(
+        listaInspecao.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
+        equals(['protecao_ancoragem', 'parada_rapel', 'rocha_ambiente']),
+      );
+
+      final refs = <StepRefMateriais>[];
+      for (final bloco in proto.blocos) {
+        _collectRefMateriais(bloco.steps, refs);
+      }
+      expect(refs, isEmpty, reason: 'Inspeção visual não deve ter seleção de materiais');
+    });
+
+    test('abertura_vias.yaml tem id "abertura_vias", versao "2", 3 blocos e ref_mat_* do catálogo nas ações', () {
+      final file = File('assets/protocols/abertura_vias.yaml');
+      final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+
+      expect(proto.id, equals('abertura_vias'));
+      expect(proto.versao, equals('2'));
+      expect(
+        proto.blocos.map((b) => b.id).toList(),
+        equals(['via', 'acoes', 'avaliacao']),
+      );
+
+      final stepVia = proto.blocos[0].steps.first;
+      final idsVia = stepVia.conteudos.map((c) => c.id).toList();
+      expect(
+        idsVia,
+        containsAll([
+          'via_data',
+          'via_gps',
+          'via_nome',
+          'via_conquistadores',
+          'via_graduacao',
+          'via_extensao',
+          'via_setor',
+          'via_pico',
+          'via_foto_linha',
+        ]),
+      );
+      expect(_conteudoById([stepVia], 'via_data').campoSimples.preencherDataAtual, isTrue);
+
+      final listaAcoes = _firstConteudoOfType(
+        proto.blocos[1].steps,
+        ConteudoStep_Tipo.listaAcoes,
+      );
+      expect(listaAcoes.id, equals('lista_acoes_c'));
+      expect(listaAcoes.listaAcoes.minimo, equals(1));
+      expect(
+        listaAcoes.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
+        equals([
+          'protecao_instalada',
+          'parada_rapel',
+          'remocao_bloco',
+          'limpeza_vegetacao',
+          'outro',
+        ]),
+      );
+
+      final protInstalada = listaAcoes.listaAcoes.tiposDisponiveis
+          .firstWhere((t) => t.id == 'protecao_instalada');
+      final refProt = _firstConteudoOfType(
+        protInstalada.steps,
+        ConteudoStep_Tipo.refMateriais,
+      );
+      expect(refProt.id, equals('ref_mat_protecao'));
+      expect(refProt.refMateriais.origemCatalogo, isTrue);
+      expect(refProt.refMateriais.obrigatorio, isTrue);
+
+      final parada = listaAcoes.listaAcoes.tiposDisponiveis
+          .firstWhere((t) => t.id == 'parada_rapel');
+      final refParada = _firstConteudoOfType(
+        parada.steps,
+        ConteudoStep_Tipo.refMateriais,
+      );
+      expect(refParada.id, equals('ref_mat_parada'));
+      expect(refParada.refMateriais.origemCatalogo, isTrue);
+      expect(refParada.refMateriais.obrigatorio, isTrue);
+    });
+
+    test('registro_expresso.yaml tem id "registro_expresso", versao "2", identificação com via_nome/via_data, lista unificada e ref_mat_expresso opcional', () {
+      final file = File('assets/protocols/registro_expresso.yaml');
+      final proto = ProtocolParser.fromYaml(file.readAsStringSync());
+
+      expect(proto.id, equals('registro_expresso'));
+      expect(proto.versao, equals('2'));
+
+      final todosConteudos = proto.blocos
+          .expand((b) => b.steps)
+          .expand((s) => s.conteudos)
+          .toList();
+      final idsRaiz = todosConteudos.map((c) => c.id).toList();
+      expect(
+        idsRaiz,
+        containsAll([
+          'via_nome',
+          'via_data',
+          'via_gps',
+          'observacoes_gerais',
+          'lista_evidencias',
+          'ref_mat_expresso',
+        ]),
+      );
+
+      final cNome = todosConteudos.firstWhere((c) => c.id == 'via_nome');
+      expect(cNome.campoSimples.obrigatorio, isTrue);
+
+      final cData = todosConteudos.firstWhere((c) => c.id == 'via_data');
+      expect(cData.campoSimples.preencherDataAtual, isTrue);
+
+      final cRefMat = todosConteudos.firstWhere((c) => c.id == 'ref_mat_expresso');
+      expect(cRefMat.refMateriais.origemCatalogo, isTrue);
+      expect(cRefMat.refMateriais.obrigatorio, isFalse);
+
+      final cEvidencias = todosConteudos.firstWhere((c) => c.id == 'lista_evidencias');
+      expect(cEvidencias.listaAcoes.tiposDisponiveis, hasLength(1));
+      expect(cEvidencias.listaAcoes.tiposDisponiveis.first.id, equals('item_evidencia'));
+    });
+
+    test('suporta formato shorthand em Step e lança FormatException para tipo de ConteudoStep desconhecido', () {
+      const yamlShorthand = '''
+id: "teste_shorthand"
+versao: 1
+nome: "Teste Shorthand"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "step_direto"
+        campo_simples:
+          rotulo: "Campo Direto"
+          tipo: "STRING"
+''';
+      final proto = ProtocolParser.fromYaml(yamlShorthand);
+      expect(proto.blocos.first.steps.first.conteudos.first.id, equals('step_direto'));
+
+      const yamlInvalido = '''
+id: "teste_invalido"
+versao: 1
+nome: "Teste Inválido"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "step_invalido"
+        tipo_desconhecido: {}
+''';
+      expect(
+        () => ProtocolParser.fromYaml(yamlInvalido),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

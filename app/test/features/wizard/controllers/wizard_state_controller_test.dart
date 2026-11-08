@@ -854,7 +854,7 @@ void main() {
 protocolo:
   id: "cadastro_material"
   nome: "Cadastro de Material"
-  versao: "1.0.0"
+  versao: 1
   blocos:
     - id: "b1"
       titulo: "Materiais"
@@ -866,34 +866,38 @@ protocolo:
                 label: "Nome do Material"
                 tipo: TEXT
                 obrigatorio: true
-        - id: "s_lista"
-          lista_acoes:
-            label: "Itens do Material"
-            minimo: 1
-            tipos_disponiveis:
-              - id: "parabolt"
-                label: "Parabolt"
-                steps:
-                  - id: "pb_s1"
-                    conteudos:
-                      - id: "pb_marca"
-                        campo_simples:
-                          label: "Marca"
-                          tipo: TEXT
-                          obrigatorio: true
-                      - id: "sub_detalhes"
-                        lista_acoes:
-                          label: "Detalhes / Fabricação"
-                          minimo: 1
-                          tipos_disponiveis:
-                            - id: "etapa"
-                              label: "Etapa"
-                              steps:
-                                - id: "et_s1"
-                                  campo_simples:
-                                    label: "Descrição da Etapa"
-                                    tipo: TEXT
-                                    obrigatorio: true
+        - id: "lista_itens_material"
+          conteudos:
+            - id: "lista_itens_material_c"
+              lista_acoes:
+                label: "Itens do Material"
+                minimo: 1
+                tipos_disponiveis:
+                  - id: "parabolt"
+                    label: "Parabolt"
+                    steps:
+                      - id: "pb_s1"
+                        conteudos:
+                          - id: "pb_marca"
+                            campo_simples:
+                              label: "Marca"
+                              tipo: TEXT
+                              obrigatorio: true
+                          - id: "pb_detalhes"
+                            lista_acoes:
+                              label: "Detalhes / Fabricação"
+                              minimo: 1
+                              tipos_disponiveis:
+                                - id: "detalhe_item"
+                                  label: "Detalhe / Etapa Relevante"
+                                  steps:
+                                    - id: "pb_det_step"
+                                      conteudos:
+                                        - id: "det_descricao"
+                                          campo_simples:
+                                            label: "Descrição da Etapa"
+                                            tipo: TEXT
+                                            obrigatorio: true
 ''';
 
       final container = ProviderContainer(
@@ -924,22 +928,22 @@ protocolo:
           .tiposDisponiveis[0];
 
       // Adiciona item pai (parabolt)
-      notifier.addListItem(listConteudoId: 's_lista', tipo: tipoParabolt);
-      final parentItemId = container.read(wizardControllerProvider).lists['s_lista']!.first.id;
+      notifier.addListItem(listConteudoId: 'lista_itens_material_c', tipo: tipoParabolt);
+      final parentItemId = container.read(wizardControllerProvider).lists['lista_itens_material_c']!.first.id;
 
       // Preenche marca do parabolt, mas não adiciona item na sub-lista que tem minimo: 1
       notifier.answerInlineConteudoString('pb_marca', 'Fabricação Própria', parentItemId);
-      expect(notifier.confirmListItem('s_lista', parentItemId), isFalse);
+      expect(notifier.confirmListItem('lista_itens_material_c', parentItemId), isFalse);
 
-      // Adiciona item na sub-lista usando chave composta "sub_detalhes__<parentItemId>"
-      final subListKey = 'sub_detalhes__$parentItemId';
+      // Adiciona item na sub-lista usando chave composta "pb_detalhes__<parentItemId>"
+      final subListKey = 'pb_detalhes__$parentItemId';
       notifier.addListItem(listConteudoId: subListKey, tipo: tipoEtapa);
       final subItemId = container.read(wizardControllerProvider).lists[subListKey]!.first.id;
 
       // Preenche resposta da etapa e confirma sub-item e item pai
-      notifier.answerInlineConteudoString('et_s1', 'Corte e repassivação ácida', subItemId);
+      notifier.answerInlineConteudoString('det_descricao', 'Corte e repassivação ácida', subItemId);
       expect(notifier.confirmListItem(subListKey, subItemId), isTrue);
-      expect(notifier.confirmListItem('s_lista', parentItemId), isTrue);
+      expect(notifier.confirmListItem('lista_itens_material_c', parentItemId), isTrue);
 
       // Persiste a sessão no disco e no banco local
       final sessionId = await notifier.saveSession();
@@ -964,13 +968,13 @@ protocolo:
       final restored = container2.read(wizardControllerProvider);
 
       expect(restored.answers['mat_nome']?.texto, equals('Barra Roscada Inox 316 14cm'));
-      expect(restored.lists['s_lista'], hasLength(1));
-      expect(restored.lists['s_lista']!.first.id, equals(parentItemId));
+      expect(restored.lists['lista_itens_material_c'], hasLength(1));
+      expect(restored.lists['lista_itens_material_c']!.first.id, equals(parentItemId));
       expect(restored.answers['pb_marca__$parentItemId']?.texto, equals('Fabricação Própria'));
       expect(restored.lists[subListKey], hasLength(1));
       expect(restored.lists[subListKey]!.first.id, equals(subItemId));
-      expect(restored.lists[subListKey]!.first.tipoLabel, equals('Etapa'));
-      expect(restored.answers['et_s1__$subItemId']?.texto, equals('Corte e repassivação ácida'));
+      expect(restored.lists[subListKey]!.first.tipoLabel, equals('Detalhe / Etapa de Fabricação'));
+      expect(restored.answers['det_descricao__$subItemId']?.texto, equals('Corte e repassivação ácida'));
     });
 
     test('obterItensParaRefMateriais lista materiais do catálogo ordenados por dataUltimaSelecao e filtra nas ações', () async {
@@ -1483,6 +1487,324 @@ protocolo:
       expect(state.protocolRawYaml.contains('SIGNATURE'), isFalse);
       final todosStepIds = state.protocol!.blocos.expand((b) => b.steps).map((s) => s.id).toList();
       expect(todosStepIds, isNot(contains('assinatura')));
+    });
+
+    test('loadSession verifica midias da sessao e dispara pre-processamento em 2o plano quando arquivos finais nao existem', () async {
+      FlutterImageCompressPlatform.instance = _FakeImageCompressPlatform();
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final transcoder = VideoTranscoderService(
+        executador: (cmd) async {
+          final match = RegExp(r'-y "([^"]+)"').firstMatch(cmd);
+          if (match != null) {
+            final outFile = File(match.group(1)!);
+            await outFile.create(recursive: true);
+            await outFile.writeAsBytes([7, 7, 7]);
+          }
+          return true;
+        },
+      );
+      final mediaCompressor = MediaCompressorService(
+        videoTranscoderService: transcoder,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          bancoDadosLocalProvider.overrideWithValue(banco),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+          mediaCompressorProvider.overrideWithValue(mediaCompressor),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      const sessionId = 'sessao-edicao-pendente';
+      final dirSessao = await sessionManager.getSessionDirectory(sessionId);
+
+      // Cria apenas os arquivos originais (simulando sessão cujo pré-processamento não terminou)
+      File('${dirSessao.path}/foto_pend_original.jpg').writeAsBytesSync([1, 2, 3]);
+      File('${dirSessao.path}/vid_pend_original.mp4').writeAsBytesSync([4, 5, 6]);
+      File('${dirSessao.path}/doc_pend_p1_original.jpg').writeAsBytesSync([7, 8, 9]);
+
+      const yamlSimples = '''
+protocolo:
+  id: manutencao_ferragens
+  nome: "Manutenção"
+  versao: "1.0.0"
+  blocos:
+    - id: b1
+      titulo: "Bloco 1"
+      steps:
+        - id: s1
+          conteudos:
+            - id: midias_c
+              campo_simples:
+                label: "Mídias"
+                tipo: IMAGE
+''';
+
+      final registro = Registro(
+        idSessao: sessionId,
+        idProtocolo: 'manutencao_ferragens',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: yamlSimples,
+        respostas: [
+          MapEntry(
+            'midias_c',
+            Resposta(
+              lista: ListaRespostas(
+                valores: [
+                  Resposta(
+                    midia: ReferenciaMidia(
+                      imagem: ArquivoImagem(
+                        uuid: 'foto_pend',
+                        hashOriginal: 'h1',
+                        tipoOriginal: 'image/jpg',
+                      ),
+                    ),
+                  ),
+                  Resposta(
+                    midia: ReferenciaMidia(
+                      video: ArquivoVideo(
+                        uuid: 'vid_pend',
+                        hashOriginal: 'h2',
+                        tipoOriginal: 'video/mp4',
+                      ),
+                    ),
+                  ),
+                  Resposta(
+                    midia: ReferenciaMidia(
+                      documento: ArquivoDocumento(
+                        uuid: 'doc_pend',
+                        hashOriginal: 'h3',
+                        tipoOriginal: 'application/pdf',
+                        nomeOriginal: 'nota.pdf',
+                        quantidadePaginas: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+
+      await sessionManager.saveManifest(
+        sessionId: sessionId,
+        binarypb: registro.writeToBuffer(),
+      );
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      await notifier.loadSession(sessionId);
+
+      // Aguarda conclusão do pré-processamento disparado em 2o plano pelo loadSession
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(File('${dirSessao.path}/foto_pend.webp').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/foto_pend_thumb.jpg').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/vid_pend.mp4').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/vid_pend_poster.jpg').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/doc_pend_p1.webp').existsSync(), isTrue);
+      expect(File('${dirSessao.path}/doc_pend_p1_thumb.jpg').existsSync(), isTrue);
+    });
+
+    test('duplicarSessao clona respostas, listas e midias com sufixo incremental (Cópia), (Cópia 2), (Cópia 3) e atualiza data atual', () async {
+      FlutterImageCompressPlatform.instance = _FakeImageCompressPlatform();
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final container = ProviderContainer(
+        overrides: [
+          bancoDadosLocalProvider.overrideWithValue(banco),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      const yamlMaterial = '''
+protocolo:
+  id: cadastro_material
+  nome: "Cadastro de Material"
+  versao: "1.0.0"
+  blocos:
+    - id: b1
+      titulo: "Identificação"
+      steps:
+        - id: s1
+          conteudos:
+            - id: mat_nome
+              campo_simples:
+                label: "Nome do Material"
+                tipo: TEXT
+                obrigatorio: true
+            - id: mat_data
+              campo_simples:
+                label: "Data"
+                tipo: DATE
+                preencher_data_atual: true
+            - id: mat_foto
+              campo_simples:
+                label: "Foto"
+                tipo: IMAGE
+''';
+
+      const idOriginal = 'sessao-mat-original';
+      final dirOriginal = await sessionManager.getSessionDirectory(idOriginal);
+      File('${dirOriginal.path}/foto_mat_original.jpg').writeAsBytesSync([1, 2, 3]);
+      File('${dirOriginal.path}/foto_mat.webp').writeAsBytesSync([4, 5, 6]);
+      File('${dirOriginal.path}/foto_mat_thumb.jpg').writeAsBytesSync([7, 8, 9]);
+      File('${dirOriginal.path}/fixalog_$idOriginal.epub').writeAsBytesSync([99, 99]);
+
+      final registroOriginal = Registro(
+        idSessao: idOriginal,
+        idProtocolo: 'cadastro_material',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: yamlMaterial,
+        respostas: [
+          MapEntry('mat_nome', Resposta(texto: 'Kit Parabolt Inox')),
+          MapEntry('mat_data', Resposta(texto: '01/01/2020')),
+          MapEntry(
+            'mat_foto',
+            Resposta(
+              midia: ReferenciaMidia(
+                imagem: ArquivoImagem(
+                  uuid: 'foto_mat',
+                  hashOriginal: 'hash_foto',
+                  tipoOriginal: 'image/jpg',
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+      await sessionManager.saveManifest(
+        sessionId: idOriginal,
+        binarypb: registroOriginal.writeToBuffer(),
+      );
+      await banco.salvarSubmissao(
+        SubmissionRecord()
+          ..idSessao = idOriginal
+          ..idProtocolo = 'cadastro_material'
+          ..nomeProtocolo = 'Cadastro de Material'
+          ..tituloExibicao = 'Kit Parabolt Inox'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..status = SubmissionStatus.gerado
+          ..pdfPath = '${dirOriginal.path}/fixalog_$idOriginal.pdf'
+          ..protobufPath = '${dirOriginal.path}/fixalog_$idOriginal.epub',
+      );
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+
+      // 1a cópia -> "Kit Parabolt Inox (Cópia)"
+      final idCopia1 = await notifier.duplicarSessao(idOriginal);
+      expect(idCopia1, isNot(equals(idOriginal)));
+      final state1 = container.read(wizardControllerProvider);
+      expect(state1.sessionId, equals(idCopia1));
+      expect(state1.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia)'));
+      expect(state1.answers['mat_data']?.texto, isNot(equals('01/01/2020')));
+
+      final hoje = DateTime.now();
+      final dataHojeEsperada =
+          '${hoje.day.toString().padLeft(2, '0')}/${hoje.month.toString().padLeft(2, '0')}/${hoje.year}';
+      expect(state1.answers['mat_data']?.texto, equals(dataHojeEsperada));
+
+      // Verifica que mídias foram copiadas e EPUB antigo não foi copiado
+      final dirCopia1 = await sessionManager.getSessionDirectory(idCopia1);
+      expect(File('${dirCopia1.path}/foto_mat_original.jpg').existsSync(), isTrue);
+      expect(File('${dirCopia1.path}/foto_mat.webp').existsSync(), isTrue);
+      expect(File('${dirCopia1.path}/foto_mat_thumb.jpg').existsSync(), isTrue);
+      expect(File('${dirCopia1.path}/fixalog_$idOriginal.epub').existsSync(), isFalse);
+
+      // Verifica registro salvo no SQLite como EM_PROGRESSO
+      final regCopia1 = await banco.obterSubmissaoPorIdSessao(idCopia1);
+      expect(regCopia1, isNotNull);
+      expect(regCopia1!.tituloExibicao, equals('Kit Parabolt Inox (Cópia)'));
+      expect(regCopia1.status, equals(SubmissionStatus.emProgresso));
+      expect(regCopia1.pdfPath, isEmpty);
+
+      // 2a cópia (duplicando a partir da própria 1a cópia!) -> "Kit Parabolt Inox (Cópia 2)"
+      final idCopia2 = await notifier.duplicarSessao(idCopia1);
+      final state2 = container.read(wizardControllerProvider);
+      expect(state2.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia 2)'));
+
+      // 3a cópia (duplicando a partir do original novamente) -> "Kit Parabolt Inox (Cópia 3)"
+      final idCopia3 = await notifier.duplicarSessao(idOriginal);
+      final state3 = container.read(wizardControllerProvider);
+      expect(state3.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia 3)'));
+    });
+
+    test('loadSession e duplicarSessao migram automaticamente sessões legadas (manutencao_ferragens, abertura_via_v1, inspecao_visual_v1, registro_expresso v1)', () async {
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final container = ProviderContainer(
+        overrides: [
+          bancoDadosLocalProvider.overrideWithValue(banco),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // 1. Sessão legada de manutencao_ferragens (v2.1.0) com lista_materiais_c e np_ref_materiais
+      const idManutLegado = 'sessao-manut-legada';
+      final regManutLegado = Registro(
+        idSessao: idManutLegado,
+        idProtocolo: 'manutencao_ferragens',
+        versaoProtocolo: '2.1.0',
+        yamlConteudo: 'id: manutencao_ferragens\nversao: "2.1.0"\nnome: "Manutenção"\nblocos: []',
+        respostas: [
+          MapEntry('via_nome', Resposta(texto: 'Via Clássica')),
+          MapEntry(
+            'lista_materiais_c',
+            Resposta(lista: ListaRespostas(valores: [Resposta(texto: 'mat-1')])),
+          ),
+        ],
+        listas: [
+          GrupoRepetido(
+            idLista: 'lista_acoes_c',
+            idItem: 'item_np_1',
+            idTipo: 'novo_ponto',
+            respostasItem: [
+              MapEntry(
+                'np_ref_materiais',
+                Resposta(lista: ListaRespostas(valores: [Resposta(texto: 'mat-1')])),
+              ),
+            ],
+          ),
+        ],
+      );
+      await sessionManager.saveManifest(
+        sessionId: idManutLegado,
+        binarypb: regManutLegado.writeToBuffer(),
+      );
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      await notifier.loadSession(idManutLegado);
+      final stateManut = container.read(wizardControllerProvider);
+      expect(stateManut.protocol!.id, equals('manutencao'));
+      expect(stateManut.protocol!.versao, equals('2'));
+      expect(stateManut.answers.containsKey('lista_materiais_c'), isFalse);
+      expect(stateManut.refSelections['ref_mat_novo_ponto__item_np_1'], equals(['mat-1']));
+
+      // 2. Duplicar sessão legada de abertura_via_v1 (v1.0.0) -> migra para abertura_vias v2 e aplica (Cópia) em via_nome
+      const idAberturaLegado = 'sessao-abertura-legada';
+      final regAberturaLegado = Registro(
+        idSessao: idAberturaLegado,
+        idProtocolo: 'abertura_via_v1',
+        versaoProtocolo: '1.0.0',
+        yamlConteudo: 'id: abertura_via_v1\nversao: "1.0.0"\nnome: "Abertura"\nblocos: []',
+        respostas: [
+          MapEntry('nome_via', Resposta(texto: 'Via Nova Sul')),
+          MapEntry('graduacao_proposta', Resposta(texto: '7a')),
+        ],
+      );
+      await sessionManager.saveManifest(
+        sessionId: idAberturaLegado,
+        binarypb: regAberturaLegado.writeToBuffer(),
+      );
+
+      final idAberturaCopia = await notifier.duplicarSessao(idAberturaLegado);
+      final stateAbertura = container.read(wizardControllerProvider);
+      expect(idAberturaCopia, isNot(equals(idAberturaLegado)));
+      expect(stateAbertura.protocol!.id, equals('abertura_vias'));
+      expect(stateAbertura.protocol!.versao, equals('2'));
+      expect(stateAbertura.answers['via_nome']?.texto, equals('Via Nova Sul (Cópia)'));
+      expect(stateAbertura.answers['via_graduacao']?.texto, equals('7a'));
     });
   });
 }

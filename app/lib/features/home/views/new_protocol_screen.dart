@@ -171,13 +171,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 // Protocol Cards
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'NOVO RECURSO',
-                  tagColor: const Color(0xFF00FF00),
-                  title: 'Registro Expresso\n(Fotos + Local)',
-                  iconData: Icons.bolt,
+                  tagText: 'PROTOCOLO PREVENTIVO',
+                  tagColor: const Color(0xFFFF6B00),
+                  title: 'Inspeção Visual de\nProteções Fixas',
+                  iconData: Icons.remove_red_eye,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
-                      'assets/protocols/registro_expresso.yaml',
+                      'assets/protocols/inspecao_visual.yaml',
+                      cache: false,
                     );
                     if (context.mounted) {
                       Navigator.of(context).push(
@@ -198,28 +199,8 @@ class NewProtocolScreen extends ConsumerWidget {
                   iconData: Icons.handyman,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
-                      'assets/protocols/manutencao_ferragens.yaml',
-                    );
-                    if (context.mounted) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              WizardScreen(initialYaml: yamlContent),
-                        ),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildProtocolCard(
-                  context: context,
-                  tagText: 'PROTOCOLO PREVENTIVO',
-                  tagColor: const Color(0xFFFF6B00),
-                  title: 'Inspeção Visual de\nProteções Fixas',
-                  iconData: Icons.remove_red_eye,
-                  onTap: () async {
-                    final yamlContent = await rootBundle.loadString(
-                      'assets/protocols/inspecao_visual.yaml',
+                      'assets/protocols/manutencao.yaml',
+                      cache: false,
                     );
                     if (context.mounted) {
                       Navigator.of(context).push(
@@ -241,6 +222,29 @@ class NewProtocolScreen extends ConsumerWidget {
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
                       'assets/protocols/abertura_vias.yaml',
+                      cache: false,
+                    );
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WizardScreen(initialYaml: yamlContent),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildProtocolCard(
+                  context: context,
+                  tagText: 'REGISTRO LIVRE',
+                  tagColor: const Color(0xFF00FF00),
+                  title: 'Registro Expresso\n(Fotos + Local)',
+                  iconData: Icons.bolt,
+                  onTap: () async {
+                    final yamlContent = await rootBundle.loadString(
+                      'assets/protocols/registro_expresso.yaml',
+                      cache: false,
                     );
                     if (context.mounted) {
                       Navigator.of(context).push(
@@ -262,6 +266,7 @@ class NewProtocolScreen extends ConsumerWidget {
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
                       'assets/protocols/cadastro_material.yaml',
+                      cache: false,
                     );
                     if (context.mounted) {
                       Navigator.of(context).push(

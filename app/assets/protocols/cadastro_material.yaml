@@ -2,7 +2,7 @@ protocolo:
   id: cadastro_material
   nome: "Cadastro de Material de Manutenção"
   descricao: "Protocolo para catalogação, rastreabilidade, testes de qualidade e processos de fabricação de materiais ou conjuntos para manutenção"
-  versao: "1.0.0"
+  versao: 1
 
   blocos:
 

@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart';
 import '../../../core/services/session_bundle_manager.dart';
 import '../../../core/services/protocol_parser.dart';
+import '../../../core/services/migrador_protocolo_registro.dart';
 import '../../media/services/media_compressor_service.dart';
 import '../../../core/models/local/submission_record.dart';
 import '../../../core/services/banco_dados_local.dart';
@@ -196,6 +197,7 @@ class WizardStateController extends Notifier<WizardState> {
     List<Step> steps,
     Map<String, Resposta> targetAnswers, {
     String? listItemId,
+    bool sobrescreverExistente = false,
   }) {
     final dataFormatada = _formatarDataAtual();
     for (final step in steps) {
@@ -205,15 +207,16 @@ class WizardStateController extends Notifier<WizardState> {
           final key = listItemId != null
               ? '${conteudo.id}__$listItemId'
               : conteudo.id;
-          if (!targetAnswers.containsKey(key)) {
+          if (sobrescreverExistente || !targetAnswers.containsKey(key)) {
             targetAnswers[key] = Resposta(texto: dataFormatada);
           }
-        } else if (listItemId != null && conteudo.hasSelecaoRamo()) {
+        } else if (conteudo.hasSelecaoRamo()) {
           for (final ramo in conteudo.selecaoRamo.ramos) {
             _preencherDatasAtuaisNosSteps(
               ramo.steps,
               targetAnswers,
               listItemId: listItemId,
+              sobrescreverExistente: sobrescreverExistente,
             );
           }
         }
@@ -284,29 +287,29 @@ class WizardStateController extends Notifier<WizardState> {
     final bytes = await sessionManager.readManifest(sessionId: sessionId);
     final registro = Registro.fromBuffer(bytes);
 
-    var yamlStr = registro.yamlConteudo;
-    if (yamlStr.isEmpty) {
+    if (registro.yamlConteudo.isEmpty) {
       throw Exception("O registro antigo não contém o YAML original salvo. Não é possível recriar a interface.");
     }
 
-    if ((registro.idProtocolo == 'cadastro_material' ||
-            registro.idProtocolo == 'manutencao_ferragens') &&
-        (yamlStr.contains('SIGNATURE') ||
-            yamlStr.contains('det_video') ||
-            yamlStr.contains('tq_video') ||
-            yamlStr.contains('Foto da Etapa / Detalhe') ||
-            yamlStr.contains('Mídias da Etapa / Detalhe'))) {
-      try {
-        final caminhoAsset = 'assets/protocols/${registro.idProtocolo}.yaml';
-        final arquivoLocal = File(caminhoAsset);
-        if (arquivoLocal.existsSync()) {
-          yamlStr = arquivoLocal.readAsStringSync();
-        } else {
-          yamlStr = await rootBundle.loadString(caminhoAsset);
-        }
-      } catch (_) {}
-    }
+    var yamlAlvo = registro.yamlConteudo;
+    try {
+      final caminhoAsset = MigradorProtocoloRegistro.caminhoAssetParaProtocolo(
+        registro.idProtocolo,
+      );
+      final arquivoLocal = File(caminhoAsset);
+      if (arquivoLocal.existsSync()) {
+        yamlAlvo = arquivoLocal.readAsStringSync();
+      } else {
+        yamlAlvo = await rootBundle.loadString(caminhoAsset);
+      }
+    } catch (_) {}
 
+    MigradorProtocoloRegistro.migrarRegistro(
+      registro,
+      yamlAtual: yamlAlvo,
+    );
+
+    final yamlStr = registro.yamlConteudo;
     final protocol = ProtocolParser.fromYaml(yamlStr);
 
     final queue = protocol.blocos
@@ -345,11 +348,9 @@ class WizardStateController extends Notifier<WizardState> {
       }
     }
 
-    // Achata todas as respostas (ignorando chaves legadas de assinatura manuscrita)
+    // Achata todas as respostas (chaves legadas já foram migradas por MigradorProtocoloRegistro)
     final allAnswers = <String, Resposta>{};
     allAnswers.addAll(registro.respostas);
-    allAnswers.remove('assinatura_c');
-    allAnswers.remove('mat_assinatura_c');
 
     for (final grupo in registro.listas) {
       for (final entry in grupo.respostasItem.entries) {
@@ -382,6 +383,156 @@ class WizardStateController extends Notifier<WizardState> {
       refSelections: reconstructedRefs,
       possuiAlteracoesPendentes: false,
     );
+
+    _dispararPreProcessamentoRespostasSessao(
+      sessionManager: sessionManager,
+      sessionId: sessionId,
+      answers: allAnswers,
+    );
+  }
+
+  static final RegExp _regexSufixoCopia = RegExp(
+    r'\s*\(Cópia(?:\s+\d+)?\)$',
+    caseSensitive: false,
+  );
+
+  static String _calcularProximoTituloCopia(
+    String tituloOriginal,
+    Iterable<String> titulosExistentes,
+  ) {
+    final base = tituloOriginal.trim().replaceFirst(_regexSufixoCopia, '').trim();
+    final nomeBase = base.isNotEmpty ? base : 'Relatório';
+    final existentesNormalizados = titulosExistentes
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toSet()
+      ..add(tituloOriginal.trim());
+
+    final candidato1 = '$nomeBase (Cópia)';
+    if (!existentesNormalizados.contains(candidato1)) {
+      return candidato1;
+    }
+
+    var indice = 2;
+    while (true) {
+      final candidatoN = '$nomeBase (Cópia $indice)';
+      if (!existentesNormalizados.contains(candidatoN)) {
+        return candidatoN;
+      }
+      indice++;
+    }
+  }
+
+  /// Cria uma cópia independente da sessão [idSessaoOrigem], copiando suas mídias
+  /// (originais e pré-processadas), aplicando sufixo incremental `(Cópia)`, `(Cópia 2)`...
+  /// ao título, atualizando campos com `preencher_data_atual` para a data de hoje
+  /// e persistindo imediatamente a nova sessão como `EM_PROGRESSO`.
+  Future<String> duplicarSessao(String idSessaoOrigem) async {
+    final novoSessionId = const Uuid().v4();
+    final sessionManager = ref.read(sessionBundleManagerProvider);
+
+    await sessionManager.copiarArquivosMidiaSessao(
+      idSessaoOrigem: idSessaoOrigem,
+      idSessaoDestino: novoSessionId,
+    );
+
+    await loadSession(idSessaoOrigem);
+
+    final protocol = state.protocol;
+    final updatedAnswers = Map<String, Resposta>.from(state.answers);
+
+    // 1. Determinar chave de título e calcular sufixo incremental (Cópia), (Cópia 2)...
+    String? chaveTituloEncontrada;
+    String tituloBaseOriginal = '';
+    for (final chave in const ['mat_nome', 'via_nome', 'nome_via']) {
+      final valor = updatedAnswers[chave]?.texto.trim() ?? '';
+      if (valor.isNotEmpty) {
+        chaveTituloEncontrada = chave;
+        tituloBaseOriginal = valor;
+        break;
+      }
+    }
+
+    if (chaveTituloEncontrada == null && protocol != null) {
+      final todosConteudos = protocol.blocos
+          .expand((b) => b.steps)
+          .expand((s) => s.conteudos);
+      for (final c in todosConteudos) {
+        if (c.id == 'mat_nome' || c.id == 'via_nome' || c.id == 'nome_via') {
+          chaveTituloEncontrada = c.id;
+          break;
+        }
+      }
+    }
+
+    BancoDadosLocal? banco;
+    try {
+      banco = ref.read(bancoDadosLocalProvider);
+    } catch (_) {
+      banco = null;
+    }
+
+    final registrosExistentes = banco?.listarSubmissoesSync() ?? const <SubmissionRecord>[];
+    if (tituloBaseOriginal.isEmpty) {
+      final regOrigem = banco?.obterSubmissaoPorIdSessaoSync(idSessaoOrigem);
+      if (regOrigem != null && regOrigem.tituloExibicao.trim().isNotEmpty) {
+        tituloBaseOriginal = regOrigem.tituloExibicao.trim();
+      } else if (protocol != null && protocol.nome.trim().isNotEmpty) {
+        tituloBaseOriginal = protocol.nome.trim();
+      } else {
+        tituloBaseOriginal = 'Relatório';
+      }
+    }
+
+    final titulosExistentes = <String>{
+      for (final r in registrosExistentes) r.tituloExibicao,
+      tituloBaseOriginal,
+    };
+    final novoTitulo = _calcularProximoTituloCopia(
+      tituloBaseOriginal,
+      titulosExistentes,
+    );
+
+    if (chaveTituloEncontrada != null) {
+      updatedAnswers[chaveTituloEncontrada] = Resposta(texto: novoTitulo);
+    }
+
+    // 2. Atualizar campos com preencher_data_atual para a data de hoje
+    if (protocol != null) {
+      final allSteps = protocol.blocos.expand((b) => b.steps).toList();
+      _preencherDatasAtuaisNosSteps(
+        allSteps,
+        updatedAnswers,
+        sobrescreverExistente: true,
+      );
+      for (final listEntry in state.lists.entries) {
+        for (final item in listEntry.value) {
+          _preencherDatasAtuaisNosSteps(
+            item.tipo.steps,
+            updatedAnswers,
+            listItemId: item.id,
+            sobrescreverExistente: true,
+          );
+        }
+      }
+    }
+
+    state = state.copyWith(
+      sessionId: novoSessionId,
+      currentIndex: 0,
+      answers: updatedAnswers,
+      possuiAlteracoesPendentes: true,
+    );
+
+    await saveSession(status: SubmissionStatus.emProgresso);
+
+    _dispararPreProcessamentoRespostasSessao(
+      sessionManager: sessionManager,
+      sessionId: novoSessionId,
+      answers: updatedAnswers,
+    );
+
+    return novoSessionId;
   }
 
   // ── Navegação principal ──────────────────────────────────────────────────────
@@ -536,6 +687,43 @@ class WizardStateController extends Notifier<WizardState> {
           mediaUuid: mediaUuid,
         ),
       );
+    }
+  }
+
+  void _dispararPreProcessamentoRespostasSessao({
+    required SessionBundleManager sessionManager,
+    required String sessionId,
+    required Map<String, Resposta> answers,
+  }) {
+    final mediaService = ref.read(mediaCompressorProvider);
+    for (final resposta in answers.values) {
+      final midias = extrairMidiasDeResposta(resposta);
+      for (final refMidia in midias) {
+        if (refMidia.hasImagem() && refMidia.imagem.uuid.isNotEmpty) {
+          _dispararPreProcessamentoEmBackground(
+            sessionManager: sessionManager,
+            sessionId: sessionId,
+            mediaUuid: refMidia.imagem.uuid,
+            tipo: StepCampoSimples_TipoCampo.IMAGE,
+          );
+        } else if (refMidia.hasVideo() && refMidia.video.uuid.isNotEmpty) {
+          _dispararPreProcessamentoEmBackground(
+            sessionManager: sessionManager,
+            sessionId: sessionId,
+            mediaUuid: refMidia.video.uuid,
+            tipo: StepCampoSimples_TipoCampo.VIDEO,
+          );
+        } else if (refMidia.hasDocumento() &&
+            refMidia.documento.uuid.isNotEmpty) {
+          unawaited(
+            mediaService.rasterizarDocumentoPdfSessao(
+              sessionManager: sessionManager,
+              sessionId: sessionId,
+              mediaUuid: refMidia.documento.uuid,
+            ),
+          );
+        }
+      }
     }
   }
 

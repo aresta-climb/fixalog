@@ -120,6 +120,34 @@ class SessionBundleManager {
     return p.join(dir.path, 'fixalog_$sessionId.pdf');
   }
 
+  /// Copia todos os arquivos de mídia (originais `_original.*` e pré-processados
+  /// `.webp`, `_thumb.jpg`, `.mp4`, `_poster.jpg`) do diretório de [idSessaoOrigem]
+  /// para [idSessaoDestino], ignorando manifestos (`registro.binarypb`, `registro.json`),
+  /// arquivos temporários (`*.tmp`) e relatórios finais (`fixalog_*`, `relatorio.*`).
+  Future<void> copiarArquivosMidiaSessao({
+    required String idSessaoOrigem,
+    required String idSessaoDestino,
+  }) async {
+    final dirOrigem = await getSessionDirectory(idSessaoOrigem);
+    final dirDestino = await getSessionDirectory(idSessaoDestino);
+    if (!dirOrigem.existsSync()) return;
+
+    final arquivos = dirOrigem.listSync().whereType<File>();
+    for (final arquivo in arquivos) {
+      final nome = p.basename(arquivo.path);
+      final nomeLower = nome.toLowerCase();
+      if (nomeLower == 'registro.binarypb' ||
+          nomeLower == 'registro.json' ||
+          nomeLower.endsWith('.tmp') ||
+          nomeLower.startsWith('fixalog_') ||
+          nomeLower.startsWith('relatorio.') ||
+          nomeLower.endsWith('.epub')) {
+        continue;
+      }
+      await arquivo.copy(p.join(dirDestino.path, nome));
+    }
+  }
+
   /// Remove permanentemente todos os arquivos e o diretório de uma Sessão.
   ///
   /// Esta ação exclui fotos originais, vídeos, manifestos json/binarypb.

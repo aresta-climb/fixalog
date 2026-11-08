@@ -291,6 +291,77 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 }
                               }
 
+                              Future<void> duplicateAndEdit() async {
+                                if (!context.mounted) return;
+                                showDialog<void>(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const AlertDialog(
+                                    backgroundColor: Color(0xFF161A1E),
+                                    content: Row(
+                                      children: [
+                                        CircularProgressIndicator(
+                                          color: Color(0xFFFF6B00),
+                                        ),
+                                        SizedBox(width: 20),
+                                        Expanded(
+                                          child: Text(
+                                            'Criando cópia do relatório...',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+
+                                try {
+                                  await Future<void>.delayed(Duration.zero);
+                                  final controller = ref.read(
+                                    wizardControllerProvider.notifier,
+                                  );
+                                  await controller.duplicarSessao(
+                                    record.idSessao,
+                                  );
+
+                                  final state = ref.read(
+                                    wizardControllerProvider,
+                                  );
+                                  final yamlStr = state.protocolRawYaml;
+
+                                  if (context.mounted) {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => WizardScreen(
+                                          initialYaml: yamlStr,
+                                          isEditing: true,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Erro ao criar cópia: $e',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+
                               final isEmProgresso = record.isEmProgresso;
                               final tag = isEmProgresso ? 'EM PROGRESSO' : 'GERADO';
                               final tagColor = isEmProgresso
@@ -326,6 +397,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   }
                                 },
                                 onEdit: loadAndEdit,
+                                onDuplicate: duplicateAndEdit,
                                 onViewRelatorio: () async {
                                   await _abrirRelatorio(record);
                                 },
@@ -513,6 +585,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required bool isEmProgresso,
     VoidCallback? onTap,
     VoidCallback? onEdit,
+    VoidCallback? onDuplicate,
     VoidCallback? onDelete,
     VoidCallback? onViewRelatorio,
   }) {
@@ -602,6 +675,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   icon: const Icon(Icons.more_vert, color: Colors.white54),
                   onSelected: (value) {
                     if (value == 'edit' && onEdit != null) onEdit();
+                    if (value == 'duplicate' && onDuplicate != null) {
+                      onDuplicate();
+                    }
                     if (value == 'viewRelatorio' && onViewRelatorio != null) {
                       onViewRelatorio();
                     }
@@ -612,6 +688,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       const PopupMenuItem(
                         value: 'edit',
                         child: Text('Continuar preenchimento'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'duplicate',
+                        child: Text('Criar cópia'),
                       ),
                       const PopupMenuItem(
                         value: 'delete',
@@ -625,6 +705,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       const PopupMenuItem(
                         value: 'edit',
                         child: Text('Editar'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'duplicate',
+                        child: Text('Criar cópia'),
                       ),
                       const PopupMenuItem(
                         value: 'delete',

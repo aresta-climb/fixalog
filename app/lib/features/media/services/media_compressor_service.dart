@@ -387,21 +387,27 @@ class MediaCompressorService {
         return (video: null, poster: null);
       }
 
-      final videoFile = (videoPronto.existsSync() && videoPronto.lengthSync() > 0)
-          ? videoPronto
-          : await _videoTranscoderService.transcodificarVideo(
-              arquivoEntrada: originalFile,
-              caminhoSaida: outVideoPath,
-            );
+      try {
+        final videoFile =
+            (videoPronto.existsSync() && videoPronto.lengthSync() > 0)
+            ? videoPronto
+            : await _videoTranscoderService.transcodificarVideo(
+                arquivoEntrada: originalFile,
+                caminhoSaida: outVideoPath,
+              );
 
-      final posterFile = (posterPronto.existsSync() && posterPronto.lengthSync() > 0)
-          ? posterPronto
-          : await _videoTranscoderService.extrairPosterFrame(
-              arquivoEntrada: originalFile,
-              caminhoSaida: outPosterPath,
-            );
+        final posterFile =
+            (posterPronto.existsSync() && posterPronto.lengthSync() > 0)
+            ? posterPronto
+            : await _videoTranscoderService.extrairPosterFrame(
+                arquivoEntrada: originalFile,
+                caminhoSaida: outPosterPath,
+              );
 
-      return (video: videoFile, poster: posterFile);
+        return (video: videoFile, poster: posterFile);
+      } catch (_) {
+        return (video: null, poster: null);
+      }
     }).whenComplete(() {
       _tarefasVideoEmAndamento.remove(chave);
     });

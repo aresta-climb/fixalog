@@ -13,6 +13,9 @@ import 'package:fixalog/core/services/pdf_viewer_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
+import 'package:fixalog/features/wizard/views/wizard_screen.dart';
+import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? customPdfViewer}) {
   return ProviderScope(
@@ -339,6 +342,143 @@ void main() {
       expect(banco.listarSubmissoesSync(), isEmpty);
 
       await tester.runAsync(() async {
+        await banco.fechar();
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+    });
+
+    testWidgets('Menu de 3 pontinhos exibe "Criar cópia" tanto para GERADO quanto EM PROGRESSO e abre WizardScreen na nova sessão com sufixo (Cópia)', (tester) async {
+      late Directory tempDir;
+      late BancoDadosLocal banco;
+      late SessionBundleManager sessionManager;
+      late SubmissionRecord recordGerado;
+      late SubmissionRecord recordRascunho;
+
+      const yamlTeste = '''
+protocolo:
+  id: manutencao_ferragens
+  nome: "Manutenção de Proteções Fixas"
+  versao: "1.0.0"
+  blocos:
+    - id: via
+      titulo: "Identificação da Via"
+      steps:
+        - id: s1
+          conteudos:
+            - id: via_nome
+              campo_simples:
+                label: "Nome da via"
+                tipo: TEXT
+                obrigatorio: true
+''';
+
+      await tester.runAsync(() async {
+        tempDir = await Directory.systemTemp.createTemp('hist_screen_dup_');
+        banco = await BancoDadosLocal.abrirEmMemoria();
+        sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+
+        final regPb = Registro(
+          idSessao: 'sessao_orig_1',
+          idProtocolo: 'manutencao_ferragens',
+          versaoProtocolo: '1.0.0',
+          yamlConteudo: yamlTeste,
+          respostas: [
+            MapEntry('via_nome', Resposta(texto: 'Via do Diedro')),
+          ],
+        );
+        await sessionManager.saveManifest(
+          sessionId: 'sessao_orig_1',
+          binarypb: regPb.writeToBuffer(),
+        );
+
+        recordGerado = SubmissionRecord()
+          ..idSessao = 'sessao_orig_1'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção de Proteções Fixas'
+          ..tituloExibicao = 'Via do Diedro'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = DateTime(2026, 10, 20)
+          ..status = SubmissionStatus.gerado
+          ..pdfPath = '/tmp/via.pdf';
+
+        recordRascunho = SubmissionRecord()
+          ..idSessao = 'sessao_rasc_1'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção de Proteções Fixas'
+          ..tituloExibicao = 'Via em Rascunho'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..dataInclusao = DateTime(2026, 10, 19)
+          ..status = SubmissionStatus.emProgresso;
+
+        await banco.salvarSubmissao(recordGerado);
+        await banco.salvarSubmissao(recordRascunho);
+      });
+
+      late WidgetRef capturedRef;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            bancoDadosLocalProvider.overrideWithValue(banco),
+            sessionBundleManagerProvider.overrideWithValue(sessionManager),
+            historyProvider.overrideWith(
+              (ref) => Stream.value([recordGerado, recordRascunho]),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  capturedRef = ref;
+                  return const HistoryScreen();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verifica "Criar cópia" no item EM PROGRESSO (segundo item)
+      final botoesMenu = find.byIcon(Icons.more_vert);
+      expect(botoesMenu, findsNWidgets(2));
+      await tester.tap(botoesMenu.at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Continuar preenchimento'), findsOneWidget);
+      expect(find.text('Criar cópia'), findsOneWidget);
+
+      // Fecha o menu do segundo item tocando fora
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Abre menu do primeiro item (GERADO) e toca em "Criar cópia"
+      await tester.tap(botoesMenu.at(0));
+      await tester.pumpAndSettle();
+      expect(find.text('Abrir Relatório'), findsOneWidget);
+      expect(find.text('Editar'), findsOneWidget);
+      expect(find.text('Criar cópia'), findsOneWidget);
+
+      await tester.tap(find.text('Criar cópia'));
+      await tester.pump();
+
+      // O diálogo de carregamento giratório deve aparecer enquanto a cópia inicia
+      expect(find.text('Criando cópia do relatório...'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsWidgets);
+
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
+
+      // Deve ter aberto o WizardScreen carregado na nova sessão com sufixo (Cópia)
+      expect(find.byType(WizardScreen), findsOneWidget);
+      final wizardState = capturedRef.read(wizardControllerProvider);
+      expect(wizardState.sessionId, isNot(equals('sessao_orig_1')));
+      expect(wizardState.answers['via_nome']?.texto, equals('Via do Diedro (Cópia)'));
+
+      await tester.runAsync(() async {
+        await capturedRef.read(wizardControllerProvider.notifier).flushAutoSave();
         await banco.fechar();
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);

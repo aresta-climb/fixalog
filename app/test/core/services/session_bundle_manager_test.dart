@@ -119,5 +119,53 @@ void main() {
       expect(reportPath, contains('sessoes'));
       expect(reportPath, endsWith('fixalog_b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h.pdf'));
     });
+
+    test('copiarArquivosMidiaSessao copia midias originais e pre-processadas ignorando manifestos, temporarios e relatorios finais', () async {
+      const idOrigem = 'sessao-origem';
+      const idDestino = 'sessao-destino';
+      final dirOrigem = await manager.getSessionDirectory(idOrigem);
+
+      // Mídias que devem ser copiadas
+      File('${dirOrigem.path}/foto1_original.jpg').writeAsBytesSync([1, 2, 3]);
+      File('${dirOrigem.path}/foto1.webp').writeAsBytesSync([4, 5, 6]);
+      File('${dirOrigem.path}/foto1_thumb.jpg').writeAsBytesSync([7, 8, 9]);
+      File('${dirOrigem.path}/vid1_original.mp4').writeAsBytesSync([10, 11]);
+      File('${dirOrigem.path}/vid1.mp4').writeAsBytesSync([12, 13]);
+      File('${dirOrigem.path}/vid1_poster.jpg').writeAsBytesSync([14, 15]);
+      File('${dirOrigem.path}/doc1_original.pdf').writeAsBytesSync([16, 17]);
+      File('${dirOrigem.path}/doc1_p1.webp').writeAsBytesSync([18, 19]);
+      File('${dirOrigem.path}/doc1_p1_thumb.jpg').writeAsBytesSync([20, 21]);
+
+      // Arquivos que NÃO devem ser copiados
+      File('${dirOrigem.path}/registro.binarypb').writeAsBytesSync([99]);
+      File('${dirOrigem.path}/registro.json').writeAsStringSync('{}');
+      File('${dirOrigem.path}/foto2.webp.tmp').writeAsBytesSync([88]);
+      File('${dirOrigem.path}/fixalog_$idOrigem.pdf').writeAsBytesSync([77]);
+      File('${dirOrigem.path}/fixalog_$idOrigem.epub').writeAsBytesSync([66]);
+      File('${dirOrigem.path}/relatorio.epub').writeAsBytesSync([55]);
+
+      await manager.copiarArquivosMidiaSessao(
+        idSessaoOrigem: idOrigem,
+        idSessaoDestino: idDestino,
+      );
+
+      final dirDestino = await manager.getSessionDirectory(idDestino);
+      expect(File('${dirDestino.path}/foto1_original.jpg').readAsBytesSync(), equals([1, 2, 3]));
+      expect(File('${dirDestino.path}/foto1.webp').readAsBytesSync(), equals([4, 5, 6]));
+      expect(File('${dirDestino.path}/foto1_thumb.jpg').readAsBytesSync(), equals([7, 8, 9]));
+      expect(File('${dirDestino.path}/vid1_original.mp4').readAsBytesSync(), equals([10, 11]));
+      expect(File('${dirDestino.path}/vid1.mp4').readAsBytesSync(), equals([12, 13]));
+      expect(File('${dirDestino.path}/vid1_poster.jpg').readAsBytesSync(), equals([14, 15]));
+      expect(File('${dirDestino.path}/doc1_original.pdf').readAsBytesSync(), equals([16, 17]));
+      expect(File('${dirDestino.path}/doc1_p1.webp').readAsBytesSync(), equals([18, 19]));
+      expect(File('${dirDestino.path}/doc1_p1_thumb.jpg').readAsBytesSync(), equals([20, 21]));
+
+      expect(File('${dirDestino.path}/registro.binarypb').existsSync(), isFalse);
+      expect(File('${dirDestino.path}/registro.json').existsSync(), isFalse);
+      expect(File('${dirDestino.path}/foto2.webp.tmp').existsSync(), isFalse);
+      expect(File('${dirDestino.path}/fixalog_$idOrigem.pdf').existsSync(), isFalse);
+      expect(File('${dirDestino.path}/fixalog_$idOrigem.epub').existsSync(), isFalse);
+      expect(File('${dirDestino.path}/relatorio.epub').existsSync(), isFalse);
+    });
   });
 }

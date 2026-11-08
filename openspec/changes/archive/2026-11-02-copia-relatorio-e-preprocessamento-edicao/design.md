@@ -41,12 +41,12 @@ Conforme descrito em `proposal.md`, precisamos:
   3. Carrega a sessão original e, sobre o estado carregado:
      - Identifica a chave de título do protocolo (`via_nome`, `nome_via` ou `mat_nome`) ou o `tituloExibicao` existente.
      - Extrai o nome base removendo eventual sufixo final `\s*\(Cópia(?:\s+\d+)?\)$`.
-     - Consulta os registros existentes no Isar (`submissionRecords`) para verificar quais títulos começando com `<Base> (Cópia` já existem:
+     - Consulta os registros existentes no `BancoDadosLocal` (`listarSubmissoesSync()` / `listarSubmissoes()`) para verificar quais títulos começando com `<Base> (Cópia` já existem:
        - Se `<Base> (Cópia)` ainda não existir, usa `<Base> (Cópia)`.
        - Caso contrário, busca o menor `N >= 2` tal que `<Base> (Cópia N)` não exista.
      - Atualiza a resposta da chave de título (`via_nome` / `mat_nome`) com o novo título calculado.
      - Percorre os passos do protocolo (e dos itens de lista em `state.lists`) para atualizar qualquer `campoSimples` com `preencherDataAtual == true` (como `mat_data`) para a data atual formatada (`DD/MM/YYYY`).
-     - Atualiza `state` com `sessionId: novoSessionId`, `currentIndex: 0` e `possuiAlteracoesPendentes: true`, persiste imediatamente via `saveSession(status: SubmissionStatus.emProgresso)` e dispara a verificação de pré-processamento em background.
+     - Atualiza `state` com `sessionId: novoSessionId`, `currentIndex: 0` e `possuiAlteracoesPendentes: true`, persiste imediatamente via `saveSession(status: SubmissionStatus.emProgresso)` no `BancoDadosLocal` (SQLite) e dispara a verificação de pré-processamento em background.
 
 ### 4. Experiência de UI na `HistoryScreen`
 - **Decisão**:

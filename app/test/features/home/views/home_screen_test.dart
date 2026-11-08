@@ -93,7 +93,7 @@ void main() {
     });
 
     testWidgets(
-      'Aba Configurações permite selecionar entre os 7 idiomas, persiste no SQLite e atualiza os rótulos da UI sem overflow',
+      'Aba Configurações exibe dropdown de seleção de idioma (sem botões soltos), persiste no SQLite e atualiza os rótulos da UI sem overflow',
       (tester) async {
         late BancoDadosLocal banco;
         await tester.runAsync(() async {
@@ -126,9 +126,15 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byKey(const Key('seletor_idioma_config')), findsOneWidget);
+        expect(find.byType(ChoiceChip), findsNothing);
 
-        // Seleciona Alemão ('de') no seletor de idioma
-        await tester.tap(find.byKey(const Key('opcao_idioma_de')));
+        final dropdown = find.byKey(const Key('dropdown_idioma_config'));
+        expect(dropdown, findsOneWidget);
+
+        // Abre o menu dropdown e seleciona Alemão ('de')
+        await tester.tap(dropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opcao_idioma_de')).last);
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);

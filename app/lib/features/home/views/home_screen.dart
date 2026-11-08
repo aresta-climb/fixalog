@@ -175,38 +175,98 @@ class _SettingsPlaceholder extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ResolvedorIdioma.idiomasSuportados.map((
-                          opcao,
-                        ) {
-                          final selecionado =
-                              opcao.codigo == locale.languageCode;
-                          return ChoiceChip(
-                            key: Key('opcao_idioma_${opcao.codigo}'),
-                            label: Text(
-                              '${opcao.codigo.toUpperCase()} • ${opcao.nomeNativo}',
-                              style: TextStyle(
-                                color: selecionado
-                                    ? Colors.black
-                                    : Colors.white70,
-                                fontWeight: selecionado
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 12,
-                              ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1C1E),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            key: const Key('dropdown_idioma_config'),
+                            value: locale.languageCode,
+                            isExpanded: true,
+                            dropdownColor: const Color(0xFF1A1C1E),
+                            borderRadius: BorderRadius.circular(12),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFFFF6B00),
                             ),
-                            selected: selecionado,
-                            selectedColor: const Color(0xFFFF6B00),
-                            backgroundColor: const Color(0xFF1A1C1E),
-                            onSelected: (_) {
-                              ref
-                                  .read(idiomaAtivoProvider.notifier)
-                                  .selecionarIdioma(opcao.codigo);
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onChanged: (novoCodigo) {
+                              if (novoCodigo != null) {
+                                ref
+                                    .read(idiomaAtivoProvider.notifier)
+                                    .selecionarIdioma(novoCodigo);
+                              }
                             },
-                          );
-                        }).toList(),
+                            items: ResolvedorIdioma.idiomasSuportados.map((
+                              opcao,
+                            ) {
+                              final selecionado =
+                                  opcao.codigo == locale.languageCode;
+                              return DropdownMenuItem<String>(
+                                key: Key('opcao_idioma_${opcao.codigo}'),
+                                value: opcao.codigo,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 34,
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: selecionado
+                                            ? const Color(0xFFFF6B00)
+                                            : Colors.white.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        opcao.codigo.toUpperCase(),
+                                        style: TextStyle(
+                                          color: selecionado
+                                              ? Colors.black
+                                              : Colors.white70,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        opcao.nomeNativo,
+                                        style: TextStyle(
+                                          color: selecionado
+                                              ? Colors.white
+                                              : Colors.white70,
+                                          fontWeight: selecionado
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
                       ),
                     ],
                   ),

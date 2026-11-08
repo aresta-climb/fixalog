@@ -4,9 +4,12 @@ Para garantir que o nosso código, seja ele escrito por humanos ou por agentes a
 
 Estes princípios devem guiar toda e qualquer nova implementação, revisão ou refatoração no repositório.
 
-## I. Tudo em Português
-Todo o repositório deve **OBRIGATORIAMENTE** ser em português brasileiro. Isso inclui, mas não se limita a: documentação, especificações (OpenSpec), comentários de código, docstrings (`///`), mensagens de erro, nomes de bibliotecas, classes, widgets, funções, métodos e variáveis.
-*Exceções:* Nomes de pacotes de terceiros, APIs nativas do Flutter/Dart, termos técnicos consolidados do ecossistema e títulos de seção exigidos em inglês pelo schema do OpenSpec.
+## I. Tudo em Português (Código e Documentação) com Internacionalização Padronizada
+Todo o código-fonte e documentação interna do repositório devem **OBRIGATORIAMENTE** ser em português brasileiro (PT-BR). Isso inclui, mas não se limita a: documentação, especificações (OpenSpec), comentários de código, docstrings (`///`), nomes de bibliotecas, classes, widgets, funções, métodos, variáveis e chaves de localização no código Dart.
+*Exceções:*
+- **Identificadores Técnicos Canônicos (Wire Format)**: Os identificadores estruturais de protocolos (`id` de protocolo, blocos, steps, conteúdos e `valor` de opções em `app/assets/protocols/*.yaml`) e chaves persistidas nos artefatos periciais (`registro.binarypb` e pacotes `.epub`) DEVEM ser em **inglês** para garantir interoperabilidade internacional dos laudos assinados.
+- **Arquivos de Localização e Conteúdo Multilíngue**: Os dicionários de tradução de interface (`app/lib/core/l10n/arb/*.arb`), dicionários de tradução de protocolos (`app/assets/protocols/i18n/<locale>/*.yaml`) e documentos jurídicos traduzidos (`legal/repo/public/docs/<locale>/*.md`) contêm textos nos respectivos idiomas suportados (`pt`, `en`, `es`, `fr`, `de`, `ar`, `ja`).
+- **Ecossistema e Ferramentas**: Nomes de pacotes de terceiros, APIs nativas do Flutter/Dart, termos técnicos consolidados do ecossistema e títulos de seção exigidos em inglês pelo schema do OpenSpec.
 
 ## II. Modularidade e Desacoplamento (Library-First)
 Toda funcionalidade DEVE começar e ser estruturada como uma biblioteca ou módulo independente.

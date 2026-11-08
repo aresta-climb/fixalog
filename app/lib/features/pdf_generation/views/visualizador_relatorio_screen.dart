@@ -8,6 +8,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
@@ -556,7 +558,11 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
-  Future<void> _mostrarModalCompartilhamento(BuildContext context) async {
+  Future<void> _mostrarModalCompartilhamento(
+    BuildContext context, {
+    required bool ehPt,
+    required AppLocalizations l10n,
+  }) async {
     final opcao = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -571,12 +577,19 @@ class _VisualizadorRelatorioScreenState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Text(
-                    'Compartilhar Relatório',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ehPt
+                        ? 'Compartilhar Relatório'
+                        : l10n.visualizadorBotaoCompartilhar,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const Divider(),
@@ -586,7 +599,11 @@ class _VisualizadorRelatorioScreenState
                     backgroundColor: Color(0xFFE8F5E9),
                     child: Icon(Icons.menu_book, color: Colors.green),
                   ),
-                  title: const Text('Relatório Completo (EPUB)'),
+                  title: Text(
+                    ehPt
+                        ? 'Relatório Completo (EPUB)'
+                        : l10n.visualizadorAbaEpub,
+                  ),
                   subtitle: const Text(
                     'Com vídeos em alta definição, fotos e dados canônicos assinados',
                   ),
@@ -601,7 +618,11 @@ class _VisualizadorRelatorioScreenState
                     backgroundColor: Color(0xFFFFF3E0),
                     child: Icon(Icons.picture_as_pdf, color: Color(0xFFFF6B00)),
                   ),
-                  title: const Text('Versão Resumida (PDF)'),
+                  title: Text(
+                    ehPt
+                        ? 'Versão Resumida (PDF)'
+                        : l10n.visualizadorAbaPdf,
+                  ),
                   subtitle: const Text(
                     'Para impressão rápida e protocolo com QR Codes',
                   ),
@@ -624,6 +645,10 @@ class _VisualizadorRelatorioScreenState
 
   @override
   Widget build(BuildContext context) {
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.titulo),
@@ -631,13 +656,16 @@ class _VisualizadorRelatorioScreenState
           IconButton(
             key: const Key('btn_appbar_compartilhar'),
             icon: const Icon(Icons.share),
-            tooltip: 'Compartilhar',
-            onPressed: () => _mostrarModalCompartilhamento(context),
+            tooltip: ehPt ? 'Compartilhar' : l10n.visualizadorBotaoCompartilhar,
+            onPressed: () =>
+                _mostrarModalCompartilhamento(context, ehPt: ehPt, l10n: l10n),
           ),
           IconButton(
             key: const Key('btn_appbar_abrir_externo'),
             icon: const Icon(Icons.open_in_new),
-            tooltip: 'Abrir Externamente',
+            tooltip: ehPt
+                ? 'Abrir Externamente'
+                : l10n.visualizadorBotaoAbrirExterno,
             onPressed: _abrirExternamente,
           ),
         ],
@@ -666,7 +694,7 @@ class _VisualizadorRelatorioScreenState
           ],
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
+      bottomNavigationBar: _buildBottomBar(ehPt: ehPt, l10n: l10n),
     );
   }
 
@@ -721,7 +749,10 @@ class _VisualizadorRelatorioScreenState
     return const Center(child: Text('Nenhum visualizador disponível.'));
   }
 
-  Widget? _buildBottomBar() {
+  Widget? _buildBottomBar({
+    required bool ehPt,
+    required AppLocalizations l10n,
+  }) {
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -744,18 +775,27 @@ class _VisualizadorRelatorioScreenState
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 icon: const Icon(Icons.share, size: 20),
-                label: const Text(
-                  'COMPARTILHAR',
-                  style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                label: Text(
+                  l10n.visualizadorBotaoCompartilhar,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-                onPressed: () => _mostrarModalCompartilhamento(context),
+                onPressed: () => _mostrarModalCompartilhamento(
+                  context,
+                  ehPt: ehPt,
+                  l10n: l10n,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             IconButton.filledTonal(
               key: const Key('btn_abrir_externo'),
               icon: const Icon(Icons.open_in_new),
-              tooltip: 'Abrir em app externo',
+              tooltip: ehPt
+                  ? 'Abrir em app externo'
+                  : l10n.visualizadorBotaoAbrirExterno,
               onPressed: _abrirExternamente,
             ),
           ],

@@ -998,4 +998,167 @@ blocos:
       );
     });
   });
+
+  group('Internacionalização de Protocolos (i18n e Fallback em Inglês)', () {
+    test(
+      'fromYaml com codigoIdioma injeta traduções completas nos 7 idiomas preservando IDs canônicos',
+      () {
+        final yamlAbertura = File(
+          'assets/protocols/abertura_vias.yaml',
+        ).readAsStringSync();
+
+        final protoJa = ProtocolParser.fromYaml(
+          yamlAbertura,
+          codigoIdioma: 'ja',
+        );
+        expect(protoJa.id, equals('abertura_vias'));
+        expect(protoJa.nome, equals('ルート開拓'));
+        expect(protoJa.blocos.first.id, equals('via'));
+        expect(protoJa.blocos.first.titulo, equals('ブロック 1 — 新規ルートの特定'));
+
+        final cNomeJa = _conteudoById(protoJa.blocos.first.steps, 'via_nome');
+        expect(cNomeJa.campoSimples.label, equals('ルート名'));
+
+        final protoAr = ProtocolParser.fromYaml(
+          yamlAbertura,
+          codigoIdioma: 'ar',
+        );
+        expect(protoAr.id, equals('abertura_vias'));
+        expect(protoAr.nome, equals('فتح مسار تسلق جديد'));
+
+        final yamlManut = File(
+          'assets/protocols/manutencao.yaml',
+        ).readAsStringSync();
+        final protoEn = ProtocolParser.fromYaml(
+          yamlManut,
+          codigoIdioma: 'en',
+        );
+        expect(protoEn.nome, equals('Fixed Anchor Maintenance'));
+        expect(
+          ProtocolParser.resolverRotuloConteudo(protoEn, 'via_nome'),
+          equals('Route Name'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloConteudo(protoEn, 'ia_instrucao'),
+          equals('Visual and Mechanical Assessment'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloConteudo(protoEn, 'ref_mat_novo_ponto'),
+          equals('Materials used'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloConteudo(protoEn, 'lista_acoes_c'),
+          equals('Actions performed'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloOpcao(
+            protoEn,
+            'avaliacao_condicao',
+            'liberada',
+          ),
+          equals('Open for climbing'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloOpcao(
+            protoEn,
+            'ia_resultado',
+            'substituir',
+          ),
+          equals('Replacement required'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloOpcao(
+            protoEn,
+            'ia_sub_ramo',
+            'reusar_furo',
+          ),
+          equals('Reuse existing hole'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloConteudo(protoEn, 'inexistente'),
+          isNull,
+        );
+        expect(
+          ProtocolParser.resolverRotuloOpcao(
+            protoEn,
+            'avaliacao_condicao',
+            'opcao_inexistente',
+          ),
+          isNull,
+        );
+        expect(
+          ProtocolParser.resolverRotuloOpcao(
+            protoEn,
+            'inexistente',
+            'qualquer',
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test(
+      'aplica fallback em Inglês (en) quando um campo não possui tradução no dicionário customizado',
+      () {
+        final yamlInspecao = File(
+          'assets/protocols/inspecao_visual.yaml',
+        ).readAsStringSync();
+
+        final traducoesParciais = ProtocolParser.carregarTraducoesYaml('''
+protocolo:
+  nome: "Inspeção Customizada"
+conteudos:
+  via_nome:
+    label: "Nome Customizado"
+''');
+
+        final proto = ProtocolParser.fromYaml(
+          yamlInspecao,
+          traducoes: traducoesParciais,
+        );
+
+        // Campo presente no mapa customizado usa o valor customizado
+        expect(proto.nome, equals('Inspeção Customizada'));
+        expect(
+          ProtocolParser.resolverRotuloConteudo(proto, 'via_nome'),
+          equals('Nome Customizado'),
+        );
+
+        // Campos ausentes no mapa customizado caem para o fallback em Inglês (en)
+        expect(
+          proto.blocos.first.titulo,
+          equals('Block 1 — Route Identification'),
+        );
+        expect(
+          ProtocolParser.resolverRotuloConteudo(proto, 'via_gps'),
+          equals('GPS Location'),
+        );
+      },
+    );
+
+    test(
+      'garantirTraducoesCarregadas carrega dicionários no cache em memória e limparCacheTraducoes limpa o cache',
+      () async {
+        TestWidgetsFlutterBinding.ensureInitialized();
+        ProtocolParser.limparCacheTraducoes();
+        await ProtocolParser.garantirTraducoesCarregadas('fr');
+
+        final mapaFr = ProtocolParser.obterTraducoesLocais(
+          'registro_expresso',
+          'fr',
+        );
+        expect(mapaFr, isNotNull);
+        expect(
+          (mapaFr!['protocolo'] as Map)['nome'],
+          equals('Registre Express'),
+        );
+
+        // Idioma ou protocolo inexistente retorna null sem lançar erro
+        expect(
+          ProtocolParser.obterTraducoesLocais('protocolo_inexistente', 'fr'),
+          isNull,
+        );
+      },
+    );
+  });
 }

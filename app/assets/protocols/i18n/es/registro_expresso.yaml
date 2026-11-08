@@ -1,0 +1,37 @@
+protocolo:
+  nome: "Registro Expreso"
+  descricao: "Registro libre y rápido de ocurrencias, medios, coordenadas y materiales sin estructura preestablecida."
+blocos:
+  bloco_identificacao:
+    titulo: "Bloque 1 — Identificación y Lugar"
+    subtitulo: "Título del registro, fecha y ubicación opcional"
+  bloco_evidencias:
+    titulo: "Bloque 2 — Evidencias y Materiales"
+    subtitulo: "Agregue medios con descripciones y vincule materiales del catálogo si lo desea"
+conteudos:
+  via_nome:
+    label: "Título / Identificación del Registro"
+    sublabel: "Nombre de la vía, lugar o asunto para identificar este registro en el Historial"
+  via_data:
+    label: "Fecha del Registro"
+    sublabel: "Completada automáticamente con la fecha actual (editable)"
+  via_gps:
+    label: "Coordenadas GPS (opcional)"
+    sublabel: "Capture la ubicación actual si lo desea."
+  observacoes_gerais:
+    label: "Observaciones Generales (opcional)"
+  ev_midia:
+    label: "Medios de la Evidencia"
+    sublabel: "Adjunte fotos, videos o PDFs"
+  ev_descricao:
+    label: "Descripción (opcional)"
+  lista_evidencias:
+    label: "Evidencias (Fotos, Videos o PDFs)"
+    sublabel: "Agregue tantos registros de medios y notas como desee (opcional)."
+  ref_mat_expresso:
+    label: "Materiales Relacionados (opcional)"
+    sublabel: "Seleccione materiales del catálogo local si este registro involucra algún insumo"
+tipos_acao:
+  item_evidencia:
+    label: "Evidencia / Nota"
+    sublabel: "Fotos, videos o PDFs con descripción"

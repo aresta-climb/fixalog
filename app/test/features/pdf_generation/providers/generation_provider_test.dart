@@ -8,6 +8,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fixalog/core/models/local/app_config_record.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
@@ -801,5 +802,67 @@ void main() {
     expect(mediaService.fotosSolicitadas, contains('uuid-foto-multi'));
     expect(mediaService.videosSolicitados, contains('uuid-video-multi'));
     expect(mediaService.documentosSolicitados, contains('uuid-doc-multi'));
+  });
+
+  test('Deve gerar EPUB 3 localizado no idioma preferido do banco com fontes Noto Sans assinadas no META-INF/signatures.xml', () async {
+    await banco.salvarConfiguracao(
+      AppConfigRecord()..idiomaPreferido = 'ja',
+    );
+
+    final yamlInspecao = File('assets/protocols/inspecao_visual.yaml').readAsStringSync();
+    final registro = Registro()
+      ..idProtocolo = 'inspecao_visual'
+      ..versaoProtocolo = '2'
+      ..yamlConteudo = yamlInspecao
+      ..respostas['via_nome'] = (Resposta()..texto = 'Fuji North Ridge')
+      ..respostas['avaliacao_condicao'] = (Resposta()..texto = 'liberada');
+
+    await sessionManager.saveManifest(
+      sessionId: 'sessao-ja-1',
+      binarypb: Uint8List.fromList(registro.writeToBuffer()),
+    );
+
+    final outPath = '${tempDir.path}/relatorio_ja.epub';
+    await notifier.startGeneration(
+      'Inspeção Visual',
+      outPath,
+      sessionId: 'sessao-ja-1',
+    );
+
+    expect(notifier.state.isComplete, isTrue);
+    final zip = ZipDecoder().decodeBytes(File(outPath).readAsBytesSync());
+    final mapaArquivos = <String, List<int>>{};
+    for (final f in zip.files) {
+      if (f.isFile) {
+        mapaArquivos[f.name] = f.content as List<int>;
+      }
+    }
+
+    expect(mapaArquivos.containsKey('OEBPS/fonts/NotoSans-Regular.ttf'), isTrue);
+    expect(mapaArquivos.containsKey('OEBPS/fonts/NotoSansJP-Regular.ttf'), isTrue);
+    expect(mapaArquivos.containsKey('OEBPS/fonts/NotoSansArabic-Regular.ttf'), isFalse);
+
+    final opfXml = utf8.decode(mapaArquivos['OEBPS/content.opf']!);
+    expect(opfXml, contains('<dc:language>ja</dc:language>'));
+    expect(opfXml, contains('href="fonts/NotoSansJP-Regular.ttf" media-type="font/ttf"'));
+
+    final xhtml = utf8.decode(mapaArquivos['OEBPS/relatorio.xhtml']!);
+    expect(xhtml, contains('lang="ja"'));
+    expect(xhtml, contains('固定支点の目視点検'));
+    expect(xhtml, contains('登攀可能（開放）'));
+
+    final sigXml = utf8.decode(mapaArquivos['META-INF/signatures.xml']!);
+    expect(sigXml, contains('URI="OEBPS/fonts/NotoSans-Regular.ttf"'));
+    expect(sigXml, contains('URI="OEBPS/fonts/NotoSansJP-Regular.ttf"'));
+
+    final publicKeyPem = await cryptoService.getPublicKeyPem();
+    expect(
+      xmlSigner.verificarAssinatura(
+        signaturesXml: sigXml,
+        arquivos: mapaArquivos,
+        publicKeyPem: publicKeyPem,
+      ),
+      isTrue,
+    );
   });
 }

@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/seletor_documento_service.dart';
@@ -1449,5 +1451,63 @@ blocos:
 
       expect(find.text('FOTO CAPTURADA'), findsNWidgets(3));
     });
+
+    testWidgets(
+      'renderiza WizardScreen e protocolo YAML traduzidos em Inglês (en), Árabe (ar — RTL) e Japonês (ja — CJK) sem overflow',
+      (tester) async {
+        final yamlInspecao = File(
+          'assets/protocols/inspecao_visual.yaml',
+        ).readAsStringSync();
+
+        for (final caso in [
+          (
+            locale: const Locale('en'),
+            labelData: 'Inspection Date',
+            labelVia: 'Route Name',
+            btnSeguinte: 'NEXT',
+            dirEsperada: TextDirection.ltr,
+          ),
+          (
+            locale: const Locale('ar'),
+            labelData: 'تاريخ الفحص',
+            labelVia: 'اسم المسار',
+            btnSeguinte: 'التالي',
+            dirEsperada: TextDirection.rtl,
+          ),
+          (
+            locale: const Locale('ja'),
+            labelData: '点検日',
+            labelVia: 'ルート名',
+            btnSeguinte: '次へ',
+            dirEsperada: TextDirection.ltr,
+          ),
+        ]) {
+          await tester.pumpWidget(
+            ProviderScope(
+              key: ValueKey('wizard_i18n_${caso.locale.languageCode}'),
+              overrides: [
+                localeSistemaProvider.overrideWithValue(caso.locale),
+              ],
+              child: MaterialApp(
+                locale: caso.locale,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: WizardScreen(initialYaml: yamlInspecao),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(
+            Directionality.of(tester.element(find.byType(WizardScreen))),
+            caso.dirEsperada,
+          );
+          expect(find.text(caso.labelData), findsOneWidget);
+          expect(find.text(caso.labelVia), findsOneWidget);
+          expect(find.text(caso.btnSeguinte), findsOneWidget);
+        }
+      },
+    );
   });
 }

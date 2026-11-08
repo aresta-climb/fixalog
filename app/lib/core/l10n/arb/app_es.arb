@@ -1,0 +1,252 @@
+{
+  "@@locale": "es",
+  "seletorIdiomaTitulo": "Idioma de la Aplicación",
+  "seletorIdiomaSubtitulo": "Cambia el idioma de la interfaz, protocolos y nuevos informes",
+  "comumSim": "Sí",
+  "comumNao": "No",
+  "comumCancelar": "CANCELAR",
+  "comumRemover": "ELIMINAR",
+  "comumFechar": "CERRAR",
+  "comumErro": "Error: {detalhe}",
+  "@comumErro": {
+    "placeholders": {
+      "detalhe": {
+        "type": "String"
+      }
+    }
+  },
+  "termosTituloTela": "Términos de Uso y Auditoría Técnica",
+  "termosCarregando": "Cargando Términos de Uso...",
+  "termosErroCarregar": "No se pudieron cargar los términos de uso locales. Por favor, inténtelo de nuevo.",
+  "termosBotaoTentarNovamente": "Intentar de Nuevo",
+  "termosBotaoLerPolitica": "Leer Política de Privacidad",
+  "termosCheckboxDeclaro": "He leído y acepto los Términos de Uso y la Política de Privacidad.",
+  "termosBotaoAceitar": "Aceptar Términos y Continuar",
+  "termosBotaoRoleFinal": "Desplácese hasta el final para habilitar",
+  "politicaPrivacidadeTitulo": "Política de Privacidad - Fixalog",
+  "politicaPrivacidadeErroCarregar": "No se pudo cargar la Política de Privacidad.",
+  "identidadeTituloInicial": "IDENTIDAD TÉCNICA",
+  "identidadeTituloEdicao": "EDITAR IDENTIDAD TÉCNICA",
+  "identidadeSubtituloInicial": "Configure sus datos para firmar informes técnicos.",
+  "identidadeSubtituloEdicao": "Actualice sus datos de perfil. Su clave criptográfica activa se conservará.",
+  "identidadeLabelNome": "Nombre Completo *",
+  "identidadeHintNome": "Ej: Juan Pérez",
+  "identidadeLabelApelido": "Apodo (Opcional)",
+  "identidadeHintApelido": "Ej: Montaña",
+  "identidadeLabelEmail": "Correo electrónico *",
+  "identidadeHintEmail": "Ej: juan@ejemplo.com",
+  "identidadeLabelAssociacao": "Asociación / Club (Opcional)",
+  "identidadeHintAssociacao": "Ej: FEDME, UIAA, etc.",
+  "identidadeErroNomeVazio": "El nombre completo no puede estar vacío.",
+  "identidadeErroEmailVazio": "El correo electrónico no puede estar vacío.",
+  "identidadeErroEmailInvalido": "Formato de correo electrónico inválido.",
+  "identidadeErroSalvar": "Error al guardar la identidad: {erro}",
+  "@identidadeErroSalvar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "identidadeBotaoGerarChaves": "GENERAR CLAVES Y CONTINUAR",
+  "identidadeBotaoSalvarAlteracoes": "GUARDAR CAMBIOS",
+  "homeAbaNovo": "NUEVO",
+  "homeAbaHistorico": "HISTORIAL",
+  "homeAbaConfig": "AJUSTES",
+  "configTituloSecaoIdentidade": "IDENTIDAD Y CLAVE CRIPTOGRÁFICA",
+  "configCertificadoAtivo": "CERTIFICADO X.509 ACTIVO",
+  "configBotaoEditarDados": "EDITAR DATOS DE PERFIL",
+  "configBotaoExportarChave": "EXPORTAR CLAVE DE IDENTIDAD",
+  "configBotaoImportarChave": "IMPORTAR CLAVE DE IDENTIDAD",
+  "configExportarTituloModal": "EXPORTAR CLAVE DE IDENTIDAD",
+  "configExportarDescricaoModal": "Defina una contraseña segura (mínimo 8 caracteres) para cifrar el archivo .fixalogkey con PBKDF2 + AES-256-GCM.",
+  "configLabelSenhaExportacao": "Contraseña del archivo",
+  "configLabelConfirmarSenha": "Confirmar contraseña",
+  "configErroSenhaCurta": "La contraseña debe tener al menos 8 caracteres.",
+  "configErroSenhasDiferentes": "Las contraseñas no coinciden.",
+  "configBotaoExportar": "EXPORTAR",
+  "configExportarSucesso": "Copia de seguridad de identidad exportada con éxito.",
+  "configExportarErro": "Error al exportar clave: {erro}",
+  "@configExportarErro": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportarTituloModal": "IMPORTAR CLAVE DE IDENTIDAD",
+  "configImportarDescricaoModal": "Ingrese la contraseña del archivo .fixalogkey seleccionado. La clave actual será reemplazada.",
+  "configBotaoImportar": "IMPORTAR",
+  "configImportarSucesso": "¡Identidad y clave criptográfica restauradas con éxito!",
+  "configImportarErroSenha": "Contraseña incorrecta o archivo de clave dañado.",
+  "novoProtocoloSelecione": "SELECCIONE EL PROTOCOLO",
+  "novoProtocoloSubtitulo": "Inicie una nueva recopilación de datos auditada.",
+  "novoProtocoloCardInspecaoTitulo": "Inspección Visual",
+  "novoProtocoloCardInspecaoSub": "Inspección rápida del estado general y corrosión sin intervención mecánica.",
+  "novoProtocoloCardManutencaoTitulo": "Mantenimiento",
+  "novoProtocoloCardManutencaoSub": "Informe completo de sustitución de anclajes, limpieza y reequipamiento.",
+  "novoProtocoloCardAberturaTitulo": "Apertura de Vía",
+  "novoProtocoloCardAberturaSub": "Registro completo de nueva línea, apertura, croquis y protecciones.",
+  "novoProtocoloCardExpressoTitulo": "Registro Exprés",
+  "novoProtocoloCardExpressoSub": "Captura rápida de fotos, videos, PDFs y notas libres en campo.",
+  "novoProtocoloCardMaterialTitulo": "Material",
+  "novoProtocoloCardMaterialSub": "Registro y trazabilidad de materiales, lotes, facturas y pruebas.",
+  "novoProtocoloErroCarregar": "Error al cargar el protocolo: {erro}",
+  "@novoProtocoloErroCarregar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoTitulo": "HISTORIAL DE AUDITORÍAS",
+  "historicoSubtitulo": "Sesiones guardadas localmente en el dispositivo.",
+  "historicoAbaRelatorios": "INFORMES ({quantidade})",
+  "@historicoAbaRelatorios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoAbaMateriais": "MATERIALES ({quantidade})",
+  "@historicoAbaMateriais": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoVazioRelatoriosTitulo": "No se encontraron informes",
+  "historicoVazioRelatoriosSub": "Inicie un nuevo protocolo en la pestaña NUEVO para registrar su primera auditoría.",
+  "historicoVazioMateriaisTitulo": "Ningún material registrado",
+  "historicoVazioMateriaisSub": "Registre materiales en la pestaña NUEVO para usarlos en los informes de mantenimiento.",
+  "historicoBotaoNovoMaterial": "REGISTRAR MATERIAL",
+  "historicoStatusConcluido": "COMPLETADO",
+  "historicoStatusEmProgresso": "EN PROGRESO",
+  "historicoStatusFalha": "FALLIDO",
+  "historicoBotaoVerRelatorio": "VER INFORME",
+  "historicoBotaoGerarRelatorio": "GENERAR INFORME",
+  "historicoBotaoContinuar": "CONTINUAR",
+  "historicoBotaoEditar": "EDITAR",
+  "historicoBotaoDuplicar": "DUPLICAR",
+  "historicoBotaoExcluir": "ELIMINAR",
+  "historicoConfirmarExclusaoTitulo": "¿Eliminar registro?",
+  "historicoConfirmarExclusaoCorpo": "¿Está seguro de que desea eliminar \"{titulo}\"? Esta acción eliminará los archivos locales y no se puede deshacer.",
+  "@historicoConfirmarExclusaoCorpo": {
+    "placeholders": {
+      "titulo": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoMaterialEmUsoTitulo": "Material vinculado a informes",
+  "historicoMaterialEmUsoCorpo": "Este material está referenciado en otros informes. Eliminarlo no borrará los informes ya emitidos, pero quitará el elemento del catálogo activo.",
+  "wizardPassoNumero": "PASO {numero}",
+  "@wizardPassoNumero": {
+    "placeholders": {
+      "numero": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardBotaoVoltarPasso": "VOLVER A ESTE PASO",
+  "wizardBotaoConcluir": "FINALIZAR",
+  "wizardBotaoSeguinte": "SIGUIENTE",
+  "wizardBotaoPular": "OMITIR",
+  "wizardBotaoConcluirLista": "FINALIZAR LISTA ({quantidade})",
+  "@wizardBotaoConcluirLista": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardAvisoCamposObrigatorios": "Complete todos los campos obligatorios para continuar.",
+  "wizardAvisoPassoAnteriorObrigatorio": "Complete todos los campos obligatorios del paso anterior para continuar.",
+  "wizardAvisoCamposItemObrigatorios": "Complete los campos obligatorios del elemento.",
+  "wizardBotaoAdicionarItem": "AÑADIR ELEMENTO",
+  "wizardBotaoAdicionarOutro": "AÑADIR OTRO",
+  "wizardMinimoItensObrigatorios": "Mínimo {minimo} elemento(s) obligatorio(s).",
+  "@wizardMinimoItensObrigatorios": {
+    "placeholders": {
+      "minimo": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardSelecioneTipo": "SELECCIONE EL TIPO",
+  "wizardBotaoConfirmarItem": "CONFIRMAR ELEMENTO",
+  "wizardRemoverItemTitulo": "¿Eliminar elemento?",
+  "wizardRemoverItemCorpo": "¿Eliminar \"{item}\"?",
+  "@wizardRemoverItemCorpo": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "wizardHintTexto": "Escriba aquí...",
+  "wizardHintTextoArea": "Escriba aquí... (admite **negrita**, *cursiva*, # título y listas)",
+  "wizardHintNumeros": "Solo números",
+  "wizardGpsDesativado": "Servicio de ubicación desactivado.",
+  "wizardGpsCapturado": "COORDENADAS CAPTURADAS",
+  "wizardGpsCapturar": "CAPTURAR POSICIÓN GPS",
+  "wizardMidiaAdicionar": "AÑADIR MULTIMEDIA",
+  "wizardMidiaSubVazio": "Fotos, videos o PDFs",
+  "wizardMidiaSubMais": "Añadir otra foto, video o PDF",
+  "wizardMidiaPdfAnexado": "PDF ADJUNTO",
+  "wizardMidiaVideoGravado": "VIDEO GRABADO",
+  "wizardMidiaFotoCapturada": "FOTO CAPTURADA",
+  "wizardMidiaProcessandoUm": "PROCESANDO MULTIMEDIA...",
+  "wizardMidiaProcessandoVarios": "PROCESANDO {quantidade} ARCHIVOS...",
+  "@wizardMidiaProcessandoVarios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardMidiaProcessandoSub": "Guardando y calculando integridad en segundo plano...",
+  "wizardMidiaModalTitulo": "AÑADIR MULTIMEDIA (FOTO, VIDEO O PDF)",
+  "wizardMidiaTirarFoto": "Tomar Foto con la Cámara",
+  "wizardMidiaGravarVideo": "Grabar con la Cámara",
+  "wizardMidiaEscolherGaleria": "Elegir de la Galería",
+  "wizardMidiaEscolherGaleriaSub": "Fotos y videos",
+  "wizardMidiaSelecionarPdf": "Seleccionar Archivo PDF",
+  "wizardRefMatVazioCatalogo": "Aún no hay materiales registrados en el catálogo.\nToque abajo para registrar un nuevo material.",
+  "wizardRefMatVazioBloco": "Ningún material registrado en el Bloque 1.\nVuelva y añada los materiales primero.",
+  "wizardBotaoCadastrarNovoMaterial": "REGISTRAR NUEVO MATERIAL",
+  "wizardConclusaoTitulo": "PROTOCOLO COMPLETADO",
+  "wizardConclusaoSubtitulo": "Todos los datos fueron recopilados sin conexión.\nEl registro está listo para ser firmado y exportado.",
+  "wizardBotaoGerarRelatorio": "GENERAR INFORME",
+  "wizardSufixoCopia": "Copia",
+  "geracaoEmAndamentoTitulo": "GENERANDO INFORME",
+  "geracaoConcluidaTitulo": "INFORME LISTO",
+  "geracaoFalhaTitulo": "FALLO EN LA GENERACIÓN",
+  "geracaoBotaoAbrirRelatorio": "ABRIR INFORME",
+  "visualizadorAbaEpub": "INFORME EPUB 3",
+  "visualizadorAbaPdf": "RESUMEN PDF",
+  "visualizadorBotaoCompartilhar": "COMPARTIR",
+  "visualizadorBotaoAbrirExterno": "ABRIR EXTERNO",
+  "laudoRotuloProtocolo": "PROTOCOLO",
+  "laudoRotuloSessao": "SESIÓN",
+  "laudoRotuloEmissao": "EMISIÓN UTC",
+  "laudoRotuloVersao": "VERSIÓN",
+  "laudoSecaoIdentidadeTitulo": "IDENTIDAD TÉCNICA DEL EMISOR",
+  "laudoRotuloNome": "Nombre",
+  "laudoRotuloEmail": "Correo electrónico",
+  "laudoRotuloAssociacao": "Asociación",
+  "laudoSecaoIntegridadeTitulo": "INTEGRIDAD CRIPTOGRÁFICA Y CADENA DE CUSTODIA",
+  "laudoAvisoResumoImpresso": "Este PDF es un resumen ejecutivo para impresión rápida. El informe pericial completo con medios en alta resolución, videos y firma digital XML-DSig X.509 se encuentra en el archivo EPUB 3 correspondiente.",
+  "laudoSecaoAnexoCatalogoTitulo": "ANEXO — CATÁLOGO DE MATERIALES REFERENCIADOS",
+  "laudoRotuloVideoAnexo": "Video adjunto en el EPUB 3",
+  "laudoRotuloDocumentoPdf": "Documento PDF ({paginas} pág.)",
+  "@laudoRotuloDocumentoPdf": {
+    "placeholders": {
+      "paginas": {
+        "type": "int"
+      }
+    }
+  }
+}

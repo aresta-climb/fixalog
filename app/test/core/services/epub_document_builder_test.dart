@@ -652,5 +652,69 @@ Realizada solda **TIG** em aço *inox 316L* com código `LOTE-99` e ~~rebarba~~ 
         equals(['uuid-mat-expresso-1']),
       );
     });
+
+    test('gerarCss inclui @font-face seletivo da família Noto Sans conforme o idioma do relatório', () {
+      final cssPt = construtor.gerarCss(codigoIdioma: 'pt');
+      expect(cssPt, contains("font-family: 'Noto Sans'"));
+      expect(cssPt, contains("url('fonts/NotoSans-Regular.ttf')"));
+      expect(cssPt, contains("url('fonts/NotoSans-Bold.ttf')"));
+      expect(cssPt, isNot(contains('NotoSansArabic')));
+      expect(cssPt, isNot(contains('NotoSansJP')));
+
+      final cssAr = construtor.gerarCss(codigoIdioma: 'ar');
+      expect(cssAr, contains("url('fonts/NotoSans-Regular.ttf')"));
+      expect(cssAr, contains("font-family: 'Noto Sans Arabic'"));
+      expect(cssAr, contains("url('fonts/NotoSansArabic-Regular.ttf')"));
+      expect(cssAr, contains("url('fonts/NotoSansArabic-Bold.ttf')"));
+      expect(cssAr, isNot(contains('NotoSansJP')));
+
+      final cssJa = construtor.gerarCss(codigoIdioma: 'ja');
+      expect(cssJa, contains("url('fonts/NotoSans-Regular.ttf')"));
+      expect(cssJa, contains("font-family: 'Noto Sans JP'"));
+      expect(cssJa, contains("url('fonts/NotoSansJP-Regular.ttf')"));
+      expect(cssJa, contains("url('fonts/NotoSansJP-Bold.ttf')"));
+      expect(cssJa, isNot(contains('NotoSansArabic')));
+    });
+
+    test('gerarXhtml compila laudo no idioma ativo (ja, en e ar com dir="rtl") resolvendo rótulos e opções traduzidos do protocolo', () {
+      final yamlInspecao = File('assets/protocols/inspecao_visual.yaml').readAsStringSync();
+      final regInspecao = Registro(
+        idSessao: 'sessao_i18n_1',
+        idProtocolo: 'inspecao_visual',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlInspecao,
+      )
+        ..respostas['via_nome'] = Resposta(texto: 'Mount Fuji North Ridge')
+        ..respostas['avaliacao_condicao'] = Resposta(texto: 'liberada');
+
+      final xhtmlJa = construtor.gerarXhtml(
+        registro: regInspecao,
+        idSessao: 'sessao_i18n_1',
+        urlCanonica: 'https://fixalog.app/v/sessao_i18n_1',
+        codigoIdioma: 'ja',
+        titulosMateriais: {'mat-1': 'チタンボルト'},
+      );
+      expect(() => XmlDocument.parse(xhtmlJa), returnsNormally);
+      expect(xhtmlJa, contains('lang="ja"'));
+      expect(xhtmlJa, isNot(contains('dir="rtl"')));
+      expect(xhtmlJa, contains('固定支点の目視点検'));
+      expect(xhtmlJa, contains('ルート名'));
+      expect(xhtmlJa, contains('登攀可能（開放）'));
+      expect(xhtmlJa, contains('セッション'));
+      expect(xhtmlJa, contains('付録 — 参照資材カタログ'));
+
+      final xhtmlAr = construtor.gerarXhtml(
+        registro: regInspecao,
+        idSessao: 'sessao_i18n_1',
+        urlCanonica: 'https://fixalog.app/v/sessao_i18n_1',
+        codigoIdioma: 'ar',
+      );
+      expect(() => XmlDocument.parse(xhtmlAr), returnsNormally);
+      expect(xhtmlAr, contains('lang="ar" dir="rtl"'));
+      expect(xhtmlAr, contains('الفحص البصري لنقاط التثبيت الثابتة'));
+      expect(xhtmlAr, contains('اسم المسار'));
+      expect(xhtmlAr, contains('مفتوح للتسلق'));
+      expect(xhtmlAr, contains('الجلسة'));
+    });
   });
 }

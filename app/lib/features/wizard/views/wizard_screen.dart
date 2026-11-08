@@ -6,6 +6,8 @@ import 'package:flutter/material.dart' hide Step;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/wizard_state_controller.dart';
+import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/models/proto/protos/wizard.pb.dart';
 import '../../../core/models/proto/protos/registro.pb.dart';
 import '../../../core/utils/protocol_icons.dart';
@@ -71,11 +73,30 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!widget.isEditing) {
-        final protocol = ProtocolParser.fromYaml(widget.initialYaml);
-        ref.read(wizardControllerProvider.notifier).loadProtocol(protocol, rawYaml: widget.initialYaml);
+      if (!widget.isEditing && mounted) {
+        final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+        if (locale.languageCode == 'pt') {
+          final protocol = ProtocolParser.fromYaml(widget.initialYaml);
+          ref
+              .read(wizardControllerProvider.notifier)
+              .loadProtocol(protocol, rawYaml: widget.initialYaml);
+        } else {
+          _carregarProtocoloLocalizado(locale.languageCode);
+        }
       }
     });
+  }
+
+  Future<void> _carregarProtocoloLocalizado(String codigoIdioma) async {
+    await ProtocolParser.garantirTraducoesCarregadas(codigoIdioma);
+    if (!mounted) return;
+    final protocol = ProtocolParser.fromYaml(
+      widget.initialYaml,
+      codigoIdioma: codigoIdioma,
+    );
+    ref
+        .read(wizardControllerProvider.notifier)
+        .loadProtocol(protocol, rawYaml: widget.initialYaml);
   }
 
   @override
@@ -94,11 +115,15 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     if (success) {
       _scrollToIndex(idxBefore + 1);
     } else if (mounted) {
+      final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Preencha todos os campos obrigatórios para prosseguir.',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          content: Text(
+            l10n.wizardAvisoCamposObrigatorios,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           backgroundColor: const Color(0xFF5A1E1E),
         ),
@@ -217,7 +242,6 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                           'FIXALOG',
                           style: TextStyle(
                             color: Color(0xFFFF6B00),
-                            fontFamily: 'SpaceGrotesk',
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             letterSpacing: 2.0,
@@ -322,6 +346,7 @@ class _StepCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(wizardControllerProvider);
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     final notifier = ref.read(wizardControllerProvider.notifier);
     final zeroBasedIndex = stepIndex - 1;
     final podeAcessar = notifier.podeAcessarStep(zeroBasedIndex);
@@ -350,7 +375,7 @@ class _StepCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'PASSO $stepIndex',
+                l10n.wizardPassoNumero(stepIndex),
                 style: TextStyle(
                   color: isCurrent
                       ? const Color(0xFFFF6B00)
@@ -374,15 +399,15 @@ class _StepCard extends ConsumerWidget {
                   onTap: (!podeInteragir && isLocked)
                       ? () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'Preencha todos os campos obrigatórios do passo anterior para prosseguir.',
-                                style: TextStyle(
+                                l10n.wizardAvisoPassoAnteriorObrigatorio,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              backgroundColor: Color(0xFF5A1E1E),
+                              backgroundColor: const Color(0xFF5A1E1E),
                             ),
                           );
                         }
@@ -422,9 +447,9 @@ class _StepCard extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: onBackToStep,
                     icon: const Icon(Icons.history, size: 14),
-                    label: const Text(
-                      'VOLTAR A ESTE PASSO',
-                      style: TextStyle(
+                    label: Text(
+                      l10n.wizardBotaoVoltarPasso,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 10,
                         letterSpacing: 0.5,
@@ -509,10 +534,11 @@ class _NextButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
 
     // Verificar se todos os conteudos obrigatórios estão satisfeitos
     bool allSatisfied = true;
-    String label = isLastStep ? 'CONCLUIR' : 'SEGUINTE';
+    String label = isLastStep ? l10n.wizardBotaoConcluir : l10n.wizardBotaoSeguinte;
 
     for (final c in flowStep.step.conteudos) {
       final kind = c.whichTipo();
@@ -523,8 +549,8 @@ class _NextButton extends ConsumerWidget {
         final minimo = c.listaAcoes.minimo;
         if (minimo > 0 && count < minimo) allSatisfied = false;
         label = count > 0
-            ? 'CONCLUIR LISTA ($count)'
-            : (minimo == 0 ? 'PULAR' : 'SEGUINTE');
+            ? l10n.wizardBotaoConcluirLista(count)
+            : (minimo == 0 ? l10n.wizardBotaoPular : l10n.wizardBotaoSeguinte);
         continue;
       }
 
@@ -616,7 +642,6 @@ class InstrucaoWidget extends StatelessWidget {
                 instrucao.titulo,
                 style: TextStyle(
                   color: alertColor,
-                  fontFamily: 'SpaceGrotesk',
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
@@ -703,7 +728,6 @@ class SelecaoRamoWidget extends ConsumerWidget {
           selecao.label,
           style: const TextStyle(
             color: Colors.white,
-            fontFamily: 'SpaceGrotesk',
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -753,6 +777,7 @@ class ListaAcoesWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     final lista = conteudo.listaAcoes;
     final listKey = _listKey;
     final items = state.lists[listKey] ?? [];
@@ -765,7 +790,6 @@ class ListaAcoesWidget extends ConsumerWidget {
           lista.label,
           style: const TextStyle(
             color: Colors.white,
-            fontFamily: 'SpaceGrotesk',
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -800,11 +824,13 @@ class ListaAcoesWidget extends ConsumerWidget {
             onPressed: () {
               FocusScope.of(context).unfocus();
               FocusManager.instance.primaryFocus?.unfocus();
-              _showAddItemSheet(context, ref, lista, listKey);
+              _showAddItemSheet(context, ref, lista, listKey, l10n);
             },
             icon: const Icon(Icons.add, size: 18),
             label: Text(
-              items.isEmpty ? 'ADICIONAR ITEM' : 'ADICIONAR OUTRO',
+              items.isEmpty
+                  ? l10n.wizardBotaoAdicionarItem
+                  : l10n.wizardBotaoAdicionarOutro,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
@@ -827,7 +853,7 @@ class ListaAcoesWidget extends ConsumerWidget {
         if (lista.minimo > 0 && items.length < lista.minimo) ...[
           const SizedBox(height: 8),
           Text(
-            'Mínimo ${lista.minimo} item(ns) obrigatório(s).',
+            l10n.wizardMinimoItensObrigatorios(lista.minimo),
             style: TextStyle(
               color: Colors.orange.withValues(alpha: 0.6),
               fontSize: 11,
@@ -843,6 +869,7 @@ class ListaAcoesWidget extends ConsumerWidget {
     WidgetRef ref,
     StepListaAcoes lista,
     String listKey,
+    AppLocalizations l10n,
   ) {
     showModalBottomSheet(
       context: context,
@@ -865,9 +892,9 @@ class ListaAcoesWidget extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'SELECIONE O TIPO',
-                    style: TextStyle(
+                  Text(
+                    l10n.wizardSelecioneTipo,
+                    style: const TextStyle(
                       color: Color(0xFFFF6B00),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
@@ -1214,6 +1241,7 @@ class _InlineItemCardState extends ConsumerState<InlineItemCard> {
   Widget _buildExpanded(BuildContext context, WidgetRef ref) {
     final item = widget.item;
     final listConteudoId = widget.listConteudoId;
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1259,7 +1287,7 @@ class _InlineItemCardState extends ConsumerState<InlineItemCard> {
               const SizedBox(width: 8),
               // Remover item
               InkWell(
-                onTap: () => _confirmDelete(context, ref),
+                onTap: () => _confirmDelete(context, ref, l10n),
                 child: const Icon(
                   Icons.delete_outline,
                   color: Colors.red,
@@ -1290,20 +1318,20 @@ class _InlineItemCardState extends ConsumerState<InlineItemCard> {
                   .confirmListItem(listConteudoId, item.id);
               if (!success) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Preencha os campos obrigatórios do item.',
-                      style: TextStyle(color: Colors.white),
+                      l10n.wizardAvisoCamposItemObrigatorios,
+                      style: const TextStyle(color: Colors.white),
                     ),
-                    backgroundColor: Color(0xFF5A1E1E),
+                    backgroundColor: const Color(0xFF5A1E1E),
                   ),
                 );
               }
             },
             icon: const Icon(Icons.check, size: 18),
-            label: const Text(
-              'CONFIRMAR ITEM',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            label: Text(
+              l10n.wizardBotaoConfirmarItem,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2E7D32),
@@ -1319,27 +1347,31 @@ class _InlineItemCardState extends ConsumerState<InlineItemCard> {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
     final item = widget.item;
     final listConteudoId = widget.listConteudoId;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1C1E),
-        title: const Text(
-          'Remover item?',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.wizardRemoverItemTitulo,
+          style: const TextStyle(color: Colors.white),
         ),
         content: Text(
-          'Remover "${item.tipoLabel}"?',
+          l10n.wizardRemoverItemCorpo(item.tipoLabel),
           style: const TextStyle(color: Colors.white54),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'CANCELAR',
-              style: TextStyle(color: Colors.white38),
+            child: Text(
+              l10n.comumCancelar,
+              style: const TextStyle(color: Colors.white38),
             ),
           ),
           TextButton(
@@ -1349,7 +1381,10 @@ class _InlineItemCardState extends ConsumerState<InlineItemCard> {
                   .read(wizardControllerProvider.notifier)
                   .removeListItem(listConteudoId, item.id);
             },
-            child: const Text('REMOVER', style: TextStyle(color: Colors.red)),
+            child: Text(
+              l10n.comumRemover,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -1705,12 +1740,14 @@ class _CampoSimplesContent extends ConsumerWidget {
     StepCampoSimples campo,
     String? answer,
   ) {
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     switch (campo.tipo) {
       case StepCampoSimples_TipoCampo.TEXT:
       case StepCampoSimples_TipoCampo.DATE:
         if (campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA) {
           return _CampoTextoMarkdownArea(
             initialValue: answer,
+            hintText: l10n.wizardHintTextoArea,
             onChanged: (v) => _saveString(ref, v),
           );
         }
@@ -1719,8 +1756,8 @@ class _CampoSimplesContent extends ConsumerWidget {
           keyboardType: TextInputType.text,
           onChanged: (v) => _saveString(ref, v),
           maxLines: 1,
-          decoration: const InputDecoration(
-            hintText: 'Digite aqui...',
+          decoration: InputDecoration(
+            hintText: l10n.wizardHintTexto,
           ),
         );
 
@@ -1729,8 +1766,8 @@ class _CampoSimplesContent extends ConsumerWidget {
           initialValue: answer,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (v) => _saveString(ref, v),
-          decoration: const InputDecoration(
-            hintText: 'Apenas números',
+          decoration: InputDecoration(
+            hintText: l10n.wizardHintNumeros,
           ),
         );
 
@@ -1739,7 +1776,7 @@ class _CampoSimplesContent extends ConsumerWidget {
           children: [
             Expanded(
               child: _SelectionTile(
-                title: 'Sim',
+                title: l10n.comumSim,
                 subtitle: '',
                 icon: Icons.check_circle_outline,
                 isSelected: answer == 'true',
@@ -1749,7 +1786,7 @@ class _CampoSimplesContent extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _SelectionTile(
-                title: 'Não',
+                title: l10n.comumNao,
                 subtitle: '',
                 icon: Icons.cancel_outlined,
                 isSelected: answer == 'false',
@@ -1786,7 +1823,7 @@ class _CampoSimplesContent extends ConsumerWidget {
             if (!serviceEnabled) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Serviço de localização desativado.')),
+                  SnackBar(content: Text(l10n.wizardGpsDesativado)),
                 );
               }
               return;
@@ -1811,7 +1848,7 @@ class _CampoSimplesContent extends ConsumerWidget {
           },
           child: _actionTile(
             icon: has ? Icons.location_on : Icons.gps_fixed,
-            label: has ? 'COORDENADAS CAPTURADAS' : 'CAPTURAR POSIÇÃO GPS',
+            label: has ? l10n.wizardGpsCapturado : l10n.wizardGpsCapturar,
             sub: has ? answer : '',
             active: has,
           ),
@@ -1836,6 +1873,7 @@ class _CampoSimplesContent extends ConsumerWidget {
                   midia: midias[i],
                   indice: i,
                   chaveCampo: fullKey,
+                  l10n: l10n,
                   onRemover: () async {
                     await ref
                         .read(wizardControllerProvider.notifier)
@@ -1853,11 +1891,16 @@ class _CampoSimplesContent extends ConsumerWidget {
                 child: _loadingMidiaTile(
                   chaveCampo: fullKey,
                   quantidade: qtdProcessando,
+                  l10n: l10n,
                 ),
               ),
             GestureDetector(
               onTap: () async {
-                final origem = await _selecionarOrigemMidia(context, isVid);
+                final origem = await _selecionarOrigemMidia(
+                  context,
+                  isVid,
+                  l10n,
+                );
                 if (origem == null) return;
 
                 if (origem == _OrigemMidia.arquivoPdf) {
@@ -1951,10 +1994,10 @@ class _CampoSimplesContent extends ConsumerWidget {
                 icon: midias.isEmpty
                     ? (isVid ? Icons.videocam_outlined : Icons.camera_alt_outlined)
                     : Icons.add_circle_outline,
-                label: 'ADICIONAR MÍDIA',
+                label: l10n.wizardMidiaAdicionar,
                 sub: midias.isEmpty
-                    ? 'Fotos, vídeos ou PDFs'
-                    : 'Adicionar outra foto, vídeo ou PDF',
+                    ? l10n.wizardMidiaSubVazio
+                    : l10n.wizardMidiaSubMais,
                 active: false,
               ),
             ),
@@ -1973,6 +2016,7 @@ class _CampoSimplesContent extends ConsumerWidget {
     required ReferenciaMidia midia,
     required int indice,
     required String chaveCampo,
+    required AppLocalizations l10n,
     required VoidCallback onRemover,
   }) {
     final bool ehPdf = midia.hasDocumento();
@@ -1981,8 +2025,8 @@ class _CampoSimplesContent extends ConsumerWidget {
         ? Icons.picture_as_pdf
         : (ehVideo ? Icons.videocam : Icons.check_circle);
     final String rotulo = ehPdf
-        ? 'PDF ANEXADO'
-        : (ehVideo ? 'VÍDEO GRAVADO' : 'FOTO CAPTURADA');
+        ? l10n.wizardMidiaPdfAnexado
+        : (ehVideo ? l10n.wizardMidiaVideoGravado : l10n.wizardMidiaFotoCapturada);
     final String subtitulo = ehPdf
         ? '${midia.documento.nomeOriginal} (${midia.documento.quantidadePaginas} pág.)'
         : (ehVideo
@@ -2054,10 +2098,11 @@ class _CampoSimplesContent extends ConsumerWidget {
   Widget _loadingMidiaTile({
     required String chaveCampo,
     required int quantidade,
+    required AppLocalizations l10n,
   }) {
     final texto = quantidade > 1
-        ? 'PROCESSANDO $quantidade MÍDIAS...'
-        : 'PROCESSANDO MÍDIA...';
+        ? l10n.wizardMidiaProcessandoVarios(quantidade)
+        : l10n.wizardMidiaProcessandoUm;
     return Container(
       key: Key('loading_midia_$chaveCampo'),
       padding: const EdgeInsets.all(16),
@@ -2099,9 +2144,9 @@ class _CampoSimplesContent extends ConsumerWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
-                const Text(
-                  'Salvando e calculando integridade em segundo plano...',
-                  style: TextStyle(
+                Text(
+                  l10n.wizardMidiaProcessandoSub,
+                  style: const TextStyle(
                     color: Color(0xFFFF6B00),
                     fontSize: 10,
                     fontFamily: 'monospace',
@@ -2173,7 +2218,11 @@ class _CampoSimplesContent extends ConsumerWidget {
     );
   }
 
-  Future<_OrigemMidia?> _selecionarOrigemMidia(BuildContext context, bool isVideo) {
+  Future<_OrigemMidia?> _selecionarOrigemMidia(
+    BuildContext context,
+    bool isVideo,
+    AppLocalizations l10n,
+  ) {
     FocusManager.instance.primaryFocus?.unfocus();
     return showModalBottomSheet<_OrigemMidia>(
       context: context,
@@ -2197,9 +2246,9 @@ class _CampoSimplesContent extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'ADICIONAR MÍDIA (FOTO, VÍDEO OU PDF)',
-                      style: TextStyle(
+                    Text(
+                      l10n.wizardMidiaModalTitulo,
+                      style: const TextStyle(
                         color: Color(0xFFFF6B00),
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
@@ -2212,9 +2261,12 @@ class _CampoSimplesContent extends ConsumerWidget {
                         Icons.camera_alt,
                         color: Color(0xFF00FF66),
                       ),
-                      title: const Text(
-                        'Tirar Foto com a Câmera',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.wizardMidiaTirarFoto,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2229,9 +2281,12 @@ class _CampoSimplesContent extends ConsumerWidget {
                         Icons.videocam,
                         color: Color(0xFF4FC3F7),
                       ),
-                      title: const Text(
-                        'Gravar com a Câmera',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.wizardMidiaGravarVideo,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2246,13 +2301,19 @@ class _CampoSimplesContent extends ConsumerWidget {
                         Icons.perm_media,
                         color: Color(0xFF00FF66),
                       ),
-                      title: const Text(
-                        'Escolher da Galeria',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.wizardMidiaEscolherGaleria,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      subtitle: const Text(
-                        'Fotos e vídeos',
-                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      subtitle: Text(
+                        l10n.wizardMidiaEscolherGaleriaSub,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2267,9 +2328,12 @@ class _CampoSimplesContent extends ConsumerWidget {
                         Icons.picture_as_pdf,
                         color: Color(0xFFFF6B00),
                       ),
-                      title: const Text(
-                        'Selecionar Arquivo PDF',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      title: Text(
+                        l10n.wizardMidiaSelecionarPdf,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2300,7 +2364,7 @@ enum _OrigemMidia {
 // RefMateriais — conteúdo compartilhado entre inline e principal
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _RefMateriaisContent extends StatelessWidget {
+class _RefMateriaisContent extends ConsumerWidget {
   final String label;
   final String sublabel;
   final List<ListItemRecord> allItems;
@@ -2320,7 +2384,8 @@ class _RefMateriaisContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2353,8 +2418,8 @@ class _RefMateriaisContent extends StatelessWidget {
             ),
             child: Text(
               origemCatalogo
-                  ? 'Nenhum material cadastrado no catálogo ainda.\nToque abaixo para cadastrar um novo material.'
-                  : 'Nenhum material registrado no Bloco 1.\nVolte e adicione os materiais primeiro.',
+                  ? l10n.wizardRefMatVazioCatalogo
+                  : l10n.wizardRefMatVazioBloco,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 13,
@@ -2434,9 +2499,9 @@ class _RefMateriaisContent extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onCadastrarNovoMaterial,
             icon: const Icon(Icons.add, size: 18),
-            label: const Text(
-              'CADASTRAR NOVO MATERIAL',
-              style: TextStyle(
+            label: Text(
+              l10n.wizardBotaoCadastrarNovoMaterial,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 0.5,
@@ -2577,6 +2642,7 @@ class SummaryConclusionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
     return Container(
       height: 400,
       margin: const EdgeInsets.all(16),
@@ -2592,19 +2658,18 @@ class SummaryConclusionCard extends ConsumerWidget {
         children: [
           const Icon(Icons.verified, color: Color(0xFFFF6B00), size: 48),
           const SizedBox(height: 20),
-          const Text(
-            'PROTOCOLO CONCLUÍDO',
+          Text(
+            l10n.wizardConclusaoTitulo,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              fontFamily: 'SpaceGrotesk',
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            'Todos os dados foram coletados offline.\nO registro está pronto para ser assinado e exportado.',
+            l10n.wizardConclusaoSubtitulo,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.5),
@@ -2657,9 +2722,9 @@ class SummaryConclusionCard extends ConsumerWidget {
               }
             },
             icon: const Icon(Icons.picture_as_pdf),
-            label: const Text(
-              'GERAR RELATÓRIO',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            label: Text(
+              l10n.wizardBotaoGerarRelatorio,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B00),
@@ -2681,10 +2746,12 @@ class SummaryConclusionCard extends ConsumerWidget {
 /// sem alterar o texto bruto digitado.
 class _CampoTextoMarkdownArea extends StatefulWidget {
   final String? initialValue;
+  final String? hintText;
   final ValueChanged<String> onChanged;
 
   const _CampoTextoMarkdownArea({
     required this.initialValue,
+    this.hintText,
     required this.onChanged,
   });
 
@@ -2728,8 +2795,10 @@ class _CampoTextoMarkdownAreaState extends State<_CampoTextoMarkdownArea> {
       minLines: 4,
       maxLines: null,
       onChanged: widget.onChanged,
-      decoration: const InputDecoration(
-        hintText: 'Digite aqui... (suporta **negrito**, *itálico*, # título e listas)',
+      decoration: InputDecoration(
+        hintText:
+            widget.hintText ??
+            'Digite aqui... (suporta **negrito**, *itálico*, # título e listas)',
       ),
     );
   }

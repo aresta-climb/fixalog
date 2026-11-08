@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/features/onboarding/views/tela_termos_de_uso.dart';
 import 'package:fixalog/core/constantes/versao_legal.g.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
@@ -38,9 +39,14 @@ void main() {
   setUp(() async {
     banco = await BancoDadosLocal.abrirEmMemoria();
     assetsTeste = PacoteAssetsTeste({
-      'legal/repo/public/docs/termos-de-uso-fixalog.md':
-          '# Termos Fixalog\n\nTexto dos termos.\n\n[Privacidade Inline](https://arestaclimb.com/privacidade)',
-      'legal/repo/public/docs/politica-de-privacidade-fixalog.md': '# Politica Fixalog\n\nConteudo de privacidade.',
+      'legal/repo/public/docs/pt/termos-de-uso-fixalog.md':
+          '# Termos Fixalog\n\nTexto dos termos.\n\n[Privacidade Inline](#privacy-policy)',
+      'legal/repo/public/docs/pt/politica-de-privacidade-fixalog.md':
+          '# Politica Fixalog\n\nConteudo de privacidade.',
+      'legal/repo/public/docs/en/termos-de-uso-fixalog.md':
+          '# Fixalog Terms EN\n\nEnglish terms text.\n\n[Privacy Policy Link](#privacy-policy)',
+      'legal/repo/public/docs/en/politica-de-privacidade-fixalog.md':
+          '# Fixalog Privacy EN\n\nEnglish privacy content.',
     });
   });
 
@@ -57,6 +63,7 @@ void main() {
     return ProviderScope(
       overrides: [
         bancoDadosLocalProvider.overrideWithValue(banco),
+        localeSistemaProvider.overrideWithValue(const Locale('pt', 'BR')),
         ...overrides,
       ],
       child: MaterialApp(
@@ -186,5 +193,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(IdentitySetupScreen), findsOneWidget);
+  });
+
+  testWidgets('Permite trocar o idioma pelo seletor na AppBar, atualizando textos, documentos legais e SQLite imediatamente', (tester) async {
+    await tester.pumpWidget(criarWidgetDeTeste());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Termos de Uso e Auditoria Técnica'), findsOneWidget);
+    expect(find.textContaining('Termos Fixalog'), findsOneWidget);
+
+    final seletor = find.byKey(const Key('seletor_idioma_termos'));
+    expect(seletor, findsOneWidget);
+    await tester.tap(seletor);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Terms of Use and Technical Audit'), findsOneWidget);
+    expect(find.textContaining('Fixalog Terms EN'), findsOneWidget);
+    expect(find.text('Accept Terms and Continue'), findsOneWidget);
+    expect(banco.obterConfiguracaoSync()?.idiomaPreferido, equals('en'));
+
+    // Abre modal de privacidade em inglês pelo link canônico #privacy-policy
+    await tester.tap(find.text('Privacy Policy Link', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(find.text('Privacy Policy - Fixalog'), findsOneWidget);
+    expect(find.textContaining('Fixalog Privacy EN'), findsOneWidget);
+  });
+
+  testWidgets('Faz fallback para en ou caminho legado quando o arquivo do idioma selecionado nao existe no bundle', (tester) async {
+    final bundleLegado = PacoteAssetsTeste({
+      'legal/repo/public/docs/termos-de-uso-fixalog.md': '# Termos Legado Raiz',
+      'legal/repo/public/docs/politica-de-privacidade-fixalog.md': '# Politica Legada Raiz',
+    });
+
+    await tester.pumpWidget(criarWidgetDeTeste(
+      bundle: bundleLegado,
+      overrides: [
+        localeSistemaProvider.overrideWithValue(const Locale('ja', 'JP')),
+      ],
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Termos Legado Raiz'), findsOneWidget);
   });
 }

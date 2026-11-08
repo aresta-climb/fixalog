@@ -5,6 +5,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/pdf_viewer_service.dart';
@@ -39,7 +41,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return null;
   }
 
-  String _obterTituloRegistro(SubmissionRecord record, {String padrao = 'Protocolo'}) {
+  String _obterTituloRegistro(
+    SubmissionRecord record, {
+    String padrao = 'Protocolo',
+  }) {
     if (record.tituloExibicao.trim().isNotEmpty) {
       return record.tituloExibicao.trim();
     }
@@ -85,6 +90,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyProvider);
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
 
     return Stack(
       children: [
@@ -164,7 +172,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       'FIXALOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
-                        fontFamily: 'SpaceGrotesk',
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         letterSpacing: 2.0,
@@ -174,11 +181,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                const Text(
-                  'Histórico',
-                  style: TextStyle(
+                Text(
+                  ehPt ? 'Histórico' : l10n.historicoTitulo,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontFamily: 'SpaceGrotesk',
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
@@ -186,7 +192,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Registros de manutenção preenchidos',
+                  ehPt
+                      ? 'Registros de manutenção preenchidos'
+                      : l10n.historicoSubtitulo,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 13,
@@ -209,8 +217,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
                     }
 
+                    final qtdManut =
+                        history.where((r) => r.isManutencao).length;
+                    final qtdMat = history.where((r) => r.isMaterial).length;
+
                     final registrosFiltrados = history
-                        .where((r) => _mostrarMateriais ? r.isMaterial : r.isManutencao)
+                        .where(
+                          (r) =>
+                              _mostrarMateriais ? r.isMaterial : r.isManutencao,
+                        )
                         .toList();
 
                     return Column(
@@ -236,16 +251,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        _buildSeletorCategoria(),
+                        _buildSeletorCategoria(
+                          ehPt: ehPt,
+                          l10n: l10n,
+                          qtdManut: qtdManut,
+                          qtdMat: qtdMat,
+                        ),
                         const SizedBox(height: 24),
                         if (registrosFiltrados.isEmpty)
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32.0),
                               child: Text(
-                                _mostrarMateriais
-                                    ? 'Nenhum material cadastrado.'
-                                    : 'Nenhum relatório preenchido.',
+                                ehPt
+                                    ? (_mostrarMateriais
+                                          ? 'Nenhum material cadastrado.'
+                                          : 'Nenhum relatório preenchido.')
+                                    : (_mostrarMateriais
+                                          ? l10n.historicoVazioMateriaisTitulo
+                                          : l10n.historicoVazioRelatoriosTitulo),
                                 style: const TextStyle(color: Colors.white54),
                               ),
                             ),
@@ -266,10 +290,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
                               Future<void> loadAndEdit() async {
                                 try {
-                                  final controller = ref.read(wizardControllerProvider.notifier);
+                                  final controller = ref.read(
+                                    wizardControllerProvider.notifier,
+                                  );
                                   await controller.loadSession(record.idSessao);
 
-                                  final state = ref.read(wizardControllerProvider);
+                                  final state = ref.read(
+                                    wizardControllerProvider,
+                                  );
                                   final yamlStr = state.protocolRawYaml;
 
                                   if (context.mounted) {
@@ -285,7 +313,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erro ao carregar sessão: $e')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Erro ao carregar sessão: $e',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }
@@ -363,10 +395,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               }
 
                               final isEmProgresso = record.isEmProgresso;
-                              final tag = isEmProgresso ? 'EM PROGRESSO' : 'GERADO';
+                              final tag = ehPt
+                                  ? (isEmProgresso
+                                        ? 'EM PROGRESSO'
+                                        : 'GERADO')
+                                  : (isEmProgresso
+                                        ? l10n.historicoStatusEmProgresso
+                                        : l10n.historicoStatusConcluido);
                               final tagColor = isEmProgresso
-                                  ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
-                                  : const Color(0xFF10B981).withValues(alpha: 0.2);
+                                  ? const Color(0xFFF59E0B).withValues(
+                                      alpha: 0.2,
+                                    )
+                                  : const Color(0xFF10B981).withValues(
+                                      alpha: 0.2,
+                                    );
                               final textColor = isEmProgresso
                                   ? const Color(0xFFF59E0B)
                                   : const Color(0xFF10B981);
@@ -389,6 +431,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 cloudIcon: cloudIcon,
                                 cloudIconColor: cloudIconColor,
                                 isEmProgresso: isEmProgresso,
+                                ehPt: ehPt,
+                                l10n: l10n,
                                 onTap: () async {
                                   if (!isEmProgresso) {
                                     await _abrirRelatorio(record);
@@ -405,16 +449,48 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      title: const Text('Excluir Protocolo'),
-                                      content: const Text('Tem certeza que deseja excluir permanentemente este protocolo?'),
+                                      title: Text(
+                                        ehPt
+                                            ? 'Excluir Protocolo'
+                                            : l10n
+                                                  .historicoConfirmarExclusaoTitulo,
+                                      ),
+                                      content: Text(
+                                        ehPt
+                                            ? 'Tem certeza que deseja excluir permanentemente este protocolo?'
+                                            : l10n
+                                                  .historicoConfirmarExclusaoCorpo(
+                                                    _obterTituloRegistro(
+                                                      record,
+                                                    ),
+                                                  ),
+                                      ),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Excluir')),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, false),
+                                          child: Text(
+                                            ehPt
+                                                ? 'Cancelar'
+                                                : l10n.comumCancelar,
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: Text(
+                                            ehPt
+                                                ? 'Excluir'
+                                                : l10n.historicoBotaoExcluir,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   );
                                   if (confirm == true) {
-                                    await ref.read(historyRepositoryProvider).deleteRecord(record);
+                                    await ref
+                                        .read(historyRepositoryProvider)
+                                        .deleteRecord(record);
                                   }
                                 },
                               );
@@ -447,7 +523,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   error: (e, st) => Center(
                     child: Text(
-                      'Erro: $e',
+                      l10n.comumErro('$e'),
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
@@ -460,7 +536,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSeletorCategoria() {
+  Widget _buildSeletorCategoria({
+    required bool ehPt,
+    required AppLocalizations l10n,
+    required int qtdManut,
+    required int qtdMat,
+  }) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -491,7 +572,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'MANUTENÇÕES',
+                  ehPt
+                      ? 'MANUTENÇÕES'
+                      : l10n.historicoAbaRelatorios(qtdManut),
                   style: TextStyle(
                     color: !_mostrarMateriais ? Colors.white : Colors.white54,
                     fontSize: 12,
@@ -523,7 +606,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'MATERIAIS',
+                  ehPt ? 'MATERIAIS' : l10n.historicoAbaMateriais(qtdMat),
                   style: TextStyle(
                     color: _mostrarMateriais ? Colors.white : Colors.white54,
                     fontSize: 12,
@@ -562,7 +645,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Text(
             value,
             style: TextStyle(
-              fontFamily: 'SpaceGrotesk',
               color: valueColor,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -583,6 +665,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     required IconData cloudIcon,
     required Color cloudIconColor,
     required bool isEmProgresso,
+    required bool ehPt,
+    required AppLocalizations l10n,
     VoidCallback? onTap,
     VoidCallback? onEdit,
     VoidCallback? onDuplicate,
@@ -685,34 +769,52 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   },
                   itemBuilder: (context) => [
                     if (isEmProgresso) ...[
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
-                        child: Text('Continuar preenchimento'),
+                        child: Text(
+                          ehPt
+                              ? 'Continuar preenchimento'
+                              : l10n.historicoBotaoContinuar,
+                        ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'duplicate',
-                        child: Text('Criar cópia'),
+                        child: Text(
+                          ehPt ? 'Criar cópia' : l10n.historicoBotaoDuplicar,
+                        ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
-                        child: Text('Excluir'),
+                        child: Text(
+                          ehPt ? 'Excluir' : l10n.historicoBotaoExcluir,
+                        ),
                       ),
                     ] else ...[
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'viewRelatorio',
-                        child: Text('Abrir Relatório'),
+                        child: Text(
+                          ehPt
+                              ? 'Abrir Relatório'
+                              : l10n.historicoBotaoVerRelatorio,
+                        ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
-                        child: Text('Editar'),
+                        child: Text(
+                          ehPt ? 'Editar' : l10n.historicoBotaoEditar,
+                        ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'duplicate',
-                        child: Text('Criar cópia'),
+                        child: Text(
+                          ehPt ? 'Criar cópia' : l10n.historicoBotaoDuplicar,
+                        ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
-                        child: Text('Excluir'),
+                        child: Text(
+                          ehPt ? 'Excluir' : l10n.historicoBotaoExcluir,
+                        ),
                       ),
                     ],
                   ],

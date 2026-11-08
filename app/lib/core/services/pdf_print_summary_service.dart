@@ -4,10 +4,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:qr/qr.dart';
+import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
 import 'construtor_arvore_relatorio.dart';
 import 'epub_document_builder.dart';
@@ -36,6 +38,8 @@ class RelatorioMaterialAnexo {
 /// blocos, traduzir rótulos humanos, dispor campos curtos e fotos em duas colunas,
 /// aninhar sub-listas recursivamente e concatenar as fichas técnicas de materiais utilizados.
 class PdfPrintSummaryService {
+  static final Map<String, pw.Font> _cacheFontesPdf = {};
+
   final EpubDocumentBuilder _documentBuilder;
   final ConstrutorArvoreRelatorio _construtorArvore;
 
@@ -45,6 +49,43 @@ class PdfPrintSummaryService {
   })  : _documentBuilder = documentBuilder ?? EpubDocumentBuilder(),
         _construtorArvore =
             construtorArvore ?? const ConstrutorArvoreRelatorio();
+
+  /// Carrega uma fonte TTF local da família Google Noto Sans a partir de `assets/fonts/[nomeArquivo]`.
+  static pw.Font carregarFonteNotoSans(String nomeArquivo) {
+    return _cacheFontesPdf.putIfAbsent(nomeArquivo, () {
+      final bytes = File('assets/fonts/$nomeArquivo').readAsBytesSync();
+      return pw.Font.ttf(bytes.buffer.asByteData());
+    });
+  }
+
+  /// Constrói o [pw.ThemeData] com as fontes Google Noto Sans apropriadas para [codigoIdioma].
+  pw.ThemeData construirTemaParaIdioma(String codigoIdioma) {
+    final codigoNorm = codigoIdioma.split(RegExp(r'[-_]')).first.toLowerCase();
+    final notoRegular = carregarFonteNotoSans('NotoSans-Regular.ttf');
+    final notoBold = carregarFonteNotoSans('NotoSans-Bold.ttf');
+    if (codigoNorm == 'ar') {
+      final arRegular = carregarFonteNotoSans('NotoSansArabic-Regular.ttf');
+      final arBold = carregarFonteNotoSans('NotoSansArabic-Bold.ttf');
+      return pw.ThemeData.withFont(
+        base: arRegular,
+        bold: arBold,
+        fontFallback: [notoRegular, notoBold],
+      );
+    }
+    if (codigoNorm == 'ja') {
+      final jaRegular = carregarFonteNotoSans('NotoSansJP-Regular.ttf');
+      final jaBold = carregarFonteNotoSans('NotoSansJP-Bold.ttf');
+      return pw.ThemeData.withFont(
+        base: jaRegular,
+        bold: jaBold,
+        fontFallback: [notoRegular, notoBold],
+      );
+    }
+    return pw.ThemeData.withFont(
+      base: notoRegular,
+      bold: notoBold,
+    );
+  }
 
   /// Gera a marcação SVG vetorial para um QR Code contendo o [texto] informado.
   static String gerarQrCodeSvg(String texto, {int moduloTamanho = 4}) {
@@ -92,6 +133,8 @@ class PdfPrintSummaryService {
     Map<String, String> mapeamentoMidias = const {},
     Map<String, String> posterFrames = const {},
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) {
     final qrPrincipalSvg = gerarQrCodeSvg(urlCanonica);
     final qrPrincipalDataUri =
@@ -119,6 +162,8 @@ class PdfPrintSummaryService {
       qrCodesVideos: qrCodesVideos,
       qrCodeCanonica: qrPrincipalDataUri,
       titulosMateriais: titulosMateriais,
+      codigoIdioma: codigoIdioma,
+      traducoesProtocolo: traducoesProtocolo,
     );
 
     if (materiaisAnexos.isNotEmpty) {
@@ -145,6 +190,7 @@ class PdfPrintSummaryService {
           posterFrames: mat.posterFrames,
           qrCodesVideos: qrVideosMat,
           qrCodeCanonica: qrMatDataUri,
+          codigoIdioma: codigoIdioma,
         );
         final corpoMat = _extrairCorpoHtml(xhtmlMat);
 
@@ -164,7 +210,7 @@ class PdfPrintSummaryService {
       );
     }
 
-    final css = _documentBuilder.gerarCss();
+    final css = _documentBuilder.gerarCss(codigoIdioma: codigoIdioma ?? 'pt');
     final htmlCompleto = xhtml.replaceFirst(
       '<link rel="stylesheet" type="text/css" href="estilo.css"/>',
       '<style>$css</style>',
@@ -696,20 +742,29 @@ class PdfPrintSummaryService {
     required Map<String, String> posterFrames,
     required Map<String, String> titulosMateriais,
     String? tituloAnexo,
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) {
-    final arvore = _construtorArvore.construir(registro);
+    final codigoNorm = (codigoIdioma ?? 'pt').split(RegExp(r'[-_]')).first.toLowerCase();
+    final l10n = ResolvedorIdioma.obterTraducoes(Locale(codigoNorm));
+    final arvore = _construtorArvore.construir(
+      registro,
+      codigoIdioma: codigoIdioma != null ? codigoNorm : null,
+      traducoes: traducoesProtocolo,
+    );
     final widgets = <pw.Widget>[];
 
     if (tituloAnexo != null) {
+      final cabecalhoAnexo = codigoIdioma == null || codigoNorm == 'pt'
+          ? 'Anexo - Ficha Técnica de Material: $tituloAnexo'
+          : '${l10n.laudoSecaoAnexoCatalogoTitulo}: $tituloAnexo';
       widgets.add(pw.SizedBox(height: 16));
       widgets.add(pw.Divider(thickness: 1.5));
       widgets.add(
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 6),
           child: pw.Text(
-            _normalizarTextoLatin1(
-              'Anexo - Ficha Técnica de Material: $tituloAnexo',
-            ),
+            _normalizarTextoLatin1(cabecalhoAnexo),
             style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
           ),
         ),
@@ -719,6 +774,15 @@ class PdfPrintSummaryService {
     final tituloExibicao = arvore.tituloExibicao != arvore.nomeProtocolo
         ? '${arvore.nomeProtocolo} - ${arvore.tituloExibicao}'
         : arvore.nomeProtocolo;
+    final sufixoResumo = codigoIdioma == null || codigoNorm == 'pt'
+        ? ' (Versão Resumida)'
+        : '';
+    final avisoImpresso = codigoIdioma == null || codigoNorm == 'pt'
+        ? 'Este documento é uma representação impressa. O relatório canônico oficial está disponível em:'
+        : l10n.laudoAvisoResumoImpresso;
+    final linhaMetadados = codigoIdioma == null || codigoNorm == 'pt'
+        ? 'Protocolo: ${arvore.idProtocolo} (v${arvore.versaoProtocolo}) | Sessão ID: $idSessao'
+        : '${l10n.laudoRotuloProtocolo}: ${arvore.idProtocolo} (v${arvore.versaoProtocolo}) | ${l10n.laudoRotuloSessao}: $idSessao';
 
     // Cabeçalho Institucional da Versão Resumida com QR Code vetorial
     widgets.add(
@@ -737,7 +801,7 @@ class PdfPrintSummaryService {
                 children: [
                   pw.Text(
                     _normalizarTextoLatin1(
-                      'Fixalog - $tituloExibicao (Versão Resumida)',
+                      'Fixalog - $tituloExibicao$sufixoResumo',
                     ),
                     style: pw.TextStyle(
                       fontSize: 12,
@@ -746,7 +810,7 @@ class PdfPrintSummaryService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'Este documento é uma representação impressa. O relatório canônico oficial está disponível em:',
+                    _normalizarTextoLatin1(avisoImpresso),
                     style: const pw.TextStyle(fontSize: 9),
                   ),
                   pw.Text(
@@ -758,9 +822,7 @@ class PdfPrintSummaryService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    _normalizarTextoLatin1(
-                      'Protocolo: ${arvore.idProtocolo} (v${arvore.versaoProtocolo}) | Sessão ID: $idSessao',
-                    ),
+                    _normalizarTextoLatin1(linhaMetadados),
                     style: const pw.TextStyle(fontSize: 9),
                   ),
                 ],
@@ -926,6 +988,8 @@ class PdfPrintSummaryService {
     Map<String, String> posterFrames = const {},
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
     String? baseUrl,
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) async {
     final pdf = pw.Document(compress: false);
     final titulosMateriais = _resolverTitulosMateriais(materiaisAnexos);
@@ -936,6 +1000,8 @@ class PdfPrintSummaryService {
       mapeamentoMidias: mapeamentoMidias,
       posterFrames: posterFrames,
       titulosMateriais: titulosMateriais,
+      codigoIdioma: codigoIdioma,
+      traducoesProtocolo: traducoesProtocolo,
     );
 
     final secoesAnexos = <pw.Widget>[];
@@ -950,14 +1016,24 @@ class PdfPrintSummaryService {
           posterFrames: mat.posterFrames,
           titulosMateriais: const {},
           tituloAnexo: tituloMat,
+          codigoIdioma: codigoIdioma,
         ),
       );
     }
+
+    final codigoNorm =
+        codigoIdioma?.split(RegExp(r'[-_]')).first.toLowerCase();
+    final tema =
+        codigoNorm != null ? construirTemaParaIdioma(codigoNorm) : null;
+    final direcao =
+        codigoNorm == 'ar' ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(28),
+        theme: tema,
+        textDirection: direcao,
         build: (pw.Context context) => [
           ...secaoPrincipal,
           ...secoesAnexos,
@@ -978,6 +1054,8 @@ class PdfPrintSummaryService {
     Map<String, String> posterFrames = const {},
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
     String? baseUrl,
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) async {
     final bytes = await gerarPdfResumidoBytes(
       registro: registro,
@@ -987,6 +1065,8 @@ class PdfPrintSummaryService {
       posterFrames: posterFrames,
       materiaisAnexos: materiaisAnexos,
       baseUrl: baseUrl,
+      codigoIdioma: codigoIdioma,
+      traducoesProtocolo: traducoesProtocolo,
     );
 
     final arquivo = File(caminhoSaida);

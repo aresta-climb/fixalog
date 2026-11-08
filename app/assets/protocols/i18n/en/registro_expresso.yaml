@@ -1,0 +1,37 @@
+protocolo:
+  nome: "Express Log"
+  descricao: "Fast, free-form record of occurrences, media, coordinates and materials without predefined structure."
+blocos:
+  bloco_identificacao:
+    titulo: "Block 1 — Identification & Location"
+    subtitulo: "Record title, date and optional location"
+  bloco_evidencias:
+    titulo: "Block 2 — Evidence & Materials"
+    subtitulo: "Add media with descriptions and link catalog materials if desired"
+conteudos:
+  via_nome:
+    label: "Record Title / Identification"
+    sublabel: "Route name, location or subject to identify this record in History"
+  via_data:
+    label: "Record Date"
+    sublabel: "Automatically filled with current date (editable)"
+  via_gps:
+    label: "GPS Coordinates (optional)"
+    sublabel: "Capture the current location if desired."
+  observacoes_gerais:
+    label: "General Observations (optional)"
+  ev_midia:
+    label: "Evidence Media"
+    sublabel: "Attach photos, videos or PDFs"
+  ev_descricao:
+    label: "Description (optional)"
+  lista_evidencias:
+    label: "Evidence (Photos, Videos or PDFs)"
+    sublabel: "Add as many media records and notes as desired (optional)."
+  ref_mat_expresso:
+    label: "Related Materials (optional)"
+    sublabel: "Select materials from the local catalog if this record involves any hardware"
+tipos_acao:
+  item_evidencia:
+    label: "Evidence / Note"
+    sublabel: "Photos, videos or PDFs with description"

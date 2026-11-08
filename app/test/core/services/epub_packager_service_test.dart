@@ -148,6 +148,7 @@ void main() {
       expect(empacotador.determinarTipoMime('teste.xhtml'), equals('application/xhtml+xml'));
       expect(empacotador.determinarTipoMime('teste.html'), equals('application/xhtml+xml'));
       expect(empacotador.determinarTipoMime('teste.binarypb'), equals('application/x-protobuf'));
+      expect(empacotador.determinarTipoMime('fonts/NotoSans-Regular.ttf'), equals('font/ttf'));
       expect(empacotador.determinarTipoMime('teste.desconhecido'), equals('application/octet-stream'));
     });
 
@@ -259,6 +260,79 @@ void main() {
       expect(encontrar('OEBPS/content.opf').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/dados/registro.binarypb').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/materiais/mat-1/OEBPS/relatorio.xhtml').compression, equals(CompressionType.deflate));
+    });
+
+    test('empacotarEpub registra dc:language, nav.xhtml localizado com dir="rtl" em árabe e empacota seletivamente as fontes Noto Sans com DEFLATE', () {
+      final fontesPt = empacotador.obterFontesNotoSansParaIdioma('pt');
+      expect(
+        fontesPt.keys.toSet(),
+        equals({'fonts/NotoSans-Regular.ttf', 'fonts/NotoSans-Bold.ttf'}),
+      );
+
+      final fontesAr = empacotador.obterFontesNotoSansParaIdioma('ar');
+      expect(
+        fontesAr.keys.toSet(),
+        equals({
+          'fonts/NotoSans-Regular.ttf',
+          'fonts/NotoSans-Bold.ttf',
+          'fonts/NotoSansArabic-Regular.ttf',
+          'fonts/NotoSansArabic-Bold.ttf',
+        }),
+      );
+
+      final fontesJa = empacotador.obterFontesNotoSansParaIdioma('ja');
+      expect(
+        fontesJa.keys.toSet(),
+        equals({
+          'fonts/NotoSans-Regular.ttf',
+          'fonts/NotoSans-Bold.ttf',
+          'fonts/NotoSansJP-Regular.ttf',
+          'fonts/NotoSansJP-Bold.ttf',
+        }),
+      );
+
+      final epubEn = empacotador.empacotarEpub(
+        idSessao: 'sessao_en',
+        idProtocolo: 'visual_inspection_v1',
+        xhtmlConteudo: '<html lang="en"><body>Report</body></html>',
+        cssConteudo: 'body {}',
+        binarypb: Uint8List.fromList([1, 2, 3]),
+        codigoIdioma: 'en',
+        incluirFontesNotoSans: true,
+      );
+      final zipEn = ZipDecoder().decodeBytes(epubEn);
+      final nomesEn = zipEn.files.map((f) => f.name).toSet();
+      expect(nomesEn, contains('OEBPS/fonts/NotoSans-Regular.ttf'));
+      expect(nomesEn, contains('OEBPS/fonts/NotoSans-Bold.ttf'));
+      expect(nomesEn, isNot(contains('OEBPS/fonts/NotoSansArabic-Regular.ttf')));
+      expect(nomesEn, isNot(contains('OEBPS/fonts/NotoSansJP-Regular.ttf')));
+
+      final fonteRegularEn = zipEn.files.firstWhere((f) => f.name == 'OEBPS/fonts/NotoSans-Regular.ttf');
+      expect(fonteRegularEn.compression, equals(CompressionType.deflate));
+
+      final opfEn = utf8.decode(zipEn.files.firstWhere((f) => f.name == 'OEBPS/content.opf').content as List<int>);
+      expect(opfEn, contains('<dc:language>en</dc:language>'));
+      expect(opfEn, contains('href="fonts/NotoSans-Regular.ttf" media-type="font/ttf"'));
+      expect(opfEn, contains('href="fonts/NotoSans-Bold.ttf" media-type="font/ttf"'));
+
+      final epubAr = empacotador.empacotarEpub(
+        idSessao: 'sessao_ar',
+        idProtocolo: 'visual_inspection_v1',
+        xhtmlConteudo: '<html lang="ar" dir="rtl"><body>تقرير</body></html>',
+        cssConteudo: 'body {}',
+        binarypb: Uint8List.fromList([1, 2, 3]),
+        codigoIdioma: 'ar',
+        arquivosFonte: {
+          'fonts/NotoSans-Regular.ttf': Uint8List.fromList(List<int>.filled(128, 70)),
+          'fonts/NotoSansArabic-Regular.ttf': Uint8List.fromList(List<int>.filled(128, 71)),
+        },
+      );
+      final zipAr = ZipDecoder().decodeBytes(epubAr);
+      final navAr = utf8.decode(zipAr.files.firstWhere((f) => f.name == 'OEBPS/nav.xhtml').content as List<int>);
+      expect(navAr, contains('lang="ar" dir="rtl"'));
+      final opfAr = utf8.decode(zipAr.files.firstWhere((f) => f.name == 'OEBPS/content.opf').content as List<int>);
+      expect(opfAr, contains('<dc:language>ar</dc:language>'));
+      expect(opfAr, contains('href="fonts/NotoSansArabic-Regular.ttf" media-type="font/ttf"'));
     });
   });
 }

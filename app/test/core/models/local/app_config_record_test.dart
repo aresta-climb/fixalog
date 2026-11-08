@@ -13,6 +13,7 @@ void main() {
       expect(config.acceptedTermsVersion, equals(0));
       expect(config.versaoTermosAceita, equals(0));
       expect(config.dataHoraAceiteTermos, isNull);
+      expect(config.idiomaPreferido, isNull);
     });
 
     test('Sincroniza versaoTermosAceita com acceptedTermsVersion', () {
@@ -35,6 +36,7 @@ void main() {
         id: 1,
         acceptedTermsVersion: 3,
         dataHoraAceiteTermos: agora,
+        idiomaPreferido: 'ja',
       );
 
       await banco.salvarConfiguracao(config);
@@ -44,10 +46,16 @@ void main() {
       expect(recuperado!.id, equals(1));
       expect(recuperado.versaoTermosAceita, equals(3));
       expect(recuperado.dataHoraAceiteTermos, equals(agora));
+      expect(recuperado.idiomaPreferido, equals('ja'));
 
-      final semData = AppConfigRecord.fromMap({'id': 1, 'versao_termos_aceita': 2});
+      final semData = AppConfigRecord.fromMap({
+        'id': 1,
+        'versao_termos_aceita': 2,
+        'idioma_preferido': '   ',
+      });
       expect(semData.dataHoraAceiteTermos, isNull);
       expect(semData.versaoTermosAceita, equals(2));
+      expect(semData.idiomaPreferido, isNull);
     });
   });
 }

@@ -35,6 +35,7 @@ void main() {
               relativePath.endsWith('.pb.dart') ||
               relativePath.endsWith('.pbenum.dart') ||
               relativePath.endsWith('.pbjson.dart') ||
+              relativePath.startsWith('core/l10n/generated/') ||
               relativePath.startsWith('src/rust/')) {
             continue;
           }

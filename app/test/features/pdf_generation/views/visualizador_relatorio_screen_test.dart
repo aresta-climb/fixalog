@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
@@ -99,6 +101,8 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
     Map<String, String> posterFrames = const {},
     List<RelatorioMaterialAnexo> materiaisAnexos = const [],
     String? baseUrl,
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) async {
     if (delay != null) {
       await Future.delayed(delay!);
@@ -889,6 +893,53 @@ void main() {
       final interceptadoFile = await tratarUrl!('file:///tmp/laudo_govbr.pdf');
       expect(interceptadoFile, isTrue);
       expect(caminhosAbertos.last, contains('laudo_govbr.pdf'));
+    },
+  );
+
+  testWidgets(
+    'Renderiza botão de compartilhamento e modal localizados em Inglês e Japonês sem overflow visual',
+    (tester) async {
+      late WidgetRef refCapturado;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localeSistemaProvider.overrideWithValue(const Locale('en')),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: ResolvedorIdioma.localesSuportados,
+            home: Consumer(
+              builder: (context, ref, _) {
+                refCapturado = ref;
+                return VisualizadorRelatorioScreen(
+                  caminhoEpub: '/meu/laudo.epub',
+                  caminhoPdf: '/meu/laudo.pdf',
+                  caminhoXhtml: '/cache/relatorio.xhtml',
+                  webViewBuilder: (context, path) => const SizedBox.shrink(),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('SHARE'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('btn_compartilhar')));
+      await tester.pumpAndSettle();
+      expect(find.text('EPUB 3 REPORT'), findsOneWidget);
+      expect(find.text('PDF SUMMARY'), findsOneWidget);
+      Navigator.of(tester.element(find.text('EPUB 3 REPORT'))).pop();
+      await tester.pumpAndSettle();
+
+      await refCapturado
+          .read(idiomaAtivoProvider.notifier)
+          .selecionarIdioma('ja');
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('共有'), findsOneWidget);
     },
   );
 }

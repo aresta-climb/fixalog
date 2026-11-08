@@ -9,6 +9,8 @@ import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
 import 'features/onboarding/views/tela_termos_de_uso.dart' as fixalog_onboarding;
 import 'core/constantes/versao_legal.g.dart';
+import 'core/l10n/generated/app_localizations.dart';
+import 'core/l10n/resolvedor_idioma.dart';
 import 'core/services/banco_dados_local.dart';
 
 void main() async {
@@ -27,14 +29,19 @@ void main() async {
   );
 }
 
-class FixalogApp extends StatelessWidget {
+class FixalogApp extends ConsumerWidget {
   const FixalogApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final localeAtivo = ref.watch(idiomaAtivoProvider);
+
     return MaterialApp(
       title: 'Fixalog',
       themeMode: ThemeMode.dark,
+      locale: localeAtivo,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: ResolvedorIdioma.localesSuportados,
       builder: (context, child) {
         final mediaQueryData = MediaQuery.of(context);
         return MediaQuery(
@@ -46,6 +53,8 @@ class FixalogApp extends StatelessWidget {
       },
       darkTheme: ThemeData(
         brightness: Brightness.dark,
+        fontFamily: 'NotoSans',
+        fontFamilyFallback: const ['NotoSansArabic', 'NotoSansJP'],
         scaffoldBackgroundColor: const Color(0xFF121416), // Surface Noise Background
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFFFF6B00), // Rescue Orange
@@ -56,9 +65,20 @@ class FixalogApp extends StatelessWidget {
           surfaceContainerHighest: Color(0xFF333537),
         ),
         textTheme: ThemeData.dark().textTheme.copyWith(
-          headlineLarge: const TextStyle(fontFamily: 'SpaceGrotesk', letterSpacing: -0.02),
-          bodyMedium: const TextStyle(fontFamily: 'Inter'),
-          labelMedium: const TextStyle(fontFamily: 'SpaceGrotesk', textBaseline: TextBaseline.alphabetic),
+          headlineLarge: const TextStyle(
+            fontFamily: 'NotoSans',
+            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+            letterSpacing: -0.02,
+          ),
+          bodyMedium: const TextStyle(
+            fontFamily: 'NotoSans',
+            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+          ),
+          labelMedium: const TextStyle(
+            fontFamily: 'NotoSans',
+            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+            textBaseline: TextBaseline.alphabetic,
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(

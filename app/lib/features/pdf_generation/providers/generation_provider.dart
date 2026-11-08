@@ -355,7 +355,18 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       state =
           state.copyWith(progress: 0.6, status: 'Construindo relatório EPUB 3...');
 
-      final estiloCss = _epubBuilder.gerarCss();
+      String? idiomaPreferido;
+      if (_banco != null) {
+        try {
+          final config = await _banco.obterConfiguracao();
+          idiomaPreferido = config?.idiomaPreferido;
+        } catch (_) {}
+      }
+      final codigoIdioma = (idiomaPreferido != null && idiomaPreferido.trim().isNotEmpty)
+          ? idiomaPreferido.trim()
+          : 'pt-BR';
+
+      final estiloCss = _epubBuilder.gerarCss(codigoIdioma: codigoIdioma);
       final qrPrincipalSvg = PdfPrintSummaryService.gerarQrCodeSvg(urlCanonica);
       final qrPrincipalDataUri =
           'data:image/svg+xml;utf8,${Uri.encodeComponent(qrPrincipalSvg)}';
@@ -369,6 +380,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         qrCodesVideos: qrCodesVideos,
         qrCodeCanonica: qrPrincipalDataUri,
         titulosMateriais: titulosMateriais,
+        codigoIdioma: idiomaPreferido != null && idiomaPreferido.trim().isNotEmpty
+            ? idiomaPreferido.trim()
+            : null,
       );
 
       // 5. Assinatura Digital XML-DSig
@@ -390,12 +404,17 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       }
 
       final binarypbBytes = Uint8List.fromList(registro.writeToBuffer());
+      final fontesIdioma =
+          _epubPackager.obterFontesNotoSansParaIdioma(codigoIdioma);
 
       final Map<String, List<int>> recursosAssinatura = {
         'OEBPS/relatorio.xhtml': utf8.encode(relatorioXhtml),
         'OEBPS/estilo.css': utf8.encode(estiloCss),
         'OEBPS/dados/registro.binarypb': binarypbBytes,
       };
+      for (final entradaFonte in fontesIdioma.entries) {
+        recursosAssinatura['OEBPS/${entradaFonte.key}'] = entradaFonte.value;
+      }
       final Map<String, Uint8List> arquivosMidiaBytes = {};
       for (final entrada in arquivosMidias.entries) {
         recursosAssinatura['OEBPS/${entrada.key}'] = entrada.value;
@@ -429,6 +448,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         materiaisAninhados: materiaisAninhados,
         titulosMateriais: titulosMateriais,
         signaturesXml: signaturesXml,
+        codigoIdioma: codigoIdioma,
+        arquivosFonte: fontesIdioma,
       );
 
       final epubFile = File(epubPath);

@@ -1,0 +1,252 @@
+{
+  "@@locale": "ar",
+  "seletorIdiomaTitulo": "لغة التطبيق",
+  "seletorIdiomaSubtitulo": "يُغيّر لغة الواجهة والبروتوكولات والتقارير الجديدة",
+  "comumSim": "نعم",
+  "comumNao": "لا",
+  "comumCancelar": "إلغاء",
+  "comumRemover": "إزالة",
+  "comumFechar": "إغلاق",
+  "comumErro": "خطأ: {detalhe}",
+  "@comumErro": {
+    "placeholders": {
+      "detalhe": {
+        "type": "String"
+      }
+    }
+  },
+  "termosTituloTela": "شروط الاستخدام والتدقيق التقني",
+  "termosCarregando": "جاري تحميل شروط الاستخدام...",
+  "termosErroCarregar": "تعذّر تحميل شروط الاستخدام المحلية. يرجى المحاولة مرة أخرى.",
+  "termosBotaoTentarNovamente": "إعادة المحاولة",
+  "termosBotaoLerPolitica": "قراءة سياسة الخصوصية",
+  "termosCheckboxDeclaro": "لقد قرأت وأوافق على شروط الاستخدام وسياسة الخصوصية.",
+  "termosBotaoAceitar": "قبول الشروط والمتابعة",
+  "termosBotaoRoleFinal": "مرّر إلى الأسفل للتفعيل",
+  "politicaPrivacidadeTitulo": "سياسة الخصوصية - Fixalog",
+  "politicaPrivacidadeErroCarregar": "تعذّر تحميل سياسة الخصوصية.",
+  "identidadeTituloInicial": "الهوية التقنية",
+  "identidadeTituloEdicao": "تعديل الهوية التقنية",
+  "identidadeSubtituloInicial": "قم بإعداد بياناتك لتوقيع التقارير التقنية رقمياً.",
+  "identidadeSubtituloEdicao": "قم بتحديث بيانات ملفك الشخصي. سيتم الحفاظ على مفتاح التشفير النشط الخاص بك.",
+  "identidadeLabelNome": "الاسم الكامل *",
+  "identidadeHintNome": "مثال: أحمد محمد",
+  "identidadeLabelApelido": "اللقب (اختياري)",
+  "identidadeHintApelido": "مثال: المتسلق",
+  "identidadeLabelEmail": "البريد الإلكتروني *",
+  "identidadeHintEmail": "مثال: ahmed@example.com",
+  "identidadeLabelAssociacao": "الجمعية / النادي (اختياري)",
+  "identidadeHintAssociacao": "مثال: UIAA...",
+  "identidadeErroNomeVazio": "لا يمكن أن يكون الاسم الكامل فارغاً.",
+  "identidadeErroEmailVazio": "لا يمكن أن يكون البريد الإلكتروني فارغاً.",
+  "identidadeErroEmailInvalido": "تنسيق البريد الإلكتروني غير صالح.",
+  "identidadeErroSalvar": "فشل حفظ الهوية: {erro}",
+  "@identidadeErroSalvar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "identidadeBotaoGerarChaves": "إنشاء المفاتيح والمتابعة",
+  "identidadeBotaoSalvarAlteracoes": "حفظ التغييرات",
+  "homeAbaNovo": "جديد",
+  "homeAbaHistorico": "السجل",
+  "homeAbaConfig": "الإعدادات",
+  "configTituloSecaoIdentidade": "الهوية ومفتاح التشفير",
+  "configCertificadoAtivo": "شهادة X.509 نشطة",
+  "configBotaoEditarDados": "تعديل البيانات الشخصية",
+  "configBotaoExportarChave": "تصدير مفتاح الهوية",
+  "configBotaoImportarChave": "استيراد مفتاح الهوية",
+  "configExportarTituloModal": "تصدير مفتاح الهوية",
+  "configExportarDescricaoModal": "عيّن كلمة مرور قوية (8 أحرف على الأقل) لتشفير ملف .fixalogkey باستخدام PBKDF2 + AES-256-GCM.",
+  "configLabelSenhaExportacao": "كلمة مرور الملف",
+  "configLabelConfirmarSenha": "تأكيد كلمة المرور",
+  "configErroSenhaCurta": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+  "configErroSenhasDiferentes": "كلمتا المرور غير متطابقتين.",
+  "configBotaoExportar": "تصدير",
+  "configExportarSucesso": "تم تصدير النسخة الاحتياطية للهوية بنجاح.",
+  "configExportarErro": "فشل تصدير المفتاح: {erro}",
+  "@configExportarErro": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportarTituloModal": "استيراد مفتاح الهوية",
+  "configImportarDescricaoModal": "أدخل كلمة مرور ملف .fixalogkey المحدد. سيتم استبدال المفتاح الحالي.",
+  "configBotaoImportar": "استيراد",
+  "configImportarSucesso": "تمت استعادة الهوية ومفتاح التشفير بنجاح!",
+  "configImportarErroSenha": "كلمة المرور غير صحيحة أو ملف المفتاح تالف.",
+  "novoProtocoloSelecione": "اختر البروتوكول",
+  "novoProtocoloSubtitulo": "ابدأ عملية جمع بيانات ميدانية موثقة جديدة.",
+  "novoProtocoloCardInspecaoTitulo": "الفحص البصري",
+  "novoProtocoloCardInspecaoSub": "معاينة سريعة للحالة العامة والتآكل دون تدخل ميكانيكي.",
+  "novoProtocoloCardManutencaoTitulo": "الصيانة",
+  "novoProtocoloCardManutencaoSub": "تقرير شامل لاستبدال نقاط التثبيت والتنظيف وإعادة التجهيز.",
+  "novoProtocoloCardAberturaTitulo": "فتح مسار جديد",
+  "novoProtocoloCardAberturaSub": "توثيق كامل لمسار تسلق جديد والمخطط والحمايات المثبتة.",
+  "novoProtocoloCardExpressoTitulo": "سجل سريع",
+  "novoProtocoloCardExpressoSub": "التقاط سريع للصور ومقاطع الفيديو وملفات PDF والملاحظات الميدانية.",
+  "novoProtocoloCardMaterialTitulo": "المواد",
+  "novoProtocoloCardMaterialSub": "تسجيل وتتبع المعدات والدفعات والفواتير واختبارات الجودة.",
+  "novoProtocoloErroCarregar": "خطأ في تحميل البروتوكول: {erro}",
+  "@novoProtocoloErroCarregar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoTitulo": "سجل المعاينات",
+  "historicoSubtitulo": "الجلسات المحفوظة محلياً على هذا الجهاز.",
+  "historicoAbaRelatorios": "التقارير ({quantidade})",
+  "@historicoAbaRelatorios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoAbaMateriais": "المواد ({quantidade})",
+  "@historicoAbaMateriais": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoVazioRelatoriosTitulo": "لم يتم العثور على تقارير",
+  "historicoVazioRelatoriosSub": "ابدأ بروتوكولاً جديداً في علامة التبويب جديد لتسجيل أول معاينة لك.",
+  "historicoVazioMateriaisTitulo": "لا توجد مواد مسجلة",
+  "historicoVazioMateriaisSub": "سجّل المواد في علامة التبويب جديد لاستخدامها في تقارير الصيانة.",
+  "historicoBotaoNovoMaterial": "تسجيل مادة",
+  "historicoStatusConcluido": "مكتمل",
+  "historicoStatusEmProgresso": "قيد التنفيذ",
+  "historicoStatusFalha": "فشل",
+  "historicoBotaoVerRelatorio": "عرض التقرير",
+  "historicoBotaoGerarRelatorio": "إنشاء التقرير",
+  "historicoBotaoContinuar": "متابعة",
+  "historicoBotaoEditar": "تعديل",
+  "historicoBotaoDuplicar": "تكرار",
+  "historicoBotaoExcluir": "حذف",
+  "historicoConfirmarExclusaoTitulo": "حذف السجل؟",
+  "historicoConfirmarExclusaoCorpo": "هل أنت متأكد من حذف \"{titulo}\"؟ سيؤدي هذا الإجراء إلى إزالة الملفات المحلية ولا يمكن التراجع عنه.",
+  "@historicoConfirmarExclusaoCorpo": {
+    "placeholders": {
+      "titulo": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoMaterialEmUsoTitulo": "المادة مرتبطة بتقارير",
+  "historicoMaterialEmUsoCorpo": "هذه المادة مشار إليها في تقارير أخرى. حذفها لن يمحو التقارير الصادرة مسبقاً، لكنه سيزيل العنصر من الكتالوج النشط.",
+  "wizardPassoNumero": "الخطوة {numero}",
+  "@wizardPassoNumero": {
+    "placeholders": {
+      "numero": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardBotaoVoltarPasso": "العودة إلى هذه الخطوة",
+  "wizardBotaoConcluir": "إنهاء",
+  "wizardBotaoSeguinte": "التالي",
+  "wizardBotaoPular": "تخطي",
+  "wizardBotaoConcluirLista": "إنهاء القائمة ({quantidade})",
+  "@wizardBotaoConcluirLista": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardAvisoCamposObrigatorios": "يرجى ملء جميع الحقول المطلوبة للمتابعة.",
+  "wizardAvisoPassoAnteriorObrigatorio": "يرجى ملء جميع الحقول المطلوبة في الخطوة السابقة للمتابعة.",
+  "wizardAvisoCamposItemObrigatorios": "يرجى ملء الحقول المطلوبة لهذا العنصر.",
+  "wizardBotaoAdicionarItem": "إضافة عنصر",
+  "wizardBotaoAdicionarOutro": "إضافة عنصر آخر",
+  "wizardMinimoItensObrigatorios": "الحد الأدنى {minimo} عنصر مطلوب.",
+  "@wizardMinimoItensObrigatorios": {
+    "placeholders": {
+      "minimo": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardSelecioneTipo": "اختر النوع",
+  "wizardBotaoConfirmarItem": "تأكيد العنصر",
+  "wizardRemoverItemTitulo": "إزالة العنصر؟",
+  "wizardRemoverItemCorpo": "إزالة \"{item}\"؟",
+  "@wizardRemoverItemCorpo": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "wizardHintTexto": "اكتب هنا...",
+  "wizardHintTextoArea": "اكتب هنا... (يدعم **عريض**، *مائل*، # عنوان والقوائم)",
+  "wizardHintNumeros": "أرقام فقط",
+  "wizardGpsDesativado": "خدمة الموقع غير مفعلة.",
+  "wizardGpsCapturado": "تم التقاط الإحداثيات",
+  "wizardGpsCapturar": "التقاط موقع GPS",
+  "wizardMidiaAdicionar": "إضافة وسائط",
+  "wizardMidiaSubVazio": "صور أو فيديوهات أو ملفات PDF",
+  "wizardMidiaSubMais": "إضافة صورة أو فيديو أو ملف PDF آخر",
+  "wizardMidiaPdfAnexado": "ملف PDF مرفق",
+  "wizardMidiaVideoGravado": "فيديو مسجل",
+  "wizardMidiaFotoCapturada": "صورة ملتقطة",
+  "wizardMidiaProcessandoUm": "جاري معالجة الوسائط...",
+  "wizardMidiaProcessandoVarios": "جاري معالجة {quantidade} ملفات وسائط...",
+  "@wizardMidiaProcessandoVarios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardMidiaProcessandoSub": "جاري الحفظ وحساب السلامة الرقمية في الخلفية...",
+  "wizardMidiaModalTitulo": "إضافة وسائط (صورة أو فيديو أو PDF)",
+  "wizardMidiaTirarFoto": "التقاط صورة بالكاميرا",
+  "wizardMidiaGravarVideo": "تسجيل فيديو بالكاميرا",
+  "wizardMidiaEscolherGaleria": "الاختيار من المعرض",
+  "wizardMidiaEscolherGaleriaSub": "صور وفيديوهات",
+  "wizardMidiaSelecionarPdf": "اختيار ملف PDF",
+  "wizardRefMatVazioCatalogo": "لا توجد مواد مسجلة في الكتالوج بعد.\nاضغط أدناه لتسجيل مادة جديدة.",
+  "wizardRefMatVazioBloco": "لا توجد مواد مسجلة في القسم 1.\nعد وأضف المواد أولاً.",
+  "wizardBotaoCadastrarNovoMaterial": "تسجيل مادة جديدة",
+  "wizardConclusaoTitulo": "اكتمل البروتوكول",
+  "wizardConclusaoSubtitulo": "تم جمع جميع البيانات دون اتصال بالإنترنت.\nالسجل جاهز للتوقيع والتصدير.",
+  "wizardBotaoGerarRelatorio": "إنشاء التقرير",
+  "wizardSufixoCopia": "نسخة",
+  "geracaoEmAndamentoTitulo": "جاري إنشاء التقرير",
+  "geracaoConcluidaTitulo": "التقرير جاهز",
+  "geracaoFalhaTitulo": "فشل الإنشاء",
+  "geracaoBotaoAbrirRelatorio": "فتح التقرير",
+  "visualizadorAbaEpub": "تقرير EPUB 3",
+  "visualizadorAbaPdf": "ملخص PDF",
+  "visualizadorBotaoCompartilhar": "مشاركة",
+  "visualizadorBotaoAbrirExterno": "فتح خارجياً",
+  "laudoRotuloProtocolo": "البروتوكول",
+  "laudoRotuloSessao": "الجلسة",
+  "laudoRotuloEmissao": "تاريخ الإصدار UTC",
+  "laudoRotuloVersao": "الإصدار",
+  "laudoSecaoIdentidadeTitulo": "الهوية التقنية للمُصدِر",
+  "laudoRotuloNome": "الاسم",
+  "laudoRotuloEmail": "البريد الإلكتروني",
+  "laudoRotuloAssociacao": "الجمعية",
+  "laudoSecaoIntegridadeTitulo": "السلامة التشفيرية وسلسلة الحفظ",
+  "laudoAvisoResumoImpresso": "ملف PDF هذا هو ملخص تنفيذي للطباعة السريعة. التقرير الفني الكامل مع الوسائط عالية الدقة ومقاطع الفيديو والتوقيع الرقمي XML-DSig X.509 موجود في ملف EPUB 3 المقابل.",
+  "laudoSecaoAnexoCatalogoTitulo": "ملحق — كتالوج المواد المشار إليها",
+  "laudoRotuloVideoAnexo": "فيديو مرفق في EPUB 3",
+  "laudoRotuloDocumentoPdf": "مستند PDF ({paginas} ص)",
+  "@laudoRotuloDocumentoPdf": {
+    "placeholders": {
+      "paginas": {
+        "type": "int"
+      }
+    }
+  }
+}

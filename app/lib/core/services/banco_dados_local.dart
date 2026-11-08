@@ -35,7 +35,8 @@ class BancoDadosLocal {
     CREATE TABLE configuracao_app (
       id INTEGER PRIMARY KEY,
       versao_termos_aceita INTEGER NOT NULL DEFAULT 0,
-      data_hora_aceite_termos TEXT
+      data_hora_aceite_termos TEXT,
+      idioma_preferido TEXT
     )
   ''';
 
@@ -111,8 +112,8 @@ class BancoDadosLocal {
   /// Statement parametrizado para inserir ou atualizar configuração do app.
   static const String sqlSalvarConfiguracao = '''
     INSERT OR REPLACE INTO configuracao_app (
-      id, versao_termos_aceita, data_hora_aceite_termos
-    ) VALUES (?, ?, ?)
+      id, versao_termos_aceita, data_hora_aceite_termos, idioma_preferido
+    ) VALUES (?, ?, ?, ?)
   ''';
 
   /// Statement parametrizado para inserir ou atualizar identidade do perito.
@@ -155,8 +156,9 @@ class BancoDadosLocal {
     final db = await dbFactory.openDatabase(
       caminhoBanco,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onCreate: _criarTabelas,
+        onUpgrade: _atualizarEsquema,
         singleInstance: false,
       ),
     );
@@ -173,8 +175,9 @@ class BancoDadosLocal {
     final db = await databaseFactoryFfiNoIsolate.openDatabase(
       inMemoryDatabasePath,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onCreate: _criarTabelas,
+        onUpgrade: _atualizarEsquema,
         singleInstance: false,
       ),
     );
@@ -187,6 +190,18 @@ class BancoDadosLocal {
     await db.execute(sqlCriarTabelaConfiguracaoApp);
     await db.execute(sqlCriarTabelaIdentidade);
     await db.execute(sqlCriarTabelaSubmissoes);
+  }
+
+  static Future<void> _atualizarEsquema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE configuracao_app ADD COLUMN idioma_preferido TEXT',
+      );
+    }
   }
 
   Future<void> _carregarCachesIniciais() async {
@@ -260,7 +275,14 @@ class BancoDadosLocal {
       }
 
       String tituloExibicao = '';
-      for (final chave in const ['mat_nome', 'via_nome', 'nome_via']) {
+      for (final chave in const [
+        'material_name',
+        'route_name',
+        'record_title',
+        'mat_nome',
+        'via_nome',
+        'nome_via',
+      ]) {
         final valor = registro.respostas[chave]?.texto.trim() ?? '';
         if (valor.isNotEmpty) {
           tituloExibicao = valor;
@@ -271,7 +293,9 @@ class BancoDadosLocal {
         tituloExibicao = nomeProtocolo;
       }
 
-      final ehMaterial = idProtocolo == 'cadastro_material';
+      final ehMaterial =
+          idProtocolo == 'cadastro_material' ||
+          idProtocolo == 'material_registration';
       final dataInclusao = registro.utcTimestampInicio > 0
           ? DateTime.fromMillisecondsSinceEpoch(
               registro.utcTimestampInicio.toInt() * 1000,
@@ -323,6 +347,7 @@ class BancoDadosLocal {
       mapa['id'],
       mapa['versao_termos_aceita'],
       mapa['data_hora_aceite_termos'],
+      mapa['idioma_preferido'],
     ]);
   }
 

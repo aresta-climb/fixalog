@@ -1,0 +1,164 @@
+protocolo:
+  nome: "Wartung Fester Sicherungspunkte"
+  descricao: "Protokoll für die Wartung und Installation fester Sicherungspunkte (Bohrhaken, Laschen, Ringe, Anker, Reinigung und lose Blöcke)"
+blocos:
+  via:
+    titulo: "Block 1 — Routenidentifikation"
+    subtitulo: "Datum, Standort und Identifikationsdaten der gewarteten Route"
+  acoes:
+    titulo: "Block 2 — Wartungsmaßnahmen"
+    subtitulo: "Erfassen Sie jede an dieser Route durchgeführte Maßnahme. Mindestens 1."
+  avaliacao:
+    titulo: "Block 3 — Bewertung und Abschluss"
+    subtitulo: "Abschließende Routenbewertung und Bemerkungen"
+conteudos:
+  via_aviso:
+    titulo: "Routenidentifikation"
+    corpo: "Geben Sie Standort und Datum der Wartung ein. Die GPS-Koordinate ist erforderlich."
+  via_data:
+    label: "Wartungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  via_gps:
+    label: "GPS-Standort"
+  via_nome:
+    label: "Routenname"
+  via_setor:
+    label: "Sektor / Wandbereich"
+  via_pico:
+    label: "Gipfel / Gebiet"
+  via_tem_permissao:
+    label: "Liegt die Erlaubnis des Erstbegehers vor?"
+  via_foto_permissao:
+    label: "Nachweis der Erlaubnis (falls vorhanden)"
+  ia_instrucao:
+    titulo: "Optische und Mechanische Bewertung"
+    corpo: "Erfassen Sie den aktuellen Zustand vor jedem Eingriff. Prüfen Sie anschließend optisch (Korrosion, Risse) und mechanisch (Nachziehen). Klassifizieren Sie das Ergebnis."
+  ia_foto_antes:
+    label: "Medien vor dem Eingriff"
+  ia_ap_nota:
+    label: "Bemerkungen"
+  ia_re_torque:
+    label: "Angewendetes Drehmoment (Nm)"
+  ia_re_nota:
+    label: "Bemerkungen"
+  ia_sub_aviso:
+    titulo: "Austauschstrategie"
+    corpo: "Wenn das Bohrloch wiederverwendet werden kann, verwenden Sie einen Verbundanker. Andernfalls bohren Sie an einer neuen Stelle."
+  ref_mat_reusar_furo:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Anker installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ia_sub_rf_foto:
+    label: "Medien nach der Installation"
+  ref_mat_novo_local:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Anker installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ia_sub_nl_nota:
+    label: "Begründung für die neue Stelle"
+  ia_sub_nl_foto:
+    label: "Medien nach der Installation"
+  ia_sub_ramo:
+    label: "Wie wird der Austausch durchgeführt?"
+  ia_resultado:
+    label: "Ergebnis der Bewertung"
+  np_instrucao:
+    titulo: "Neuer Sicherungspunkt"
+    corpo: "Wählen Sie die installierten Materialien aus Ihrem lokalen Katalog aus und erfassen Sie Medien nach der Installation."
+  ref_mat_novo_ponto:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Punkt installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  np_foto:
+    label: "Medien nach der Installation"
+  rb_aviso:
+    titulo: "ACHTUNG — Gefahrenbereich"
+    corpo: "Das Entfernen von Blöcken muss bei gesperrter Route und ohne Personen darunter erfolgen."
+  rb_tamanho:
+    label: "Ungefähre Blockgröße"
+    opcoes:
+      pequeno:
+        label: "Klein (faustgroß)"
+      medio:
+        label: "Mittel (wassermelonengroß)"
+      grande:
+        label: "Groß (größer als eine Wassermelone)"
+  rb_foto_antes:
+    label: "Medien vor dem Entfernen"
+  rb_foto_depois:
+    label: "Medien nach dem Entfernen"
+  lv_foto_antes:
+    label: "Medien vor der Reinigung"
+  lv_nota:
+    label: "Beschreibung der Reinigung"
+  lv_foto_depois:
+    label: "Medien nach der Reinigung"
+  out_descricao:
+    label: "Beschreibung der durchgeführten Maßnahme"
+  ref_mat_outro:
+    label: "Verwendete Materialien (optional)"
+    sublabel: "Falls bei dieser Maßnahme Katalogmaterialien verwendet wurden, wählen Sie diese unten aus"
+  out_foto:
+    label: "Medien (optional)"
+  lista_acoes_c:
+    label: "Durchgeführte Maßnahmen"
+    sublabel: "Fügen Sie jede Wartungsmaßnahme hinzu. Mindestens 1."
+  avaliacao_condicao:
+    label: "Abschließender Zustand der Route zum Klettern"
+    opcoes:
+      liberada:
+        label: "Freigegeben zum Klettern"
+        sublabel: "Route in gutem Zustand"
+      liberada_restricao:
+        label: "Mit Einschränkungen freigegeben"
+        sublabel: "Hinweis vor dem Klettern prüfen"
+      interditada:
+        label: "Gesperrt"
+        sublabel: "Nicht klettern bis zur nächsten Wartung"
+  avaliacao_comentarios:
+    label: "Zusätzliche Kommentare (optional)"
+ramos:
+  aprovado:
+    label: "Freigegeben — Kein Eingriff"
+    sublabel: "Sicherungspunkt in gutem Zustand"
+  reaperto:
+    label: "Nachziehen durchgeführt"
+    sublabel: "Sicherungspunkt mit Drehmomentschlüssel nachgezogen"
+  substituir:
+    label: "Austausch erforderlich"
+    sublabel: "Sicherungspunkt mit Strukturschaden"
+  reusar_furo:
+    label: "Bestehendes Bohrloch wiederverwenden"
+    sublabel: "Mit Verbundanker"
+  novo_local:
+    label: "Neue Bohrstelle"
+    sublabel: "Bohrung an anderer Position"
+tipos_acao:
+  inspecao_ancoragem:
+    label: "Ankerprüfung"
+    sublabel: "Zustandsbewertung eines bestehenden Sicherungspunkts"
+  novo_ponto:
+    label: "Neuer Sicherungspunkt"
+    sublabel: "Installation eines neuen Sicherungspunkts"
+  remocao_bloco:
+    label: "Entfernung Loser Blöcke"
+    sublabel: "Beseitigung von losem Gestein"
+  limpeza_vegetacao:
+    label: "Vegetationsreinigung"
+    sublabel: "Entfernen von Bewuchs in der Route"
+  outro:
+    label: "Sonstige Maßnahme"
+    sublabel: "Oben nicht aufgeführte Maßnahme"
+opcoes:
+  pequeno:
+    label: "Klein (faustgroß)"
+  medio:
+    label: "Mittel (wassermelonengroß)"
+  grande:
+    label: "Groß (größer als eine Wassermelone)"
+  liberada:
+    label: "Freigegeben zum Klettern"
+    sublabel: "Route in gutem Zustand"
+  liberada_restricao:
+    label: "Mit Einschränkungen freigegeben"
+    sublabel: "Hinweis vor dem Klettern prüfen"
+  interditada:
+    label: "Gesperrt"
+    sublabel: "Nicht klettern bis zur nächsten Wartung"

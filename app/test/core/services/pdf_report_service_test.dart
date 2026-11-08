@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixalog/core/services/pdf_report_service.dart';
+import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/models/proto/protos/fixalog.pb.dart';
 
 void main() {
@@ -35,6 +37,33 @@ void main() {
       expect(bytes.isNotEmpty, isTrue);
       // Assinatura do cabeçalho PDF '%PDF'
       expect(bytes.sublist(0, 4), equals([0x25, 0x50, 0x44, 0x46]));
+    });
+
+    test('generateReport suporta pt, en, ar (RTL) e ja com fontes Noto Sans e tradução de rótulos e opções', () async {
+      final service = PdfReportService();
+      final yamlInspecao = File('assets/protocols/inspecao_visual.yaml').readAsStringSync();
+      final submissao = SubmissaoProtocolo()
+        ..idSessao = 'sessao-i18n'
+        ..utcTimestampGps = Int64(1756814400000)
+        ..respostas.add(
+          RespostaCampo()
+            ..idCampo = 'avaliacao_condicao'
+            ..valorTexto = 'liberada',
+        );
+
+      for (final idioma in const ['pt', 'en', 'ar', 'ja']) {
+        final protocolo = ProtocolParser.fromYaml(
+          yamlInspecao,
+          codigoIdioma: idioma,
+        );
+        final bytes = await service.generateReport(
+          submissao,
+          'sig-hash-i18n',
+          codigoIdioma: idioma,
+          protocolo: protocolo,
+        );
+        expect(bytes.sublist(0, 4), equals([0x25, 0x50, 0x44, 0x46]));
+      }
     });
   });
 }

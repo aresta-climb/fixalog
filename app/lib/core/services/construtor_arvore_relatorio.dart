@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:ui';
+import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
 import '../models/proto/protos/wizard.pb.dart';
 import 'protocol_parser.dart';
@@ -176,14 +178,22 @@ class SecaoListaRelatorio extends NodoRelatorio {
 class ConstrutorArvoreRelatorio {
   const ConstrutorArvoreRelatorio();
 
-  static DefinicaoProtocolo _obterProtocoloValidado(Registro registro) {
+  static DefinicaoProtocolo _obterProtocoloValidado(
+    Registro registro, {
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoes,
+  }) {
     final yaml = registro.yamlConteudo.trim();
     if (yaml.isEmpty) {
       throw const FormatException(
         'O registro não possui yamlConteudo definido. A geração de relatórios exige a definição YAML do protocolo.',
       );
     }
-    return ProtocolParser.fromYaml(yaml);
+    return ProtocolParser.fromYaml(
+      yaml,
+      codigoIdioma: codigoIdioma,
+      traducoes: traducoes,
+    );
   }
 
   /// Extrai todas as [ReferenciaMidia] presentes em uma [Resposta],
@@ -297,8 +307,14 @@ class ConstrutorArvoreRelatorio {
   ArvoreRelatorio construir(
     Registro registro, {
     String fallbackTitulo = '',
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoes,
   }) {
-    final protocolo = _obterProtocoloValidado(registro);
+    final protocolo = _obterProtocoloValidado(
+      registro,
+      codigoIdioma: codigoIdioma,
+      traducoes: traducoes,
+    );
     final tituloExibicao = extrairTituloExibicao(
       registro,
       protocolo: protocolo,
@@ -311,6 +327,7 @@ class ConstrutorArvoreRelatorio {
         steps: bloco.steps,
         registro: registro,
         respostasEscopo: registro.respostas,
+        codigoIdioma: codigoIdioma,
       );
       final nodosConsolidados = _consolidarNodos(nodosBrutos);
       if (nodosConsolidados.isNotEmpty) {
@@ -341,6 +358,7 @@ class ConstrutorArvoreRelatorio {
     required Map<String, Resposta> respostasEscopo,
     String? idItemPai,
     String prefixoIndice = '',
+    String? codigoIdioma,
   }) {
     final nodos = <NodoRelatorio>[];
 
@@ -355,6 +373,7 @@ class ConstrutorArvoreRelatorio {
             conteudo: conteudo,
             resposta: respostasEscopo[conteudo.id],
             destino: nodos,
+            codigoIdioma: codigoIdioma,
           );
         } else if (conteudo.hasSelecaoRamo()) {
           final selecao = conteudo.selecaoRamo;
@@ -380,6 +399,7 @@ class ConstrutorArvoreRelatorio {
                   respostasEscopo: respostasEscopo,
                   idItemPai: idItemPai,
                   prefixoIndice: prefixoIndice,
+                  codigoIdioma: codigoIdioma,
                 ),
               );
             }
@@ -430,6 +450,7 @@ class ConstrutorArvoreRelatorio {
                   respostasEscopo: grupo.respostasItem,
                   idItemPai: grupo.idItem,
                   prefixoIndice: indiceStr,
+                  codigoIdioma: codigoIdioma,
                 ),
               );
               if (nodosFilhos.isNotEmpty) {
@@ -468,13 +489,19 @@ class ConstrutorArvoreRelatorio {
     required ConteudoStep conteudo,
     required Resposta? resposta,
     required List<NodoRelatorio> destino,
+    String? codigoIdioma,
   }) {
     if (resposta == null) return;
     final campo = conteudo.campoSimples;
 
     String valorBruto = '';
     if (resposta.hasBooleano()) {
-      valorBruto = resposta.booleano ? 'Sim' : 'Não';
+      if (codigoIdioma != null) {
+        final l10n = ResolvedorIdioma.obterTraducoes(Locale(codigoIdioma));
+        valorBruto = resposta.booleano ? l10n.comumSim : l10n.comumNao;
+      } else {
+        valorBruto = resposta.booleano ? 'Sim' : 'Não';
+      }
     } else if (resposta.hasInteiro()) {
       valorBruto = resposta.inteiro.toString();
     } else if (resposta.hasNumero()) {

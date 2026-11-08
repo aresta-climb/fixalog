@@ -3,17 +3,19 @@
 
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/l10n/resolvedor_idioma.dart';
 import 'new_protocol_screen.dart';
 import 'history_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
   static const _pages = <Widget>[
@@ -24,11 +26,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
+
     return Scaffold(
       backgroundColor: const Color(0xFF060908),
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _FixalogBottomBar(
         currentIndex: _currentIndex,
+        labelNovo: ehPt ? 'Novo Protocolo' : l10n.homeAbaNovo,
+        labelHistorico: ehPt ? 'Histórico' : l10n.homeAbaHistorico,
+        labelConfig: ehPt ? 'Configurações' : l10n.homeAbaConfig,
         onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
@@ -36,13 +45,17 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Placeholder de Configurações
+// Aba de Configurações (Seletor de Idioma)
 // ---------------------------------------------------------------------------
-class _SettingsPlaceholder extends StatelessWidget {
+class _SettingsPlaceholder extends ConsumerWidget {
   const _SettingsPlaceholder();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
+
     return Stack(
       children: [
         Container(
@@ -75,7 +88,7 @@ class _SettingsPlaceholder extends StatelessWidget {
           ),
         ),
         SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: 20.0,
               vertical: 16.0,
@@ -102,7 +115,6 @@ class _SettingsPlaceholder extends StatelessWidget {
                       'FIXALOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
-                        fontFamily: 'SpaceGrotesk',
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         letterSpacing: 2.0,
@@ -111,22 +123,92 @@ class _SettingsPlaceholder extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Configurações',
-                  style: TextStyle(
+                Text(
+                  ehPt ? 'Configurações' : l10n.homeAbaConfig,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontFamily: 'SpaceGrotesk',
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Em breve',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 13,
+                const SizedBox(height: 24),
+                Container(
+                  key: const Key('seletor_idioma_config'),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF121416),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.language,
+                            color: Color(0xFFFF6B00),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.seletorIdiomaTitulo,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.seletorIdiomaSubtitulo,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ResolvedorIdioma.idiomasSuportados.map((
+                          opcao,
+                        ) {
+                          final selecionado =
+                              opcao.codigo == locale.languageCode;
+                          return ChoiceChip(
+                            key: Key('opcao_idioma_${opcao.codigo}'),
+                            label: Text(
+                              '${opcao.codigo.toUpperCase()} • ${opcao.nomeNativo}',
+                              style: TextStyle(
+                                color: selecionado
+                                    ? Colors.black
+                                    : Colors.white70,
+                                fontWeight: selecionado
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                            selected: selecionado,
+                            selectedColor: const Color(0xFFFF6B00),
+                            backgroundColor: const Color(0xFF1A1C1E),
+                            onSelected: (_) {
+                              ref
+                                  .read(idiomaAtivoProvider.notifier)
+                                  .selecionarIdioma(opcao.codigo);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -142,9 +224,18 @@ class _SettingsPlaceholder extends StatelessWidget {
 // Bottom Bar
 // ---------------------------------------------------------------------------
 class _FixalogBottomBar extends StatelessWidget {
-  const _FixalogBottomBar({required this.currentIndex, required this.onTap});
+  const _FixalogBottomBar({
+    required this.currentIndex,
+    required this.labelNovo,
+    required this.labelHistorico,
+    required this.labelConfig,
+    required this.onTap,
+  });
 
   final int currentIndex;
+  final String labelNovo;
+  final String labelHistorico;
+  final String labelConfig;
   final ValueChanged<int> onTap;
 
   @override
@@ -168,21 +259,21 @@ class _FixalogBottomBar extends StatelessWidget {
               _BottomBarItem(
                 icon: Icons.add_circle_outline,
                 activeIcon: Icons.add_circle,
-                label: 'Novo Protocolo',
+                label: labelNovo,
                 isSelected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _BottomBarItem(
                 icon: Icons.history_outlined,
                 activeIcon: Icons.history,
-                label: 'Histórico',
+                label: labelHistorico,
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _BottomBarItem(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings,
-                label: 'Configurações',
+                label: labelConfig,
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),

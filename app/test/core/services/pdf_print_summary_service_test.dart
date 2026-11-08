@@ -615,5 +615,65 @@ void main() {
       expect(textoPdf, contains('316L'));
       expect(textoPdf, contains('Dupla'));
     });
+
+    test('exporta PDF Resumido e HTML localizado em pt, en, ar (RTL) e ja com fontes Noto Sans locais e rótulos traduzidos', () async {
+      final yamlInspecao = File('assets/protocols/inspecao_visual.yaml').readAsStringSync();
+      final yamlMaterial = File('assets/protocols/cadastro_material.yaml').readAsStringSync();
+
+      final regInspecao = Registro(
+        idSessao: 'sessao-i18n-pdf',
+        idProtocolo: 'inspecao_visual',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlInspecao,
+      )
+        ..respostas['via_nome'] = Resposta(texto: 'North Ridge')
+        ..respostas['avaliacao_condicao'] = Resposta(texto: 'liberada');
+
+      final regMaterial = Registro(
+        idSessao: 'mat-i18n-1',
+        idProtocolo: 'cadastro_material',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlMaterial,
+      )..respostas['mat_nome'] = Resposta(texto: ' Bolt 316L ');
+
+      final anexo = RelatorioMaterialAnexo(
+        idSessao: 'mat-i18n-1',
+        registro: regMaterial,
+        urlCanonica: 'https://fixalog.app/v/mat-i18n-1',
+      );
+
+      for (final idioma in const ['pt', 'en', 'ar', 'ja']) {
+        final html = service.gerarHtmlParaImpressao(
+          registro: regInspecao,
+          idSessao: 'sessao-i18n-pdf',
+          urlCanonica: 'https://fixalog.app/v/sessao-i18n-pdf',
+          materiaisAnexos: [anexo],
+          codigoIdioma: idioma,
+        );
+        expect(html, contains('lang="$idioma"'));
+        if (idioma == 'ar') {
+          expect(html, contains('dir="rtl"'));
+        }
+
+        final destino = '${tempDir.path}/resumo_$idioma.pdf';
+        final arqPdf = await service.exportarPdfResumido(
+          caminhoSaida: destino,
+          registro: regInspecao,
+          idSessao: 'sessao-i18n-pdf',
+          urlCanonica: 'https://fixalog.app/v/sessao-i18n-pdf',
+          materiaisAnexos: [anexo],
+          codigoIdioma: idioma,
+        );
+        final pdfBytes = await arqPdf.readAsBytes();
+        expect(pdfBytes.sublist(0, 4), equals([0x25, 0x50, 0x44, 0x46]));
+        final pdfStr = latin1.decode(pdfBytes, allowInvalid: true);
+        expect(pdfStr, contains('NotoSans'));
+        if (idioma == 'ar') {
+          expect(pdfStr, contains('NotoSansArabic'));
+        } else if (idioma == 'ja') {
+          expect(pdfStr, contains('NotoSansJP'));
+        }
+      }
+    });
   });
 }

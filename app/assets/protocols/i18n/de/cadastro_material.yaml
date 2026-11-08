@@ -1,0 +1,235 @@
+protocolo:
+  nome: "Registrierung von Wartungsmaterial"
+  descricao: "Protokoll zur Katalogisierung, Rückverfolgbarkeit, Qualitätsprüfung und Herstellungsprozesse von Wartungsmaterialien oder Baugruppen"
+blocos:
+  identificacao_material:
+    titulo: "Block 1 — Allgemeine Identifikation"
+    subtitulo: "Identifikation des Einzelmaterials oder der Materialbaugruppe"
+  composicao_materiais:
+    titulo: "Block 2 — Materialspezifikationen"
+    subtitulo: "Fügen Sie jedes Material dieses Eintrags hinzu, einschließlich Rechnung, Prüfungen und Details"
+conteudos:
+  mat_instrucao:
+    titulo: "Identifikation des Materials oder der Baugruppe"
+    corpo: "Geben Sie einen eindeutigen Namen für dieses Material oder diese Baugruppe an (z. B. 'Bohrhaken-Set 10mm + Lasche' oder 'Gewindestange Edelstahl 316 14cm'). Dieser Name wird bei der Materialauswahl im Katalog angezeigt."
+  mat_nome:
+    label: "Name des Materials oder der Baugruppe"
+    sublabel: "Beschreibender Name zur schnellen Identifizierung im Katalog"
+  mat_codigo_associacao:
+    label: "Tracking-Code des Vereins"
+    sublabel: "Interner Kontrollcode des Vereins (optional)"
+  mat_data:
+    label: "Erfassungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  pb_marca:
+    label: "Marke / Hersteller"
+  pb_liga:
+    label: "Legierung / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      aco_inox_304:
+        label: "Edelstahl 304 (A2)"
+      titanio:
+        label: "Titan"
+      outro:
+        label: "Sonstiges"
+  pb_dimensoes:
+    label: "Durchmesser und Länge"
+    sublabel: "Z. B.: 3/8 x 90mm oder 10mm x 100mm"
+  pb_lote:
+    label: "Chargennummer"
+  pb_validade:
+    label: "Verfallsdatum (falls zutreffend)"
+  pb_foto:
+    label: "Foto des Materials"
+  pb_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  pb_nf_fornecedor:
+    label: "Lieferant / Händler"
+  pb_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  tq_tipo:
+    label: "Art der Prüfung / des Tests"
+  tq_resultado:
+    label: "Ergebnis / Erreichte Last"
+  tq_foto:
+    label: "Medien zur Prüfung / zum Bericht anhängen"
+  pb_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Zug-, Scher- oder Chargenprüfungen hinzufügen (optional)"
+  det_titulo:
+    label: "Titel des Details oder Schritts"
+  det_descricao:
+    label: "Detaillierte Beschreibung"
+  det_foto:
+    label: "Medien zum Schritt / Detail anhängen"
+  pb_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Schritte zur Vorbereitung/Herstellung hinzufügen (optional)"
+  ch_marca:
+    label: "Marke / Hersteller"
+  ch_liga:
+    label: "Legierung / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      aco_inox_304:
+        label: "Edelstahl 304 (A2)"
+      titanio:
+        label: "Titan"
+      outro:
+        label: "Sonstiges"
+  ch_furo:
+    label: "Lochdurchmesser"
+    sublabel: "Z. B.: 3/8 (10mm) oder 1/2 (12mm)"
+  ch_lote:
+    label: "Chargennummer"
+  ch_foto:
+    label: "Foto des Materials"
+  ch_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  ch_nf_fornecedor:
+    label: "Lieferant / Händler"
+  ch_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  ch_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  ch_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Herstellungsschritte hinzufügen (optional)"
+  ca_marca:
+    label: "Marke / Hersteller"
+  ca_liga:
+    label: "Legierung / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      aco_inox_304:
+        label: "Edelstahl 304 (A2)"
+      titanio:
+        label: "Titan"
+      outro:
+        label: "Sonstiges"
+  ca_lote:
+    label: "Chargennummer"
+  ca_foto:
+    label: "Foto des Materials"
+  ca_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  ca_nf_fornecedor:
+    label: "Lieferant / Händler"
+  ca_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  ca_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  ca_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Herstellungsschritte hinzufügen (optional)"
+  aq_marca:
+    label: "Marke / Produkt"
+  aq_validade:
+    label: "Verfallsdatum"
+  aq_lote:
+    label: "Chargennummer"
+  aq_foto:
+    label: "Foto der Verpackung / des Materials"
+  aq_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  aq_nf_fornecedor:
+    label: "Lieferant / Händler"
+  aq_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  aq_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Aushärtungs-, Auszugs- oder Inspektionsprüfungen hinzufügen (optional)"
+  aq_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Vorbereitungsverfahren hinzufügen (optional)"
+  cp_marca:
+    label: "Marke / Hersteller"
+  cp_liga:
+    label: "Material / Legierung"
+    opcoes:
+      aco_inox_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      aco_galvanizado:
+        label: "Verzinkter Kohlenstoffstahl"
+      titanio:
+        label: "Titan"
+      outro:
+        label: "Sonstiges"
+  cp_carga:
+    label: "Nominale Bruchlast (kN)"
+  cp_lote:
+    label: "Chargennummer"
+  cp_foto:
+    label: "Foto des Materials"
+  cp_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  cp_nf_fornecedor:
+    label: "Lieferant / Händler"
+  cp_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  cp_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  cp_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Montagedetails hinzufügen (optional)"
+  out_instrucao:
+    titulo: "Kundenspezifisches Material oder Eigenfertigung"
+    corpo: "Erfassen Sie unten den Kaufbeleg des Rohmaterials, etwaige Qualitätsprüfungen sowie alle Herstellungsschritte oder technischen Details."
+  out_nf_numero:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  out_nf_fornecedor:
+    label: "Lieferant / Händler"
+  out_nf_foto:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  out_testes:
+    label: "Qualitätsprüfungen"
+    sublabel: "Durchgeführte Prüfungen oder Tests hinzufügen (optional)"
+  out_detalhes:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Fügen Sie jeden Herstellungsschritt oder jede technische Spezifikation hinzu. Mindestens 1."
+  lista_itens_material_c:
+    label: "Registrierte Materialien"
+    sublabel: "Fügen Sie 1 Einzelmaterial oder mehrere Komponenten der Baugruppe hinzu. Mindestens 1."
+tipos_acao:
+  parabolt:
+    label: "Mechanischer Anker / Bohrhaken"
+    sublabel: "Spreizanker oder mechanischer Bolzenanker"
+  teste_qualidade:
+    label: "Qualitätsprüfung"
+    sublabel: "Mechanische, chemische Prüfung oder Prüfbericht"
+  detalhe_item:
+    label: "Detail / Herstellungsschritt"
+    sublabel: "Freie Beschreibung mit Fotos, Videos oder PDFs"
+  chapeleta:
+    label: "Bohrhakenlasche"
+    sublabel: "Lasche ohne Ring"
+  chapeleta_argola:
+    label: "Lasche mit Ring"
+    sublabel: "Standplatz-/Abseilbaugruppe mit integriertem Ring"
+  ancoragem_quimica:
+    label: "Verbundanker / Klebehaken"
+    sublabel: "Injektionsmörtel, Verbundpatrone oder Klebehaken"
+  costura_permanente:
+    label: "Permadraw / Feste Expressschlinge"
+    sublabel: "Feste Schlinge, Schraubglied und dauerhafter Karabiner"
+  outro:
+    label: "Sonstiges"
+    sublabel: "Eigenfertigung, kundenspezifische Baugruppen oder sonstige Materialien"
+opcoes:
+  aco_inox_316:
+    label: "Edelstahl 316 / 316L (A4)"
+  aco_inox_304:
+    label: "Edelstahl 304 (A2)"
+  titanio:
+    label: "Titan"
+  outro:
+    label: "Sonstiges"
+  aco_galvanizado:
+    label: "Verzinkter Kohlenstoffstahl"

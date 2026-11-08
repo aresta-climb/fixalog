@@ -4,12 +4,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/core/models/local/identity_record.dart';
 
-// Helper que envolve o widget numa árvore mínima com providers mockados.
+// Helper que envolve o widget numa árvore mínima com providers configurados.
 Widget _buildTestApp({IdentityRecord? identity}) {
   return ProviderScope(
     overrides: [
@@ -88,5 +91,52 @@ void main() {
 
       expect(find.text('NOVO REGISTRO DE MANUTENÇÃO'), findsOneWidget);
     });
+
+    testWidgets(
+      'Aba Configurações permite selecionar entre os 7 idiomas, persiste no SQLite e atualiza os rótulos da UI sem overflow',
+      (tester) async {
+        late BancoDadosLocal banco;
+        await tester.runAsync(() async {
+          banco = await BancoDadosLocal.abrirEmMemoria();
+        });
+        addTearDown(() async {
+          await tester.runAsync(() async => await banco.fechar());
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              currentIdentityProvider.overrideWith(
+                (ref) async => IdentityRecord(),
+              ),
+              historyProvider.overrideWith((ref) => Stream.value([])),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: const HomeScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Navega para a aba de Configurações (índice 2)
+        await tester.tap(find.byIcon(Icons.settings_outlined));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('seletor_idioma_config')), findsOneWidget);
+
+        // Seleciona Alemão ('de') no seletor de idioma
+        await tester.tap(find.byKey(const Key('opcao_idioma_de')));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(banco.obterConfiguracaoSync(1)?.idiomaPreferido, equals('de'));
+        expect(find.text('App-Sprache'), findsOneWidget);
+        expect(find.text('NEU'), findsOneWidget);
+        expect(find.text('VERLAUF'), findsOneWidget);
+      },
+    );
   });
 }

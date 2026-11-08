@@ -1,0 +1,37 @@
+protocolo:
+  nome: "クイック記録"
+  descricao: "事前定義された構造を持たない、事象・メディア・座標・資材の自由かつ迅速な記録。"
+blocos:
+  bloco_identificacao:
+    titulo: "ブロック 1 — 識別情報と場所"
+    subtitulo: "記録タイトル、日付、および任意の場所"
+  bloco_evidencias:
+    titulo: "ブロック 2 — 証拠メディアと資材"
+    subtitulo: "説明付きのメディアを追加し、必要に応じてカタログの資材を紐付けてください"
+conteudos:
+  via_nome:
+    label: "記録タイトル / 識別名"
+    sublabel: "履歴でこの記録を識別するためのルート名、場所、または件名"
+  via_data:
+    label: "記録日"
+    sublabel: "現在の日付が自動入力されます（編集可能）"
+  via_gps:
+    label: "GPS座標（任意）"
+    sublabel: "必要に応じて現在地を取得してください。"
+  observacoes_gerais:
+    label: "全体備考（任意）"
+  ev_midia:
+    label: "証拠メディア"
+    sublabel: "写真・動画・PDFを添付してください"
+  ev_descricao:
+    label: "説明（任意）"
+  lista_evidencias:
+    label: "証拠メディア（写真・動画・PDF）"
+    sublabel: "必要なだけメディア記録とメモを追加してください（任意）。"
+  ref_mat_expresso:
+    label: "関連資材（任意）"
+    sublabel: "この記録に資材が関連する場合はローカルカタログから選択してください"
+tipos_acao:
+  item_evidencia:
+    label: "証拠 / メモ"
+    sublabel: "説明付きの写真・動画・PDF"

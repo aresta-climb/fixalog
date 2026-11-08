@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/views/history_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
@@ -485,5 +487,60 @@ protocolo:
         }
       });
     });
+
+    testWidgets(
+      'Renderiza títulos, abas e tags localizados em Inglês, Árabe e Japonês sem overflow visual',
+      (tester) async {
+        final logs = [
+          SubmissionRecord()
+            ..idSessao = 's1'
+            ..nomeProtocolo = 'Route A'
+            ..dataInclusao = DateTime(2026, 5, 10)
+            ..status = SubmissionStatus.gerado
+            ..pdfPath = '/docs/a.pdf',
+        ];
+
+        late WidgetRef refCapturado;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+              historyProvider.overrideWith((ref) => Stream.value(logs)),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) {
+                    refCapturado = ref;
+                    return const HistoryScreen();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('AUDIT HISTORY'), findsOneWidget);
+        expect(find.text('COMPLETED'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('ar');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('سجل المعاينات'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('ja');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('監査履歴'), findsOneWidget);
+      },
+    );
   });
 }

@@ -2,16 +2,19 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 /// Serviço responsável pelo empacotamento de relatórios no formato padronizado EPUB 3 (OCF/W3C).
 ///
 /// Monta a estrutura canônica de diretórios (mimetype sem compressão, META-INF e OEBPS),
-/// incluindo páginas XHTML, folhas de estilo CSS, dados brutos em Protobuf,
-/// ativos multimídia (fotos e vídeos), materiais aninhados (`OEBPS/materiais/<uuid>/`)
-/// e assinaturas digitais W3C XML-DSig.
+/// incluindo páginas XHTML, folhas de estilo CSS, fontes TTF da família Google Noto Sans,
+/// dados brutos em Protobuf, ativos multimídia (fotos e vídeos), materiais aninhados
+/// (`OEBPS/materiais/<uuid>/`) e assinaturas digitais W3C XML-DSig.
 class EpubPackagerService {
+  static final Map<String, Uint8List> _cacheFontes = {};
+
   /// Determina o tipo MIME correspondente a partir da extensão do arquivo.
   String determinarTipoMime(String caminho) {
     final minusculo = caminho.toLowerCase();
@@ -24,7 +27,33 @@ class EpubPackagerService {
     if (minusculo.endsWith('.xhtml') || minusculo.endsWith('.html')) return 'application/xhtml+xml';
     if (minusculo.endsWith('.xml') || minusculo.endsWith('.opf')) return 'application/xml';
     if (minusculo.endsWith('.binarypb')) return 'application/x-protobuf';
+    if (minusculo.endsWith('.ttf')) return 'font/ttf';
     return 'application/octet-stream';
+  }
+
+  /// Retorna os nomes dos arquivos TTF da família Google Noto Sans necessários para [codigoIdioma].
+  List<String> nomesFontesParaIdioma(String codigoIdioma) {
+    final codigoNorm = codigoIdioma.split(RegExp(r'[-_]')).first.toLowerCase();
+    final fontes = <String>['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf'];
+    if (codigoNorm == 'ar') {
+      fontes.addAll(['NotoSansArabic-Regular.ttf', 'NotoSansArabic-Bold.ttf']);
+    } else if (codigoNorm == 'ja') {
+      fontes.addAll(['NotoSansJP-Regular.ttf', 'NotoSansJP-Bold.ttf']);
+    }
+    return fontes;
+  }
+
+  /// Carrega dos assets locais apenas os arquivos TTF de `Noto Sans` necessários para [codigoIdioma].
+  Map<String, Uint8List> obterFontesNotoSansParaIdioma(String codigoIdioma) {
+    final resultado = <String, Uint8List>{};
+    for (final nomeArquivo in nomesFontesParaIdioma(codigoIdioma)) {
+      final bytes = _cacheFontes.putIfAbsent(
+        nomeArquivo,
+        () => File('assets/fonts/$nomeArquivo').readAsBytesSync(),
+      );
+      resultado['fonts/$nomeArquivo'] = bytes;
+    }
+    return resultado;
   }
 
   /// Extrai todos os arquivos internos de um pacote `.epub` de material (exceto `mimetype`)
@@ -62,8 +91,18 @@ class EpubPackagerService {
     Map<String, Map<String, Uint8List>> materiaisAninhados = const {},
     Map<String, String> titulosMateriais = const {},
     String? signaturesXml,
+    String codigoIdioma = 'pt-BR',
+    Map<String, Uint8List> arquivosFonte = const {},
+    bool incluirFontesNotoSans = false,
   }) {
     final arquivoZip = Archive();
+    final codigoNorm = codigoIdioma.split(RegExp(r'[-_]')).first.toLowerCase();
+    final atributoDir = codigoNorm == 'ar' ? ' dir="rtl"' : '';
+    final fontesEfetivas = arquivosFonte.isNotEmpty
+        ? arquivosFonte
+        : (incluirFontesNotoSans
+            ? obterFontesNotoSansParaIdioma(codigoIdioma)
+            : const <String, Uint8List>{});
 
     // 1. Arquivo 'mimetype' - DEVE ser o primeiro arquivo e armazenado sem compressão (CompressionType.none)
     final bytesMime = utf8.encode('application/epub+zip');
@@ -99,7 +138,7 @@ class EpubPackagerService {
 
     final navXhtml = '''<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="pt-BR">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="$codigoIdioma"$atributoDir>
 <head>
   <meta charset="utf-8"/>
   <title>Sumário</title>
@@ -123,6 +162,17 @@ ${itensNavMateriais.toString().trimRight()}
 
     final bytesCss = utf8.encode(cssConteudo);
     arquivoZip.addFile(ArchiveFile('OEBPS/estilo.css', bytesCss.length, bytesCss));
+
+    // 5b. Fontes tipográficas Noto Sans em OEBPS/fonts/ comprimidas com DEFLATE
+    for (final entradaFonte in fontesEfetivas.entries) {
+      final caminhoRelativo = entradaFonte.key.startsWith('OEBPS/')
+          ? entradaFonte.key
+          : 'OEBPS/${entradaFonte.key}';
+      final bytesFonte = entradaFonte.value;
+      final arquivoFonte = ArchiveFile(caminhoRelativo, bytesFonte.length, bytesFonte)
+        ..compression = CompressionType.deflate;
+      arquivoZip.addFile(arquivoFonte);
+    }
 
     // 6. OEBPS/dados/registro.binarypb (Protobuf original da vistoria)
     arquivoZip.addFile(ArchiveFile('OEBPS/dados/registro.binarypb', binarypb.length, binarypb));
@@ -163,7 +213,7 @@ ${itensNavMateriais.toString().trimRight()}
     bufferOpf.writeln('  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">');
     bufferOpf.writeln('    <dc:identifier id="pub-id">$idSessao</dc:identifier>');
     bufferOpf.writeln('    <dc:title>$idProtocolo</dc:title>');
-    bufferOpf.writeln('    <dc:language>pt-BR</dc:language>');
+    bufferOpf.writeln('    <dc:language>$codigoIdioma</dc:language>');
     bufferOpf.writeln('    <meta property="dcterms:modified">$dataModificacao</meta>');
     bufferOpf.writeln('  </metadata>');
     bufferOpf.writeln('  <manifest>');
@@ -171,6 +221,15 @@ ${itensNavMateriais.toString().trimRight()}
     bufferOpf.writeln('    <item id="relatorio" href="relatorio.xhtml" media-type="application/xhtml+xml"/>');
     bufferOpf.writeln('    <item id="estilo" href="estilo.css" media-type="text/css"/>');
     bufferOpf.writeln('    <item id="dados-protobuf" href="dados/registro.binarypb" media-type="application/x-protobuf"/>');
+
+    var contadorFonte = 1;
+    for (final entradaFonte in fontesEfetivas.entries) {
+      final idFonte = 'fonte_$contadorFonte';
+      final caminhoNoOpf = entradaFonte.key.replaceFirst('OEBPS/', '');
+      final tipoMime = determinarTipoMime(caminhoNoOpf);
+      bufferOpf.writeln('    <item id="$idFonte" href="$caminhoNoOpf" media-type="$tipoMime"/>');
+      contadorFonte++;
+    }
 
     var contadorItem = 1;
     for (final entrada in arquivosMidia.entries) {

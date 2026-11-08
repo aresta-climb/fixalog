@@ -1,0 +1,235 @@
+protocolo:
+  nome: "Registro de Material de Mantenimiento"
+  descricao: "Protocolo para catalogación, trazabilidad, pruebas de calidad y procesos de fabricación de materiales o conjuntos de mantenimiento"
+blocos:
+  identificacao_material:
+    titulo: "Bloque 1 — Identificación General"
+    subtitulo: "Identificación del material aislado o conjunto de materiales"
+  composicao_materiais:
+    titulo: "Bloque 2 — Especificación de los Materiales"
+    subtitulo: "Agregue cada material que compone este registro, incluyendo factura, pruebas y detalles"
+conteudos:
+  mat_instrucao:
+    titulo: "Identificación del Material o Conjunto"
+    corpo: "Defina un nombre claro para este material o conjunto (ej.: 'Kit Parabolt 3/8 + Chapa' o 'Varilla Roscada Inox 316 14cm'). Este nombre aparecerá en el catálogo al seleccionar materiales durante un mantenimiento."
+  mat_nome:
+    label: "Nombre del Material o Conjunto"
+    sublabel: "Nombre descriptivo para identificación rápida en el catálogo"
+  mat_codigo_associacao:
+    label: "Código de Seguimiento de la Asociación"
+    sublabel: "Código interno de control de la asociación (opcional)"
+  mat_data:
+    label: "Fecha del Registro"
+    sublabel: "Completada automáticamente con la fecha actual (editable)"
+  pb_marca:
+    label: "Marca / Fabricante"
+  pb_liga:
+    label: "Aleación / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Acero Inoxidable 316 / 316L"
+      aco_inox_304:
+        label: "Acero Inoxidable 304"
+      titanio:
+        label: "Titanio"
+      outro:
+        label: "Otro"
+  pb_dimensoes:
+    label: "Diámetro y Longitud"
+    sublabel: "Ej.: 3/8 x 90mm o 10mm x 100mm"
+  pb_lote:
+    label: "Número de lote"
+  pb_validade:
+    label: "Caducidad (si aplica)"
+  pb_foto:
+    label: "Foto del material"
+  pb_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  pb_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  pb_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  tq_tipo:
+    label: "Tipo de Ensayo / Prueba"
+  tq_resultado:
+    label: "Resultado / Carga Obtenida"
+  tq_foto:
+    label: "Adjuntar Medios a la Prueba / Informe"
+  pb_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue ensayos de tracción, cizallamiento o inspecciones de lote (opcional)"
+  det_titulo:
+    label: "Título del Detalle o Etapa"
+  det_descricao:
+    label: "Descripción Detallada"
+  det_foto:
+    label: "Adjuntar Medios a la Etapa / Detalle"
+  pb_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue información extra o paso a paso de preparación/fabricación (opcional)"
+  ch_marca:
+    label: "Marca / Fabricante"
+  ch_liga:
+    label: "Aleación / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Acero Inoxidable 316 / 316L"
+      aco_inox_304:
+        label: "Acero Inoxidable 304"
+      titanio:
+        label: "Titanio"
+      outro:
+        label: "Otro"
+  ch_furo:
+    label: "Diámetro del Orificio"
+    sublabel: "Ej.: 3/8 (10mm) o 1/2 (12mm)"
+  ch_lote:
+    label: "Número de lote"
+  ch_foto:
+    label: "Foto del material"
+  ch_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  ch_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  ch_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  ch_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue ensayos o inspecciones de lote (opcional)"
+  ch_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue información extra o paso a paso de fabricación (opcional)"
+  ca_marca:
+    label: "Marca / Fabricante"
+  ca_liga:
+    label: "Aleación / Material"
+    opcoes:
+      aco_inox_316:
+        label: "Acero Inoxidable 316 / 316L"
+      aco_inox_304:
+        label: "Acero Inoxidable 304"
+      titanio:
+        label: "Titanio"
+      outro:
+        label: "Otro"
+  ca_lote:
+    label: "Número de lote"
+  ca_foto:
+    label: "Foto del material"
+  ca_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  ca_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  ca_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  ca_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue ensayos o inspecciones de lote (opcional)"
+  ca_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue información extra o paso a paso de fabricación (opcional)"
+  aq_marca:
+    label: "Marca / Producto"
+  aq_validade:
+    label: "Caducidad"
+  aq_lote:
+    label: "Número de lote"
+  aq_foto:
+    label: "Foto del envase / material"
+  aq_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  aq_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  aq_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  aq_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue pruebas de curado, extracción o inspecciones (opcional)"
+  aq_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue información extra o procedimientos de preparación (opcional)"
+  cp_marca:
+    label: "Marca / Fabricante"
+  cp_liga:
+    label: "Material / Aleación"
+    opcoes:
+      aco_inox_316:
+        label: "Acero Inoxidable 316 / 316L"
+      aco_galvanizado:
+        label: "Acero al Carbono Galvanizado"
+      titanio:
+        label: "Titanio"
+      outro:
+        label: "Otro"
+  cp_carga:
+    label: "Carga de Rotura Nominal (kN)"
+  cp_lote:
+    label: "Número de lote"
+  cp_foto:
+    label: "Foto del material"
+  cp_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  cp_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  cp_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  cp_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue ensayos o inspecciones de lote (opcional)"
+  cp_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue información extra o montaje (opcional)"
+  out_instrucao:
+    titulo: "Material Personalizado o Fabricación Propia"
+    corpo: "Registre abajo el comprobante de adquisición de la materia prima, eventuales pruebas de calidad y todas las etapas de fabricación o detalles técnicos."
+  out_nf_numero:
+    label: "Factura / Comprobante (Número o Clave)"
+  out_nf_fornecedor:
+    label: "Proveedor / Tienda"
+  out_nf_foto:
+    label: "Foto o PDF de la Factura / Comprobante"
+  out_testes:
+    label: "Pruebas de Calidad"
+    sublabel: "Agregue ensayos o pruebas realizadas (opcional)"
+  out_detalhes:
+    label: "Detalles y Proceso de Fabricación"
+    sublabel: "Agregue cada etapa de fabricación o especificación técnica. Mínimo 1."
+  lista_itens_material_c:
+    label: "Materiales Registrados"
+    sublabel: "Agregue 1 material aislado o múltiples ítems que forman el conjunto. Mínimo 1."
+tipos_acao:
+  parabolt:
+    label: "Anclaje Mecánico / Parabolt"
+    sublabel: "Anclaje expansivo o espárrago mecánico"
+  teste_qualidade:
+    label: "Prueba de Calidad"
+    sublabel: "Ensayo mecánico, químico o informe"
+  detalhe_item:
+    label: "Detalle / Etapa de Fabricación"
+    sublabel: "Descripción libre con fotos, videos o PDFs"
+  chapeleta:
+    label: "Chapa"
+    sublabel: "Placa de anclaje sin argolla"
+  chapeleta_argola:
+    label: "Chapa con Argolla"
+    sublabel: "Conjunto de reunión / rápel con argolla integrada"
+  ancoragem_quimica:
+    label: "Anclaje Químico"
+    sublabel: "Resina química, ampolla o anclaje químico"
+  costura_permanente:
+    label: "Cinta Exprés Permanente"
+    sublabel: "Cinta fija, maillón y conector permanente"
+  outro:
+    label: "Otro"
+    sublabel: "Fabricación propia, conjuntos personalizados u otros insumos"
+opcoes:
+  aco_inox_316:
+    label: "Acero Inoxidable 316 / 316L"
+  aco_inox_304:
+    label: "Acero Inoxidable 304"
+  titanio:
+    label: "Titanio"
+  outro:
+    label: "Otro"
+  aco_galvanizado:
+    label: "Acero al Carbono Galvanizado"

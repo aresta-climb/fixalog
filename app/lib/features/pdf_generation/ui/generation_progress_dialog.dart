@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
@@ -12,11 +13,22 @@ class GenerationProgressDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(generationProvider);
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
+
+    final String titulo = ehPt
+        ? 'Selando Laudo Fixalog'
+        : (state.hasError
+              ? l10n.geracaoFalhaTitulo
+              : (state.isComplete
+                    ? l10n.geracaoConcluidaTitulo
+                    : l10n.geracaoEmAndamentoTitulo));
 
     return PopScope(
       canPop: state.isComplete || state.hasError,
       child: AlertDialog(
-        title: const Text('Selando Laudo Fixalog'),
+        title: Text(titulo),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -42,18 +54,27 @@ class GenerationProgressDialog extends ConsumerWidget {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('FECHAR', style: TextStyle(color: Colors.white)),
+              child: Text(
+                l10n.comumFechar,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-          if (state.isComplete && (state.epubPath != null || state.outputPath != null))
+          if (state.isComplete &&
+              (state.epubPath != null || state.outputPath != null))
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B00),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(0, 48),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               icon: const Icon(Icons.visibility),
-              label: const Text('VISUALIZAR RELATÓRIO'),
+              label: Text(
+                ehPt ? 'VISUALIZAR RELATÓRIO' : l10n.geracaoBotaoAbrirRelatorio,
+              ),
               onPressed: () {
                 final epub = state.epubPath ??
                     (state.outputPath?.endsWith('.epub') == true

@@ -1,0 +1,252 @@
+{
+  "@@locale": "ja",
+  "seletorIdiomaTitulo": "アプリの言語",
+  "seletorIdiomaSubtitulo": "画面表示、プロトコル、新規レポートの言語を変更します",
+  "comumSim": "はい",
+  "comumNao": "いいえ",
+  "comumCancelar": "キャンセル",
+  "comumRemover": "削除",
+  "comumFechar": "閉じる",
+  "comumErro": "エラー: {detalhe}",
+  "@comumErro": {
+    "placeholders": {
+      "detalhe": {
+        "type": "String"
+      }
+    }
+  },
+  "termosTituloTela": "利用規約および技術監査条件",
+  "termosCarregando": "利用規約を読み込み中...",
+  "termosErroCarregar": "ローカルの利用規約を読み込めませんでした。もう一度お試しください。",
+  "termosBotaoTentarNovamente": "再試行",
+  "termosBotaoLerPolitica": "プライバシーポリシーを読む",
+  "termosCheckboxDeclaro": "利用規約およびプライバシーポリシーを読み、同意します。",
+  "termosBotaoAceitar": "規約に同意して続行",
+  "termosBotaoRoleFinal": "最後までスクロールして有効化",
+  "politicaPrivacidadeTitulo": "プライバシーポリシー - Fixalog",
+  "politicaPrivacidadeErroCarregar": "プライバシーポリシーを読み込めませんでした。",
+  "identidadeTituloInicial": "技術者ID設定",
+  "identidadeTituloEdicao": "技術者IDの編集",
+  "identidadeSubtituloInicial": "技術レポートに電子署名するためのプロフィールを設定します。",
+  "identidadeSubtituloEdicao": "登録情報を更新します。有効な暗号鍵はそのまま保持されます。",
+  "identidadeLabelNome": "氏名 *",
+  "identidadeHintNome": "例: 山田 太郎",
+  "identidadeLabelApelido": "ニックネーム (任意)",
+  "identidadeHintApelido": "例: アルパイン",
+  "identidadeLabelEmail": "メールアドレス *",
+  "identidadeHintEmail": "例: taro@example.com",
+  "identidadeLabelAssociacao": "所属団体・山岳会 (任意)",
+  "identidadeHintAssociacao": "例: JMA, JMGA, UIAAなど",
+  "identidadeErroNomeVazio": "氏名を入力してください。",
+  "identidadeErroEmailVazio": "メールアドレスを入力してください。",
+  "identidadeErroEmailInvalido": "メールアドレスの形式が正しくありません。",
+  "identidadeErroSalvar": "IDの保存に失敗しました: {erro}",
+  "@identidadeErroSalvar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "identidadeBotaoGerarChaves": "鍵を生成して続行",
+  "identidadeBotaoSalvarAlteracoes": "変更を保存",
+  "homeAbaNovo": "新規",
+  "homeAbaHistorico": "履歴",
+  "homeAbaConfig": "設定",
+  "configTituloSecaoIdentidade": "技術者IDと暗号鍵",
+  "configCertificadoAtivo": "X.509証明書 有効",
+  "configBotaoEditarDados": "プロフィールを編集",
+  "configBotaoExportarChave": "ID鍵をエクスポート",
+  "configBotaoImportarChave": "ID鍵をインポート",
+  "configExportarTituloModal": "ID鍵をエクスポート",
+  "configExportarDescricaoModal": ".fixalogkeyファイルをPBKDF2 + AES-256-GCMで暗号化するため、強力なパスワード（8文字以上）を設定してください。",
+  "configLabelSenhaExportacao": "ファイルのパスワード",
+  "configLabelConfirmarSenha": "パスワードの確認",
+  "configErroSenhaCurta": "パスワードは8文字以上で入力してください。",
+  "configErroSenhasDiferentes": "パスワードが一致しません。",
+  "configBotaoExportar": "エクスポート",
+  "configExportarSucesso": "IDバックアップを正常にエクスポートしました。",
+  "configExportarErro": "鍵のエクスポートに失敗しました: {erro}",
+  "@configExportarErro": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportarTituloModal": "ID鍵をインポート",
+  "configImportarDescricaoModal": "選択した.fixalogkeyファイルのパスワードを入力してください。現在の鍵は上書きされます。",
+  "configBotaoImportar": "インポート",
+  "configImportarSucesso": "技術者IDと暗号鍵を正常に復元しました！",
+  "configImportarErroSenha": "パスワードが正しくないか、鍵ファイルが破損しています。",
+  "novoProtocoloSelecione": "プロトコルを選択",
+  "novoProtocoloSubtitulo": "監査対応の新しいフィールドデータ記録を開始します。",
+  "novoProtocoloCardInspecaoTitulo": "目視点検",
+  "novoProtocoloCardInspecaoSub": "機械的介入を行わない、支点の状態・腐食の迅速な目視調査。",
+  "novoProtocoloCardManutencaoTitulo": "メンテナンス",
+  "novoProtocoloCardManutencaoSub": "アンカー交換、清掃、リボルティングの完全な作業報告。",
+  "novoProtocoloCardAberturaTitulo": "ルート開拓",
+  "novoProtocoloCardAberturaSub": "新規ルート、初登情報、トポ、設置プロテクションの完全な記録。",
+  "novoProtocoloCardExpressoTitulo": "クイック記録",
+  "novoProtocoloCardExpressoSub": "現場での写真、動画、PDF、自由メモの迅速な記録。",
+  "novoProtocoloCardMaterialTitulo": "資材登録",
+  "novoProtocoloCardMaterialSub": "機材、ロット番号、領収書、品質試験の登録とトレーサビリティ管理。",
+  "novoProtocoloErroCarregar": "プロトコルの読み込みエラー: {erro}",
+  "@novoProtocoloErroCarregar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoTitulo": "監査履歴",
+  "historicoSubtitulo": "この端末にローカル保存されたセッション。",
+  "historicoAbaRelatorios": "レポート ({quantidade})",
+  "@historicoAbaRelatorios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoAbaMateriais": "資材 ({quantidade})",
+  "@historicoAbaMateriais": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoVazioRelatoriosTitulo": "レポートが見つかりません",
+  "historicoVazioRelatoriosSub": "「新規」タブから新しいプロトコルを開始して、最初の監査を記録してください。",
+  "historicoVazioMateriaisTitulo": "登録された資材はありません",
+  "historicoVazioMateriaisSub": "「新規」タブで資材を登録すると、メンテナンスレポートで参照できます。",
+  "historicoBotaoNovoMaterial": "資材を登録",
+  "historicoStatusConcluido": "完了",
+  "historicoStatusEmProgresso": "作成中",
+  "historicoStatusFalha": "失敗",
+  "historicoBotaoVerRelatorio": "レポートを表示",
+  "historicoBotaoGerarRelatorio": "レポートを生成",
+  "historicoBotaoContinuar": "再開",
+  "historicoBotaoEditar": "編集",
+  "historicoBotaoDuplicar": "複製",
+  "historicoBotaoExcluir": "削除",
+  "historicoConfirmarExclusaoTitulo": "記録を削除しますか？",
+  "historicoConfirmarExclusaoCorpo": "「{titulo}」を削除してもよろしいですか？ローカルファイルが削除され、元に戻すことはできません。",
+  "@historicoConfirmarExclusaoCorpo": {
+    "placeholders": {
+      "titulo": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoMaterialEmUsoTitulo": "レポートで参照されている資材",
+  "historicoMaterialEmUsoCorpo": "この資材は他のレポートで参照されています。削除しても発行済みのレポートは消えませんが、有効なカタログからは削除されます。",
+  "wizardPassoNumero": "ステップ {numero}",
+  "@wizardPassoNumero": {
+    "placeholders": {
+      "numero": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardBotaoVoltarPasso": "このステップに戻る",
+  "wizardBotaoConcluir": "完了",
+  "wizardBotaoSeguinte": "次へ",
+  "wizardBotaoPular": "スキップ",
+  "wizardBotaoConcluirLista": "リストを完了 ({quantidade})",
+  "@wizardBotaoConcluirLista": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardAvisoCamposObrigatorios": "続行するには、すべての必須項目を入力してください。",
+  "wizardAvisoPassoAnteriorObrigatorio": "続行するには、前のステップのすべての必須項目を入力してください。",
+  "wizardAvisoCamposItemObrigatorios": "この項目の必須フィールドを入力してください。",
+  "wizardBotaoAdicionarItem": "項目を追加",
+  "wizardBotaoAdicionarOutro": "さらに追加",
+  "wizardMinimoItensObrigatorios": "最低 {minimo} 件の項目が必要です。",
+  "@wizardMinimoItensObrigatorios": {
+    "placeholders": {
+      "minimo": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardSelecioneTipo": "種類を選択",
+  "wizardBotaoConfirmarItem": "項目を確定",
+  "wizardRemoverItemTitulo": "項目を削除しますか？",
+  "wizardRemoverItemCorpo": "「{item}」を削除しますか？",
+  "@wizardRemoverItemCorpo": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "wizardHintTexto": "ここに入力...",
+  "wizardHintTextoArea": "ここに入力... (**太字**、*斜体*、# 見出し、リストに対応)",
+  "wizardHintNumeros": "数字のみ",
+  "wizardGpsDesativado": "位置情報サービスが無効です。",
+  "wizardGpsCapturado": "GPS座標取得済み",
+  "wizardGpsCapturar": "GPS位置を取得",
+  "wizardMidiaAdicionar": "メディアを追加",
+  "wizardMidiaSubVazio": "写真、動画、またはPDF",
+  "wizardMidiaSubMais": "別の写真、動画、またはPDFを追加",
+  "wizardMidiaPdfAnexado": "PDF添付済み",
+  "wizardMidiaVideoGravado": "動画記録済み",
+  "wizardMidiaFotoCapturada": "写真撮影済み",
+  "wizardMidiaProcessandoUm": "メディアを処理中...",
+  "wizardMidiaProcessandoVarios": "{quantidade} 件のメディアを処理中...",
+  "@wizardMidiaProcessandoVarios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardMidiaProcessandoSub": "バックグラウンドで保存および完全性ハッシュを計算中...",
+  "wizardMidiaModalTitulo": "メディアを追加 (写真・動画・PDF)",
+  "wizardMidiaTirarFoto": "カメラで写真を撮る",
+  "wizardMidiaGravarVideo": "カメラで動画を撮る",
+  "wizardMidiaEscolherGaleria": "ギャラリーから選択",
+  "wizardMidiaEscolherGaleriaSub": "写真と動画",
+  "wizardMidiaSelecionarPdf": "PDFファイルを選択",
+  "wizardRefMatVazioCatalogo": "カタログに資材がまだ登録されていません。\n下のボタンから新しい資材を登録してください。",
+  "wizardRefMatVazioBloco": "ブロック1に資材が登録されていません。\n戻って先に資材を追加してください。",
+  "wizardBotaoCadastrarNovoMaterial": "新しい資材を登録",
+  "wizardConclusaoTitulo": "プロトコル完了",
+  "wizardConclusaoSubtitulo": "すべてのデータがオフラインで収集されました。\n記録の電子署名とエクスポートが可能です。",
+  "wizardBotaoGerarRelatorio": "レポートを生成",
+  "wizardSufixoCopia": "コピー",
+  "geracaoEmAndamentoTitulo": "レポート生成中",
+  "geracaoConcluidaTitulo": "レポート完了",
+  "geracaoFalhaTitulo": "生成失敗",
+  "geracaoBotaoAbrirRelatorio": "レポートを開く",
+  "visualizadorAbaEpub": "EPUB 3 レポート",
+  "visualizadorAbaPdf": "PDF 概要",
+  "visualizadorBotaoCompartilhar": "共有",
+  "visualizadorBotaoAbrirExterno": "外部アプリで開く",
+  "laudoRotuloProtocolo": "プロトコル",
+  "laudoRotuloSessao": "セッション",
+  "laudoRotuloEmissao": "発行日時 UTC",
+  "laudoRotuloVersao": "バージョン",
+  "laudoSecaoIdentidadeTitulo": "発行者の技術者ID",
+  "laudoRotuloNome": "氏名",
+  "laudoRotuloEmail": "メール",
+  "laudoRotuloAssociacao": "所属団体",
+  "laudoSecaoIntegridadeTitulo": "暗号学的完全性とチェーン・オブ・カストディ",
+  "laudoAvisoResumoImpresso": "このPDFは迅速な印刷用のエグゼクティブサマリーです。高解像度メディア、動画、およびX.509 XML-DSig電子署名を含む完全な鑑定レポートは、対応するEPUB 3ファイルに格納されています。",
+  "laudoSecaoAnexoCatalogoTitulo": "付録 — 参照資材カタログ",
+  "laudoRotuloVideoAnexo": "EPUB 3に添付された動画",
+  "laudoRotuloDocumentoPdf": "PDFドキュメント ({paginas} ページ)",
+  "@laudoRotuloDocumentoPdf": {
+    "placeholders": {
+      "paginas": {
+        "type": "int"
+      }
+    }
+  }
+}

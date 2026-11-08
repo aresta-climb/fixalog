@@ -4,6 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/ui/generation_progress_dialog.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 
@@ -17,7 +19,9 @@ class _FakeGenerationNotifier extends StateNotifier<GenerationState>
 
 void main() {
   group('GenerationProgressDialog Widget Tests', () {
-    testWidgets('exibe indicador de carregamento e status inicial', (tester) async {
+    testWidgets('exibe indicador de carregamento e status inicial', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -42,33 +46,36 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('exibe estado de sucesso e botão VISUALIZAR RELATÓRIO (sem ABRIR PDF)', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            generationProvider.overrideWith(
-              (ref) => _FakeGenerationNotifier(
-                GenerationState(
-                  progress: 1.0,
-                  status: 'Selo Fixalog aplicado com sucesso!',
-                  isComplete: true,
-                  outputPath: '/path/to/laudo.epub',
+    testWidgets(
+      'exibe estado de sucesso e botão VISUALIZAR RELATÓRIO (sem ABRIR PDF)',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              generationProvider.overrideWith(
+                (ref) => _FakeGenerationNotifier(
+                  GenerationState(
+                    progress: 1.0,
+                    status: 'Selo Fixalog aplicado com sucesso!',
+                    isComplete: true,
+                    outputPath: '/path/to/laudo.epub',
+                  ),
                 ),
               ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: GenerationProgressDialog()),
             ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: GenerationProgressDialog()),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Selo Fixalog aplicado com sucesso!'), findsOneWidget);
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      expect(find.text('FECHAR'), findsOneWidget);
-      expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
-      expect(find.text('ABRIR PDF'), findsNothing);
-    });
+        expect(find.text('Selo Fixalog aplicado com sucesso!'), findsOneWidget);
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+        expect(find.text('FECHAR'), findsOneWidget);
+        expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
+        expect(find.text('ABRIR PDF'), findsNothing);
+      },
+    );
 
     testWidgets('exibe estado de erro', (tester) async {
       await tester.pumpWidget(
@@ -131,6 +138,55 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renderiza títulos e botões localizados em Inglês, Árabe e Japonês',
+      (tester) async {
+        late WidgetRef refCapturado;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+              generationProvider.overrideWith(
+                (ref) => _FakeGenerationNotifier(
+                  GenerationState(
+                    progress: 1.0,
+                    status: 'Done!',
+                    isComplete: true,
+                    outputPath: '/path/to/laudo.epub',
+                  ),
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) {
+                    refCapturado = ref;
+                    return const GenerationProgressDialog();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('REPORT READY'), findsOneWidget);
+        expect(find.text('CLOSE'), findsOneWidget);
+        expect(find.text('OPEN REPORT'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('ja');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('閉じる'), findsOneWidget);
       },
     );
   });

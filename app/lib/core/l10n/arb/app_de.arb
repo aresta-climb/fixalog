@@ -1,0 +1,252 @@
+{
+  "@@locale": "de",
+  "seletorIdiomaTitulo": "App-Sprache",
+  "seletorIdiomaSubtitulo": "Ändert die Sprache der Benutzeroberfläche, Protokolle und neuen Berichte",
+  "comumSim": "Ja",
+  "comumNao": "Nein",
+  "comumCancelar": "ABBRECHEN",
+  "comumRemover": "ENTFERNEN",
+  "comumFechar": "SCHLIESSEN",
+  "comumErro": "Fehler: {detalhe}",
+  "@comumErro": {
+    "placeholders": {
+      "detalhe": {
+        "type": "String"
+      }
+    }
+  },
+  "termosTituloTela": "Nutzungsbedingungen und Technische Prüfung",
+  "termosCarregando": "Nutzungsbedingungen werden geladen...",
+  "termosErroCarregar": "Die lokalen Nutzungsbedingungen konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+  "termosBotaoTentarNovamente": "Erneut Versuchen",
+  "termosBotaoLerPolitica": "Datenschutzerklärung Lesen",
+  "termosCheckboxDeclaro": "Ich habe die Nutzungsbedingungen und die Datenschutzerklärung gelesen und stimme ihnen zu.",
+  "termosBotaoAceitar": "Bedingungen Akzeptieren und Fortfahren",
+  "termosBotaoRoleFinal": "Nach unten scrollen, um zu aktivieren",
+  "politicaPrivacidadeTitulo": "Datenschutzerklärung - Fixalog",
+  "politicaPrivacidadeErroCarregar": "Die Datenschutzerklärung konnte nicht geladen werden.",
+  "identidadeTituloInicial": "TECHNISCHE IDENTITÄT",
+  "identidadeTituloEdicao": "TECHNISCHE IDENTITÄT BEARBEITEN",
+  "identidadeSubtituloInicial": "Richten Sie Ihre Daten ein, um technische Berichte digital zu signieren.",
+  "identidadeSubtituloEdicao": "Aktualisieren Sie Ihre Profildaten. Ihr aktiver kryptografischer Schlüssel bleibt erhalten.",
+  "identidadeLabelNome": "Vollständiger Name *",
+  "identidadeHintNome": "Z. B. Max Mustermann",
+  "identidadeLabelApelido": "Spitzname (Optional)",
+  "identidadeHintApelido": "Z. B. Alpinist",
+  "identidadeLabelEmail": "E-Mail *",
+  "identidadeHintEmail": "Z. B. max@beispiel.de",
+  "identidadeLabelAssociacao": "Verband / Verein (Optional)",
+  "identidadeHintAssociacao": "Z. B. DAV, ÖAV, SAC, UIAA...",
+  "identidadeErroNomeVazio": "Der vollständige Name darf nicht leer sein.",
+  "identidadeErroEmailVazio": "Die E-Mail darf nicht leer sein.",
+  "identidadeErroEmailInvalido": "Ungültiges E-Mail-Format.",
+  "identidadeErroSalvar": "Fehler beim Speichern der Identität: {erro}",
+  "@identidadeErroSalvar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "identidadeBotaoGerarChaves": "SCHLÜSSEL GENERIEREN UND FORTFAHREN",
+  "identidadeBotaoSalvarAlteracoes": "ÄNDERUNGEN SPEICHERN",
+  "homeAbaNovo": "NEU",
+  "homeAbaHistorico": "VERLAUF",
+  "homeAbaConfig": "OPTIONEN",
+  "configTituloSecaoIdentidade": "IDENTITÄT UND KRYPTOGRAFISCHER SCHLÜSSEL",
+  "configCertificadoAtivo": "AKTIVES X.509-ZERTIFIKAT",
+  "configBotaoEditarDados": "PROFILDATEN BEARBEITEN",
+  "configBotaoExportarChave": "IDENTITÄTSSCHLÜSSEL EXPORTIEREN",
+  "configBotaoImportarChave": "IDENTITÄTSSCHLÜSSEL IMPORTIEREN",
+  "configExportarTituloModal": "IDENTITÄTSSCHLÜSSEL EXPORTIEREN",
+  "configExportarDescricaoModal": "Legen Sie ein starkes Passwort (mindestens 8 Zeichen) fest, um die .fixalogkey-Datei mit PBKDF2 + AES-256-GCM zu verschlüsseln.",
+  "configLabelSenhaExportacao": "Dateipasswort",
+  "configLabelConfirmarSenha": "Passwort bestätigen",
+  "configErroSenhaCurta": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+  "configErroSenhasDiferentes": "Die Passwörter stimmen nicht überein.",
+  "configBotaoExportar": "EXPORTIEREN",
+  "configExportarSucesso": "Identitäts-Backup erfolgreich exportiert.",
+  "configExportarErro": "Fehler beim Exportieren des Schlüssels: {erro}",
+  "@configExportarErro": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportarTituloModal": "IDENTITÄTSSCHLÜSSEL IMPORTIEREN",
+  "configImportarDescricaoModal": "Geben Sie das Passwort der ausgewählten .fixalogkey-Datei ein. Der aktuelle Schlüssel wird ersetzt.",
+  "configBotaoImportar": "IMPORTIEREN",
+  "configImportarSucesso": "Identität und kryptografischer Schlüssel erfolgreich wiederhergestellt!",
+  "configImportarErroSenha": "Falsches Passwort oder beschädigte Schlüsseldatei.",
+  "novoProtocoloSelecione": "PROTOKOLL AUSWÄHLEN",
+  "novoProtocoloSubtitulo": "Starten Sie eine neue geprüfte Datenerfassung.",
+  "novoProtocoloCardInspecaoTitulo": "Sichtprüfung",
+  "novoProtocoloCardInspecaoSub": "Schnelle Überprüfung von Allgemeinzustand und Korrosion ohne mechanischen Eingriff.",
+  "novoProtocoloCardManutencaoTitulo": "Wartung",
+  "novoProtocoloCardManutencaoSub": "Vollständiger Bericht über Hakenwechsel, Reinigung und Sanierung.",
+  "novoProtocoloCardAberturaTitulo": "Neutour / Erstbegehung",
+  "novoProtocoloCardAberturaSub": "Vollständige Dokumentation einer neuen Linie, Topo und installierter Sicherungen.",
+  "novoProtocoloCardExpressoTitulo": "Express-Protokoll",
+  "novoProtocoloCardExpressoSub": "Schnelle Erfassung von Fotos, Videos, PDFs und freien Feldnotizen.",
+  "novoProtocoloCardMaterialTitulo": "Material",
+  "novoProtocoloCardMaterialSub": "Erfassung und Rückverfolgbarkeit von Material, Chargen, Belegen und Prüfungen.",
+  "novoProtocoloErroCarregar": "Fehler beim Laden des Protokolls: {erro}",
+  "@novoProtocoloErroCarregar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoTitulo": "PRÜFUNGSVERLAUF",
+  "historicoSubtitulo": "Lokal auf dem Gerät gespeicherte Sitzungen.",
+  "historicoAbaRelatorios": "BERICHTE ({quantidade})",
+  "@historicoAbaRelatorios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoAbaMateriais": "MATERIALIEN ({quantidade})",
+  "@historicoAbaMateriais": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoVazioRelatoriosTitulo": "Keine Berichte gefunden",
+  "historicoVazioRelatoriosSub": "Starten Sie ein neues Protokoll im Reiter NEU, um Ihre erste Prüfung aufzuzeichnen.",
+  "historicoVazioMateriaisTitulo": "Keine Materialien registriert",
+  "historicoVazioMateriaisSub": "Registrieren Sie Materialien im Reiter NEU, um sie in Wartungsberichten zu verwenden.",
+  "historicoBotaoNovoMaterial": "MATERIAL REGISTRIEREN",
+  "historicoStatusConcluido": "ABGESCHLOSSEN",
+  "historicoStatusEmProgresso": "IN BEARBEITUNG",
+  "historicoStatusFalha": "FEHLGESCHLAGEN",
+  "historicoBotaoVerRelatorio": "BERICHT ANSEHEN",
+  "historicoBotaoGerarRelatorio": "BERICHT ERSTELLEN",
+  "historicoBotaoContinuar": "FORTSETZEN",
+  "historicoBotaoEditar": "BEARBEITEN",
+  "historicoBotaoDuplicar": "DUPLIZIEREN",
+  "historicoBotaoExcluir": "LÖSCHEN",
+  "historicoConfirmarExclusaoTitulo": "Eintrag löschen?",
+  "historicoConfirmarExclusaoCorpo": "Möchten Sie \"{titulo}\" wirklich löschen? Diese Aktion entfernt lokale Dateien und kann nicht rückgängig gemacht werden.",
+  "@historicoConfirmarExclusaoCorpo": {
+    "placeholders": {
+      "titulo": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoMaterialEmUsoTitulo": "Material mit Berichten verknüpft",
+  "historicoMaterialEmUsoCorpo": "Dieses Material wird in anderen Berichten referenziert. Durch das Löschen werden bereits ausgestellte Berichte nicht gelöscht, das Element wird jedoch aus dem aktiven Katalog entfernt.",
+  "wizardPassoNumero": "SCHRITT {numero}",
+  "@wizardPassoNumero": {
+    "placeholders": {
+      "numero": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardBotaoVoltarPasso": "ZU DIESEM SCHRITT ZURÜCKKEHREN",
+  "wizardBotaoConcluir": "ABSCHLIESSEN",
+  "wizardBotaoSeguinte": "WEITER",
+  "wizardBotaoPular": "ÜBERSPRINGEN",
+  "wizardBotaoConcluirLista": "LISTE ABSCHLIESSEN ({quantidade})",
+  "@wizardBotaoConcluirLista": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardAvisoCamposObrigatorios": "Bitte füllen Sie alle Pflichtfelder aus, um fortzufahren.",
+  "wizardAvisoPassoAnteriorObrigatorio": "Bitte füllen Sie alle Pflichtfelder des vorherigen Schritts aus, um fortzufahren.",
+  "wizardAvisoCamposItemObrigatorios": "Bitte füllen Sie die Pflichtfelder des Elements aus.",
+  "wizardBotaoAdicionarItem": "ELEMENT HINZUFÜGEN",
+  "wizardBotaoAdicionarOutro": "WEITERES HINZUFÜGEN",
+  "wizardMinimoItensObrigatorios": "Mindestens {minimo} Pflichtelement(e).",
+  "@wizardMinimoItensObrigatorios": {
+    "placeholders": {
+      "minimo": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardSelecioneTipo": "TYP AUSWÄHLEN",
+  "wizardBotaoConfirmarItem": "ELEMENT BESTÄTIGEN",
+  "wizardRemoverItemTitulo": "Element entfernen?",
+  "wizardRemoverItemCorpo": "\"{item}\" entfernen?",
+  "@wizardRemoverItemCorpo": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "wizardHintTexto": "Hier eingeben...",
+  "wizardHintTextoArea": "Hier eingeben... (unterstützt **fett**, *kursiv*, # Überschrift und Listen)",
+  "wizardHintNumeros": "Nur Zahlen",
+  "wizardGpsDesativado": "Standortdienst deaktiviert.",
+  "wizardGpsCapturado": "KOORDINATEN ERFASST",
+  "wizardGpsCapturar": "GPS-POSITION ERFASSEN",
+  "wizardMidiaAdicionar": "MEDIEN HINZUFÜGEN",
+  "wizardMidiaSubVazio": "Fotos, Videos oder PDFs",
+  "wizardMidiaSubMais": "Weiteres Foto, Video oder PDF hinzufügen",
+  "wizardMidiaPdfAnexado": "PDF ANGEHÄNGT",
+  "wizardMidiaVideoGravado": "VIDEO AUFGENOMMEN",
+  "wizardMidiaFotoCapturada": "FOTO AUFGENOMMEN",
+  "wizardMidiaProcessandoUm": "MEDIEN WERDEN VERARBEITET...",
+  "wizardMidiaProcessandoVarios": "{quantidade} MEDIEN WERDEN VERARBEITET...",
+  "@wizardMidiaProcessandoVarios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardMidiaProcessandoSub": "Speichern und Integritätsberechnung im Hintergrund...",
+  "wizardMidiaModalTitulo": "MEDIEN HINZUFÜGEN (FOTO, VIDEO ODER PDF)",
+  "wizardMidiaTirarFoto": "Foto mit Kamera aufnehmen",
+  "wizardMidiaGravarVideo": "Video mit Kamera aufnehmen",
+  "wizardMidiaEscolherGaleria": "Aus Galerie auswählen",
+  "wizardMidiaEscolherGaleriaSub": "Fotos und Videos",
+  "wizardMidiaSelecionarPdf": "PDF-Datei auswählen",
+  "wizardRefMatVazioCatalogo": "Noch keine Materialien im Katalog registriert.\nTippen Sie unten, um ein neues Material zu registrieren.",
+  "wizardRefMatVazioBloco": "Keine Materialien in Block 1 registriert.\nGehen Sie zurück und fügen Sie zuerst Materialien hinzu.",
+  "wizardBotaoCadastrarNovoMaterial": "NEUES MATERIAL REGISTRIEREN",
+  "wizardConclusaoTitulo": "PROTOKOLL ABGESCHLOSSEN",
+  "wizardConclusaoSubtitulo": "Alle Daten wurden offline erfasst.\nDer Eintrag ist bereit zum Signieren und Exportieren.",
+  "wizardBotaoGerarRelatorio": "BERICHT ERSTELLEN",
+  "wizardSufixoCopia": "Kopie",
+  "geracaoEmAndamentoTitulo": "BERICHT WIRD ERSTELLT",
+  "geracaoConcluidaTitulo": "BERICHT BEREIT",
+  "geracaoFalhaTitulo": "ERSTELLUNG FEHLGESCHLAGEN",
+  "geracaoBotaoAbrirRelatorio": "BERICHT ÖFFNEN",
+  "visualizadorAbaEpub": "EPUB 3 BERICHT",
+  "visualizadorAbaPdf": "PDF-ZUSAMMENFASSUNG",
+  "visualizadorBotaoCompartilhar": "TEILEN",
+  "visualizadorBotaoAbrirExterno": "EXTERN ÖFFNEN",
+  "laudoRotuloProtocolo": "PROTOKOLL",
+  "laudoRotuloSessao": "SITZUNG",
+  "laudoRotuloEmissao": "AUSGESTELLT UTC",
+  "laudoRotuloVersao": "VERSION",
+  "laudoSecaoIdentidadeTitulo": "TECHNISCHE IDENTITÄT DES AUSSTELLERS",
+  "laudoRotuloNome": "Name",
+  "laudoRotuloEmail": "E-Mail",
+  "laudoRotuloAssociacao": "Verband",
+  "laudoSecaoIntegridadeTitulo": "KRYPTOGRAFISCHE INTEGRITÄT UND NACHWEISKETTE",
+  "laudoAvisoResumoImpresso": "Dieses PDF ist eine Kurzzusammenfassung für den schnellen Ausdruck. Der vollständige Sachverständigenbericht mit hochauflösenden Medien, Videos und digitaler X.509 XML-DSig-Signatur befindet sich in der entsprechenden EPUB 3-Datei.",
+  "laudoSecaoAnexoCatalogoTitulo": "ANHANG — KATALOG DER REFERENZIERTEN MATERIALIEN",
+  "laudoRotuloVideoAnexo": "Video im EPUB 3 angehängt",
+  "laudoRotuloDocumentoPdf": "PDF-Dokument ({paginas} S.)",
+  "@laudoRotuloDocumentoPdf": {
+    "placeholders": {
+      "paginas": {
+        "type": "int"
+      }
+    }
+  }
+}

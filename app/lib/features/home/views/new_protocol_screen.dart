@@ -5,9 +5,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../wizard/views/wizard_screen.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
-
 
 class NewProtocolScreen extends ConsumerWidget {
   const NewProtocolScreen({super.key});
@@ -15,9 +15,14 @@ class NewProtocolScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final identityAsync = ref.watch(currentIdentityProvider);
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
 
     String firstName = '';
-    String clubName = 'MANTENEDOR INDEPENDENTE';
+    String clubName = ehPt
+        ? 'MANTENEDOR INDEPENDENTE'
+        : l10n.laudoSecaoIdentidadeTitulo;
     identityAsync.whenData((identity) {
       if (identity != null) {
         if (identity.nome.isNotEmpty) {
@@ -29,6 +34,14 @@ class NewProtocolScreen extends ConsumerWidget {
         }
       }
     });
+
+    final String saudacao = ehPt
+        ? (firstName.isNotEmpty ? 'Boa jornada, $firstName.' : 'Boa jornada.')
+        : (firstName.isNotEmpty
+              ? '$firstName — ${l10n.novoProtocoloSubtitulo}'
+              : l10n.novoProtocoloSubtitulo);
+
+    final String rotuloBotaoIniciar = ehPt ? 'INICIAR' : l10n.wizardBotaoSeguinte;
 
     return Stack(
       children: [
@@ -108,7 +121,6 @@ class NewProtocolScreen extends ConsumerWidget {
                       'FIXALOG',
                       style: TextStyle(
                         color: Color(0xFFFF6B00),
-                        fontFamily: 'SpaceGrotesk',
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         letterSpacing: 2.0,
@@ -120,12 +132,9 @@ class NewProtocolScreen extends ConsumerWidget {
 
                 // Greeting
                 Text(
-                  firstName.isNotEmpty
-                      ? 'Boa jornada, $firstName.'
-                      : 'Boa jornada.',
+                  saudacao,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontFamily: 'SpaceGrotesk',
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
@@ -143,13 +152,15 @@ class NewProtocolScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      clubName,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.0,
+                    Expanded(
+                      child: Text(
+                        clubName,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.0,
+                        ),
                       ),
                     ),
                   ],
@@ -158,7 +169,9 @@ class NewProtocolScreen extends ConsumerWidget {
 
                 // Section Title
                 Text(
-                  'NOVO REGISTRO DE MANUTENÇÃO',
+                  ehPt
+                      ? 'NOVO REGISTRO DE MANUTENÇÃO'
+                      : l10n.novoProtocoloSelecione,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 10,
@@ -171,9 +184,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 // Protocol Cards
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'PROTOCOLO PREVENTIVO',
+                  tagText: ehPt
+                      ? 'PROTOCOLO PREVENTIVO'
+                      : l10n.novoProtocoloCardInspecaoSub,
                   tagColor: const Color(0xFFFF6B00),
-                  title: 'Inspeção Visual de\nProteções Fixas',
+                  title: ehPt
+                      ? 'Inspeção Visual de\nProteções Fixas'
+                      : l10n.novoProtocoloCardInspecaoTitulo,
+                  buttonLabel: rotuloBotaoIniciar,
                   iconData: Icons.remove_red_eye,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
@@ -193,9 +211,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'PROTOCOLO TÉCNICO',
+                  tagText: ehPt
+                      ? 'PROTOCOLO TÉCNICO'
+                      : l10n.novoProtocoloCardManutencaoSub,
                   tagColor: const Color(0xFFFF6B00),
-                  title: 'Manutenção de\nProteções Fixas',
+                  title: ehPt
+                      ? 'Manutenção de\nProteções Fixas'
+                      : l10n.novoProtocoloCardManutencaoTitulo,
+                  buttonLabel: rotuloBotaoIniciar,
                   iconData: Icons.handyman,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
@@ -215,9 +238,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'PROTOCOLO TÉCNICO',
+                  tagText: ehPt
+                      ? 'PROTOCOLO TÉCNICO'
+                      : l10n.novoProtocoloCardAberturaSub,
                   tagColor: const Color(0xFFFF6B00),
-                  title: 'Abertura de Via',
+                  title: ehPt
+                      ? 'Abertura de Via'
+                      : l10n.novoProtocoloCardAberturaTitulo,
+                  buttonLabel: rotuloBotaoIniciar,
                   iconData: Icons.terrain,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
@@ -237,9 +265,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'REGISTRO LIVRE',
+                  tagText: ehPt
+                      ? 'REGISTRO LIVRE'
+                      : l10n.novoProtocoloCardExpressoSub,
                   tagColor: const Color(0xFF00FF00),
-                  title: 'Registro Expresso\n(Fotos + Local)',
+                  title: ehPt
+                      ? 'Registro Expresso\n(Fotos + Local)'
+                      : l10n.novoProtocoloCardExpressoTitulo,
+                  buttonLabel: rotuloBotaoIniciar,
                   iconData: Icons.bolt,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
@@ -259,9 +292,14 @@ class NewProtocolScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildProtocolCard(
                   context: context,
-                  tagText: 'CATÁLOGO DE INSUMOS',
+                  tagText: ehPt
+                      ? 'CATÁLOGO DE INSUMOS'
+                      : l10n.novoProtocoloCardMaterialSub,
                   tagColor: const Color(0xFF4FC3F7),
-                  title: 'Cadastro de\nMateriais',
+                  title: ehPt
+                      ? 'Cadastro de\nMateriais'
+                      : l10n.novoProtocoloCardMaterialTitulo,
+                  buttonLabel: rotuloBotaoIniciar,
                   iconData: Icons.inventory_2_outlined,
                   onTap: () async {
                     final yamlContent = await rootBundle.loadString(
@@ -292,6 +330,7 @@ class NewProtocolScreen extends ConsumerWidget {
     required String tagText,
     required Color tagColor,
     required String title,
+    required String buttonLabel,
     required IconData iconData,
     required VoidCallback onTap,
   }) {
@@ -330,7 +369,6 @@ class NewProtocolScreen extends ConsumerWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontFamily: 'SpaceGrotesk',
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -356,18 +394,18 @@ class NewProtocolScreen extends ConsumerWidget {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'INICIAR',
-                        style: TextStyle(
+                        buttonLabel,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 14),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, size: 14),
                     ],
                   ),
                 ),

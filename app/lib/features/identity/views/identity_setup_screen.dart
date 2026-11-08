@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/l10n/resolvedor_idioma.dart';
 import '../viewmodels/identity_form_view_model.dart';
 import '../../home/views/home_screen.dart';
 
@@ -28,6 +29,9 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(identityFormViewModelProvider);
+    final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
+    final l10n = ResolvedorIdioma.obterTraducoes(locale);
+    final ehPt = locale.languageCode == 'pt';
 
     // React to success
     ref.listen<IdentityFormState>(identityFormViewModelProvider, (
@@ -119,7 +123,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
 
                 // Campo Nome
                 Text(
-                  'NOME COMPLETO',
+                  ehPt ? 'NOME COMPLETO' : l10n.identidadeLabelNome,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: const Color(
                       0xFFFFB693,
@@ -134,7 +138,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                   controller: _nomeController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'EX: ALEX HONNOLD',
+                    hintText: ehPt ? 'EX: ALEX HONNOLD' : l10n.identidadeHintNome,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.3),
                     ),
@@ -164,7 +168,9 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
 
                 // Campo Clube
                 Text(
-                  'CLUBE / ASSOCIAÇÃO DE ESCALADA (OPCIONAL)',
+                  ehPt
+                      ? 'CLUBE / ASSOCIAÇÃO DE ESCALADA (OPCIONAL)'
+                      : l10n.identidadeLabelAssociacao,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: const Color(0xFFFFB693),
                     fontWeight: FontWeight.bold,
@@ -177,7 +183,9 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                   controller: _clubeController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'EX: ACEC-MG',
+                    hintText: ehPt
+                        ? 'EX: ACEC-MG'
+                        : l10n.identidadeHintAssociacao,
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.3),
                     ),
@@ -224,22 +232,28 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                             size: 20,
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            'SEGURANÇA DE HARDWARE',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: const Color(
-                                    0xFFAED09F,
-                                  ), // Verde técnico do mock
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
+                          Expanded(
+                            child: Text(
+                              ehPt
+                                  ? 'SEGURANÇA DE HARDWARE'
+                                  : l10n.identidadeTituloInicial,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: const Color(
+                                      0xFFAED09F,
+                                    ), // Verde técnico do mock
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Ao prosseguir, uma chave privada RSA-4096 será gerada no Secure Enclave deste dispositivo. Suas manutenções serão assinadas digitalmente, garantindo integridade técnica inquestionável.',
+                        ehPt
+                            ? 'Ao prosseguir, uma chave privada RSA-4096 será gerada no Secure Enclave deste dispositivo. Suas manutenções serão assinadas digitalmente, garantindo integridade técnica inquestionável.'
+                            : l10n.identidadeSubtituloInicial,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(
                             0xFFFFB693,
@@ -341,12 +355,17 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'GERAR CHAVES E ENTRAR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                              Flexible(
+                                child: Text(
+                                  ehPt
+                                      ? 'GERAR CHAVES E ENTRAR'
+                                      : l10n.identidadeBotaoGerarChaves,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),

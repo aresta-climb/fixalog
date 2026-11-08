@@ -419,6 +419,23 @@ protocolo:
           arvoreSemFallback.tituloExibicao,
           equals('Protocolo de Vistoria Completa'),
         );
+
+        final arvoreTraduzidaEn = ConstrutorArvoreRelatorio().construir(
+          registro,
+          codigoIdioma: 'en',
+          traducoes: {
+            'protocolo': {'nome': 'Full Inspection Protocol'},
+            'conteudos': {
+              'autorizado': {'label': 'Has Authorization?'},
+            },
+          },
+        );
+        expect(arvoreTraduzidaEn.nomeProtocolo, equals('Full Inspection Protocol'));
+        final gradeEn = arvoreTraduzidaEn.blocos[1].nodos[0] as GradePropriedadesRelatorio;
+        expect(
+          gradeEn.propriedades.map((p) => '${p.rotulo}: ${p.valor}').toList(),
+          contains('Has Authorization?: No'),
+        );
       },
     );
   });

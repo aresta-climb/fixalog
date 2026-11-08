@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Visual Inspection of Fixed Anchors"
+  descricao: "Periodic monitoring and point-by-point visual inspection report of existing fixed anchors without mechanical intervention."
+blocos:
+  via:
+    titulo: "Block 1 — Route Identification"
+    subtitulo: "Date, location and identification details of the inspected route"
+  inspecao:
+    titulo: "Block 2 — Point-by-Point Inspection"
+    subtitulo: "Record the visual condition of each evaluated point along the route. Minimum 1."
+  avaliacao:
+    titulo: "Block 3 — Final Route Status"
+    subtitulo: "Overall summary of the route condition after visual inspection"
+conteudos:
+  via_aviso:
+    titulo: "Route Identification"
+    corpo: "Fill in the location and date of the visual inspection. GPS coordinates are mandatory."
+  via_data:
+    label: "Inspection Date"
+    sublabel: "Automatically filled with current date (editable)"
+  via_gps:
+    label: "GPS Location"
+  via_nome:
+    label: "Route Name"
+  via_setor:
+    label: "Sector / Crag"
+  via_pico:
+    label: "Peak / Area"
+  iv_pa_posicao:
+    label: "Point Position / Identification"
+    sublabel: "E.g.: 1st bolt, 3rd staple, crux bolt"
+  iv_pa_estado:
+    label: "Overall Anchor Condition"
+    sublabel: "Visually assess the physical integrity of the metal and placement."
+    opcoes:
+      bom:
+        label: "Good"
+        sublabel: "NO ISSUES"
+      desgastado:
+        label: "Worn / Attention"
+        sublabel: "MONITOR"
+      critico:
+        label: "Critical / Condemned"
+        sublabel: "REQUIRES REPLACEMENT"
+  iv_pa_corrosao:
+    label: "Presence of Corrosion or Looseness?"
+    sublabel: "Check for signs of rust, cracks or hanger rotation."
+  iv_pa_nota:
+    label: "Observations"
+  iv_pa_midia:
+    label: "Evidence Media"
+    sublabel: "Attach photos or videos showing the condition of the point"
+  iv_pr_posicao:
+    label: "Belay Station Identification"
+    sublabel: "E.g.: Belay P1, Top Anchor"
+  iv_pr_estado:
+    label: "Overall Belay Station Condition"
+    opcoes:
+      bom:
+        label: "Good"
+        sublabel: "NO ISSUES"
+      desgastado:
+        label: "Worn / Attention"
+        sublabel: "MONITOR RING/LINK WEAR"
+      critico:
+        label: "Critical / Condemned"
+        sublabel: "REQUIRES IMMEDIATE MAINTENANCE"
+  iv_pr_corrosao:
+    label: "Presence of Corrosion or Deep Grooving?"
+  iv_pr_nota:
+    label: "Observations"
+  iv_pr_midia:
+    label: "Evidence Media"
+  iv_ra_descricao:
+    label: "Occurrence Location and Description"
+  iv_ra_estado:
+    label: "Attention Level"
+    opcoes:
+      informativo:
+        label: "Informational / Low Risk"
+        sublabel: "No immediate impact on safety"
+      atencao:
+        label: "Caution"
+        sublabel: "Requires care when climbing or future cleaning"
+      critico:
+        label: "Critical Risk"
+        sublabel: "Risk of rockfall or accident"
+  iv_ra_midia:
+    label: "Evidence Media (optional)"
+  lista_inspecao_c:
+    label: "Inspected Points"
+    sublabel: "Add each evaluated anchor, belay station or rock condition. Minimum 1."
+  avaliacao_condicao:
+    label: "Final route status for climbing"
+    opcoes:
+      liberada:
+        label: "Open for climbing"
+        sublabel: "Anchors in good visual condition"
+      liberada_restricao:
+        label: "Open with restrictions"
+        sublabel: "Points require attention — check observations"
+      interditada:
+        label: "Closed / Awaiting Maintenance"
+        sublabel: "Do not climb until maintenance is performed"
+  avaliacao_comentarios:
+    label: "General inspection summary and observations (optional)"
+tipos_acao:
+  protecao_ancoragem:
+    label: "Anchor / Bolt"
+    sublabel: "Intermediate hanger, expansion bolt, staple or glue-in anchor"
+  parada_rapel:
+    label: "Belay / Rappel Station"
+    sublabel: "Double/triple anchor station, rings or chains"
+  rocha_ambiente:
+    label: "Rock / Environment"
+    sublabel: "Loose block, unstable flake, vegetation or approach"
+opcoes:
+  bom:
+    label: "Good"
+    sublabel: "NO ISSUES"
+  desgastado:
+    label: "Worn / Attention"
+    sublabel: "MONITOR"
+  critico:
+    label: "Critical / Condemned"
+    sublabel: "REQUIRES REPLACEMENT"
+  informativo:
+    label: "Informational / Low Risk"
+    sublabel: "No immediate impact on safety"
+  atencao:
+    label: "Caution"
+    sublabel: "Requires care when climbing or future cleaning"
+  liberada:
+    label: "Open for climbing"
+    sublabel: "Anchors in good visual condition"
+  liberada_restricao:
+    label: "Open with restrictions"
+    sublabel: "Points require attention — check observations"
+  interditada:
+    label: "Closed / Awaiting Maintenance"
+    sublabel: "Do not climb until maintenance is performed"

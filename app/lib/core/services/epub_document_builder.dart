@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:ui';
+
+import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
 import 'construtor_arvore_relatorio.dart';
 
@@ -32,11 +35,58 @@ class EpubDocumentBuilder {
     );
   }
 
-  /// Gera a folha de estilos CSS completa com regras para visualização em tela e impressão.
-  String gerarCss() {
+  /// Gera a folha de estilos CSS completa com regras para visualização em tela e impressão,
+  /// declarando seletivamente os `@font-face` da família Google Noto Sans para [codigoIdioma].
+  String gerarCss({String codigoIdioma = 'pt'}) {
+    final codigoNorm = codigoIdioma.split(RegExp(r'[-_]')).first.toLowerCase();
+    final fontFacesAdicionais = StringBuffer();
+    if (codigoNorm == 'ar') {
+      fontFacesAdicionais.write('''
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/NotoSansArabic-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/NotoSansArabic-Bold.ttf') format('truetype');
+}
+''');
+    } else if (codigoNorm == 'ja') {
+      fontFacesAdicionais.write('''
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/NotoSansJP-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/NotoSansJP-Bold.ttf') format('truetype');
+}
+''');
+    }
+
     return '''
 /* Estilos Gerais do Relatório Fixalog */
-:root {
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/NotoSans-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/NotoSans-Bold.ttf') format('truetype');
+}
+${fontFacesAdicionais.toString()}:root {
   --cor-fundo: #121416;
   --cor-superficie: #1a1c1e;
   --cor-superficie-elevada: #222528;
@@ -48,7 +98,7 @@ class EpubDocumentBuilder {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Noto Sans', 'Noto Sans Arabic', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   color: var(--cor-texto);
   background-color: var(--cor-fundo);
@@ -874,8 +924,18 @@ h2 {
     Map<String, String> qrCodesVideos = const {},
     String? qrCodeCanonica,
     Map<String, String> titulosMateriais = const {},
+    String? codigoIdioma,
+    Map<String, dynamic>? traducoesProtocolo,
   }) {
-    final arvore = _construtorArvore.construir(registro);
+    final langAttr = codigoIdioma ?? 'pt-BR';
+    final codigoNorm = langAttr.split(RegExp(r'[-_]')).first.toLowerCase();
+    final atributoDir = codigoNorm == 'ar' ? ' dir="rtl"' : '';
+    final l10n = ResolvedorIdioma.obterTraducoes(Locale(codigoNorm));
+    final arvore = _construtorArvore.construir(
+      registro,
+      codigoIdioma: codigoIdioma != null ? codigoNorm : null,
+      traducoes: traducoesProtocolo,
+    );
     final buffer = StringBuffer();
 
     final tituloPrincipal = arvore.tituloExibicao != arvore.nomeProtocolo
@@ -885,7 +945,7 @@ h2 {
     buffer.writeln('<?xml version="1.0" encoding="utf-8"?>');
     buffer.writeln('<!DOCTYPE html>');
     buffer.writeln(
-      '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="pt-BR">',
+      '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="$langAttr"$atributoDir>',
     );
     buffer.writeln('<head>');
     buffer.writeln('  <meta charset="utf-8"/>');
@@ -900,12 +960,16 @@ h2 {
     );
     buffer.writeln('  </nav>');
 
+    final sufixoResumo = codigoNorm == 'pt' ? ' (Versão Resumida)' : '';
+    final avisoImpresso = codigoNorm == 'pt'
+        ? 'Este documento é uma representação impressa. ${l10n.laudoAvisoResumoImpresso}'
+        : l10n.laudoAvisoResumoImpresso;
     buffer.writeln('  <div class="cabecalho-versao-impressa">');
     buffer.writeln(
-      '    <p><strong>Fixalog — ${_escaparXml(arvore.nomeProtocolo)} (Versão Resumida)</strong></p>',
+      '    <p><strong>Fixalog — ${_escaparXml(arvore.nomeProtocolo)}$sufixoResumo</strong></p>',
     );
     buffer.writeln(
-      '    <p>Este documento é uma representação impressa. O relatório canônico oficial — contendo os vídeos originais de inspeção em alta definição e dados brutos — está disponível em:</p>',
+      '    <p>${_escaparXml(avisoImpresso)}</p>',
     );
     buffer.writeln('    <p><a href="$urlCanonica">$urlCanonica</a></p>');
     if (qrCodeCanonica != null && qrCodeCanonica.isNotEmpty) {
@@ -930,7 +994,7 @@ h2 {
       );
     }
     buffer.writeln('    <div class="metadados-sessao">');
-    buffer.writeln('      <div><strong>Sessão ID:</strong> $idSessao</div>');
+    buffer.writeln('      <div><strong>${_escaparXml(l10n.laudoRotuloSessao)}:</strong> $idSessao</div>');
     buffer.writeln(
       '      <div><strong>URL Canônica:</strong> $urlCanonica</div>',
     );
@@ -971,7 +1035,7 @@ h2 {
     if (titulosMateriais.isNotEmpty) {
       buffer.writeln('    <section class="secao-materiais-anexos">');
       buffer.writeln(
-        '      <h2>Materiais Utilizados (Fichas Técnicas Anexas)</h2>',
+        '      <h2>${_escaparXml(l10n.laudoSecaoAnexoCatalogoTitulo)}</h2>',
       );
       buffer.writeln('      <div class="lista-chips-materiais">');
       for (final entradaMat in titulosMateriais.entries) {

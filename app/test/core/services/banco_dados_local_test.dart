@@ -202,7 +202,7 @@ void main() {
       expect(sub2.pdfPath, endsWith('fixalog_sessao-material-epub.pdf'));
 
       await banco1.salvarConfiguracao(
-        AppConfigRecord(id: 1, acceptedTermsVersion: 4),
+        AppConfigRecord(id: 1, acceptedTermsVersion: 4, idiomaPreferido: 'fr'),
       );
       await banco1.fechar();
 
@@ -211,8 +211,59 @@ void main() {
       databaseFactory = databaseFactoryFfiNoIsolate;
       final banco2 = await BancoDadosLocal.abrirEmArquivo(tempDir.path);
       expect(banco2.obterConfiguracaoSync()?.versaoTermosAceita, equals(4));
+      expect(banco2.obterConfiguracaoSync()?.idiomaPreferido, equals('fr'));
       expect(banco2.listarSubmissoesSync().length, equals(2));
       await banco2.fechar();
+    });
+
+    test('migra banco existente da versao 1 sem coluna idioma_preferido adicionando a coluna de forma transparente', () async {
+      sqfliteFfiInit();
+      final tempDir = await Directory.systemTemp.createTemp('banco_migra_v1_');
+      addTearDown(() async {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+
+      final caminhoBanco = p.join(tempDir.path, 'fixalog.db');
+      final dbLegado = await databaseFactoryFfiNoIsolate.openDatabase(
+        caminhoBanco,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: (db, _) async {
+            await db.execute('''
+              CREATE TABLE configuracao_app (
+                id INTEGER PRIMARY KEY,
+                versao_termos_aceita INTEGER NOT NULL DEFAULT 0,
+                data_hora_aceite_termos TEXT
+              )
+            ''');
+            await db.execute(BancoDadosLocal.sqlCriarTabelaIdentidade);
+            await db.execute(BancoDadosLocal.sqlCriarTabelaSubmissoes);
+            await db.rawInsert(
+              'INSERT INTO configuracao_app (id, versao_termos_aceita, data_hora_aceite_termos) VALUES (1, 7, ?)',
+              ['2026-11-01T10:00:00.000'],
+            );
+          },
+          singleInstance: false,
+        ),
+      );
+      await dbLegado.close();
+
+      final bancoMigrado = await BancoDadosLocal.abrirEmArquivo(
+        tempDir.path,
+        factory: databaseFactoryFfiNoIsolate,
+      );
+      addTearDown(() async => await bancoMigrado.fechar());
+
+      final config = bancoMigrado.obterConfiguracaoSync();
+      expect(config, isNotNull);
+      expect(config!.versaoTermosAceita, equals(7));
+      expect(config.idiomaPreferido, isNull);
+
+      config.idiomaPreferido = 'de';
+      await bancoMigrado.salvarConfiguracao(config);
+      expect((await bancoMigrado.obterConfiguracao())?.idiomaPreferido, equals('de'));
     });
   });
 }

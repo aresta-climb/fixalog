@@ -1,0 +1,252 @@
+{
+  "@@locale": "en",
+  "seletorIdiomaTitulo": "App Language",
+  "seletorIdiomaSubtitulo": "Changes the language of the interface, protocols, and new reports",
+  "comumSim": "Yes",
+  "comumNao": "No",
+  "comumCancelar": "CANCEL",
+  "comumRemover": "REMOVE",
+  "comumFechar": "CLOSE",
+  "comumErro": "Error: {detalhe}",
+  "@comumErro": {
+    "placeholders": {
+      "detalhe": {
+        "type": "String"
+      }
+    }
+  },
+  "termosTituloTela": "Terms of Use and Technical Audit",
+  "termosCarregando": "Loading Terms of Use...",
+  "termosErroCarregar": "Could not load the local terms of use. Please try again.",
+  "termosBotaoTentarNovamente": "Try Again",
+  "termosBotaoLerPolitica": "Read Privacy Policy",
+  "termosCheckboxDeclaro": "I have read and agree to the Terms of Use and Privacy Policy.",
+  "termosBotaoAceitar": "Accept Terms and Continue",
+  "termosBotaoRoleFinal": "Scroll to the bottom to enable",
+  "politicaPrivacidadeTitulo": "Privacy Policy - Fixalog",
+  "politicaPrivacidadeErroCarregar": "Could not load the Privacy Policy.",
+  "identidadeTituloInicial": "TECHNICAL IDENTITY",
+  "identidadeTituloEdicao": "EDIT TECHNICAL IDENTITY",
+  "identidadeSubtituloInicial": "Set up your profile to digitally sign technical reports.",
+  "identidadeSubtituloEdicao": "Update your profile details. Your active cryptographic key will be preserved.",
+  "identidadeLabelNome": "Full Name *",
+  "identidadeHintNome": "E.g., John Doe",
+  "identidadeLabelApelido": "Nickname (Optional)",
+  "identidadeHintApelido": "E.g., Rocky",
+  "identidadeLabelEmail": "Email *",
+  "identidadeHintEmail": "E.g., john@example.com",
+  "identidadeLabelAssociacao": "Association / Club (Optional)",
+  "identidadeHintAssociacao": "E.g., UIAA, AAC, FEMERJ...",
+  "identidadeErroNomeVazio": "Full name cannot be empty.",
+  "identidadeErroEmailVazio": "Email cannot be empty.",
+  "identidadeErroEmailInvalido": "Invalid email format.",
+  "identidadeErroSalvar": "Failed to save identity: {erro}",
+  "@identidadeErroSalvar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "identidadeBotaoGerarChaves": "GENERATE KEYS AND CONTINUE",
+  "identidadeBotaoSalvarAlteracoes": "SAVE CHANGES",
+  "homeAbaNovo": "NEW",
+  "homeAbaHistorico": "HISTORY",
+  "homeAbaConfig": "SETTINGS",
+  "configTituloSecaoIdentidade": "IDENTITY AND CRYPTOGRAPHIC KEY",
+  "configCertificadoAtivo": "ACTIVE X.509 CERTIFICATE",
+  "configBotaoEditarDados": "EDIT PROFILE DATA",
+  "configBotaoExportarChave": "EXPORT IDENTITY KEY",
+  "configBotaoImportarChave": "IMPORT IDENTITY KEY",
+  "configExportarTituloModal": "EXPORT IDENTITY KEY",
+  "configExportarDescricaoModal": "Set a strong password (minimum 8 characters) to encrypt the .fixalogkey file with PBKDF2 + AES-256-GCM.",
+  "configLabelSenhaExportacao": "File password",
+  "configLabelConfirmarSenha": "Confirm password",
+  "configErroSenhaCurta": "Password must be at least 8 characters.",
+  "configErroSenhasDiferentes": "Passwords do not match.",
+  "configBotaoExportar": "EXPORT",
+  "configExportarSucesso": "Identity backup exported successfully.",
+  "configExportarErro": "Failed to export key: {erro}",
+  "@configExportarErro": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportarTituloModal": "IMPORT IDENTITY KEY",
+  "configImportarDescricaoModal": "Enter the password for the selected .fixalogkey file. The current key will be replaced.",
+  "configBotaoImportar": "IMPORT",
+  "configImportarSucesso": "Identity and cryptographic key restored successfully!",
+  "configImportarErroSenha": "Incorrect password or corrupted key file.",
+  "novoProtocoloSelecione": "SELECT PROTOCOL",
+  "novoProtocoloSubtitulo": "Start a new audited field data collection.",
+  "novoProtocoloCardInspecaoTitulo": "Visual Inspection",
+  "novoProtocoloCardInspecaoSub": "Quick survey of general condition and corrosion without mechanical intervention.",
+  "novoProtocoloCardManutencaoTitulo": "Hardware Maintenance",
+  "novoProtocoloCardManutencaoSub": "Complete report of anchor replacement, cleaning, and rebolting.",
+  "novoProtocoloCardAberturaTitulo": "Route Opening",
+  "novoProtocoloCardAberturaSub": "Full record of a new climbing line, first ascent, topo, and fixed gear.",
+  "novoProtocoloCardExpressoTitulo": "Express Log",
+  "novoProtocoloCardExpressoSub": "Quick capture of photos, videos, PDFs, and free-form field notes.",
+  "novoProtocoloCardMaterialTitulo": "Material",
+  "novoProtocoloCardMaterialSub": "Registration and traceability of hardware, batches, invoices, and tests.",
+  "novoProtocoloErroCarregar": "Error loading protocol: {erro}",
+  "@novoProtocoloErroCarregar": {
+    "placeholders": {
+      "erro": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoTitulo": "AUDIT HISTORY",
+  "historicoSubtitulo": "Sessions saved locally on this device.",
+  "historicoAbaRelatorios": "REPORTS ({quantidade})",
+  "@historicoAbaRelatorios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoAbaMateriais": "MATERIALS ({quantidade})",
+  "@historicoAbaMateriais": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "historicoVazioRelatoriosTitulo": "No reports found",
+  "historicoVazioRelatoriosSub": "Start a new protocol in the NEW tab to record your first audit.",
+  "historicoVazioMateriaisTitulo": "No materials registered",
+  "historicoVazioMateriaisSub": "Register materials in the NEW tab to use them in maintenance reports.",
+  "historicoBotaoNovoMaterial": "REGISTER MATERIAL",
+  "historicoStatusConcluido": "COMPLETED",
+  "historicoStatusEmProgresso": "IN PROGRESS",
+  "historicoStatusFalha": "FAILED",
+  "historicoBotaoVerRelatorio": "VIEW REPORT",
+  "historicoBotaoGerarRelatorio": "GENERATE REPORT",
+  "historicoBotaoContinuar": "CONTINUE",
+  "historicoBotaoEditar": "EDIT",
+  "historicoBotaoDuplicar": "DUPLICATE",
+  "historicoBotaoExcluir": "DELETE",
+  "historicoConfirmarExclusaoTitulo": "Delete record?",
+  "historicoConfirmarExclusaoCorpo": "Are you sure you want to delete \"{titulo}\"? This action will remove local files and cannot be undone.",
+  "@historicoConfirmarExclusaoCorpo": {
+    "placeholders": {
+      "titulo": {
+        "type": "String"
+      }
+    }
+  },
+  "historicoMaterialEmUsoTitulo": "Material linked to reports",
+  "historicoMaterialEmUsoCorpo": "This material is referenced in other reports. Deleting it will not erase already issued reports, but will remove the item from the active catalog.",
+  "wizardPassoNumero": "STEP {numero}",
+  "@wizardPassoNumero": {
+    "placeholders": {
+      "numero": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardBotaoVoltarPasso": "RETURN TO THIS STEP",
+  "wizardBotaoConcluir": "FINISH",
+  "wizardBotaoSeguinte": "NEXT",
+  "wizardBotaoPular": "SKIP",
+  "wizardBotaoConcluirLista": "FINISH LIST ({quantidade})",
+  "@wizardBotaoConcluirLista": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardAvisoCamposObrigatorios": "Fill in all required fields to proceed.",
+  "wizardAvisoPassoAnteriorObrigatorio": "Fill in all required fields of the previous step to proceed.",
+  "wizardAvisoCamposItemObrigatorios": "Fill in the required fields for this item.",
+  "wizardBotaoAdicionarItem": "ADD ITEM",
+  "wizardBotaoAdicionarOutro": "ADD ANOTHER",
+  "wizardMinimoItensObrigatorios": "Minimum {minimo} required item(s).",
+  "@wizardMinimoItensObrigatorios": {
+    "placeholders": {
+      "minimo": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardSelecioneTipo": "SELECT TYPE",
+  "wizardBotaoConfirmarItem": "CONFIRM ITEM",
+  "wizardRemoverItemTitulo": "Remove item?",
+  "wizardRemoverItemCorpo": "Remove \"{item}\"?",
+  "@wizardRemoverItemCorpo": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "wizardHintTexto": "Type here...",
+  "wizardHintTextoArea": "Type here... (supports **bold**, *italic*, # heading and lists)",
+  "wizardHintNumeros": "Numbers only",
+  "wizardGpsDesativado": "Location service disabled.",
+  "wizardGpsCapturado": "COORDINATES CAPTURED",
+  "wizardGpsCapturar": "CAPTURE GPS POSITION",
+  "wizardMidiaAdicionar": "ADD MEDIA",
+  "wizardMidiaSubVazio": "Photos, videos or PDFs",
+  "wizardMidiaSubMais": "Add another photo, video or PDF",
+  "wizardMidiaPdfAnexado": "ATTACHED PDF",
+  "wizardMidiaVideoGravado": "RECORDED VIDEO",
+  "wizardMidiaFotoCapturada": "CAPTURED PHOTO",
+  "wizardMidiaProcessandoUm": "PROCESSING MEDIA...",
+  "wizardMidiaProcessandoVarios": "PROCESSING {quantidade} MEDIA FILES...",
+  "@wizardMidiaProcessandoVarios": {
+    "placeholders": {
+      "quantidade": {
+        "type": "int"
+      }
+    }
+  },
+  "wizardMidiaProcessandoSub": "Saving and calculating integrity in background...",
+  "wizardMidiaModalTitulo": "ADD MEDIA (PHOTO, VIDEO OR PDF)",
+  "wizardMidiaTirarFoto": "Take Photo with Camera",
+  "wizardMidiaGravarVideo": "Record Video with Camera",
+  "wizardMidiaEscolherGaleria": "Choose from Gallery",
+  "wizardMidiaEscolherGaleriaSub": "Photos and videos",
+  "wizardMidiaSelecionarPdf": "Select PDF File",
+  "wizardRefMatVazioCatalogo": "No materials registered in the catalog yet.\nTap below to register a new material.",
+  "wizardRefMatVazioBloco": "No materials registered in Block 1.\nGo back and add materials first.",
+  "wizardBotaoCadastrarNovoMaterial": "REGISTER NEW MATERIAL",
+  "wizardConclusaoTitulo": "PROTOCOL COMPLETED",
+  "wizardConclusaoSubtitulo": "All data has been collected offline.\nThe record is ready to be signed and exported.",
+  "wizardBotaoGerarRelatorio": "GENERATE REPORT",
+  "wizardSufixoCopia": "Copy",
+  "geracaoEmAndamentoTitulo": "GENERATING REPORT",
+  "geracaoConcluidaTitulo": "REPORT READY",
+  "geracaoFalhaTitulo": "GENERATION FAILED",
+  "geracaoBotaoAbrirRelatorio": "OPEN REPORT",
+  "visualizadorAbaEpub": "EPUB 3 REPORT",
+  "visualizadorAbaPdf": "PDF SUMMARY",
+  "visualizadorBotaoCompartilhar": "SHARE",
+  "visualizadorBotaoAbrirExterno": "OPEN EXTERNALLY",
+  "laudoRotuloProtocolo": "PROTOCOL",
+  "laudoRotuloSessao": "SESSION",
+  "laudoRotuloEmissao": "ISSUED UTC",
+  "laudoRotuloVersao": "VERSION",
+  "laudoSecaoIdentidadeTitulo": "ISSUER TECHNICAL IDENTITY",
+  "laudoRotuloNome": "Name",
+  "laudoRotuloEmail": "Email",
+  "laudoRotuloAssociacao": "Association",
+  "laudoSecaoIntegridadeTitulo": "CRYPTOGRAPHIC INTEGRITY AND CHAIN OF CUSTODY",
+  "laudoAvisoResumoImpresso": "This PDF is an executive summary for quick printing. The full forensic report with high-resolution media, videos, and X.509 XML-DSig digital signature is contained in the corresponding EPUB 3 file.",
+  "laudoSecaoAnexoCatalogoTitulo": "APPENDIX — REFERENCED MATERIALS CATALOG",
+  "laudoRotuloVideoAnexo": "Video attached in EPUB 3",
+  "laudoRotuloDocumentoPdf": "PDF Document ({paginas} pp.)",
+  "@laudoRotuloDocumentoPdf": {
+    "placeholders": {
+      "paginas": {
+        "type": "int"
+      }
+    }
+  }
+}

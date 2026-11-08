@@ -4,12 +4,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fixalog/core/l10n/generated/app_localizations.dart';
+import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/views/new_protocol_screen.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/core/models/local/identity_record.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 
-// Helper: monta a tela com um provider de identidade mockado.
+// Helper: monta a tela com um provider de identidade configurado.
 Widget _buildScreen({IdentityRecord? identity}) {
   return ProviderScope(
     overrides: [
@@ -184,5 +186,54 @@ void main() {
       expect(find.byType(WizardScreen), findsOneWidget);
       expect(find.text('Nome do Material ou Conjunto'), findsOneWidget);
     });
+
+    testWidgets(
+      'Exibe os 5 cards traduzidos em Inglês, Árabe e Japonês sem overflow visual',
+      (tester) async {
+        late WidgetRef refCapturado;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+              currentIdentityProvider.overrideWith(
+                (ref) async => IdentityRecord()..nome = 'Alex',
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) {
+                    refCapturado = ref;
+                    return const NewProtocolScreen();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('SELECT PROTOCOL'), findsOneWidget);
+        expect(find.text('Visual Inspection'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('ar');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('اختر البروتوكول'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('ja');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('プロトコルを選択'), findsOneWidget);
+        expect(find.text('目視点検'), findsOneWidget);
+      },
+    );
   });
 }

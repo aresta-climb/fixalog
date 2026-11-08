@@ -11,6 +11,9 @@ dependencies:
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   flutter_riverpod: ^2.6.1
   flutter_secure_storage: ^10.0.0
   path_provider: ^2.1.6
@@ -60,14 +63,50 @@ dev_dependencies:
   ffmpeg_kit_flutter_platform_interface: any
   cross_file: any
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:
     - assets/protocols/
+    - assets/protocols/i18n/pt/
+    - assets/protocols/i18n/en/
+    - assets/protocols/i18n/es/
+    - assets/protocols/i18n/fr/
+    - assets/protocols/i18n/de/
+    - assets/protocols/i18n/ar/
+    - assets/protocols/i18n/ja/
+    - assets/fonts/
     - assets/logo_app.png
     - assets/logo_splash.png
     - legal/repo/public/docs/termos-de-uso-fixalog.md
     - legal/repo/public/docs/politica-de-privacidade-fixalog.md
+    - legal/repo/public/docs/pt/
+    - legal/repo/public/docs/en/
+    - legal/repo/public/docs/es/
+    - legal/repo/public/docs/fr/
+    - legal/repo/public/docs/de/
+    - legal/repo/public/docs/ar/
+    - legal/repo/public/docs/ja/
+
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+    - family: NotoSansArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansArabic-Bold.ttf
+          weight: 700
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansJP-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

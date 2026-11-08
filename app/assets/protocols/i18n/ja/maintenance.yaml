@@ -1,0 +1,164 @@
+protocolo:
+  nome: "固定支点のメンテナンス"
+  descricao: "固定支点（ボルト、ハンガー、リング、アンカー、清掃、浮石処理）のメンテナンスおよび設置プロトコル"
+blocos:
+  route:
+    titulo: "ブロック 1 — ルートの特定"
+    subtitulo: "メンテナンス対象ルートの日付・位置・識別情報"
+  actions:
+    titulo: "ブロック 2 — メンテナンス作業"
+    subtitulo: "このルートで実施した各作業を記録してください（最低1件）。"
+  assessment:
+    titulo: "ブロック 3 — 最終評価と完了"
+    subtitulo: "ルートの最終評価および備考"
+conteudos:
+  route_notice:
+    titulo: "ルートの特定"
+    corpo: "メンテナンスの位置情報と日付を入力してください。GPS座標は必須です。"
+  route_date:
+    label: "メンテナンス日"
+    sublabel: "現在の日付が自動入力されます（編集可能）"
+  route_gps:
+    label: "GPS位置情報"
+  route_name:
+    label: "ルート名"
+  route_sector:
+    label: "セクター / エリア"
+  route_peak:
+    label: "ピーク / 山域"
+  route_has_permission:
+    label: "開拓者の許可を得ていますか？"
+  route_permission_media:
+    label: "許可証のメディア（ある場合）"
+  ai_instruction:
+    titulo: "目視および機械的評価"
+    corpo: "作業前の状態を記録してください。その後、目視（腐食・亀裂）および機械的（増し締め）評価を行い、結果を分類してください。"
+  ai_media_before:
+    label: "作業前のメディア"
+  ai_ap_notes:
+    label: "備考"
+  ai_rt_torque:
+    label: "適用トルク (Nm)"
+  ai_rt_notes:
+    label: "備考"
+  ai_rep_notice:
+    titulo: "交換方針"
+    corpo: "既存の穴を再利用できる場合はケミカルアンカーを使用し、そうでない場合は新しい位置に穿孔してください。"
+  ref_mat_reuse_hole:
+    label: "使用した資材"
+    sublabel: "このアンカーに設置したカタログ資材を選択するか、新規登録してください"
+  ai_rep_rh_media:
+    label: "設置後のメディア"
+  ref_mat_new_location:
+    label: "使用した資材"
+    sublabel: "このアンカーに設置したカタログ資材を選択するか、新規登録してください"
+  ai_rep_nl_notes:
+    label: "新しい位置の理由"
+  ai_rep_nl_media:
+    label: "設置後のメディア"
+  ai_rep_branch:
+    label: "どの方法で交換しますか？"
+  ai_result:
+    label: "評価結果"
+  na_instruction:
+    titulo: "新規アンカーポイント"
+    corpo: "ローカルカタログから設置した資材を選択し、設置後のメディアを記録してください。"
+  ref_mat_new_anchor:
+    label: "使用した資材"
+    sublabel: "このポイントに設置したカタログ資材を選択するか、新規登録してください"
+  na_media:
+    label: "設置後のメディア"
+  lr_notice:
+    titulo: "警告 — 危険区域"
+    corpo: "浮石の除去はルートを閉鎖し、下部に人がいない状態で実施してください。"
+  lr_size:
+    label: "浮石のおおよそのサイズ"
+    opcoes:
+      small:
+        label: "小（拳サイズ）"
+      medium:
+        label: "中（スイカサイズ）"
+      large:
+        label: "大（スイカ以上）"
+  lr_media_before:
+    label: "除去前のメディア"
+  lr_media_after:
+    label: "除去後のメディア"
+  vc_media_before:
+    label: "清掃前のメディア"
+  vc_notes:
+    label: "清掃内容の説明"
+  vc_media_after:
+    label: "清掃後のメディア"
+  oth_description:
+    label: "実施した作業の説明"
+  ref_mat_other:
+    label: "使用した資材（任意）"
+    sublabel: "この作業でカタログ資材を使用した場合は、以下から選択してください"
+  oth_media:
+    label: "メディア（任意）"
+  action_list_c:
+    label: "実施した作業"
+    sublabel: "各メンテナンス作業を追加してください（最低1件）。"
+  assessment_condition:
+    label: "クライミングに対するルートの最終状態"
+    opcoes:
+      open:
+        label: "登攀可能（開放）"
+        sublabel: "ルートは良好な状態"
+      open_with_restrictions:
+        label: "条件付きで登攀可能"
+        sublabel: "登攀前に注意事項を確認してください"
+      closed:
+        label: "閉鎖（登攀禁止）"
+        sublabel: "再メンテナンスまで登攀禁止"
+  assessment_comments:
+    label: "追加コメント（任意）"
+ramos:
+  approved:
+    label: "合格 — 処置不要"
+    sublabel: "アンカーは良好な状態"
+  retightened:
+    label: "増し締め実施済み"
+    sublabel: "トルクレンチでアンカーを増し締め"
+  replace:
+    label: "交換が必要"
+    sublabel: "構造的損傷のあるアンカー"
+  reuse_hole:
+    label: "既存の穴を再利用"
+    sublabel: "ケミカルアンカーを使用"
+  new_location:
+    label: "新規穿孔位置"
+    sublabel: "別の位置に穿孔"
+tipos_acao:
+  anchor_inspection:
+    label: "アンカー点検"
+    sublabel: "既存アンカーの状態評価"
+  new_anchor_point:
+    label: "新規アンカーポイント"
+    sublabel: "新しいアンカーの設置"
+  loose_rock_removal:
+    label: "浮石の除去"
+    sublabel: "不安定な岩の除去"
+  vegetation_cleaning:
+    label: "植生の清掃"
+    sublabel: "ルート上の植物の除去"
+  other:
+    label: "その他の作業"
+    sublabel: "上記以外の作業"
+opcoes:
+  small:
+    label: "小（拳サイズ）"
+  medium:
+    label: "中（スイカサイズ）"
+  large:
+    label: "大（スイカ以上）"
+  open:
+    label: "登攀可能（開放）"
+    sublabel: "ルートは良好な状態"
+  open_with_restrictions:
+    label: "条件付きで登攀可能"
+    sublabel: "登攀前に注意事項を確認してください"
+  closed:
+    label: "閉鎖（登攀禁止）"
+    sublabel: "再メンテナンスまで登攀禁止"

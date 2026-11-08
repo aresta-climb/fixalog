@@ -1,0 +1,235 @@
+protocolo:
+  nome: "Registrierung von Wartungsmaterial"
+  descricao: "Protokoll zur Katalogisierung, Rückverfolgbarkeit, Qualitätsprüfung und Herstellungsprozesse von Wartungsmaterialien oder Baugruppen"
+blocos:
+  material_identification:
+    titulo: "Block 1 — Allgemeine Identifikation"
+    subtitulo: "Identifikation des Einzelmaterials oder der Materialbaugruppe"
+  material_composition:
+    titulo: "Block 2 — Materialspezifikationen"
+    subtitulo: "Fügen Sie jedes Material dieses Eintrags hinzu, einschließlich Rechnung, Prüfungen und Details"
+conteudos:
+  mat_instruction:
+    titulo: "Identifikation des Materials oder der Baugruppe"
+    corpo: "Geben Sie einen eindeutigen Namen für dieses Material oder diese Baugruppe an (z. B. 'Bohrhaken-Set 10mm + Lasche' oder 'Gewindestange Edelstahl 316 14cm'). Dieser Name wird bei der Materialauswahl im Katalog angezeigt."
+  mat_name:
+    label: "Name des Materials oder der Baugruppe"
+    sublabel: "Beschreibender Name zur schnellen Identifizierung im Katalog"
+  mat_association_code:
+    label: "Tracking-Code des Vereins"
+    sublabel: "Interner Kontrollcode des Vereins (optional)"
+  mat_date:
+    label: "Erfassungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  eb_brand:
+    label: "Marke / Hersteller"
+  eb_alloy:
+    label: "Legierung / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      stainless_steel_304:
+        label: "Edelstahl 304 (A2)"
+      titanium:
+        label: "Titan"
+      other:
+        label: "Sonstiges"
+  eb_dimensions:
+    label: "Durchmesser und Länge"
+    sublabel: "Z. B.: 3/8 x 90mm oder 10mm x 100mm"
+  eb_batch:
+    label: "Chargennummer"
+  eb_expiry:
+    label: "Verfallsdatum (falls zutreffend)"
+  eb_media:
+    label: "Foto des Materials"
+  eb_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  eb_invoice_supplier:
+    label: "Lieferant / Händler"
+  eb_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  qt_type:
+    label: "Art der Prüfung / des Tests"
+  qt_result:
+    label: "Ergebnis / Erreichte Last"
+  qt_media:
+    label: "Medien zur Prüfung / zum Bericht anhängen"
+  eb_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Zug-, Scher- oder Chargenprüfungen hinzufügen (optional)"
+  det_title:
+    label: "Titel des Details oder Schritts"
+  det_description:
+    label: "Detaillierte Beschreibung"
+  det_media:
+    label: "Medien zum Schritt / Detail anhängen"
+  eb_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Schritte zur Vorbereitung/Herstellung hinzufügen (optional)"
+  hg_brand:
+    label: "Marke / Hersteller"
+  hg_alloy:
+    label: "Legierung / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      stainless_steel_304:
+        label: "Edelstahl 304 (A2)"
+      titanium:
+        label: "Titan"
+      other:
+        label: "Sonstiges"
+  hg_hole_diameter:
+    label: "Lochdurchmesser"
+    sublabel: "Z. B.: 3/8 (10mm) oder 1/2 (12mm)"
+  hg_batch:
+    label: "Chargennummer"
+  hg_media:
+    label: "Foto des Materials"
+  hg_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  hg_invoice_supplier:
+    label: "Lieferant / Händler"
+  hg_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  hg_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  hg_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Herstellungsschritte hinzufügen (optional)"
+  rh_brand:
+    label: "Marke / Hersteller"
+  rh_alloy:
+    label: "Legierung / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      stainless_steel_304:
+        label: "Edelstahl 304 (A2)"
+      titanium:
+        label: "Titan"
+      other:
+        label: "Sonstiges"
+  rh_batch:
+    label: "Chargennummer"
+  rh_media:
+    label: "Foto des Materials"
+  rh_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  rh_invoice_supplier:
+    label: "Lieferant / Händler"
+  rh_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  rh_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  rh_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Herstellungsschritte hinzufügen (optional)"
+  ca_brand:
+    label: "Marke / Produkt"
+  ca_expiry:
+    label: "Verfallsdatum"
+  ca_batch:
+    label: "Chargennummer"
+  ca_media:
+    label: "Foto der Verpackung / des Materials"
+  ca_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  ca_invoice_supplier:
+    label: "Lieferant / Händler"
+  ca_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  ca_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Aushärtungs-, Auszugs- oder Inspektionsprüfungen hinzufügen (optional)"
+  ca_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Vorbereitungsverfahren hinzufügen (optional)"
+  pq_brand:
+    label: "Marke / Hersteller"
+  pq_alloy:
+    label: "Material / Legierung"
+    opcoes:
+      stainless_steel_316:
+        label: "Edelstahl 316 / 316L (A4)"
+      galvanized_steel:
+        label: "Verzinkter Kohlenstoffstahl"
+      titanium:
+        label: "Titan"
+      other:
+        label: "Sonstiges"
+  pq_breaking_load:
+    label: "Nominale Bruchlast (kN)"
+  pq_batch:
+    label: "Chargennummer"
+  pq_media:
+    label: "Foto des Materials"
+  pq_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  pq_invoice_supplier:
+    label: "Lieferant / Händler"
+  pq_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  pq_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Prüfungen oder Chargenkontrollen hinzufügen (optional)"
+  pq_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Zusätzliche Informationen oder Montagedetails hinzufügen (optional)"
+  oth_instruction:
+    titulo: "Kundenspezifisches Material oder Eigenfertigung"
+    corpo: "Erfassen Sie unten den Kaufbeleg des Rohmaterials, etwaige Qualitätsprüfungen sowie alle Herstellungsschritte oder technischen Details."
+  oth_invoice_number:
+    label: "Rechnung / Beleg (Nummer oder Schlüssel)"
+  oth_invoice_supplier:
+    label: "Lieferant / Händler"
+  oth_invoice_media:
+    label: "Foto oder PDF der Rechnung / des Belegs"
+  oth_tests:
+    label: "Qualitätsprüfungen"
+    sublabel: "Durchgeführte Prüfungen oder Tests hinzufügen (optional)"
+  oth_details:
+    label: "Details und Herstellungsprozess"
+    sublabel: "Fügen Sie jeden Herstellungsschritt oder jede technische Spezifikation hinzu. Mindestens 1."
+  material_items_list_c:
+    label: "Registrierte Materialien"
+    sublabel: "Fügen Sie 1 Einzelmaterial oder mehrere Komponenten der Baugruppe hinzu. Mindestens 1."
+tipos_acao:
+  expansion_bolt:
+    label: "Mechanischer Anker / Bohrhaken"
+    sublabel: "Spreizanker oder mechanischer Bolzenanker"
+  quality_test:
+    label: "Qualitätsprüfung"
+    sublabel: "Mechanische, chemische Prüfung oder Prüfbericht"
+  manufacturing_detail:
+    label: "Detail / Herstellungsschritt"
+    sublabel: "Freie Beschreibung mit Fotos, Videos oder PDFs"
+  hanger:
+    label: "Bohrhakenlasche"
+    sublabel: "Lasche ohne Ring"
+  ring_hanger:
+    label: "Lasche mit Ring"
+    sublabel: "Standplatz-/Abseilbaugruppe mit integriertem Ring"
+  chemical_anchor:
+    label: "Verbundanker / Klebehaken"
+    sublabel: "Injektionsmörtel, Verbundpatrone oder Klebehaken"
+  permanent_quickdraw:
+    label: "Permadraw / Feste Expressschlinge"
+    sublabel: "Feste Schlinge, Schraubglied und dauerhafter Karabiner"
+  other:
+    label: "Sonstiges"
+    sublabel: "Eigenfertigung, kundenspezifische Baugruppen oder sonstige Materialien"
+opcoes:
+  stainless_steel_316:
+    label: "Edelstahl 316 / 316L (A4)"
+  stainless_steel_304:
+    label: "Edelstahl 304 (A2)"
+  titanium:
+    label: "Titan"
+  other:
+    label: "Sonstiges"
+  galvanized_steel:
+    label: "Verzinkter Kohlenstoffstahl"

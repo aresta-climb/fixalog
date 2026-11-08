@@ -1,275 +1,250 @@
 protocolo:
-  id: abertura_vias
-  nome: "Abertura de Via"
-  descricao: "Registro técnico pericial de conquista ou abertura de novas rotas de escalada e proteções fixas instaladas."
-  versao: 2
+  id: route_opening
+  nome: "Route Opening"
+  descricao: "Forensic technical record of first ascent or development of new climbing routes and installed fixed anchors."
+  versao: 3
 
   blocos:
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 1 — Identificação da Nova Via
-    # ═══════════════════════════════════════════════════════════════
-    - id: via
-      titulo: "Bloco 1 — Identificação da Nova Via"
-      subtitulo: "Dados técnicos de localização, conquistadores e linha da nova rota"
-
+    - id: route
+      titulo: "Block 1 — New Route Identification"
+      subtitulo: "Technical data of location, first ascensionists and line of the new route"
       steps:
-        - id: via_localizacao
+        - id: route_location
           conteudos:
-            - id: via_aviso
+            - id: route_notice
               instrucao:
-                titulo: "Identificação da Conquista"
-                corpo: "Preencha os dados da nova via, coordenadas GPS da base e registre a imagem da linha/croqui do setor."
+                titulo: "First Ascent Identification"
+                corpo: "Fill in the new route details, base GPS coordinates and record an image of the route line/topo."
                 nivel_alerta: INFO
-            - id: via_data
+            - id: route_date
               campo_simples:
-                label: "Data da Abertura / Conquista"
-                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                label: "Opening / First Ascent Date"
+                sublabel: "Automatically filled with current date (editable)"
                 tipo: DATE
                 obrigatorio: true
                 preencher_data_atual: true
-            - id: via_gps
+            - id: route_gps
               campo_simples:
-                label: "Localização GPS da Base"
-                sublabel: "Capture as coordenadas geográficas exatas da base da via"
+                label: "Base GPS Location"
+                sublabel: "Capture the exact geographic coordinates of the route base"
                 tipo: GPS
                 obrigatorio: true
-            - id: via_nome
+            - id: route_name
               campo_simples:
-                label: "Nome da Via"
-                sublabel: "Nome dado à via pelo(s) conquistador(es)"
+                label: "Route Name"
+                sublabel: "Name given to the route by the first ascensionist(s)"
                 tipo: TEXT
                 obrigatorio: true
-            - id: via_conquistadores
+            - id: route_first_ascensionists
               campo_simples:
-                label: "Conquistador(es)"
-                sublabel: "Nomes dos conquistadores participantes"
+                label: "First Ascensionist(s)"
+                sublabel: "Names of participating first ascensionists"
                 tipo: TEXT
-            - id: via_graduacao
+            - id: route_grade
               campo_simples:
-                label: "Graduação Estimada"
-                sublabel: "Ex.: 6º sup D1 E2, 7b, V sup"
+                label: "Estimated Grade"
+                sublabel: "E.g.: 5.11d, 7a, 6b+ E2"
                 tipo: TEXT
-            - id: via_extensao
+            - id: route_length
               campo_simples:
-                label: "Extensão / Enfiadas"
-                sublabel: "Ex.: 25m (esportiva) ou 150m / 4 enfiadas"
+                label: "Length / Pitches"
+                sublabel: "E.g.: 25m (sport) or 150m / 4 pitches"
                 tipo: TEXT
-            - id: via_setor
+            - id: route_sector
               campo_simples:
-                label: "Setor / Bloco"
+                label: "Sector / Crag"
                 tipo: TEXT
-            - id: via_pico
+            - id: route_peak
               campo_simples:
-                label: "Pico / Área"
+                label: "Peak / Area"
                 tipo: TEXT
-            - id: via_foto_linha
+            - id: route_line_media
               campo_simples:
-                label: "Mídia do Setor / Linha da Via"
-                sublabel: "Anexe foto, vídeo ou PDF mostrando a linha da via ou croqui"
+                label: "Sector / Route Line Media"
+                sublabel: "Attach photo, video or PDF showing the route line or topo"
                 tipo: IMAGE
                 ui_hint: CAMERA_ACTION
                 obrigatorio: true
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 2 — Proteções Instaladas e Ações na Conquista
-    # ═══════════════════════════════════════════════════════════════
-    - id: acoes
-      titulo: "Bloco 2 — Proteções e Ações da Conquista"
-      subtitulo: "Registre cada proteção fixa, parada ou limpeza realizada na abertura. Mínimo 1."
-
+    - id: actions
+      titulo: "Block 2 — Installed Anchors & Opening Actions"
+      subtitulo: "Record each fixed anchor, belay station or cleaning performed during route opening. Minimum 1."
       steps:
-        - id: lista_acoes
+        - id: action_list
           conteudos:
-            - id: lista_acoes_c
+            - id: action_list_c
               lista_acoes:
-                label: "Proteções e Ações Realizadas"
-                sublabel: "Adicione cada proteção fixa instalada, parada ou intervenção na rocha. Mínimo 1."
+                label: "Installed Anchors & Actions Performed"
+                sublabel: "Add each installed fixed anchor, belay station or rock intervention. Minimum 1."
                 minimo: 1
                 maximo: 0
                 tipos_disponiveis:
-
-                  # ── 1. Proteção Fixa Instalada ────────────────────
-                  - id: protecao_instalada
-                    label: "Proteção Fixa Instalada"
-                    sublabel: "Instalação de chapeleta, parabolt, grampo ou ancoragem química"
+                  - id: installed_protection
+                    label: "Installed Fixed Anchor"
+                    sublabel: "Installation of hanger, expansion bolt, staple or glue-in anchor"
                     icon_name: add_location
                     steps:
-                      - id: pi_dados
+                      - id: ia_data
                         conteudos:
-                          - id: pi_posicao
+                          - id: ia_position
                             campo_simples:
-                              label: "Posição / Identificação da Proteção"
-                              sublabel: "Ex.: 1ª proteção, Enfiada 2 - 4ª chapeleta"
+                              label: "Anchor Position / Identification"
+                              sublabel: "E.g.: 1st bolt, Pitch 2 - 4th hanger"
                               tipo: TEXT
                               obrigatorio: true
-                          - id: ref_mat_protecao
+                          - id: ref_mat_protection
                             ref_materiais:
-                              label: "Materiais utilizados"
-                              sublabel: "Selecione os materiais do catálogo instalados neste ponto ou cadastre um novo"
+                              label: "Materials used"
+                              sublabel: "Select the catalog materials installed at this point or register a new one"
                               origem_catalogo: true
                               obrigatorio: true
-                          - id: pi_foto
+                          - id: ia_media
                             campo_simples:
-                              label: "Mídia após instalação"
+                              label: "Media after installation"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
-                          - id: pi_nota
+                          - id: ia_notes
                             campo_simples:
-                              label: "Observações (opcional)"
+                              label: "Observations (optional)"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
-
-                  # ── 2. Parada / Rapel Instalado ───────────────────
-                  - id: parada_rapel
-                    label: "Parada / Rapel Instalado"
-                    sublabel: "Instalação de parada dupla/tripla ou estação de rapel"
+                  - id: belay_rappel_station
+                    label: "Installed Belay / Rappel Station"
+                    sublabel: "Installation of double/triple belay or rappel station"
                     icon_name: radio_button_unchecked
                     steps:
-                      - id: pr_dados
+                      - id: ba_data
                         conteudos:
-                          - id: pr_posicao
+                          - id: ba_position
                             campo_simples:
-                              label: "Identificação da Parada"
-                              sublabel: "Ex.: Parada P1, Parada Final"
+                              label: "Belay Station Identification"
+                              sublabel: "E.g.: Belay P1, Top Anchor"
                               tipo: TEXT
                               obrigatorio: true
-                          - id: ref_mat_parada
+                          - id: ref_mat_belay
                             ref_materiais:
-                              label: "Materiais utilizados na parada"
-                              sublabel: "Selecione os materiais do catálogo instalados nesta parada ou cadastre um novo"
+                              label: "Materials used at the belay station"
+                              sublabel: "Select the catalog materials installed at this belay station or register a new one"
                               origem_catalogo: true
                               obrigatorio: true
-                          - id: pr_foto
+                          - id: ba_media
                             campo_simples:
-                              label: "Mídia após instalação"
+                              label: "Media after installation"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
-                          - id: pr_nota
+                          - id: ba_notes
                             campo_simples:
-                              label: "Observações (opcional)"
+                              label: "Observations (optional)"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
-
-                  # ── 3. Remoção de Bloco Solto ─────────────────────
-                  - id: remocao_bloco
-                    label: "Remoção de Bloco Solto"
-                    sublabel: "Retirada de pedra ou laca instável durante a abertura"
+                  - id: loose_rock_removal
+                    label: "Loose Block Removal"
+                    sublabel: "Removal of unstable rock or flake during route opening"
                     icon_name: delete_forever
                     steps:
-                      - id: rb_dados
+                      - id: lr_data
                         conteudos:
-                          - id: rb_aviso
+                          - id: lr_notice
                             instrucao:
-                              titulo: "ATENÇÃO — Zona de Risco"
-                              corpo: "A remoção de blocos deve ser feita com a base isolada e sem presença de pessoas abaixo."
+                              titulo: "WARNING — Hazard Zone"
+                              corpo: "Block removal must be performed with the base isolated and no people below."
                               nivel_alerta: PERIGO
-                          - id: rb_tamanho
+                          - id: lr_size
                             campo_simples:
-                              label: "Tamanho aproximado do bloco"
+                              label: "Approximate block size"
                               tipo: DROPDOWN
                               opcoes:
-                                - valor: pequeno
-                                  label: "Pequeno (tamanho de punho)"
-                                - valor: medio
-                                  label: "Médio (tamanho de melancia)"
-                                - valor: grande
-                                  label: "Grande (maior que melancia)"
-                          - id: rb_foto_antes
+                                - valor: small
+                                  label: "Small (fist-sized)"
+                                - valor: medium
+                                  label: "Medium (watermelon-sized)"
+                                - valor: large
+                                  label: "Large (larger than a watermelon)"
+                          - id: lr_media_before
                             campo_simples:
-                              label: "Mídia antes da remoção"
+                              label: "Media before removal"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-                          - id: rb_foto_depois
+                          - id: lr_media_after
                             campo_simples:
-                              label: "Mídia após remoção"
+                              label: "Media after removal"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-                  # ── 4. Limpeza de Vegetação ───────────────────────
-                  - id: limpeza_vegetacao
-                    label: "Limpeza de Vegetação"
-                    sublabel: "Limpeza de agarras ou canaletas na linha da conquista"
+                  - id: vegetation_cleaning
+                    label: "Vegetation Cleaning"
+                    sublabel: "Cleaning of holds or cracks along the new route line"
                     icon_name: grass
                     steps:
-                      - id: lv_dados
+                      - id: vc_data
                         conteudos:
-                          - id: lv_foto_antes
+                          - id: vc_media_before
                             campo_simples:
-                              label: "Mídia antes da limpeza"
+                              label: "Media before cleaning"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-                          - id: lv_nota
+                          - id: vc_notes
                             campo_simples:
-                              label: "Descrição da limpeza"
+                              label: "Cleaning description"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
-                          - id: lv_foto_depois
+                          - id: vc_media_after
                             campo_simples:
-                              label: "Mídia após limpeza"
+                              label: "Media after cleaning"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-                  # ── 5. Outra Ação ─────────────────────────────────
-                  - id: outro
-                    label: "Outra Ação"
-                    sublabel: "Ação ou registro adicional da abertura"
+                  - id: other
+                    label: "Other Action"
+                    sublabel: "Additional opening action or record"
                     icon_name: more_horiz
                     steps:
-                      - id: out_dados
+                      - id: oth_data
                         conteudos:
-                          - id: out_descricao
+                          - id: oth_description
                             campo_simples:
-                              label: "Descrição da ação realizada"
+                              label: "Description of action performed"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
                               obrigatorio: true
-                          - id: ref_mat_outro
+                          - id: ref_mat_other
                             ref_materiais:
-                              label: "Materiais utilizados (opcional)"
-                              sublabel: "Caso esta ação tenha utilizado materiais do catálogo, selecione-os abaixo"
+                              label: "Materials used (optional)"
+                              sublabel: "If this action used catalog materials, select them below"
                               origem_catalogo: true
                               obrigatorio: false
-                          - id: out_foto
+                          - id: oth_media
                             campo_simples:
-                              label: "Mídia (opcional)"
+                              label: "Media (optional)"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 3 — Avaliação e Encerramento
-    # ═══════════════════════════════════════════════════════════════
-    - id: avaliacao
-      titulo: "Bloco 3 — Avaliação e Encerramento"
-      subtitulo: "Condição da via e equipamento necessário para repetição"
-
+    - id: assessment
+      titulo: "Block 3 — Evaluation & Closure"
+      subtitulo: "Route condition and required gear for repeats"
       steps:
-        - id: avaliacao_geral
+        - id: general_assessment
           conteudos:
-            - id: avaliacao_condicao
+            - id: assessment_condition
               campo_simples:
-                label: "Condição atual da via"
+                label: "Current route condition"
                 tipo: DROPDOWN
                 ui_hint: LARGE_TILES
                 obrigatorio: true
                 opcoes:
-                  - valor: liberada
-                    label: "Liberada para escalada"
-                    sublabel: "Conquista concluída e pronta para repetições"
+                  - valor: open
+                    label: "Open for climbing"
+                    sublabel: "Opening completed and ready for repeats"
                     icon_name: check_circle
-                  - valor: em_conquista
-                    label: "Em conquista / Projeto em aberto"
-                    sublabel: "Via ainda não finalizada"
+                  - valor: project_in_progress
+                    label: "In development / Open project"
+                    sublabel: "Route not yet completed"
                     icon_name: build
-                  - valor: liberada_restricao
-                    label: "Liberada com restrição"
-                    sublabel: "Verificar recomendações antes de repetir"
+                  - valor: open_with_restrictions
+                    label: "Open with restrictions"
+                    sublabel: "Check recommendations before repeating"
                     icon_name: warning
-            - id: avaliacao_comentarios
+            - id: assessment_comments
               campo_simples:
-                label: "Equipamento sugerido para repetição e comentários (opcional)"
-                sublabel: "Ex.: 12 costuras, jogo de friends #0.5 a #2, corda de 60m"
+                label: "Suggested gear for repeats and comments (optional)"
+                sublabel: "E.g.: 12 quickdraws, cams #0.5 to #2, 60m rope"
                 tipo: TEXT
                 ui_hint: TEXT_AREA

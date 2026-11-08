@@ -967,14 +967,15 @@ protocolo:
       await container2.read(wizardControllerProvider.notifier).loadSession(sessionId);
       final restored = container2.read(wizardControllerProvider);
 
-      expect(restored.answers['mat_nome']?.texto, equals('Barra Roscada Inox 316 14cm'));
-      expect(restored.lists['lista_itens_material_c'], hasLength(1));
-      expect(restored.lists['lista_itens_material_c']!.first.id, equals(parentItemId));
-      expect(restored.answers['pb_marca__$parentItemId']?.texto, equals('Fabricação Própria'));
-      expect(restored.lists[subListKey], hasLength(1));
-      expect(restored.lists[subListKey]!.first.id, equals(subItemId));
-      expect(restored.lists[subListKey]!.first.tipoLabel, equals('Detalhe / Etapa de Fabricação'));
-      expect(restored.answers['det_descricao__$subItemId']?.texto, equals('Corte e repassivação ácida'));
+      final subListKeyMigrada = 'eb_details__$parentItemId';
+      expect(restored.answers['mat_name']?.texto, equals('Barra Roscada Inox 316 14cm'));
+      expect(restored.lists['material_items_list_c'], hasLength(1));
+      expect(restored.lists['material_items_list_c']!.first.id, equals(parentItemId));
+      expect(restored.answers['eb_brand__$parentItemId']?.texto, equals('Fabricação Própria'));
+      expect(restored.lists[subListKeyMigrada], hasLength(1));
+      expect(restored.lists[subListKeyMigrada]!.first.id, equals(subItemId));
+      expect(restored.lists[subListKeyMigrada]!.first.tipoLabel, equals('Detalhe / Etapa de Fabricação'));
+      expect(restored.answers['det_description__$subItemId']?.texto, equals('Corte e repassivação ácida'));
     });
 
     test('obterItensParaRefMateriais lista materiais do catálogo ordenados por dataUltimaSelecao e filtra nas ações', () async {
@@ -1283,8 +1284,8 @@ protocolo:
       final state = container.read(wizardControllerProvider);
       expect(state.protocolRawYaml.contains('det_video'), isFalse);
       expect(state.protocolRawYaml.contains('tq_video'), isFalse);
-      expect(state.protocolRawYaml, contains('Anexar Mídias à Etapa / Detalhe'));
-      expect(state.protocolRawYaml, contains('Anexar Mídias ao Teste / Laudo'));
+      expect(state.protocolRawYaml, contains('Attach Media to Step / Detail'));
+      expect(state.protocolRawYaml, contains('Attach Media to Test / Report'));
     });
 
     test('saveMultipleMediaAnswers processa lote em background expondo processandoMidiasPorCampo durante a execução', () async {
@@ -1697,13 +1698,13 @@ protocolo:
       expect(idCopia1, isNot(equals(idOriginal)));
       final state1 = container.read(wizardControllerProvider);
       expect(state1.sessionId, equals(idCopia1));
-      expect(state1.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia)'));
-      expect(state1.answers['mat_data']?.texto, isNot(equals('01/01/2020')));
+      expect(state1.answers['mat_name']?.texto, equals('Kit Parabolt Inox (Cópia)'));
+      expect(state1.answers['mat_date']?.texto, isNot(equals('01/01/2020')));
 
       final hoje = DateTime.now();
       final dataHojeEsperada =
           '${hoje.day.toString().padLeft(2, '0')}/${hoje.month.toString().padLeft(2, '0')}/${hoje.year}';
-      expect(state1.answers['mat_data']?.texto, equals(dataHojeEsperada));
+      expect(state1.answers['mat_date']?.texto, equals(dataHojeEsperada));
 
       // Verifica que mídias foram copiadas e EPUB antigo não foi copiado
       final dirCopia1 = await sessionManager.getSessionDirectory(idCopia1);
@@ -1722,12 +1723,12 @@ protocolo:
       // 2a cópia (duplicando a partir da própria 1a cópia!) -> "Kit Parabolt Inox (Cópia 2)"
       final idCopia2 = await notifier.duplicarSessao(idCopia1);
       final state2 = container.read(wizardControllerProvider);
-      expect(state2.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia 2)'));
+      expect(state2.answers['mat_name']?.texto, equals('Kit Parabolt Inox (Cópia 2)'));
 
       // 3a cópia (duplicando a partir do original novamente) -> "Kit Parabolt Inox (Cópia 3)"
       final idCopia3 = await notifier.duplicarSessao(idOriginal);
       final state3 = container.read(wizardControllerProvider);
-      expect(state3.answers['mat_nome']?.texto, equals('Kit Parabolt Inox (Cópia 3)'));
+      expect(state3.answers['mat_name']?.texto, equals('Kit Parabolt Inox (Cópia 3)'));
     });
 
     test('loadSession e duplicarSessao migram automaticamente sessões legadas (manutencao_ferragens, abertura_via_v1, inspecao_visual_v1, registro_expresso v1)', () async {
@@ -1776,12 +1777,12 @@ protocolo:
       final notifier = container.read(wizardControllerProvider.notifier);
       await notifier.loadSession(idManutLegado);
       final stateManut = container.read(wizardControllerProvider);
-      expect(stateManut.protocol!.id, equals('manutencao'));
-      expect(stateManut.protocol!.versao, equals('2'));
+      expect(stateManut.protocol!.id, equals('maintenance'));
+      expect(stateManut.protocol!.versao, equals('3'));
       expect(stateManut.answers.containsKey('lista_materiais_c'), isFalse);
-      expect(stateManut.refSelections['ref_mat_novo_ponto__item_np_1'], equals(['mat-1']));
+      expect(stateManut.refSelections['ref_mat_new_anchor__item_np_1'], equals(['mat-1']));
 
-      // 2. Duplicar sessão legada de abertura_via_v1 (v1.0.0) -> migra para abertura_vias v2 e aplica (Cópia) em via_nome
+      // 2. Duplicar sessão legada de abertura_via_v1 (v1.0.0) -> migra para route_opening v3 e aplica (Cópia) em route_name
       const idAberturaLegado = 'sessao-abertura-legada';
       final regAberturaLegado = Registro(
         idSessao: idAberturaLegado,
@@ -1801,10 +1802,10 @@ protocolo:
       final idAberturaCopia = await notifier.duplicarSessao(idAberturaLegado);
       final stateAbertura = container.read(wizardControllerProvider);
       expect(idAberturaCopia, isNot(equals(idAberturaLegado)));
-      expect(stateAbertura.protocol!.id, equals('abertura_vias'));
-      expect(stateAbertura.protocol!.versao, equals('2'));
-      expect(stateAbertura.answers['via_nome']?.texto, equals('Via Nova Sul (Cópia)'));
-      expect(stateAbertura.answers['via_graduacao']?.texto, equals('7a'));
+      expect(stateAbertura.protocol!.id, equals('route_opening'));
+      expect(stateAbertura.protocol!.versao, equals('3'));
+      expect(stateAbertura.answers['route_name']?.texto, equals('Via Nova Sul (Cópia)'));
+      expect(stateAbertura.answers['route_grade']?.texto, equals('7a'));
     });
   });
 }

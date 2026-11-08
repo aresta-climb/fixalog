@@ -1,0 +1,141 @@
+protocolo:
+  nome: "فتح مسار تسلق جديد"
+  descricao: "سجل فني جنائي لفتح أو تطوير مسارات تسلق جديدة ونقاط التثبيت الثابتة المركبة."
+blocos:
+  route:
+    titulo: "الكتلة 1 — تعريف المسار الجديد"
+    subtitulo: "البيانات الفنية للموقع وفاتحي المسار وخط المسار الجديد"
+  actions:
+    titulo: "الكتلة 2 — نقاط التثبيت وإجراءات فتح المسار"
+    subtitulo: "سجل كل نقطة تثبيت ثابتة أو محطة إنزال أو تنظيف تم أثناء فتح المسار. الحد الأدنى 1."
+  assessment:
+    titulo: "الكتلة 3 — التقييم والإغلاق"
+    subtitulo: "حالة المسار والمعدات اللازمة للتكرار"
+conteudos:
+  route_notice:
+    titulo: "تعريف فتح المسار"
+    corpo: "أدخل بيانات المسار الجديد وإحداثيات GPS للقاعدة وسجل صورة لخط المسار/المخطط."
+  route_date:
+    label: "تاريخ فتح المسار"
+    sublabel: "تتم تعبئته تلقائياً بالتاريخ الحالي (قابل للتعديل)"
+  route_gps:
+    label: "موقع GPS لقاعدة المسار"
+    sublabel: "التقط الإحداثيات الجغرافية الدقيقة لقاعدة المسار"
+  route_name:
+    label: "اسم المسار"
+    sublabel: "الاسم الذي أطلقه فاتح(و) المسار على المسار"
+  route_first_ascensionists:
+    label: "فاتح(و) المسار"
+    sublabel: "أسماء فاتحي المسار المشاركين"
+  route_grade:
+    label: "درجة الصعوبة المقدرة"
+    sublabel: "مثال: 6b+ أو 7a أو 5.11c"
+  route_length:
+    label: "الطول / عدد الحبال (Pitches)"
+    sublabel: "مثال: 25 متر (رياضي) أو 150 متر / 4 مراحل"
+  route_sector:
+    label: "القطاع / الكتلة"
+  route_peak:
+    label: "القمة / المنطقة"
+  route_line_media:
+    label: "وسائط القطاع / خط المسار"
+    sublabel: "أرفق صورة أو فيديو أو PDF يوضح خط المسار أو المخطط"
+  ia_position:
+    label: "موقع / تعريف نقطة التثبيت"
+    sublabel: "مثال: الحماية الأولى، المرحلة 2 - الصفيحة الرابعة"
+  ref_mat_protection:
+    label: "المواد المستخدمة"
+    sublabel: "اختر المواد من الكتالوج المركبة في هذه النقطة أو سجل مادة جديدة"
+  ia_media:
+    label: "وسائط بعد التركيب"
+  ia_notes:
+    label: "ملاحظات (اختياري)"
+  ba_position:
+    label: "تعريف محطة التأمين"
+    sublabel: "مثال: المحطة P1، المحطة النهائية"
+  ref_mat_belay:
+    label: "المواد المستخدمة في محطة التأمين"
+    sublabel: "اختر المواد من الكتالوج المركبة في محطة التأمين هذه أو سجل مادة جديدة"
+  ba_media:
+    label: "وسائط بعد التركيب"
+  ba_notes:
+    label: "ملاحظات (اختياري)"
+  lr_notice:
+    titulo: "تحذير — منطقة خطر"
+    corpo: "يجب إزالة الكتل الصخرية مع عزل القاعدة وعدم وجود أشخاص في الأسفل."
+  lr_size:
+    label: "الحجم التقريبي للكتلة"
+    opcoes:
+      small:
+        label: "صغير (بحجم قبضة اليد)"
+      medium:
+        label: "متوسط (بحجم بطيخة)"
+      large:
+        label: "كبير (أكبر من بطيخة)"
+  lr_media_before:
+    label: "وسائط قبل الإزالة"
+  lr_media_after:
+    label: "وسائط بعد الإزالة"
+  vc_media_before:
+    label: "وسائط قبل التنظيف"
+  vc_notes:
+    label: "وصف التنظيف"
+  vc_media_after:
+    label: "وسائط بعد التنظيف"
+  oth_description:
+    label: "وصف الإجراء المنفذ"
+  ref_mat_other:
+    label: "المواد المستخدمة (اختياري)"
+    sublabel: "إذا استخدم هذا الإجراء مواد من الكتالوج، فاخترها أدناه"
+  oth_media:
+    label: "وسائط (اختياري)"
+  action_list_c:
+    label: "نقاط التثبيت والإجراءات المنفذة"
+    sublabel: "أضف كل نقطة تثبيت ثابتة مركبة أو محطة تأمين أو تدخل في الصخر. الحد الأدنى 1."
+  assessment_condition:
+    label: "الحالة الحالية للمسار"
+    opcoes:
+      open:
+        label: "مفتوح للتسلق"
+        sublabel: "اكتمل فتح المسار وهو جاهز للتكرار"
+      project_in_progress:
+        label: "قيد الفتح / مشروع مفتوح"
+        sublabel: "المسار لم يكتمل بعد"
+      open_with_restrictions:
+        label: "مفتوح مع قيود"
+        sublabel: "تحقق من التوصيات قبل التكرار"
+  assessment_comments:
+    label: "المعدات المقترحة للتكرار والتعليقات (اختياري)"
+    sublabel: "مثال: 12 كويك درو، مجموعة كامات #0.5 إلى #2، حبل 60 متر"
+tipos_acao:
+  installed_protection:
+    label: "نقطة تثبيت ثابتة مركبة"
+    sublabel: "تركيب صفيحة أو مسمار تمدد أو خطاف أو مرساة كيميائية"
+  belay_rappel_station:
+    label: "محطة تأمين / إنزال مركبة"
+    sublabel: "تركيب محطة تأمين مزدوجة/ثلاثية أو محطة إنزال"
+  loose_rock_removal:
+    label: "إزالة كتلة صخرية مفككة"
+    sublabel: "إزالة صخرة أو قشرة غير مستقرة أثناء فتح المسار"
+  vegetation_cleaning:
+    label: "تنظيف النباتات"
+    sublabel: "تنظيف المسكات أو الشقوق على خط المسار الجديد"
+  other:
+    label: "إجراء آخر"
+    sublabel: "إجراء أو سجل إضافي لفتح المسار"
+opcoes:
+  small:
+    label: "صغير (بحجم قبضة اليد)"
+  medium:
+    label: "متوسط (بحجم بطيخة)"
+  large:
+    label: "كبير (أكبر من بطيخة)"
+  open:
+    label: "مفتوح للتسلق"
+    sublabel: "اكتمل فتح المسار وهو جاهز للتكرار"
+  project_in_progress:
+    label: "قيد الفتح / مشروع مفتوح"
+    sublabel: "المسار لم يكتمل بعد"
+  open_with_restrictions:
+    label: "مفتوح مع قيود"
+    sublabel: "تحقق من التوصيات قبل التكرار"

@@ -60,6 +60,7 @@ class SubmissionRecord {
 
   bool get isMaterial =>
       tipoRegistro == SubmissionTipoRegistro.material ||
+      idProtocolo == 'material_registration' ||
       idProtocolo == 'cadastro_material';
 
   bool get isManutencao => !isMaterial;

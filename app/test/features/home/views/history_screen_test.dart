@@ -477,7 +477,7 @@ protocolo:
       expect(find.byType(WizardScreen), findsOneWidget);
       final wizardState = capturedRef.read(wizardControllerProvider);
       expect(wizardState.sessionId, isNot(equals('sessao_orig_1')));
-      expect(wizardState.answers['via_nome']?.texto, equals('Via do Diedro (Cópia)'));
+      expect(wizardState.answers['route_name']?.texto, equals('Via do Diedro (Cópia)'));
 
       await tester.runAsync(() async {
         await capturedRef.read(wizardControllerProvider.notifier).flushAutoSave();

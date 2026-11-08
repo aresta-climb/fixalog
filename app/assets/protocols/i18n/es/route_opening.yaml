@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Apertura de Vía"
+  descricao: "Registro técnico pericial de apertura de nuevas rutas de escalada y anclajes fijos instalados."
+blocos:
+  route:
+    titulo: "Bloque 1 — Identificación de la Nueva Vía"
+    subtitulo: "Datos técnicos de ubicación, aperturistas y línea de la nueva ruta"
+  actions:
+    titulo: "Bloque 2 — Anclajes y Acciones de la Apertura"
+    subtitulo: "Registre cada anclaje fijo, reunión o limpieza realizada en la apertura. Mínimo 1."
+  assessment:
+    titulo: "Bloque 3 — Evaluación y Cierre"
+    subtitulo: "Condición de la vía y equipo necesario para repetición"
+conteudos:
+  route_notice:
+    titulo: "Identificación de la Apertura"
+    corpo: "Complete los datos de la nueva vía, coordenadas GPS de la base y registre la imagen de la línea/croquis del sector."
+  route_date:
+    label: "Fecha de Apertura"
+    sublabel: "Completada automáticamente con la fecha actual (editable)"
+  route_gps:
+    label: "Ubicación GPS de la Base"
+    sublabel: "Capture las coordenadas geográficas exactas de la base de la vía"
+  route_name:
+    label: "Nombre de la Vía"
+    sublabel: "Nombre dado a la vía por el/los aperturista(s)"
+  route_first_ascensionists:
+    label: "Aperturista(s)"
+    sublabel: "Nombres de los aperturistas participantes"
+  route_grade:
+    label: "Graduación Estimada"
+    sublabel: "Ej.: 6c+, 7b, V+ E2"
+  route_length:
+    label: "Extensión / Largos"
+    sublabel: "Ej.: 25m (deportiva) o 150m / 4 largos"
+  route_sector:
+    label: "Sector / Bloque"
+  route_peak:
+    label: "Pico / Área"
+  route_line_media:
+    label: "Medio del Sector / Línea de la Vía"
+    sublabel: "Adjunte foto, video o PDF mostrando la línea de la vía o croquis"
+  ia_position:
+    label: "Posición / Identificación del Anclaje"
+    sublabel: "Ej.: 1er seguro, Largo 2 - 4ª chapa"
+  ref_mat_protection:
+    label: "Materiales utilizados"
+    sublabel: "Seleccione los materiales del catálogo instalados en este punto o registre uno nuevo"
+  ia_media:
+    label: "Medio tras la instalación"
+  ia_notes:
+    label: "Observaciones (opcional)"
+  ba_position:
+    label: "Identificación de la Reunión"
+    sublabel: "Ej.: Reunión R1, Reunión Final"
+  ref_mat_belay:
+    label: "Materiales utilizados en la reunión"
+    sublabel: "Seleccione los materiales del catálogo instalados en esta reunión o registre uno nuevo"
+  ba_media:
+    label: "Medio tras la instalación"
+  ba_notes:
+    label: "Observaciones (opcional)"
+  lr_notice:
+    titulo: "ATENCIÓN — Zona de Riesgo"
+    corpo: "La remoción de bloques debe realizarse con la base aislada y sin personas debajo."
+  lr_size:
+    label: "Tamaño aproximado del bloque"
+    opcoes:
+      small:
+        label: "Pequeño (tamaño de puño)"
+      medium:
+        label: "Mediano (tamaño de sandía)"
+      large:
+        label: "Grande (mayor que una sandía)"
+  lr_media_before:
+    label: "Medio antes de la remoción"
+  lr_media_after:
+    label: "Medio tras la remoción"
+  vc_media_before:
+    label: "Medio antes de la limpieza"
+  vc_notes:
+    label: "Descripción de la limpieza"
+  vc_media_after:
+    label: "Medio tras la limpieza"
+  oth_description:
+    label: "Descripción de la acción realizada"
+  ref_mat_other:
+    label: "Materiales utilizados (opcional)"
+    sublabel: "Si esta acción utilizó materiales del catálogo, selecciónelos abajo"
+  oth_media:
+    label: "Medio (opcional)"
+  action_list_c:
+    label: "Anclajes y Acciones Realizadas"
+    sublabel: "Agregue cada anclaje fijo instalado, reunión o intervención en la roca. Mínimo 1."
+  assessment_condition:
+    label: "Condición actual de la vía"
+    opcoes:
+      open:
+        label: "Liberada para escalada"
+        sublabel: "Apertura concluida y lista para repeticiones"
+      project_in_progress:
+        label: "En apertura / Proyecto abierto"
+        sublabel: "Vía aún no finalizada"
+      open_with_restrictions:
+        label: "Liberada con restricción"
+        sublabel: "Verificar recomendaciones antes de repetir"
+  assessment_comments:
+    label: "Equipo sugerido para repetición y comentarios (opcional)"
+    sublabel: "Ej.: 12 cintas exprés, juego de friends #0.5 a #2, cuerda de 60m"
+tipos_acao:
+  installed_protection:
+    label: "Anclaje Fijo Instalado"
+    sublabel: "Instalación de chapa, parabolt, grapa o anclaje químico"
+  belay_rappel_station:
+    label: "Reunión / Rápel Instalado"
+    sublabel: "Instalación de reunión doble/triple o estación de rápel"
+  loose_rock_removal:
+    label: "Remoción de Bloque Suelto"
+    sublabel: "Retirada de piedra o laja inestable durante la apertura"
+  vegetation_cleaning:
+    label: "Limpieza de Vegetación"
+    sublabel: "Limpieza de agarres o canaletas en la línea de la apertura"
+  other:
+    label: "Otra Acción"
+    sublabel: "Acción o registro adicional de la apertura"
+opcoes:
+  small:
+    label: "Pequeño (tamaño de puño)"
+  medium:
+    label: "Mediano (tamaño de sandía)"
+  large:
+    label: "Grande (mayor que una sandía)"
+  open:
+    label: "Liberada para escalada"
+    sublabel: "Apertura concluida y lista para repeticiones"
+  project_in_progress:
+    label: "En apertura / Proyecto abierto"
+    sublabel: "Vía aún no finalizada"
+  open_with_restrictions:
+    label: "Liberada con restricción"
+    sublabel: "Verificar recomendaciones antes de repetir"

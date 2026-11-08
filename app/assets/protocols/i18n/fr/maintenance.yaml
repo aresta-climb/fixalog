@@ -1,0 +1,164 @@
+protocolo:
+  nome: "Maintenance des Ancrages Fixes"
+  descricao: "Protocole pour la maintenance et l'installation d'ancrages fixes (goujons, plaquettes, anneaux, ancrages, nettoyage et blocs instables)"
+blocos:
+  route:
+    titulo: "Bloc 1 — Identification de la Voie"
+    subtitulo: "Données de date, localisation et identification de la voie entretenue"
+  actions:
+    titulo: "Bloc 2 — Actions de Maintenance"
+    subtitulo: "Enregistrez chaque action effectuée sur cette voie. Minimum 1."
+  assessment:
+    titulo: "Bloc 3 — Évaluation et Clôture"
+    subtitulo: "Évaluation finale de la voie et observations"
+conteudos:
+  route_notice:
+    titulo: "Identification de la Voie"
+    corpo: "Remplissez les données de localisation et la date de la maintenance. La coordonnée GPS est obligatoire."
+  route_date:
+    label: "Date de la Maintenance"
+    sublabel: "Remplie automatiquement avec la date actuelle (modifiable)"
+  route_gps:
+    label: "Localisation GPS"
+  route_name:
+    label: "Nom de la voie"
+  route_sector:
+    label: "Secteur / Bloc"
+  route_peak:
+    label: "Sommet / Zone"
+  route_has_permission:
+    label: "Avez-vous l'autorisation de l'ouvreur ?"
+  route_permission_media:
+    label: "Média de l'autorisation (le cas échéant)"
+  ai_instruction:
+    titulo: "Évaluation Visuelle et Mécanique"
+    corpo: "Enregistrez l'état actuel avant toute intervention. Évaluez ensuite visuellement (corrosion, fissures) et mécaniquement (resserrage). Classez le résultat."
+  ai_media_before:
+    label: "Média avant l'intervention"
+  ai_ap_notes:
+    label: "Observations"
+  ai_rt_torque:
+    label: "Couple appliqué (Nm)"
+  ai_rt_notes:
+    label: "Observations"
+  ai_rep_notice:
+    titulo: "Stratégie de Remplacement"
+    corpo: "Si le trou peut être réutilisé, utilisez un scellement chimique. Sinon, percez un nouvel emplacement."
+  ref_mat_reuse_hole:
+    label: "Matériels utilisés"
+    sublabel: "Sélectionnez les matériels du catalogue installés sur cet ancrage ou enregistrez-en un nouveau"
+  ai_rep_rh_media:
+    label: "Média après installation"
+  ref_mat_new_location:
+    label: "Matériels utilisés"
+    sublabel: "Sélectionnez les matériels du catalogue installés sur cet ancrage ou enregistrez-en un nouveau"
+  ai_rep_nl_notes:
+    label: "Justification du nouvel emplacement"
+  ai_rep_nl_media:
+    label: "Média après installation"
+  ai_rep_branch:
+    label: "Comment le remplacement sera-t-il effectué ?"
+  ai_result:
+    label: "Résultat de l'évaluation"
+  na_instruction:
+    titulo: "Nouveau point d'ancrage"
+    corpo: "Sélectionnez les matériels installés depuis votre catalogue local et enregistrez des médias après l'installation."
+  ref_mat_new_anchor:
+    label: "Matériels utilisés"
+    sublabel: "Sélectionnez les matériels du catalogue installés sur ce point ou enregistrez-en un nouveau"
+  na_media:
+    label: "Média après installation"
+  lr_notice:
+    titulo: "ATTENTION — Zone de Danger"
+    corpo: "La purge de blocs doit être effectuée avec la voie fermée et sans personne en contrebas."
+  lr_size:
+    label: "Taille approximative du bloc"
+    opcoes:
+      small:
+        label: "Petit (taille du poing)"
+      medium:
+        label: "Moyen (taille d'une pastèque)"
+      large:
+        label: "Grand (plus grand qu'une pastèque)"
+  lr_media_before:
+    label: "Média avant la purge"
+  lr_media_after:
+    label: "Média après la purge"
+  vc_media_before:
+    label: "Média avant le nettoyage"
+  vc_notes:
+    label: "Description du nettoyage"
+  vc_media_after:
+    label: "Média après le nettoyage"
+  oth_description:
+    label: "Description de l'action effectuée"
+  ref_mat_other:
+    label: "Matériels utilisés (optionnel)"
+    sublabel: "Si cette action a utilisé des matériels du catalogue, sélectionnez-les ci-dessous"
+  oth_media:
+    label: "Média (optionnel)"
+  action_list_c:
+    label: "Actions effectuées"
+    sublabel: "Ajoutez chaque action de maintenance. Minimum 1."
+  assessment_condition:
+    label: "Condition finale de la voie pour l'escalade"
+    opcoes:
+      open:
+        label: "Ouverte à l'escalade"
+        sublabel: "Voie en bon état"
+      open_with_restrictions:
+        label: "Ouverte avec restriction"
+        sublabel: "Vérifier l'avertissement avant utilisation"
+      closed:
+        label: "Fermée"
+        sublabel: "Ne pas grimper jusqu'à nouvelle maintenance"
+  assessment_comments:
+    label: "Commentaires supplémentaires (optionnel)"
+ramos:
+  approved:
+    label: "Approuvé — Sans intervention"
+    sublabel: "Ancrage en bon état"
+  retightened:
+    label: "Resserrage effectué"
+    sublabel: "Ancrage resserré à la clé dynamométrique"
+  replace:
+    label: "Remplacement nécessaire"
+    sublabel: "Ancrage présentant un dommage structurel"
+  reuse_hole:
+    label: "Réutiliser le trou existant"
+    sublabel: "Avec scellement chimique"
+  new_location:
+    label: "Nouvel emplacement de perçage"
+    sublabel: "Perçage dans une position différente"
+tipos_acao:
+  anchor_inspection:
+    label: "Inspection d'Ancrage"
+    sublabel: "Évaluation de l'état d'un ancrage existant"
+  new_anchor_point:
+    label: "Nouveau Point d'Ancrage"
+    sublabel: "Installation d'un nouvel ancrage"
+  loose_rock_removal:
+    label: "Purge de Bloc Instable"
+    sublabel: "Retrait de pierre instable"
+  vegetation_cleaning:
+    label: "Nettoyage de Végétation"
+    sublabel: "Retrait de plantes sur la voie"
+  other:
+    label: "Autre Action"
+    sublabel: "Action non répertoriée ci-dessus"
+opcoes:
+  small:
+    label: "Petit (taille du poing)"
+  medium:
+    label: "Moyen (taille d'une pastèque)"
+  large:
+    label: "Grand (plus grand qu'une pastèque)"
+  open:
+    label: "Ouverte à l'escalade"
+    sublabel: "Voie en bon état"
+  open_with_restrictions:
+    label: "Ouverte avec restriction"
+    sublabel: "Vérifier l'avertissement avant utilisation"
+  closed:
+    label: "Fermée"
+    sublabel: "Ne pas grimper jusqu'à nouvelle maintenance"

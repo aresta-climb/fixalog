@@ -1,0 +1,164 @@
+protocolo:
+  nome: "Manutenção de Proteções Fixas"
+  descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas, ancoragens, limpeza e blocos soltos)"
+blocos:
+  route:
+    titulo: "Bloco 1 — Identificação da Via"
+    subtitulo: "Dados de data, localização e identificação da via manutenida"
+  actions:
+    titulo: "Bloco 2 — Ações de Manutenção"
+    subtitulo: "Registre cada ação realizada nesta via. Mínimo 1."
+  assessment:
+    titulo: "Bloco 3 — Avaliação e Encerramento"
+    subtitulo: "Avaliação final da via e observações"
+conteudos:
+  route_notice:
+    titulo: "Identificação da Via"
+    corpo: "Preencha os dados de localização e data da manutenção. A coordenada GPS é obrigatória."
+  route_date:
+    label: "Data da Manutenção"
+    sublabel: "Preenchida automaticamente com a data atual (editável)"
+  route_gps:
+    label: "Localização GPS"
+  route_name:
+    label: "Nome da via"
+  route_sector:
+    label: "Setor / Bloco"
+  route_peak:
+    label: "Pico / Área"
+  route_has_permission:
+    label: "Possui permissão do conquistador?"
+  route_permission_media:
+    label: "Mídia da permissão (se houver)"
+  ai_instruction:
+    titulo: "Avaliação Visual e Mecânica"
+    corpo: "Registre o estado atual antes de qualquer intervenção. Em seguida, avalie visualmente (corrosão, trincas) e mecanicamente (reaperto). Classifique o resultado."
+  ai_media_before:
+    label: "Mídia antes da intervenção"
+  ai_ap_notes:
+    label: "Observações"
+  ai_rt_torque:
+    label: "Torque aplicado (Nm)"
+  ai_rt_notes:
+    label: "Observações"
+  ai_rep_notice:
+    titulo: "Estratégia de Substituição"
+    corpo: "Se o furo puder ser reutilizado, use ancoragem química. Caso contrário, perfure novo local."
+  ref_mat_reuse_hole:
+    label: "Materiais utilizados"
+    sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+  ai_rep_rh_media:
+    label: "Mídia após instalação"
+  ref_mat_new_location:
+    label: "Materiais utilizados"
+    sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+  ai_rep_nl_notes:
+    label: "Justificativa do novo local"
+  ai_rep_nl_media:
+    label: "Mídia após instalação"
+  ai_rep_branch:
+    label: "Como será feita a substituição?"
+  ai_result:
+    label: "Resultado da avaliação"
+  na_instruction:
+    titulo: "Novo ponto de ancoragem"
+    corpo: "Selecione os materiais instalados do seu catálogo local e registre mídias após a instalação."
+  ref_mat_new_anchor:
+    label: "Materiais utilizados"
+    sublabel: "Selecione os materiais do catálogo instalados neste ponto ou cadastre um novo"
+  na_media:
+    label: "Mídia após instalação"
+  lr_notice:
+    titulo: "ATENÇÃO — Zona de Risco"
+    corpo: "A remoção de blocos deve ser feita com a via interditada e sem presença de pessoas abaixo."
+  lr_size:
+    label: "Tamanho aproximado do bloco"
+    opcoes:
+      small:
+        label: "Pequeno (tamanho de punho)"
+      medium:
+        label: "Médio (tamanho de melancia)"
+      large:
+        label: "Grande (maior que melancia)"
+  lr_media_before:
+    label: "Mídia antes da remoção"
+  lr_media_after:
+    label: "Mídia após remoção"
+  vc_media_before:
+    label: "Mídia antes da limpeza"
+  vc_notes:
+    label: "Descrição da limpeza"
+  vc_media_after:
+    label: "Mídia após limpeza"
+  oth_description:
+    label: "Descrição da ação realizada"
+  ref_mat_other:
+    label: "Materiais utilizados (opcional)"
+    sublabel: "Caso esta ação tenha utilizado materiais do catálogo, selecione-os abaixo"
+  oth_media:
+    label: "Mídia (opcional)"
+  action_list_c:
+    label: "Ações realizadas"
+    sublabel: "Adicione cada ação de manutenção. Mínimo 1."
+  assessment_condition:
+    label: "Condição final da via para escalada"
+    opcoes:
+      open:
+        label: "Liberada para escalada"
+        sublabel: "Via em boas condições"
+      open_with_restrictions:
+        label: "Liberada com restrição"
+        sublabel: "Verificar aviso antes de usar"
+      closed:
+        label: "Interditada"
+        sublabel: "Não escalar até nova manutenção"
+  assessment_comments:
+    label: "Comentários adicionais (opcional)"
+ramos:
+  approved:
+    label: "Aprovado — Sem intervenção"
+    sublabel: "Ancoragem em bom estado"
+  retightened:
+    label: "Reaperto realizado"
+    sublabel: "Ancoragem reaperta com torquímetro"
+  replace:
+    label: "Substituição necessária"
+    sublabel: "Ancoragem com dano estrutural"
+  reuse_hole:
+    label: "Reutilizar furo existente"
+    sublabel: "Com ancoragem química"
+  new_location:
+    label: "Novo local de perfuração"
+    sublabel: "Perfuração em posição diferente"
+tipos_acao:
+  anchor_inspection:
+    label: "Inspeção de Ancoragem"
+    sublabel: "Avaliação do estado de uma ancoragem existente"
+  new_anchor_point:
+    label: "Novo Ponto de Ancoragem"
+    sublabel: "Instalação de nova ancoragem"
+  loose_rock_removal:
+    label: "Remoção de Bloco Solto"
+    sublabel: "Retirada de pedra instável"
+  vegetation_cleaning:
+    label: "Limpeza de Vegetação"
+    sublabel: "Retirada de plantas na via"
+  other:
+    label: "Outra Ação"
+    sublabel: "Ação não catalogada acima"
+opcoes:
+  small:
+    label: "Pequeno (tamanho de punho)"
+  medium:
+    label: "Médio (tamanho de melancia)"
+  large:
+    label: "Grande (maior que melancia)"
+  open:
+    label: "Liberada para escalada"
+    sublabel: "Via em boas condições"
+  open_with_restrictions:
+    label: "Liberada com restrição"
+    sublabel: "Verificar aviso antes de usar"
+  closed:
+    label: "Interditada"
+    sublabel: "Não escalar até nova manutenção"

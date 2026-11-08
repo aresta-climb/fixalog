@@ -1,0 +1,141 @@
+protocolo:
+  nome: "الفحص البصري لنقاط التثبيت الثابتة"
+  descricao: "تقرير المراقبة الدورية والفحص البصري نقطة بنقطة لنقاط التثبيت الثابتة الحالية دون تدخل ميكانيكي."
+blocos:
+  route:
+    titulo: "الكتلة 1 — تعريف المسار"
+    subtitulo: "بيانات التاريخ والموقع وتعريف المسار الذي تم فحصه"
+  inspection:
+    titulo: "الكتلة 2 — الفحص نقطة بنقطة"
+    subtitulo: "سجل الحالة البصرية لكل نقطة تم تقييمها على طول المسار. الحد الأدنى 1."
+  assessment:
+    titulo: "الكتلة 3 — الحالة النهائية للمسار"
+    subtitulo: "ملخص عام لحالة المسار بعد الفحص البصري"
+conteudos:
+  route_notice:
+    titulo: "تعريف المسار"
+    corpo: "أدخل بيانات الموقع وتاريخ الفحص البصري. إحداثيات GPS إلزامية."
+  route_date:
+    label: "تاريخ الفحص"
+    sublabel: "تتم تعبئته تلقائياً بالتاريخ الحالي (قابل للتعديل)"
+  route_gps:
+    label: "موقع GPS"
+  route_name:
+    label: "اسم المسار"
+  route_sector:
+    label: "القطاع / الكتلة"
+  route_peak:
+    label: "القمة / المنطقة"
+  vi_ap_position:
+    label: "موقع / تعريف النقطة"
+    sublabel: "مثال: نقطة التثبيت الأولى، الخطاف الثالث، نقطة المقطع الصعب"
+  vi_ap_condition:
+    label: "الحالة العامة لنقطة التثبيت"
+    sublabel: "قيّم بصرياً السلامة الفيزيائية للمعدن والتثبيت."
+    opcoes:
+      good:
+        label: "جيد"
+        sublabel: "بدون تغييرات"
+      worn:
+        label: "متآكل / تنبيه"
+        sublabel: "تجب مراقبته"
+      critical:
+        label: "حرج / تالف"
+        sublabel: "يتطلب الاستبدال"
+  vi_ap_corrosion:
+    label: "هل يوجد تآكل أو ارتخاء؟"
+    sublabel: "تحقق من وجود علامات صدأ أو شقوق أو دوران في الصفيحة."
+  vi_ap_notes:
+    label: "ملاحظات"
+  vi_ap_media:
+    label: "وسائط الإثبات"
+    sublabel: "أرفق صوراً أو مقاطع فيديو توضح حالة النقطة"
+  vi_ba_position:
+    label: "تعريف محطة التأمين"
+    sublabel: "مثال: المحطة P1، المحطة النهائية"
+  vi_ba_condition:
+    label: "الحالة العامة لمحطة التأمين"
+    opcoes:
+      good:
+        label: "جيد"
+        sublabel: "بدون تغييرات"
+      worn:
+        label: "متآكل / تنبيه"
+        sublabel: "مراقبة تآكل الحلقة/الرابط"
+      critical:
+        label: "حرج / تالف"
+        sublabel: "يتطلب صيانة فورية"
+  vi_ba_corrosion:
+    label: "هل يوجد تآكل أو أخدود عميق؟"
+  vi_ba_notes:
+    label: "ملاحظات"
+  vi_ba_media:
+    label: "وسائط الإثبات"
+  vi_re_description:
+    label: "موقع ووصف الحالة"
+  vi_re_condition:
+    label: "مستوى التنبيه"
+    opcoes:
+      informative:
+        label: "معلوماتي / خطر منخفض"
+        sublabel: "لا يوجد تأثير فوري على السلامة"
+      warning:
+        label: "تنبيه"
+        sublabel: "يتطلب الحذر أثناء التسلق أو تنظيفاً مستقبلياً"
+      critical:
+        label: "خطر حرج"
+        sublabel: "خطر سقوط صخور أو وقوع حادث"
+  vi_re_media:
+    label: "وسائط الإثبات (اختياري)"
+  inspection_list_c:
+    label: "النقاط التي تم فحصها"
+    sublabel: "أضف كل نقطة تثبيت أو محطة إنزال أو حالة صخر تم تقييمها. الحد الأدنى 1."
+  assessment_condition:
+    label: "الحالة النهائية للمسار للتسلق"
+    opcoes:
+      open:
+        label: "مفتوح للتسلق"
+        sublabel: "نقاط التثبيت في حالة بصرية جيدة"
+      open_with_restrictions:
+        label: "مفتوح مع قيود"
+        sublabel: "نقاط تتطلب الانتباه — راجع الملاحظات"
+      closed:
+        label: "مغلق / بانتظار الصيانة"
+        sublabel: "لا تتسلق حتى يتم إجراء الصيانة"
+  assessment_comments:
+    label: "ملخص وملاحظات عامة للفحص (اختياري)"
+tipos_acao:
+  anchor_protection:
+    label: "نقطة تثبيت / مرساة"
+    sublabel: "صفيحة أو مسمار تمدد أو خطاف أو مرساة كيميائية متوسطة"
+  belay_rappel_station:
+    label: "محطة تأمين / إنزال"
+    sublabel: "مجموعة محطة مزدوجة/ثلاثية أو حلقات أو سلاسل"
+  rock_environment:
+    label: "الصخر / البيئة"
+    sublabel: "كتلة صخرية مفككة أو قشرة غير مستقرة أو نباتات أو ممر وصول"
+opcoes:
+  good:
+    label: "جيد"
+    sublabel: "بدون تغييرات"
+  worn:
+    label: "متآكل / تنبيه"
+    sublabel: "تجب مراقبته"
+  critical:
+    label: "حرج / تالف"
+    sublabel: "يتطلب الاستبدال"
+  informative:
+    label: "معلوماتي / خطر منخفض"
+    sublabel: "لا يوجد تأثير فوري على السلامة"
+  warning:
+    label: "تنبيه"
+    sublabel: "يتطلب الحذر أثناء التسلق أو تنظيفاً مستقبلياً"
+  open:
+    label: "مفتوح للتسلق"
+    sublabel: "نقاط التثبيت في حالة بصرية جيدة"
+  open_with_restrictions:
+    label: "مفتوح مع قيود"
+    sublabel: "نقاط تتطلب الانتباه — راجع الملاحظات"
+  closed:
+    label: "مغلق / بانتظار الصيانة"
+    sublabel: "لا تتسلق حتى يتم إجراء الصيانة"

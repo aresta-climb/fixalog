@@ -1,0 +1,37 @@
+protocolo:
+  nome: "Express-Protokoll"
+  descricao: "Freie und schnelle Erfassung von Vorkommnissen, Medien, Koordinaten und Materialien ohne vorgegebene Struktur."
+blocos:
+  identification_block:
+    titulo: "Block 1 — Identifikation und Standort"
+    subtitulo: "Protokolltitel, Datum und optionaler Standort"
+  evidence_block:
+    titulo: "Block 2 — Nachweise und Materialien"
+    subtitulo: "Fügen Sie Medien mit Beschreibungen hinzu und verknüpfen Sie optional Katalogmaterialien"
+conteudos:
+  route_name:
+    label: "Titel / Kennung des Eintrags"
+    sublabel: "Routenname, Ort oder Betreff zur Identifizierung dieses Eintrags im Verlauf"
+  route_date:
+    label: "Erfassungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  route_gps:
+    label: "GPS-Koordinaten (optional)"
+    sublabel: "Erfassen Sie bei Bedarf den aktuellen Standort."
+  general_notes:
+    label: "Allgemeine Bemerkungen (optional)"
+  ev_media:
+    label: "Nachweismedien"
+    sublabel: "Fügen Sie Fotos, Videos oder PDFs hinzu"
+  ev_description:
+    label: "Beschreibung (optional)"
+  evidence_list:
+    label: "Nachweise (Fotos, Videos oder PDFs)"
+    sublabel: "Fügen Sie beliebig viele Medieneinträge und Notizen hinzu (optional)."
+  ref_mat_express:
+    label: "Zugehörige Materialien (optional)"
+    sublabel: "Wählen Sie Materialien aus dem lokalen Katalog aus, falls dieser Eintrag Ausrüstung betrifft"
+tipos_acao:
+  evidence_item:
+    label: "Nachweis / Notiz"
+    sublabel: "Fotos, Videos oder PDFs mit Beschreibung"

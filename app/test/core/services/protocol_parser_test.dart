@@ -252,29 +252,29 @@ void main() {
       proto = ProtocolParser.fromYaml(file.readAsStringSync());
     });
 
-    test('tem id "manutencao", versao "2" e 3 blocos na ordem correta (via, acoes, avaliacao)', () {
-      expect(proto.id, equals('manutencao'));
-      expect(proto.versao, equals('2'));
+    test('tem id "maintenance", versao "3" e 3 blocos na ordem correta (route, actions, assessment)', () {
+      expect(proto.id, equals('maintenance'));
+      expect(proto.versao, equals('3'));
       expect(
         proto.blocos.map((b) => b.id).toList(),
-        equals(['via', 'acoes', 'avaliacao']),
+        equals(['route', 'actions', 'assessment']),
       );
     });
 
     test(
-      'step "via_localizacao" tem múltiplos conteudos (instrucao + data automática + GPS + campos)',
+      'step "route_location" tem múltiplos conteudos (instrucao + data automática + GPS + campos)',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'via');
-        final step = bloco.steps.firstWhere((s) => s.id == 'via_localizacao');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'route');
+        final step = bloco.steps.firstWhere((s) => s.id == 'route_location');
 
         expect(
           step.conteudos.length,
           greaterThanOrEqualTo(4),
           reason:
-              'via_localizacao deve ter instrucao + data + GPS + nome (mínimo 4 conteudos)',
+              'route_location deve ter instrucao + data + GPS + nome (mínimo 4 conteudos)',
         );
 
-        final dataC = _conteudoById([step], 'via_data');
+        final dataC = _conteudoById([step], 'route_date');
         expect(dataC.campoSimples.tipo, equals(StepCampoSimples_TipoCampo.DATE));
         expect(dataC.campoSimples.preencherDataAtual, isTrue);
 
@@ -284,11 +284,11 @@ void main() {
       },
     );
 
-    test('bloco "avaliacao" encerra em "avaliacao_geral" sem step de assinatura', () {
-      final bloco = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
+    test('bloco "assessment" encerra em "general_assessment" sem step de assinatura', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'assessment');
       final stepIds = bloco.steps.map((s) => s.id).toList();
       expect(stepIds, isNot(contains('assinatura')));
-      expect(bloco.steps.last.id, equals('avaliacao_geral'));
+      expect(bloco.steps.last.id, equals('general_assessment'));
 
       final tiposCampo = bloco.steps
           .expand((s) => s.conteudos)
@@ -299,17 +299,17 @@ void main() {
     });
 
     test(
-      '"ia_avaliacao" (tipo inspecao_ancoragem) tem instrucao + IMAGE + SelecaoRamo no mesmo step',
+      '"ai_assessment" (tipo anchor_inspection) tem instrucao + IMAGE + SelecaoRamo no mesmo step',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
         final listaC = _firstConteudoOfType(
           bloco.steps,
           ConteudoStep_Tipo.listaAcoes,
         );
         final inspecao = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'inspecao_ancoragem',
+          (t) => t.id == 'anchor_inspection',
         );
-        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
+        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ai_assessment');
 
         final tipos = iaStep.conteudos.map((c) => c.whichTipo()).toList();
         expect(tipos, contains(ConteudoStep_Tipo.instrucao));
@@ -319,10 +319,10 @@ void main() {
     );
 
     test(
-      '"avaliacao_geral" tem condição + comentários em sequência no mesmo step',
+      '"general_assessment" tem condição + comentários em sequência no mesmo step',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'avaliacao');
-        final step = bloco.steps.firstWhere((s) => s.id == 'avaliacao_geral');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'assessment');
+        final step = bloco.steps.firstWhere((s) => s.id == 'general_assessment');
 
         expect(step.conteudos.length, greaterThanOrEqualTo(2));
         final tipos = step.conteudos.map((c) => c.whichTipo()).toList();
@@ -347,24 +347,24 @@ void main() {
     });
 
     test(
-      'bloco "acoes" tem ConteudoStep listaAcoes com id "lista_acoes_c" e 5 tipos',
+      'bloco "actions" tem ConteudoStep listaAcoes com id "action_list_c" e 5 tipos',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
         final listaC = _firstConteudoOfType(
           bloco.steps,
           ConteudoStep_Tipo.listaAcoes,
         );
 
-        expect(listaC.id, equals('lista_acoes_c'));
+        expect(listaC.id, equals('action_list_c'));
         expect(listaC.listaAcoes.minimo, equals(1));
         expect(
           listaC.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
           equals([
-            'inspecao_ancoragem',
-            'novo_ponto',
-            'remocao_bloco',
-            'limpeza_vegetacao',
-            'outro',
+            'anchor_inspection',
+            'new_anchor_point',
+            'loose_rock_removal',
+            'vegetation_cleaning',
+            'other',
           ]),
         );
       },
@@ -382,49 +382,49 @@ void main() {
       );
     });
 
-    test('"ia_avaliacao" tem SelecaoRamo "ia_resultado" com 3 ramos', () {
-      final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+    test('"ai_assessment" tem SelecaoRamo "ai_result" com 3 ramos', () {
+      final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
       final listaC = _firstConteudoOfType(
         bloco.steps,
         ConteudoStep_Tipo.listaAcoes,
       );
       final inspecao = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-        (t) => t.id == 'inspecao_ancoragem',
+        (t) => t.id == 'anchor_inspection',
       );
 
-      final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
-      final resultadoC = _conteudoById([iaStep], 'ia_resultado');
+      final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ai_assessment');
+      final resultadoC = _conteudoById([iaStep], 'ai_result');
 
       expect(resultadoC.whichTipo(), ConteudoStep_Tipo.selecaoRamo);
       expect(resultadoC.selecaoRamo.obrigatorio, isTrue);
 
       final ramoIds = resultadoC.selecaoRamo.ramos.map((r) => r.id).toList();
-      expect(ramoIds, containsAll(['aprovado', 'reaperto', 'substituir']));
+      expect(ramoIds, containsAll(['approved', 'retightened', 'replace']));
     });
 
     test(
-      'ramo "substituir" contém um SelecaoRamo aninhado com "reusar_furo" e "novo_local"',
+      'ramo "replace" contém um SelecaoRamo aninhado com "reuse_hole" e "new_location"',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
         final listaC = _firstConteudoOfType(
           bloco.steps,
           ConteudoStep_Tipo.listaAcoes,
         );
         final inspecao = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'inspecao_ancoragem',
+          (t) => t.id == 'anchor_inspection',
         );
 
-        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
-        final resultadoC = _conteudoById([iaStep], 'ia_resultado');
+        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ai_assessment');
+        final resultadoC = _conteudoById([iaStep], 'ai_result');
         final ramoSub = resultadoC.selecaoRamo.ramos.firstWhere(
-          (r) => r.id == 'substituir',
+          (r) => r.id == 'replace',
         );
 
-        // o step dentro de "substituir" tem um conteudo SelecaoRamo
+        // o step dentro de "replace" tem um conteudo SelecaoRamo
         expect(
           _hasConteudoOfType(ramoSub.steps, ConteudoStep_Tipo.selecaoRamo),
           isTrue,
-          reason: 'Ramo "substituir" deve ter SelecaoRamo aninhado',
+          reason: 'Ramo "replace" deve ter SelecaoRamo aninhado',
         );
 
         final subRamoC = _firstConteudoOfType(
@@ -432,85 +432,85 @@ void main() {
           ConteudoStep_Tipo.selecaoRamo,
         );
         final subRamoIds = subRamoC.selecaoRamo.ramos.map((r) => r.id).toList();
-        expect(subRamoIds, containsAll(['reusar_furo', 'novo_local']));
+        expect(subRamoIds, containsAll(['reuse_hole', 'new_location']));
       },
     );
 
     test(
-      'sub-ramos "reusar_furo" e "novo_local" têm RefMateriais com origemCatalogo=true',
+      'sub-ramos "reuse_hole" e "new_location" têm RefMateriais com origemCatalogo=true',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
         final listaC = _firstConteudoOfType(
           bloco.steps,
           ConteudoStep_Tipo.listaAcoes,
         );
         final inspecao = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'inspecao_ancoragem',
+          (t) => t.id == 'anchor_inspection',
         );
 
-        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ia_avaliacao');
-        final resultadoC = _conteudoById([iaStep], 'ia_resultado');
+        final iaStep = inspecao.steps.firstWhere((s) => s.id == 'ai_assessment');
+        final resultadoC = _conteudoById([iaStep], 'ai_result');
         final ramoSub = resultadoC.selecaoRamo.ramos.firstWhere(
-          (r) => r.id == 'substituir',
+          (r) => r.id == 'replace',
         );
         final subRamoC = _firstConteudoOfType(
           ramoSub.steps,
           ConteudoStep_Tipo.selecaoRamo,
         );
         final ramoReusar = subRamoC.selecaoRamo.ramos.firstWhere(
-          (r) => r.id == 'reusar_furo',
+          (r) => r.id == 'reuse_hole',
         );
         final refReusar = _firstConteudoOfType(
           ramoReusar.steps,
           ConteudoStep_Tipo.refMateriais,
         );
-        expect(refReusar.id, equals('ref_mat_reusar_furo'));
+        expect(refReusar.id, equals('ref_mat_reuse_hole'));
         expect(refReusar.refMateriais.origemCatalogo, isTrue);
         expect(refReusar.refMateriais.obrigatorio, isTrue);
 
         final ramoNovoLocal = subRamoC.selecaoRamo.ramos.firstWhere(
-          (r) => r.id == 'novo_local',
+          (r) => r.id == 'new_location',
         );
         final refNovoLocal = _firstConteudoOfType(
           ramoNovoLocal.steps,
           ConteudoStep_Tipo.refMateriais,
         );
-        expect(refNovoLocal.id, equals('ref_mat_novo_local'));
+        expect(refNovoLocal.id, equals('ref_mat_new_location'));
         expect(refNovoLocal.refMateriais.origemCatalogo, isTrue);
         expect(refNovoLocal.refMateriais.obrigatorio, isTrue);
       },
     );
 
     test(
-      '"novo_ponto" e "outro" têm RefMateriais com origemCatalogo=true (obrigatório e opcional respectivamente)',
+      '"new_anchor_point" e "other" têm RefMateriais com origemCatalogo=true (obrigatório e opcional respectivamente)',
       () {
-        final bloco = proto.blocos.firstWhere((b) => b.id == 'acoes');
+        final bloco = proto.blocos.firstWhere((b) => b.id == 'actions');
         final listaC = _firstConteudoOfType(
           bloco.steps,
           ConteudoStep_Tipo.listaAcoes,
         );
         final novoPonto = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'novo_ponto',
+          (t) => t.id == 'new_anchor_point',
         );
 
         final refC = _firstConteudoOfType(
           novoPonto.steps,
           ConteudoStep_Tipo.refMateriais,
-          reason: 'novo_ponto deve ter RefMateriais',
+          reason: 'new_anchor_point deve ter RefMateriais',
         );
-        expect(refC.id, equals('ref_mat_novo_ponto'));
+        expect(refC.id, equals('ref_mat_new_anchor'));
         expect(refC.refMateriais.origemCatalogo, isTrue);
         expect(refC.refMateriais.obrigatorio, isTrue);
 
         final outro = listaC.listaAcoes.tiposDisponiveis.firstWhere(
-          (t) => t.id == 'outro',
+          (t) => t.id == 'other',
         );
         final refOutro = _firstConteudoOfType(
           outro.steps,
           ConteudoStep_Tipo.refMateriais,
-          reason: 'outro deve ter RefMateriais opcional',
+          reason: 'other deve ter RefMateriais opcional',
         );
-        expect(refOutro.id, equals('ref_mat_outro'));
+        expect(refOutro.id, equals('ref_mat_other'));
         expect(refOutro.refMateriais.origemCatalogo, isTrue);
         expect(refOutro.refMateriais.obrigatorio, isFalse);
       },
@@ -665,17 +665,17 @@ protocolo:
       );
 
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
-      expect(proto.id, equals('cadastro_material'));
-      expect(proto.versao, equals('1'));
+      expect(proto.id, equals('material_registration'));
+      expect(proto.versao, equals('2'));
       expect(proto.blocos.length, equals(2));
       expect(proto.blocos.map((b) => b.id), isNot(contains('encerramento_material')));
 
-      // Bloco 1: Identificação Geral com mat_nome, mat_codigo_associacao e mat_data (preencher_data_atual: true)
+      // Bloco 1: Identificação Geral com mat_name, mat_association_code e mat_date (preencher_data_atual: true)
       final blocoIdent = proto.blocos[0];
       final stepIdent = blocoIdent.steps.first;
       final idsIdent = stepIdent.conteudos.map((c) => c.id).toList();
-      expect(idsIdent, containsAll(['mat_nome', 'mat_codigo_associacao', 'mat_data']));
-      final cData = stepIdent.conteudos.firstWhere((c) => c.id == 'mat_data');
+      expect(idsIdent, containsAll(['mat_name', 'mat_association_code', 'mat_date']));
+      final cData = stepIdent.conteudos.firstWhere((c) => c.id == 'mat_date');
       expect(cData.campoSimples.preencherDataAtual, isTrue);
 
       // Bloco 2: Lista de materiais com as 6 categorias exigidas
@@ -686,12 +686,12 @@ protocolo:
       expect(
         idsTipos,
         equals([
-          'parabolt',
-          'chapeleta',
-          'chapeleta_argola',
-          'ancoragem_quimica',
-          'costura_permanente',
-          'outro',
+          'expansion_bolt',
+          'hanger',
+          'ring_hanger',
+          'chemical_anchor',
+          'permanent_quickdraw',
+          'other',
         ]),
       );
 
@@ -699,7 +699,7 @@ protocolo:
       for (final tipo in listaMateriais.tiposDisponiveis) {
         final conteudosTipo = tipo.steps.expand((s) => s.conteudos).toList();
         final campoNfAnexo = conteudosTipo.firstWhere(
-          (c) => c.id.endsWith('_nf_foto'),
+          (c) => c.id.endsWith('_invoice_media'),
         );
         expect(
           campoNfAnexo.campoSimples.label,
@@ -723,11 +723,11 @@ protocolo:
             .expand((s) => s.conteudos)
             .toList();
         expect(
-          conteudosTestes.any((c) => c.id == 'tq_video'),
+          conteudosTestes.any((c) => c.id == 'tq_video' || c.id == 'qt_video'),
           isFalse,
           reason: 'Categoria "${tipo.id}" deve ter campo único de mídias no teste sem tq_video separado',
         );
-        final campoMidiasTeste = conteudosTestes.firstWhere((c) => c.id == 'tq_foto');
+        final campoMidiasTeste = conteudosTestes.firstWhere((c) => c.id == 'qt_media');
         expect(
           campoMidiasTeste.campoSimples.label,
           equals('Anexar Mídias ao Teste / Laudo'),
@@ -745,7 +745,7 @@ protocolo:
           isFalse,
           reason: 'Categoria "${tipo.id}" deve ter campo único de mídias na etapa sem det_video separado',
         );
-        final campoMidiasDetalhe = conteudosDetalhes.firstWhere((c) => c.id == 'det_foto');
+        final campoMidiasDetalhe = conteudosDetalhes.firstWhere((c) => c.id == 'det_media');
         expect(
           campoMidiasDetalhe.campoSimples.label,
           equals('Anexar Mídias à Etapa / Detalhe'),
@@ -818,37 +818,37 @@ protocolo:
     });
   });
 
-  // ── 7. inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (v2) ──
+  // ── 7. inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (v3) ──
 
-  group('inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (versão 2)', () {
-    test('inspecao_visual.yaml tem id "inspecao_visual", versao "2", 3 blocos e lista ponto-a-ponto sem materiais', () {
+  group('inspecao_visual.yaml, abertura_vias.yaml e registro_expresso.yaml (versão 3)', () {
+    test('inspecao_visual.yaml tem id "visual_inspection", versao "3", 3 blocos e lista ponto-a-ponto sem materiais', () {
       final file = File('assets/protocols/inspecao_visual.yaml');
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
 
-      expect(proto.id, equals('inspecao_visual'));
-      expect(proto.versao, equals('2'));
+      expect(proto.id, equals('visual_inspection'));
+      expect(proto.versao, equals('3'));
       expect(
         proto.blocos.map((b) => b.id).toList(),
-        equals(['via', 'inspecao', 'avaliacao']),
+        equals(['route', 'inspection', 'assessment']),
       );
 
       final stepVia = proto.blocos[0].steps.first;
       final idsVia = stepVia.conteudos.map((c) => c.id).toList();
       expect(
         idsVia,
-        containsAll(['via_data', 'via_gps', 'via_nome', 'via_setor', 'via_pico']),
+        containsAll(['route_date', 'route_gps', 'route_name', 'route_sector', 'route_peak']),
       );
-      expect(_conteudoById([stepVia], 'via_data').campoSimples.preencherDataAtual, isTrue);
+      expect(_conteudoById([stepVia], 'route_date').campoSimples.preencherDataAtual, isTrue);
 
       final listaInspecao = _firstConteudoOfType(
         proto.blocos[1].steps,
         ConteudoStep_Tipo.listaAcoes,
       );
-      expect(listaInspecao.id, equals('lista_inspecao_c'));
+      expect(listaInspecao.id, equals('inspection_list_c'));
       expect(listaInspecao.listaAcoes.minimo, equals(1));
       expect(
         listaInspecao.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
-        equals(['protecao_ancoragem', 'parada_rapel', 'rocha_ambiente']),
+        equals(['anchor_protection', 'belay_rappel_station', 'rock_environment']),
       );
 
       final refs = <StepRefMateriais>[];
@@ -858,15 +858,15 @@ protocolo:
       expect(refs, isEmpty, reason: 'Inspeção visual não deve ter seleção de materiais');
     });
 
-    test('abertura_vias.yaml tem id "abertura_vias", versao "2", 3 blocos e ref_mat_* do catálogo nas ações', () {
+    test('abertura_vias.yaml tem id "route_opening", versao "3", 3 blocos e ref_mat_* do catálogo nas ações', () {
       final file = File('assets/protocols/abertura_vias.yaml');
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
 
-      expect(proto.id, equals('abertura_vias'));
-      expect(proto.versao, equals('2'));
+      expect(proto.id, equals('route_opening'));
+      expect(proto.versao, equals('3'));
       expect(
         proto.blocos.map((b) => b.id).toList(),
-        equals(['via', 'acoes', 'avaliacao']),
+        equals(['route', 'actions', 'assessment']),
       );
 
       final stepVia = proto.blocos[0].steps.first;
@@ -874,63 +874,63 @@ protocolo:
       expect(
         idsVia,
         containsAll([
-          'via_data',
-          'via_gps',
-          'via_nome',
-          'via_conquistadores',
-          'via_graduacao',
-          'via_extensao',
-          'via_setor',
-          'via_pico',
-          'via_foto_linha',
+          'route_date',
+          'route_gps',
+          'route_name',
+          'route_first_ascensionists',
+          'route_grade',
+          'route_length',
+          'route_sector',
+          'route_peak',
+          'route_line_media',
         ]),
       );
-      expect(_conteudoById([stepVia], 'via_data').campoSimples.preencherDataAtual, isTrue);
+      expect(_conteudoById([stepVia], 'route_date').campoSimples.preencherDataAtual, isTrue);
 
       final listaAcoes = _firstConteudoOfType(
         proto.blocos[1].steps,
         ConteudoStep_Tipo.listaAcoes,
       );
-      expect(listaAcoes.id, equals('lista_acoes_c'));
+      expect(listaAcoes.id, equals('action_list_c'));
       expect(listaAcoes.listaAcoes.minimo, equals(1));
       expect(
         listaAcoes.listaAcoes.tiposDisponiveis.map((t) => t.id).toList(),
         equals([
-          'protecao_instalada',
-          'parada_rapel',
-          'remocao_bloco',
-          'limpeza_vegetacao',
-          'outro',
+          'installed_protection',
+          'belay_rappel_station',
+          'loose_rock_removal',
+          'vegetation_cleaning',
+          'other',
         ]),
       );
 
       final protInstalada = listaAcoes.listaAcoes.tiposDisponiveis
-          .firstWhere((t) => t.id == 'protecao_instalada');
+          .firstWhere((t) => t.id == 'installed_protection');
       final refProt = _firstConteudoOfType(
         protInstalada.steps,
         ConteudoStep_Tipo.refMateriais,
       );
-      expect(refProt.id, equals('ref_mat_protecao'));
+      expect(refProt.id, equals('ref_mat_protection'));
       expect(refProt.refMateriais.origemCatalogo, isTrue);
       expect(refProt.refMateriais.obrigatorio, isTrue);
 
       final parada = listaAcoes.listaAcoes.tiposDisponiveis
-          .firstWhere((t) => t.id == 'parada_rapel');
+          .firstWhere((t) => t.id == 'belay_rappel_station');
       final refParada = _firstConteudoOfType(
         parada.steps,
         ConteudoStep_Tipo.refMateriais,
       );
-      expect(refParada.id, equals('ref_mat_parada'));
+      expect(refParada.id, equals('ref_mat_belay'));
       expect(refParada.refMateriais.origemCatalogo, isTrue);
       expect(refParada.refMateriais.obrigatorio, isTrue);
     });
 
-    test('registro_expresso.yaml tem id "registro_expresso", versao "2", identificação com via_nome/via_data, lista unificada e ref_mat_expresso opcional', () {
+    test('registro_expresso.yaml tem id "express_log", versao "3", identificação com route_name/route_date, lista unificada e ref_mat_express opcional', () {
       final file = File('assets/protocols/registro_expresso.yaml');
       final proto = ProtocolParser.fromYaml(file.readAsStringSync());
 
-      expect(proto.id, equals('registro_expresso'));
-      expect(proto.versao, equals('2'));
+      expect(proto.id, equals('express_log'));
+      expect(proto.versao, equals('3'));
 
       final todosConteudos = proto.blocos
           .expand((b) => b.steps)
@@ -940,28 +940,28 @@ protocolo:
       expect(
         idsRaiz,
         containsAll([
-          'via_nome',
-          'via_data',
-          'via_gps',
-          'observacoes_gerais',
-          'lista_evidencias',
-          'ref_mat_expresso',
+          'route_name',
+          'route_date',
+          'route_gps',
+          'general_notes',
+          'evidence_list',
+          'ref_mat_express',
         ]),
       );
 
-      final cNome = todosConteudos.firstWhere((c) => c.id == 'via_nome');
+      final cNome = todosConteudos.firstWhere((c) => c.id == 'route_name');
       expect(cNome.campoSimples.obrigatorio, isTrue);
 
-      final cData = todosConteudos.firstWhere((c) => c.id == 'via_data');
+      final cData = todosConteudos.firstWhere((c) => c.id == 'route_date');
       expect(cData.campoSimples.preencherDataAtual, isTrue);
 
-      final cRefMat = todosConteudos.firstWhere((c) => c.id == 'ref_mat_expresso');
+      final cRefMat = todosConteudos.firstWhere((c) => c.id == 'ref_mat_express');
       expect(cRefMat.refMateriais.origemCatalogo, isTrue);
       expect(cRefMat.refMateriais.obrigatorio, isFalse);
 
-      final cEvidencias = todosConteudos.firstWhere((c) => c.id == 'lista_evidencias');
+      final cEvidencias = todosConteudos.firstWhere((c) => c.id == 'evidence_list');
       expect(cEvidencias.listaAcoes.tiposDisponiveis, hasLength(1));
-      expect(cEvidencias.listaAcoes.tiposDisponiveis.first.id, equals('item_evidencia'));
+      expect(cEvidencias.listaAcoes.tiposDisponiveis.first.id, equals('evidence_item'));
     });
 
     test('suporta formato shorthand em Step e lança FormatException para tipo de ConteudoStep desconhecido', () {
@@ -1011,19 +1011,19 @@ blocos:
           yamlAbertura,
           codigoIdioma: 'ja',
         );
-        expect(protoJa.id, equals('abertura_vias'));
+        expect(protoJa.id, equals('route_opening'));
         expect(protoJa.nome, equals('ルート開拓'));
-        expect(protoJa.blocos.first.id, equals('via'));
+        expect(protoJa.blocos.first.id, equals('route'));
         expect(protoJa.blocos.first.titulo, equals('ブロック 1 — 新規ルートの特定'));
 
-        final cNomeJa = _conteudoById(protoJa.blocos.first.steps, 'via_nome');
+        final cNomeJa = _conteudoById(protoJa.blocos.first.steps, 'route_name');
         expect(cNomeJa.campoSimples.label, equals('ルート名'));
 
         final protoAr = ProtocolParser.fromYaml(
           yamlAbertura,
           codigoIdioma: 'ar',
         );
-        expect(protoAr.id, equals('abertura_vias'));
+        expect(protoAr.id, equals('route_opening'));
         expect(protoAr.nome, equals('فتح مسار تسلق جديد'));
 
         final yamlManut = File(

@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Routenerschließung"
+  descricao: "Technisches Sachverständigenprotokoll über die Erstbegehung oder Erschließung neuer Kletterrouten und installierter fester Sicherungspunkte."
+blocos:
+  route:
+    titulo: "Block 1 — Identifikation der Neuen Route"
+    subtitulo: "Technische Daten zu Standort, Erstbegehern und Linie der neuen Route"
+  actions:
+    titulo: "Block 2 — Sicherungspunkte und Erschließungsmaßnahmen"
+    subtitulo: "Erfassen Sie jeden festen Sicherungspunkt, Umlenker oder jede Reinigung bei der Erschließung. Mindestens 1."
+  assessment:
+    titulo: "Block 3 — Bewertung und Abschluss"
+    subtitulo: "Routenzustand und erforderliche Ausrüstung für Wiederholungen"
+conteudos:
+  route_notice:
+    titulo: "Identifikation der Erschließung"
+    corpo: "Geben Sie die Daten der neuen Route und die GPS-Koordinaten des Einstiegs ein und erfassen Sie ein Bild der Routenlinie/des Topos."
+  route_date:
+    label: "Erschließungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  route_gps:
+    label: "GPS-Standort des Einstiegs"
+    sublabel: "Erfassen Sie die genauen geografischen Koordinaten des Routeneinstiegs"
+  route_name:
+    label: "Routenname"
+    sublabel: "Name der Route durch den/die Erstbegeher"
+  route_first_ascensionists:
+    label: "Erstbegeher"
+    sublabel: "Namen der beteiligten Erstbegeher"
+  route_grade:
+    label: "Geschätzter Schwierigkeitsgrad"
+    sublabel: "Z. B.: 7+, 8-, 6b E2"
+  route_length:
+    label: "Länge / Seillängen"
+    sublabel: "Z. B.: 25m (Sportklettern) oder 150m / 4 Seillängen"
+  route_sector:
+    label: "Sektor / Wandbereich"
+  route_peak:
+    label: "Gipfel / Gebiet"
+  route_line_media:
+    label: "Medien des Sektors / der Routenlinie"
+    sublabel: "Fügen Sie Foto, Video oder PDF mit der Routenlinie oder dem Topo hinzu"
+  ia_position:
+    label: "Position / Kennung des Sicherungspunkts"
+    sublabel: "Z. B.: 1. Haken, 2. Seillänge - 4. Lasche"
+  ref_mat_protection:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Punkt installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ia_media:
+    label: "Medien nach der Installation"
+  ia_notes:
+    label: "Bemerkungen (optional)"
+  ba_position:
+    label: "Kennung des Standplatzes"
+    sublabel: "Z. B.: Standplatz S1, Umlenker Ende"
+  ref_mat_belay:
+    label: "Am Standplatz verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Standplatz installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ba_media:
+    label: "Medien nach der Installation"
+  ba_notes:
+    label: "Bemerkungen (optional)"
+  lr_notice:
+    titulo: "ACHTUNG — Gefahrenbereich"
+    corpo: "Das Entfernen von Blöcken muss bei abgesperrtem Wandfuß und ohne Personen darunter erfolgen."
+  lr_size:
+    label: "Ungefähre Blockgröße"
+    opcoes:
+      small:
+        label: "Klein (faustgroß)"
+      medium:
+        label: "Mittel (wassermelonengroß)"
+      large:
+        label: "Groß (größer als eine Wassermelone)"
+  lr_media_before:
+    label: "Medien vor dem Entfernen"
+  lr_media_after:
+    label: "Medien nach dem Entfernen"
+  vc_media_before:
+    label: "Medien vor der Reinigung"
+  vc_notes:
+    label: "Beschreibung der Reinigung"
+  vc_media_after:
+    label: "Medien nach der Reinigung"
+  oth_description:
+    label: "Beschreibung der durchgeführten Maßnahme"
+  ref_mat_other:
+    label: "Verwendete Materialien (optional)"
+    sublabel: "Falls bei dieser Maßnahme Katalogmaterialien verwendet wurden, wählen Sie diese unten aus"
+  oth_media:
+    label: "Medien (optional)"
+  action_list_c:
+    label: "Installierte Sicherungspunkte und Maßnahmen"
+    sublabel: "Fügen Sie jeden installierten Sicherungspunkt, Standplatz oder Felseingriff hinzu. Mindestens 1."
+  assessment_condition:
+    label: "Aktueller Zustand der Route"
+    opcoes:
+      open:
+        label: "Freigegeben zum Klettern"
+        sublabel: "Erschließung abgeschlossen und bereit für Wiederholungen"
+      project_in_progress:
+        label: "In Erschließung / Offenes Projekt"
+        sublabel: "Route noch nicht fertiggestellt"
+      open_with_restrictions:
+        label: "Mit Einschränkungen freigegeben"
+        sublabel: "Empfehlungen vor Wiederholung prüfen"
+  assessment_comments:
+    label: "Empfohlene Ausrüstung für Wiederholungen und Kommentare (optional)"
+    sublabel: "Z. B.: 12 Expressschlingen, Klemmgeräte #0.5 bis #2, 60m-Seil"
+tipos_acao:
+  installed_protection:
+    label: "Installierter Fester Sicherungspunkt"
+    sublabel: "Installation von Lasche, Bohrhaken, Bühlerhaken oder Verbundanker"
+  belay_rappel_station:
+    label: "Installierter Standplatz / Abseilstelle"
+    sublabel: "Installation eines Doppel-/Dreifach-Standplatzes oder einer Abseilstelle"
+  loose_rock_removal:
+    label: "Entfernung Loser Blöcke"
+    sublabel: "Beseitigung von losem Fels oder Schuppen während der Erschließung"
+  vegetation_cleaning:
+    label: "Vegetationsreinigung"
+    sublabel: "Reinigung von Griffen oder Rissen entlang der neuen Routenlinie"
+  other:
+    label: "Sonstige Maßnahme"
+    sublabel: "Zusätzliche Maßnahme oder Eintrag der Erschließung"
+opcoes:
+  small:
+    label: "Klein (faustgroß)"
+  medium:
+    label: "Mittel (wassermelonengroß)"
+  large:
+    label: "Groß (größer als eine Wassermelone)"
+  open:
+    label: "Freigegeben zum Klettern"
+    sublabel: "Erschließung abgeschlossen und bereit für Wiederholungen"
+  project_in_progress:
+    label: "In Erschließung / Offenes Projekt"
+    sublabel: "Route noch nicht fertiggestellt"
+  open_with_restrictions:
+    label: "Mit Einschränkungen freigegeben"
+    sublabel: "Empfehlungen vor Wiederholung prüfen"

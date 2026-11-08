@@ -466,7 +466,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         } catch (_) {}
 
         pdfExistente = existingRecord?.pdfPath;
-        final ehMaterial = registro.idProtocolo == 'cadastro_material' ||
+        final ehMaterial = registro.idProtocolo == 'material_registration' ||
+            registro.idProtocolo == 'cadastro_material' ||
             (existingRecord?.isMaterial ?? false);
         final tituloExtraido = _extrairTituloExibicaoDoRegistro(
           registro,

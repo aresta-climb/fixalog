@@ -1,0 +1,235 @@
+protocolo:
+  nome: "Enregistrement de Matériel de Maintenance"
+  descricao: "Protocole de catalogage, traçabilité, tests de qualité et processus de fabrication de matériels ou ensembles de maintenance"
+blocos:
+  material_identification:
+    titulo: "Bloc 1 — Identification Générale"
+    subtitulo: "Identification du matériel isolé ou de l'ensemble de matériels"
+  material_composition:
+    titulo: "Bloc 2 — Spécification des Matériels"
+    subtitulo: "Ajoutez chaque matériel composant cet enregistrement, y compris facture, tests et détails"
+conteudos:
+  mat_instruction:
+    titulo: "Identification du Matériel ou de l'Ensemble"
+    corpo: "Définissez un nom clair pour ce matériel ou ensemble (ex. : 'Kit Goujon 3/8 + Plaquette' ou 'Tige Filetée Inox 316 14cm'). Ce nom apparaîtra dans le catalogue lors de la sélection de matériels en maintenance."
+  mat_name:
+    label: "Nom du Matériel ou de l'Ensemble"
+    sublabel: "Nom descriptif pour une identification rapide dans le catalogue"
+  mat_association_code:
+    label: "Code de Suivi de l'Association"
+    sublabel: "Code de contrôle interne de l'association (optionnel)"
+  mat_date:
+    label: "Date de l'Enregistrement"
+    sublabel: "Remplie automatiquement avec la date actuelle (modifiable)"
+  eb_brand:
+    label: "Marque / Fabricant"
+  eb_alloy:
+    label: "Alliage / Matériau"
+    opcoes:
+      stainless_steel_316:
+        label: "Acier Inoxydable 316 / 316L"
+      stainless_steel_304:
+        label: "Acier Inoxydable 304"
+      titanium:
+        label: "Titane"
+      other:
+        label: "Autre"
+  eb_dimensions:
+    label: "Diamètre et Longueur"
+    sublabel: "Ex. : 3/8 x 90mm ou 10mm x 100mm"
+  eb_batch:
+    label: "Numéro de lot"
+  eb_expiry:
+    label: "Date d'expiration (si applicable)"
+  eb_media:
+    label: "Photo du matériel"
+  eb_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  eb_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  eb_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  qt_type:
+    label: "Type d'Essai / Test"
+  qt_result:
+    label: "Résultat / Charge Obtenue"
+  qt_media:
+    label: "Joindre des Médias au Test / Rapport"
+  eb_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez des essais de traction, cisaillement ou inspections de lot (optionnel)"
+  det_title:
+    label: "Titre du Détail ou de l'Étape"
+  det_description:
+    label: "Description Détaillée"
+  det_media:
+    label: "Joindre des Médias à l'Étape / Détail"
+  eb_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez des informations supplémentaires ou les étapes de préparation/fabrication (optionnel)"
+  hg_brand:
+    label: "Marque / Fabricant"
+  hg_alloy:
+    label: "Alliage / Matériau"
+    opcoes:
+      stainless_steel_316:
+        label: "Acier Inoxydable 316 / 316L"
+      stainless_steel_304:
+        label: "Acier Inoxydable 304"
+      titanium:
+        label: "Titane"
+      other:
+        label: "Autre"
+  hg_hole_diameter:
+    label: "Diamètre du Trou"
+    sublabel: "Ex. : 3/8 (10mm) ou 1/2 (12mm)"
+  hg_batch:
+    label: "Numéro de lot"
+  hg_media:
+    label: "Photo du matériel"
+  hg_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  hg_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  hg_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  hg_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez des essais ou inspections de lot (optionnel)"
+  hg_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez des informations supplémentaires ou les étapes de fabrication (optionnel)"
+  rh_brand:
+    label: "Marque / Fabricant"
+  rh_alloy:
+    label: "Alliage / Matériau"
+    opcoes:
+      stainless_steel_316:
+        label: "Acier Inoxydable 316 / 316L"
+      stainless_steel_304:
+        label: "Acier Inoxydable 304"
+      titanium:
+        label: "Titane"
+      other:
+        label: "Autre"
+  rh_batch:
+    label: "Numéro de lot"
+  rh_media:
+    label: "Photo du matériel"
+  rh_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  rh_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  rh_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  rh_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez des essais ou inspections de lot (optionnel)"
+  rh_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez des informations supplémentaires ou les étapes de fabrication (optionnel)"
+  ca_brand:
+    label: "Marque / Produit"
+  ca_expiry:
+    label: "Date d'expiration"
+  ca_batch:
+    label: "Numéro de lot"
+  ca_media:
+    label: "Photo de l'emballage / matériel"
+  ca_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  ca_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  ca_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  ca_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez des tests de polymérisation, d'arrachement ou d'inspection (optionnel)"
+  ca_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez des informations supplémentaires ou procédures de préparation (optionnel)"
+  pq_brand:
+    label: "Marque / Fabricant"
+  pq_alloy:
+    label: "Matériau / Alliage"
+    opcoes:
+      stainless_steel_316:
+        label: "Acier Inoxydable 316 / 316L"
+      galvanized_steel:
+        label: "Acier au Carbone Galvanisé"
+      titanium:
+        label: "Titane"
+      other:
+        label: "Autre"
+  pq_breaking_load:
+    label: "Charge de Rupture Nominale (kN)"
+  pq_batch:
+    label: "Numéro de lot"
+  pq_media:
+    label: "Photo du matériel"
+  pq_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  pq_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  pq_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  pq_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez des essais ou inspections de lot (optionnel)"
+  pq_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez des informations supplémentaires ou d'assemblage (optionnel)"
+  oth_instruction:
+    titulo: "Matériel Personnalisé ou Fabrication Propre"
+    corpo: "Enregistrez ci-dessous le justificatif d'achat de la matière première, les tests de qualité éventuels et toutes les étapes de fabrication ou détails techniques."
+  oth_invoice_number:
+    label: "Facture / Justificatif (Numéro ou Clé)"
+  oth_invoice_supplier:
+    label: "Fournisseur / Magasin"
+  oth_invoice_media:
+    label: "Photo ou PDF de la Facture / Justificatif"
+  oth_tests:
+    label: "Tests de Qualité"
+    sublabel: "Ajoutez les essais ou tests réalisés (optionnel)"
+  oth_details:
+    label: "Détails et Processus de Fabrication"
+    sublabel: "Ajoutez chaque étape de fabrication ou spécification technique. Minimum 1."
+  material_items_list_c:
+    label: "Matériels Enregistrés"
+    sublabel: "Ajoutez 1 matériel isolé ou plusieurs éléments formant l'ensemble. Minimum 1."
+tipos_acao:
+  expansion_bolt:
+    label: "Goujon Mécanique / Parabolt"
+    sublabel: "Goujon à expansion ou tige mécanique"
+  quality_test:
+    label: "Test de Qualité"
+    sublabel: "Essai mécanique, chimique ou rapport"
+  manufacturing_detail:
+    label: "Détail / Étape de Fabrication"
+    sublabel: "Description libre avec photos, vidéos ou PDF"
+  hanger:
+    label: "Plaquette"
+    sublabel: "Plaquette d'ancrage sans anneau"
+  ring_hanger:
+    label: "Plaquette avec Anneau"
+    sublabel: "Ensemble de relais / rappel avec anneau intégré"
+  chemical_anchor:
+    label: "Scellement Chimique"
+    sublabel: "Résine chimique, ampoule ou broche à sceller"
+  permanent_quickdraw:
+    label: "Dégaine Permanente"
+    sublabel: "Dégaine fixe, maillon rapide et connecteur permanent"
+  other:
+    label: "Autre"
+    sublabel: "Fabrication propre, ensembles personnalisés ou autres fournitures"
+opcoes:
+  stainless_steel_316:
+    label: "Acier Inoxydable 316 / 316L"
+  stainless_steel_304:
+    label: "Acier Inoxydable 304"
+  titanium:
+    label: "Titane"
+  other:
+    label: "Autre"
+  galvanized_steel:
+    label: "Acier au Carbone Galvanisé"

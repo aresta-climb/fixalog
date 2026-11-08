@@ -154,7 +154,7 @@ void main() {
 
           final instancia = lookupAppLocalizations(Locale(locale));
           expect(instancia.localeName, equals(locale));
-          expect(instancia.appTitulo.trim(), isNotEmpty);
+          expect(instancia.seletorIdiomaTitulo.trim(), isNotEmpty);
         }
       },
     );
@@ -344,9 +344,10 @@ void main() {
             expect(protoTraduzido.nome.trim(), isNotEmpty);
             for (final b in protoTraduzido.blocos) {
               expect(
-                b.nome.trim(),
+                b.titulo.trim(),
                 isNotEmpty,
-                reason: 'Bloco "${b.id}" gerou nome vazio em $locale/$idProto',
+                reason:
+                    'Bloco "${b.id}" gerou titulo vazio em $locale/$idProto',
               );
               for (final s in b.steps) {
                 for (final c in s.conteudos) {

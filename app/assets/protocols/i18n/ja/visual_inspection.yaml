@@ -1,0 +1,141 @@
+protocolo:
+  nome: "固定支点の目視点検"
+  descricao: "機械的介入を伴わない既存の固定支点の定期モニタリングおよびポイントごとの目視点検レポート。"
+blocos:
+  route:
+    titulo: "ブロック 1 — ルートの特定"
+    subtitulo: "点検対象ルートの日付・位置・識別情報"
+  inspection:
+    titulo: "ブロック 2 — ポイントごとの点検"
+    subtitulo: "ルート上の各評価ポイントの目視状態を記録してください（最低1件）。"
+  assessment:
+    titulo: "ブロック 3 — ルートの最終状態"
+    subtitulo: "目視点検後のルート状態の全体要約"
+conteudos:
+  route_notice:
+    titulo: "ルートの特定"
+    corpo: "目視点検の位置情報と日付を入力してください。GPS座標は必須です。"
+  route_date:
+    label: "点検日"
+    sublabel: "現在の日付が自動入力されます（編集可能）"
+  route_gps:
+    label: "GPS位置情報"
+  route_name:
+    label: "ルート名"
+  route_sector:
+    label: "セクター / エリア"
+  route_peak:
+    label: "ピーク / 山域"
+  vi_ap_position:
+    label: "ポイントの位置 / 識別"
+    sublabel: "例：1ピン目、3本目のボルト、核心部の支点"
+  vi_ap_condition:
+    label: "支点の全体状態"
+    sublabel: "金属および固定部の物理的健全性を目視で評価してください。"
+    opcoes:
+      good:
+        label: "良好"
+        sublabel: "異常なし"
+      worn:
+        label: "摩耗 / 要注意"
+        sublabel: "経過観察"
+      critical:
+        label: "危険 / 使用不可"
+        sublabel: "交換が必要"
+  vi_ap_corrosion:
+    label: "腐食や緩みはありますか？"
+    sublabel: "錆、亀裂、ハンガーの回転の兆候を確認してください。"
+  vi_ap_notes:
+    label: "備考"
+  vi_ap_media:
+    label: "証拠メディア"
+    sublabel: "ポイントの状態を示す写真や動画を添付してください"
+  vi_ba_position:
+    label: "終了点の識別"
+    sublabel: "例：P1終了点、最終終了点"
+  vi_ba_condition:
+    label: "終了点の全体状態"
+    opcoes:
+      good:
+        label: "良好"
+        sublabel: "異常なし"
+      worn:
+        label: "摩耗 / 要注意"
+        sublabel: "リング・チェーンの摩耗を監視"
+      critical:
+        label: "危険 / 使用不可"
+        sublabel: "直ちにメンテナンスが必要"
+  vi_ba_corrosion:
+    label: "腐食や深い摩耗溝はありますか？"
+  vi_ba_notes:
+    label: "備考"
+  vi_ba_media:
+    label: "証拠メディア"
+  vi_re_description:
+    label: "発生箇所と状況の説明"
+  vi_re_condition:
+    label: "注意レベル"
+    opcoes:
+      informative:
+        label: "情報提供 / 低リスク"
+        sublabel: "安全性への直ちの影響なし"
+      warning:
+        label: "注意"
+        sublabel: "登攀時の注意または今後の清掃が必要"
+      critical:
+        label: "重大なリスク"
+        sublabel: "落石または事故の危険あり"
+  vi_re_media:
+    label: "証拠メディア（任意）"
+  inspection_list_c:
+    label: "点検したポイント"
+    sublabel: "評価した各支点、終了点、岩の状態を追加してください（最低1件）。"
+  assessment_condition:
+    label: "クライミングに対するルートの最終状態"
+    opcoes:
+      open:
+        label: "登攀可能（開放）"
+        sublabel: "支点は目視上良好な状態"
+      open_with_restrictions:
+        label: "条件付きで登攀可能"
+        sublabel: "要注意箇所あり — 備考を確認してください"
+      closed:
+        label: "閉鎖 / メンテナンス待ち"
+        sublabel: "メンテナンス完了まで登攀禁止"
+  assessment_comments:
+    label: "点検の全体要約および備考（任意）"
+tipos_acao:
+  anchor_protection:
+    label: "中間支点 / アンカー"
+    sublabel: "中間ハンガー、ボルト、ステープル、またはケミカルアンカー"
+  belay_rappel_station:
+    label: "終了点 / 懸垂支点"
+    sublabel: "2点・3点終了点、リングまたはチェーン"
+  rock_environment:
+    label: "岩質 / 環境"
+    sublabel: "浮石、不安定なフレーク、植生、またはアプローチ"
+opcoes:
+  good:
+    label: "良好"
+    sublabel: "異常なし"
+  worn:
+    label: "摩耗 / 要注意"
+    sublabel: "経過観察"
+  critical:
+    label: "危険 / 使用不可"
+    sublabel: "交換が必要"
+  informative:
+    label: "情報提供 / 低リスク"
+    sublabel: "安全性への直ちの影響なし"
+  warning:
+    label: "注意"
+    sublabel: "登攀時の注意または今後の清掃が必要"
+  open:
+    label: "登攀可能（開放）"
+    sublabel: "支点は目視上良好な状態"
+  open_with_restrictions:
+    label: "条件付きで登攀可能"
+    sublabel: "要注意箇所あり — 備考を確認してください"
+  closed:
+    label: "閉鎖 / メンテナンス待ち"
+    sublabel: "メンテナンス完了まで登攀禁止"

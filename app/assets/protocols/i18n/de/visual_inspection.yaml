@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Sichtprüfung Fester Sicherungspunkte"
+  descricao: "Bericht über die regelmäßige Überwachung und Punkt-für-Punkt-Sichtprüfung bestehender fester Sicherungspunkte ohne mechanischen Eingriff."
+blocos:
+  route:
+    titulo: "Block 1 — Routenidentifikation"
+    subtitulo: "Datum, Standort und Identifikationsdaten der geprüften Route"
+  inspection:
+    titulo: "Block 2 — Punkt-für-Punkt-Prüfung"
+    subtitulo: "Erfassen Sie den optischen Zustand jedes bewerteten Punkts entlang der Route. Mindestens 1."
+  assessment:
+    titulo: "Block 3 — Abschließender Routenstatus"
+    subtitulo: "Allgemeine Zusammenfassung des Routenzustands nach der Sichtprüfung"
+conteudos:
+  route_notice:
+    titulo: "Routenidentifikation"
+    corpo: "Geben Sie Standort und Datum der Sichtprüfung ein. Die GPS-Koordinate ist erforderlich."
+  route_date:
+    label: "Prüfdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  route_gps:
+    label: "GPS-Standort"
+  route_name:
+    label: "Routenname"
+  route_sector:
+    label: "Sektor / Wandbereich"
+  route_peak:
+    label: "Gipfel / Gebiet"
+  vi_ap_position:
+    label: "Position / Kennung des Punkts"
+    sublabel: "Z. B.: 1. Haken, 3. Bühlerhaken, Schlüsselstellen-Haken"
+  vi_ap_condition:
+    label: "Allgemeiner Zustand des Sicherungspunkts"
+    sublabel: "Beurteilen Sie optisch die physische Integrität des Metalls und der Verankerung."
+    opcoes:
+      good:
+        label: "Gut"
+        sublabel: "OHNE BEFUND"
+      worn:
+        label: "Abgenutzt / Achtung"
+        sublabel: "ÜBERWACHEN"
+      critical:
+        label: "Kritisch / Ausgemustert"
+        sublabel: "AUSTAUSCH ERFORDERLICH"
+  vi_ap_corrosion:
+    label: "Korrosion oder Spiel vorhanden?"
+    sublabel: "Prüfen Sie auf Anzeichen von Rost, Rissen oder Verdrehen der Lasche."
+  vi_ap_notes:
+    label: "Bemerkungen"
+  vi_ap_media:
+    label: "Nachweismedien"
+    sublabel: "Fügen Sie Fotos oder Videos hinzu, die den Zustand des Punkts zeigen"
+  vi_ba_position:
+    label: "Kennung des Standplatzes"
+    sublabel: "Z. B.: Standplatz S1, Umlenker Ende"
+  vi_ba_condition:
+    label: "Allgemeiner Zustand des Standplatzes"
+    opcoes:
+      good:
+        label: "Gut"
+        sublabel: "OHNE BEFUND"
+      worn:
+        label: "Abgenutzt / Achtung"
+        sublabel: "RING-/GLIEDVERSCHLEISS ÜBERWACHEN"
+      critical:
+        label: "Kritisch / Ausgemustert"
+        sublabel: "SOFORTIGE WARTUNG ERFORDERLICH"
+  vi_ba_corrosion:
+    label: "Korrosion oder tiefe Seilrille vorhanden?"
+  vi_ba_notes:
+    label: "Bemerkungen"
+  vi_ba_media:
+    label: "Nachweismedien"
+  vi_re_description:
+    label: "Ort und Beschreibung des Vorkommnisses"
+  vi_re_condition:
+    label: "Aufmerksamkeitsstufe"
+    opcoes:
+      informative:
+        label: "Informativ / Geringes Risiko"
+        sublabel: "Keine unmittelbare Auswirkung auf die Sicherheit"
+      warning:
+        label: "Achtung"
+        sublabel: "Erfordert Vorsicht beim Klettern oder künftige Reinigung"
+      critical:
+        label: "Kritisches Risiko"
+        sublabel: "Steinschlag- oder Unfallgefahr"
+  vi_re_media:
+    label: "Nachweismedien (optional)"
+  inspection_list_c:
+    label: "Geprüfte Punkte"
+    sublabel: "Fügen Sie jeden bewerteten Sicherungspunkt, Umlenker oder Felszustand hinzu. Mindestens 1."
+  assessment_condition:
+    label: "Abschließender Status der Route zum Klettern"
+    opcoes:
+      open:
+        label: "Freigegeben zum Klettern"
+        sublabel: "Sicherungspunkte in gutem optischen Zustand"
+      open_with_restrictions:
+        label: "Mit Einschränkungen freigegeben"
+        sublabel: "Punkte erfordern Aufmerksamkeit — siehe Bemerkungen"
+      closed:
+        label: "Gesperrt / Wartung ausstehend"
+        sublabel: "Nicht klettern bis zur Durchführung der Wartung"
+  assessment_comments:
+    label: "Allgemeine Zusammenfassung und Bemerkungen zur Prüfung (optional)"
+tipos_acao:
+  anchor_protection:
+    label: "Sicherungspunkt / Anker"
+    sublabel: "Zwischenlasche, Bohrhaken, Bühlerhaken oder Verbundanker"
+  belay_rappel_station:
+    label: "Standplatz / Abseilstelle"
+    sublabel: "Doppel-/Dreifach-Standplatz, Ringe oder Ketten"
+  rock_environment:
+    label: "Fels / Umgebung"
+    sublabel: "Loser Block, instabile Schuppe, Vegetation oder Zustieg"
+opcoes:
+  good:
+    label: "Gut"
+    sublabel: "OHNE BEFUND"
+  worn:
+    label: "Abgenutzt / Achtung"
+    sublabel: "ÜBERWACHEN"
+  critical:
+    label: "Kritisch / Ausgemustert"
+    sublabel: "AUSTAUSCH ERFORDERLICH"
+  informative:
+    label: "Informativ / Geringes Risiko"
+    sublabel: "Keine unmittelbare Auswirkung auf die Sicherheit"
+  warning:
+    label: "Achtung"
+    sublabel: "Erfordert Vorsicht beim Klettern oder künftige Reinigung"
+  open:
+    label: "Freigegeben zum Klettern"
+    sublabel: "Sicherungspunkte in gutem optischen Zustand"
+  open_with_restrictions:
+    label: "Mit Einschränkungen freigegeben"
+    sublabel: "Punkte erfordern Aufmerksamkeit — siehe Bemerkungen"
+  closed:
+    label: "Gesperrt / Wartung ausstehend"
+    sublabel: "Nicht klettern bis zur Durchführung der Wartung"

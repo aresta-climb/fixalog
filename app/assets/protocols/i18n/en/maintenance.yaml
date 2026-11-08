@@ -1,0 +1,164 @@
+protocolo:
+  nome: "Fixed Anchor Maintenance"
+  descricao: "Protocol for maintenance and installation of fixed anchors (expansion bolts, hangers, rings, anchors, cleaning and loose blocks)"
+blocos:
+  route:
+    titulo: "Block 1 — Route Identification"
+    subtitulo: "Date, location and identification details of the maintained route"
+  actions:
+    titulo: "Block 2 — Maintenance Actions"
+    subtitulo: "Record each action performed on this route. Minimum 1."
+  assessment:
+    titulo: "Block 3 — Evaluation & Closure"
+    subtitulo: "Final route evaluation and observations"
+conteudos:
+  route_notice:
+    titulo: "Route Identification"
+    corpo: "Fill in the location and date of the maintenance. GPS coordinates are mandatory."
+  route_date:
+    label: "Maintenance Date"
+    sublabel: "Automatically filled with current date (editable)"
+  route_gps:
+    label: "GPS Location"
+  route_name:
+    label: "Route Name"
+  route_sector:
+    label: "Sector / Crag"
+  route_peak:
+    label: "Peak / Area"
+  route_has_permission:
+    label: "Do you have permission from the first ascensionist?"
+  route_permission_media:
+    label: "Permission media (if any)"
+  ai_instruction:
+    titulo: "Visual and Mechanical Assessment"
+    corpo: "Record the current condition before any intervention. Then assess visually (corrosion, cracks) and mechanically (retightening). Classify the result."
+  ai_media_before:
+    label: "Media before intervention"
+  ai_ap_notes:
+    label: "Observations"
+  ai_rt_torque:
+    label: "Applied torque (Nm)"
+  ai_rt_notes:
+    label: "Observations"
+  ai_rep_notice:
+    titulo: "Replacement Strategy"
+    corpo: "If the hole can be reused, use a glue-in anchor. Otherwise, drill a new location."
+  ref_mat_reuse_hole:
+    label: "Materials used"
+    sublabel: "Select the catalog materials installed at this anchor or register a new one"
+  ai_rep_rh_media:
+    label: "Media after installation"
+  ref_mat_new_location:
+    label: "Materials used"
+    sublabel: "Select the catalog materials installed at this anchor or register a new one"
+  ai_rep_nl_notes:
+    label: "Justification for new location"
+  ai_rep_nl_media:
+    label: "Media after installation"
+  ai_rep_branch:
+    label: "How will the replacement be performed?"
+  ai_result:
+    label: "Assessment result"
+  na_instruction:
+    titulo: "New anchor point"
+    corpo: "Select the installed materials from your local catalog and record media after installation."
+  ref_mat_new_anchor:
+    label: "Materials used"
+    sublabel: "Select the catalog materials installed at this point or register a new one"
+  na_media:
+    label: "Media after installation"
+  lr_notice:
+    titulo: "WARNING — Hazard Zone"
+    corpo: "Block removal must be performed with the route closed and no people below."
+  lr_size:
+    label: "Approximate block size"
+    opcoes:
+      small:
+        label: "Small (fist-sized)"
+      medium:
+        label: "Medium (watermelon-sized)"
+      large:
+        label: "Large (larger than a watermelon)"
+  lr_media_before:
+    label: "Media before removal"
+  lr_media_after:
+    label: "Media after removal"
+  vc_media_before:
+    label: "Media before cleaning"
+  vc_notes:
+    label: "Cleaning description"
+  vc_media_after:
+    label: "Media after cleaning"
+  oth_description:
+    label: "Description of action performed"
+  ref_mat_other:
+    label: "Materials used (optional)"
+    sublabel: "If this action used catalog materials, select them below"
+  oth_media:
+    label: "Media (optional)"
+  action_list_c:
+    label: "Actions performed"
+    sublabel: "Add each maintenance action. Minimum 1."
+  assessment_condition:
+    label: "Final route condition for climbing"
+    opcoes:
+      open:
+        label: "Open for climbing"
+        sublabel: "Route in good condition"
+      open_with_restrictions:
+        label: "Open with restrictions"
+        sublabel: "Check notice before climbing"
+      closed:
+        label: "Closed"
+        sublabel: "Do not climb until further maintenance"
+  assessment_comments:
+    label: "Additional comments (optional)"
+ramos:
+  approved:
+    label: "Approved — No intervention"
+    sublabel: "Anchor in good condition"
+  retightened:
+    label: "Retightening performed"
+    sublabel: "Anchor retightened with torque wrench"
+  replace:
+    label: "Replacement required"
+    sublabel: "Anchor with structural damage"
+  reuse_hole:
+    label: "Reuse existing hole"
+    sublabel: "With glue-in anchor"
+  new_location:
+    label: "New drilling location"
+    sublabel: "Drilling in a different position"
+tipos_acao:
+  anchor_inspection:
+    label: "Anchor Inspection"
+    sublabel: "Assessment of an existing anchor condition"
+  new_anchor_point:
+    label: "New Anchor Point"
+    sublabel: "Installation of a new anchor"
+  loose_rock_removal:
+    label: "Loose Block Removal"
+    sublabel: "Removal of unstable rock"
+  vegetation_cleaning:
+    label: "Vegetation Cleaning"
+    sublabel: "Removal of plants on the route"
+  other:
+    label: "Other Action"
+    sublabel: "Action not listed above"
+opcoes:
+  small:
+    label: "Small (fist-sized)"
+  medium:
+    label: "Medium (watermelon-sized)"
+  large:
+    label: "Large (larger than a watermelon)"
+  open:
+    label: "Open for climbing"
+    sublabel: "Route in good condition"
+  open_with_restrictions:
+    label: "Open with restrictions"
+    sublabel: "Check notice before climbing"
+  closed:
+    label: "Closed"
+    sublabel: "Do not climb until further maintenance"

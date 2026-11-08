@@ -1,0 +1,164 @@
+protocolo:
+  nome: "Wartung Fester Sicherungspunkte"
+  descricao: "Protokoll für die Wartung und Installation fester Sicherungspunkte (Bohrhaken, Laschen, Ringe, Anker, Reinigung und lose Blöcke)"
+blocos:
+  route:
+    titulo: "Block 1 — Routenidentifikation"
+    subtitulo: "Datum, Standort und Identifikationsdaten der gewarteten Route"
+  actions:
+    titulo: "Block 2 — Wartungsmaßnahmen"
+    subtitulo: "Erfassen Sie jede an dieser Route durchgeführte Maßnahme. Mindestens 1."
+  assessment:
+    titulo: "Block 3 — Bewertung und Abschluss"
+    subtitulo: "Abschließende Routenbewertung und Bemerkungen"
+conteudos:
+  route_notice:
+    titulo: "Routenidentifikation"
+    corpo: "Geben Sie Standort und Datum der Wartung ein. Die GPS-Koordinate ist erforderlich."
+  route_date:
+    label: "Wartungsdatum"
+    sublabel: "Automatisch mit dem aktuellen Datum ausgefüllt (bearbeitbar)"
+  route_gps:
+    label: "GPS-Standort"
+  route_name:
+    label: "Routenname"
+  route_sector:
+    label: "Sektor / Wandbereich"
+  route_peak:
+    label: "Gipfel / Gebiet"
+  route_has_permission:
+    label: "Liegt die Erlaubnis des Erstbegehers vor?"
+  route_permission_media:
+    label: "Nachweis der Erlaubnis (falls vorhanden)"
+  ai_instruction:
+    titulo: "Optische und Mechanische Bewertung"
+    corpo: "Erfassen Sie den aktuellen Zustand vor jedem Eingriff. Prüfen Sie anschließend optisch (Korrosion, Risse) und mechanisch (Nachziehen). Klassifizieren Sie das Ergebnis."
+  ai_media_before:
+    label: "Medien vor dem Eingriff"
+  ai_ap_notes:
+    label: "Bemerkungen"
+  ai_rt_torque:
+    label: "Angewendetes Drehmoment (Nm)"
+  ai_rt_notes:
+    label: "Bemerkungen"
+  ai_rep_notice:
+    titulo: "Austauschstrategie"
+    corpo: "Wenn das Bohrloch wiederverwendet werden kann, verwenden Sie einen Verbundanker. Andernfalls bohren Sie an einer neuen Stelle."
+  ref_mat_reuse_hole:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Anker installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ai_rep_rh_media:
+    label: "Medien nach der Installation"
+  ref_mat_new_location:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Anker installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  ai_rep_nl_notes:
+    label: "Begründung für die neue Stelle"
+  ai_rep_nl_media:
+    label: "Medien nach der Installation"
+  ai_rep_branch:
+    label: "Wie wird der Austausch durchgeführt?"
+  ai_result:
+    label: "Ergebnis der Bewertung"
+  na_instruction:
+    titulo: "Neuer Sicherungspunkt"
+    corpo: "Wählen Sie die installierten Materialien aus Ihrem lokalen Katalog aus und erfassen Sie Medien nach der Installation."
+  ref_mat_new_anchor:
+    label: "Verwendete Materialien"
+    sublabel: "Wählen Sie die an diesem Punkt installierten Katalogmaterialien aus oder registrieren Sie ein neues"
+  na_media:
+    label: "Medien nach der Installation"
+  lr_notice:
+    titulo: "ACHTUNG — Gefahrenbereich"
+    corpo: "Das Entfernen von Blöcken muss bei gesperrter Route und ohne Personen darunter erfolgen."
+  lr_size:
+    label: "Ungefähre Blockgröße"
+    opcoes:
+      small:
+        label: "Klein (faustgroß)"
+      medium:
+        label: "Mittel (wassermelonengroß)"
+      large:
+        label: "Groß (größer als eine Wassermelone)"
+  lr_media_before:
+    label: "Medien vor dem Entfernen"
+  lr_media_after:
+    label: "Medien nach dem Entfernen"
+  vc_media_before:
+    label: "Medien vor der Reinigung"
+  vc_notes:
+    label: "Beschreibung der Reinigung"
+  vc_media_after:
+    label: "Medien nach der Reinigung"
+  oth_description:
+    label: "Beschreibung der durchgeführten Maßnahme"
+  ref_mat_other:
+    label: "Verwendete Materialien (optional)"
+    sublabel: "Falls bei dieser Maßnahme Katalogmaterialien verwendet wurden, wählen Sie diese unten aus"
+  oth_media:
+    label: "Medien (optional)"
+  action_list_c:
+    label: "Durchgeführte Maßnahmen"
+    sublabel: "Fügen Sie jede Wartungsmaßnahme hinzu. Mindestens 1."
+  assessment_condition:
+    label: "Abschließender Zustand der Route zum Klettern"
+    opcoes:
+      open:
+        label: "Freigegeben zum Klettern"
+        sublabel: "Route in gutem Zustand"
+      open_with_restrictions:
+        label: "Mit Einschränkungen freigegeben"
+        sublabel: "Hinweis vor dem Klettern prüfen"
+      closed:
+        label: "Gesperrt"
+        sublabel: "Nicht klettern bis zur nächsten Wartung"
+  assessment_comments:
+    label: "Zusätzliche Kommentare (optional)"
+ramos:
+  approved:
+    label: "Freigegeben — Kein Eingriff"
+    sublabel: "Sicherungspunkt in gutem Zustand"
+  retightened:
+    label: "Nachziehen durchgeführt"
+    sublabel: "Sicherungspunkt mit Drehmomentschlüssel nachgezogen"
+  replace:
+    label: "Austausch erforderlich"
+    sublabel: "Sicherungspunkt mit Strukturschaden"
+  reuse_hole:
+    label: "Bestehendes Bohrloch wiederverwenden"
+    sublabel: "Mit Verbundanker"
+  new_location:
+    label: "Neue Bohrstelle"
+    sublabel: "Bohrung an anderer Position"
+tipos_acao:
+  anchor_inspection:
+    label: "Ankerprüfung"
+    sublabel: "Zustandsbewertung eines bestehenden Sicherungspunkts"
+  new_anchor_point:
+    label: "Neuer Sicherungspunkt"
+    sublabel: "Installation eines neuen Sicherungspunkts"
+  loose_rock_removal:
+    label: "Entfernung Loser Blöcke"
+    sublabel: "Beseitigung von losem Gestein"
+  vegetation_cleaning:
+    label: "Vegetationsreinigung"
+    sublabel: "Entfernen von Bewuchs in der Route"
+  other:
+    label: "Sonstige Maßnahme"
+    sublabel: "Oben nicht aufgeführte Maßnahme"
+opcoes:
+  small:
+    label: "Klein (faustgroß)"
+  medium:
+    label: "Mittel (wassermelonengroß)"
+  large:
+    label: "Groß (größer als eine Wassermelone)"
+  open:
+    label: "Freigegeben zum Klettern"
+    sublabel: "Route in gutem Zustand"
+  open_with_restrictions:
+    label: "Mit Einschränkungen freigegeben"
+    sublabel: "Hinweis vor dem Klettern prüfen"
+  closed:
+    label: "Gesperrt"
+    sublabel: "Nicht klettern bis zur nächsten Wartung"

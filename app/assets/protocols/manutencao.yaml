@@ -1,341 +1,312 @@
 protocolo:
-  id: manutencao
-  nome: "Manutenção de Proteções Fixas"
-  descricao: "Protocolo para manutenção e instalação de proteções fixas (parabolts, chapeletas, argolas, ancoragens, limpeza e blocos soltos)"
-  versao: 2
+  id: maintenance
+  nome: "Fixed Anchor Maintenance"
+  descricao: "Protocol for maintenance and installation of fixed anchors (expansion bolts, hangers, rings, anchors, cleaning and loose blocks)"
+  versao: 3
 
   blocos:
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 1 — Identificação da via
-    # ═══════════════════════════════════════════════════════════════
-    - id: via
-      titulo: "Bloco 1 — Identificação da Via"
-      subtitulo: "Dados de data, localização e identificação da via manutenida"
-
+    - id: route
+      titulo: "Block 1 — Route Identification"
+      subtitulo: "Date, location and identification details of the maintained route"
       steps:
-        - id: via_localizacao
+        - id: route_location
           conteudos:
-            - id: via_aviso
+            - id: route_notice
               instrucao:
-                titulo: "Identificação da Via"
-                corpo: "Preencha os dados de localização e data da manutenção. A coordenada GPS é obrigatória."
+                titulo: "Route Identification"
+                corpo: "Fill in the location and date of the maintenance. GPS coordinates are mandatory."
                 nivel_alerta: INFO
-            - id: via_data
+            - id: route_date
               campo_simples:
-                label: "Data da Manutenção"
-                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                label: "Maintenance Date"
+                sublabel: "Automatically filled with current date (editable)"
                 tipo: DATE
                 obrigatorio: true
                 preencher_data_atual: true
-            - id: via_gps
+            - id: route_gps
               campo_simples:
-                label: "Localização GPS"
+                label: "GPS Location"
                 tipo: GPS
                 obrigatorio: true
-            - id: via_nome
+            - id: route_name
               campo_simples:
-                label: "Nome da via"
+                label: "Route Name"
                 tipo: TEXT
                 obrigatorio: true
-            - id: via_setor
+            - id: route_sector
               campo_simples:
-                label: "Setor / Bloco"
+                label: "Sector / Crag"
                 tipo: TEXT
-            - id: via_pico
+            - id: route_peak
               campo_simples:
-                label: "Pico / Área"
+                label: "Peak / Area"
                 tipo: TEXT
-
-        - id: via_permissao
+        - id: route_permission
           conteudos:
-            - id: via_tem_permissao
+            - id: route_has_permission
               campo_simples:
-                label: "Possui permissão do conquistador?"
+                label: "Do you have permission from the first ascensionist?"
                 tipo: BOOLEAN
                 obrigatorio: true
-            - id: via_foto_permissao
+            - id: route_permission_media
               campo_simples:
-                label: "Mídia da permissão (se houver)"
+                label: "Permission media (if any)"
                 tipo: IMAGE
                 ui_hint: CAMERA_ACTION
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 2 — Ações de manutenção
-    # ═══════════════════════════════════════════════════════════════
-    - id: acoes
-      titulo: "Bloco 2 — Ações de Manutenção"
-      subtitulo: "Registre cada ação realizada nesta via. Mínimo 1."
-
+    - id: actions
+      titulo: "Block 2 — Maintenance Actions"
+      subtitulo: "Record each action performed on this route. Minimum 1."
       steps:
-        - id: lista_acoes
+        - id: action_list
           conteudos:
-            - id: lista_acoes_c
+            - id: action_list_c
               lista_acoes:
-                label: "Ações realizadas"
-                sublabel: "Adicione cada ação de manutenção. Mínimo 1."
+                label: "Actions performed"
+                sublabel: "Add each maintenance action. Minimum 1."
                 minimo: 1
                 maximo: 0
                 tipos_disponiveis:
-
-                  # ── Inspeção de Ancoragem (multi-conteúdo + branching) ──
-                  - id: inspecao_ancoragem
-                    label: "Inspeção de Ancoragem"
-                    sublabel: "Avaliação do estado de uma ancoragem existente"
+                  - id: anchor_inspection
+                    label: "Anchor Inspection"
+                    sublabel: "Assessment of an existing anchor condition"
                     icon_name: search
                     steps:
-                      - id: ia_avaliacao
+                      - id: ai_assessment
                         conteudos:
-                          - id: ia_instrucao
+                          - id: ai_instruction
                             instrucao:
-                              titulo: "Avaliação Visual e Mecânica"
-                              corpo: "Registre o estado atual antes de qualquer intervenção. Em seguida, avalie visualmente (corrosão, trincas) e mecanicamente (reaperto). Classifique o resultado."
+                              titulo: "Visual and Mechanical Assessment"
+                              corpo: "Record the current condition before any intervention. Then assess visually (corrosion, cracks) and mechanically (retightening). Classify the result."
                               nivel_alerta: ATENCAO
-                          - id: ia_foto_antes
+                          - id: ai_media_before
                             campo_simples:
-                              label: "Mídia antes da intervenção"
+                              label: "Media before intervention"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
-                          - id: ia_resultado
+                          - id: ai_result
                             selecao_ramo:
-                              label: "Resultado da avaliação"
+                              label: "Assessment result"
                               obrigatorio: true
                               ramos:
-                                - id: aprovado
-                                  label: "Aprovado — Sem intervenção"
-                                  sublabel: "Ancoragem em bom estado"
+                                - id: approved
+                                  label: "Approved — No intervention"
+                                  sublabel: "Anchor in good condition"
                                   icon_name: check_circle
                                   steps:
-                                    - id: ia_ap_detalhe
+                                    - id: ai_ap_detail
                                       conteudos:
-                                        - id: ia_ap_nota
+                                        - id: ai_ap_notes
                                           campo_simples:
-                                            label: "Observações"
+                                            label: "Observations"
                                             tipo: TEXT
                                             ui_hint: TEXT_AREA
-
-                                - id: reaperto
-                                  label: "Reaperto realizado"
-                                  sublabel: "Ancoragem reaperta com torquímetro"
+                                - id: retightened
+                                  label: "Retightening performed"
+                                  sublabel: "Anchor retightened with torque wrench"
                                   icon_name: build
                                   steps:
-                                    - id: ia_re_detalhe
+                                    - id: ai_rt_detail
                                       conteudos:
-                                        - id: ia_re_torque
+                                        - id: ai_rt_torque
                                           campo_simples:
-                                            label: "Torque aplicado (Nm)"
+                                            label: "Applied torque (Nm)"
                                             tipo: NUMBER
-                                        - id: ia_re_nota
+                                        - id: ai_rt_notes
                                           campo_simples:
-                                            label: "Observações"
+                                            label: "Observations"
                                             tipo: TEXT
                                             ui_hint: TEXT_AREA
-
-                                - id: substituir
-                                  label: "Substituição necessária"
-                                  sublabel: "Ancoragem com dano estrutural"
+                                - id: replace
+                                  label: "Replacement required"
+                                  sublabel: "Anchor with structural damage"
                                   icon_name: swap_horiz
                                   steps:
-                                    - id: ia_sub_estrategia
+                                    - id: ai_rep_strategy
                                       conteudos:
-                                        - id: ia_sub_aviso
+                                        - id: ai_rep_notice
                                           instrucao:
-                                            titulo: "Estratégia de Substituição"
-                                            corpo: "Se o furo puder ser reutilizado, use ancoragem química. Caso contrário, perfure novo local."
+                                            titulo: "Replacement Strategy"
+                                            corpo: "If the hole can be reused, use a glue-in anchor. Otherwise, drill a new location."
                                             nivel_alerta: PERIGO
-                                        - id: ia_sub_ramo
+                                        - id: ai_rep_branch
                                           selecao_ramo:
-                                            label: "Como será feita a substituição?"
+                                            label: "How will the replacement be performed?"
                                             obrigatorio: true
                                             ramos:
-                                              - id: reusar_furo
-                                                label: "Reutilizar furo existente"
-                                                sublabel: "Com ancoragem química"
+                                              - id: reuse_hole
+                                                label: "Reuse existing hole"
+                                                sublabel: "With glue-in anchor"
                                                 icon_name: refresh
                                                 steps:
-                                                  - id: ia_sub_rf_dados
+                                                  - id: ai_rep_rh_data
                                                     conteudos:
-                                                      - id: ref_mat_reusar_furo
+                                                      - id: ref_mat_reuse_hole
                                                         ref_materiais:
-                                                          label: "Materiais utilizados"
-                                                          sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+                                                          label: "Materials used"
+                                                          sublabel: "Select the catalog materials installed at this anchor or register a new one"
                                                           origem_catalogo: true
                                                           obrigatorio: true
-                                                      - id: ia_sub_rf_foto
+                                                      - id: ai_rep_rh_media
                                                         campo_simples:
-                                                          label: "Mídia após instalação"
+                                                          label: "Media after installation"
                                                           tipo: IMAGE
                                                           ui_hint: CAMERA_ACTION
                                                           obrigatorio: true
-
-                                              - id: novo_local
-                                                label: "Novo local de perfuração"
-                                                sublabel: "Perfuração em posição diferente"
+                                              - id: new_location
+                                                label: "New drilling location"
+                                                sublabel: "Drilling in a different position"
                                                 icon_name: gps_fixed
                                                 steps:
-                                                  - id: ia_sub_nl_dados
+                                                  - id: ai_rep_nl_data
                                                     conteudos:
-                                                      - id: ref_mat_novo_local
+                                                      - id: ref_mat_new_location
                                                         ref_materiais:
-                                                          label: "Materiais utilizados"
-                                                          sublabel: "Selecione os materiais do catálogo instalados nesta ancoragem ou cadastre um novo"
+                                                          label: "Materials used"
+                                                          sublabel: "Select the catalog materials installed at this anchor or register a new one"
                                                           origem_catalogo: true
                                                           obrigatorio: true
-                                                      - id: ia_sub_nl_nota
+                                                      - id: ai_rep_nl_notes
                                                         campo_simples:
-                                                          label: "Justificativa do novo local"
+                                                          label: "Justification for new location"
                                                           tipo: TEXT
                                                           ui_hint: TEXT_AREA
-                                                      - id: ia_sub_nl_foto
+                                                      - id: ai_rep_nl_media
                                                         campo_simples:
-                                                          label: "Mídia após instalação"
+                                                          label: "Media after installation"
                                                           tipo: IMAGE
                                                           ui_hint: CAMERA_ACTION
                                                           obrigatorio: true
-
-                  # ── Novo Ponto de Ancoragem ───────────────────────
-                  - id: novo_ponto
-                    label: "Novo Ponto de Ancoragem"
-                    sublabel: "Instalação de nova ancoragem"
+                  - id: new_anchor_point
+                    label: "New Anchor Point"
+                    sublabel: "Installation of a new anchor"
                     icon_name: add_location
                     steps:
-                      - id: np_dados
+                      - id: na_data
                         conteudos:
-                          - id: np_instrucao
+                          - id: na_instruction
                             instrucao:
-                              titulo: "Novo ponto de ancoragem"
-                              corpo: "Selecione os materiais instalados do seu catálogo local e registre mídias após a instalação."
+                              titulo: "New anchor point"
+                              corpo: "Select the installed materials from your local catalog and record media after installation."
                               nivel_alerta: INFO
-                          - id: ref_mat_novo_ponto
+                          - id: ref_mat_new_anchor
                             ref_materiais:
-                              label: "Materiais utilizados"
-                              sublabel: "Selecione os materiais do catálogo instalados neste ponto ou cadastre um novo"
+                              label: "Materials used"
+                              sublabel: "Select the catalog materials installed at this point or register a new one"
                               origem_catalogo: true
                               obrigatorio: true
-                          - id: np_foto
+                          - id: na_media
                             campo_simples:
-                              label: "Mídia após instalação"
+                              label: "Media after installation"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
-
-                  # ── Remoção de Bloco Solto ────────────────────────
-                  - id: remocao_bloco
-                    label: "Remoção de Bloco Solto"
-                    sublabel: "Retirada de pedra instável"
+                  - id: loose_rock_removal
+                    label: "Loose Block Removal"
+                    sublabel: "Removal of unstable rock"
                     icon_name: delete_forever
                     steps:
-                      - id: rb_dados
+                      - id: lr_data
                         conteudos:
-                          - id: rb_aviso
+                          - id: lr_notice
                             instrucao:
-                              titulo: "ATENÇÃO — Zona de Risco"
-                              corpo: "A remoção de blocos deve ser feita com a via interditada e sem presença de pessoas abaixo."
+                              titulo: "WARNING — Hazard Zone"
+                              corpo: "Block removal must be performed with the route closed and no people below."
                               nivel_alerta: PERIGO
-                          - id: rb_tamanho
+                          - id: lr_size
                             campo_simples:
-                              label: "Tamanho aproximado do bloco"
+                              label: "Approximate block size"
                               tipo: DROPDOWN
                               opcoes:
-                                - valor: pequeno
-                                  label: "Pequeno (tamanho de punho)"
-                                - valor: medio
-                                  label: "Médio (tamanho de melancia)"
-                                - valor: grande
-                                  label: "Grande (maior que melancia)"
-                          - id: rb_foto_antes
+                                - valor: small
+                                  label: "Small (fist-sized)"
+                                - valor: medium
+                                  label: "Medium (watermelon-sized)"
+                                - valor: large
+                                  label: "Large (larger than a watermelon)"
+                          - id: lr_media_before
                             campo_simples:
-                              label: "Mídia antes da remoção"
+                              label: "Media before removal"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-                          - id: rb_foto_depois
+                          - id: lr_media_after
                             campo_simples:
-                              label: "Mídia após remoção"
+                              label: "Media after removal"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-                  # ── Limpeza de Vegetação ──────────────────────────
-                  - id: limpeza_vegetacao
-                    label: "Limpeza de Vegetação"
-                    sublabel: "Retirada de plantas na via"
+                  - id: vegetation_cleaning
+                    label: "Vegetation Cleaning"
+                    sublabel: "Removal of plants on the route"
                     icon_name: grass
                     steps:
-                      - id: lv_dados
+                      - id: vc_data
                         conteudos:
-                          - id: lv_foto_antes
+                          - id: vc_media_before
                             campo_simples:
-                              label: "Mídia antes da limpeza"
+                              label: "Media before cleaning"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-                          - id: lv_nota
+                          - id: vc_notes
                             campo_simples:
-                              label: "Descrição da limpeza"
+                              label: "Cleaning description"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
-                          - id: lv_foto_depois
+                          - id: vc_media_after
                             campo_simples:
-                              label: "Mídia após limpeza"
+                              label: "Media after cleaning"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-                  # ── Outra Ação ────────────────────────────────────
-                  - id: outro
-                    label: "Outra Ação"
-                    sublabel: "Ação não catalogada acima"
+                  - id: other
+                    label: "Other Action"
+                    sublabel: "Action not listed above"
                     icon_name: more_horiz
                     steps:
-                      - id: out_dados
+                      - id: oth_data
                         conteudos:
-                          - id: out_descricao
+                          - id: oth_description
                             campo_simples:
-                              label: "Descrição da ação realizada"
+                              label: "Description of action performed"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
                               obrigatorio: true
-                          - id: ref_mat_outro
+                          - id: ref_mat_other
                             ref_materiais:
-                              label: "Materiais utilizados (opcional)"
-                              sublabel: "Caso esta ação tenha utilizado materiais do catálogo, selecione-os abaixo"
+                              label: "Materials used (optional)"
+                              sublabel: "If this action used catalog materials, select them below"
                               origem_catalogo: true
                               obrigatorio: false
-                          - id: out_foto
+                          - id: oth_media
                             campo_simples:
-                              label: "Mídia (opcional)"
+                              label: "Media (optional)"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 3 — Avaliação e Encerramento
-    # ═══════════════════════════════════════════════════════════════
-    - id: avaliacao
-      titulo: "Bloco 3 — Avaliação e Encerramento"
-      subtitulo: "Avaliação final da via e observações"
-
+    - id: assessment
+      titulo: "Block 3 — Evaluation & Closure"
+      subtitulo: "Final route evaluation and observations"
       steps:
-        - id: avaliacao_geral
+        - id: general_assessment
           conteudos:
-            - id: avaliacao_condicao
+            - id: assessment_condition
               campo_simples:
-                label: "Condição final da via para escalada"
+                label: "Final route condition for climbing"
                 tipo: DROPDOWN
                 ui_hint: LARGE_TILES
                 obrigatorio: true
                 opcoes:
-                  - valor: liberada
-                    label: "Liberada para escalada"
-                    sublabel: "Via em boas condições"
+                  - valor: open
+                    label: "Open for climbing"
+                    sublabel: "Route in good condition"
                     icon_name: check_circle
-                  - valor: liberada_restricao
-                    label: "Liberada com restrição"
-                    sublabel: "Verificar aviso antes de usar"
+                  - valor: open_with_restrictions
+                    label: "Open with restrictions"
+                    sublabel: "Check notice before climbing"
                     icon_name: warning
-                  - valor: interditada
-                    label: "Interditada"
-                    sublabel: "Não escalar até nova manutenção"
+                  - valor: closed
+                    label: "Closed"
+                    sublabel: "Do not climb until further maintenance"
                     icon_name: block
-            - id: avaliacao_comentarios
+            - id: assessment_comments
               campo_simples:
-                label: "Comentários adicionais (opcional)"
+                label: "Additional comments (optional)"
                 tipo: TEXT
                 ui_hint: TEXT_AREA

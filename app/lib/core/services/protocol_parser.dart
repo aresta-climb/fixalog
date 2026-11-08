@@ -15,11 +15,11 @@ class ProtocolParser {
       {};
 
   static const List<String> _idsProtocolosCatalogo = [
-    'inspecao_visual',
-    'manutencao',
-    'abertura_vias',
-    'registro_expresso',
-    'cadastro_material',
+    'visual_inspection',
+    'maintenance',
+    'route_opening',
+    'express_log',
+    'material_registration',
   ];
 
   /// Limpa o cache em memória de dicionários de localização de protocolos.
@@ -126,6 +126,11 @@ class ProtocolParser {
       if (traducoes != null) {
         _aplicarTraducoes(definicao, traducoes);
       }
+    } else {
+      final mapaPt = obterTraducoesLocais(definicao.id, 'pt');
+      if (mapaPt != null) {
+        _aplicarTraducoes(definicao, mapaPt);
+      }
     }
 
     return definicao;
@@ -137,8 +142,14 @@ class ProtocolParser {
     DefinicaoProtocolo protocolo,
     String idConteudo,
   ) {
+    final idNormalizado = MigradorProtocoloRegistro.normalizarIdConteudo(
+      idConteudo,
+    );
     for (final bloco in protocolo.blocos) {
-      final c = _buscarConteudoEmSteps(bloco.steps, idConteudo);
+      final c = _buscarConteudoEmSteps(bloco.steps, idConteudo) ??
+          (idNormalizado != idConteudo
+              ? _buscarConteudoEmSteps(bloco.steps, idNormalizado)
+              : null);
       if (c != null) {
         if (c.hasCampoSimples()) return c.campoSimples.label;
         if (c.hasInstrucao()) return c.instrucao.titulo;
@@ -157,16 +168,29 @@ class ProtocolParser {
     String idConteudo,
     String valorOpcao,
   ) {
+    final idNormalizado = MigradorProtocoloRegistro.normalizarIdConteudo(
+      idConteudo,
+    );
+    final valorNormalizado = MigradorProtocoloRegistro.normalizarValorOpcao(
+      valorOpcao,
+    );
     for (final bloco in protocolo.blocos) {
-      final c = _buscarConteudoEmSteps(bloco.steps, idConteudo);
+      final c = _buscarConteudoEmSteps(bloco.steps, idConteudo) ??
+          (idNormalizado != idConteudo
+              ? _buscarConteudoEmSteps(bloco.steps, idNormalizado)
+              : null);
       if (c != null) {
         if (c.hasCampoSimples()) {
           for (final op in c.campoSimples.opcoes) {
-            if (op.valor == valorOpcao) return op.label;
+            if (op.valor == valorOpcao || op.valor == valorNormalizado) {
+              return op.label;
+            }
           }
         } else if (c.hasSelecaoRamo()) {
           for (final r in c.selecaoRamo.ramos) {
-            if (r.id == valorOpcao) return r.label;
+            if (r.id == valorOpcao || r.id == valorNormalizado) {
+              return r.label;
+            }
           }
         }
       }
@@ -209,14 +233,29 @@ class ProtocolParser {
       if (desc.isNotEmpty) proto.descricao = desc;
     }
 
-    final blocosMap = traducoes['blocos'] as Map<String, dynamic>?;
-    final conteudosMap = traducoes['conteudos'] as Map<String, dynamic>?;
-    final ramosMap = traducoes['ramos'] as Map<String, dynamic>?;
-    final tiposMap = traducoes['tipos_acao'] as Map<String, dynamic>?;
-    final opcoesMap = traducoes['opcoes'] as Map<String, dynamic>?;
+    final blocosMapNorm = _normalizarMapaChaves(
+      traducoes['blocos'] as Map<String, dynamic>?,
+      MigradorProtocoloRegistro.mapaBlocosPtParaEn,
+    );
+    final conteudosMapNorm = _normalizarMapaChaves(
+      traducoes['conteudos'] as Map<String, dynamic>?,
+      MigradorProtocoloRegistro.mapaConteudosPtParaEn,
+    );
+    final ramosMapNorm = _normalizarMapaChaves(
+      traducoes['ramos'] as Map<String, dynamic>?,
+      MigradorProtocoloRegistro.mapaRamosPtParaEn,
+    );
+    final tiposMapNorm = _normalizarMapaChaves(
+      traducoes['tipos_acao'] as Map<String, dynamic>?,
+      MigradorProtocoloRegistro.mapaTiposAcaoPtParaEn,
+    );
+    final opcoesMapNorm = _normalizarMapaChaves(
+      traducoes['opcoes'] as Map<String, dynamic>?,
+      MigradorProtocoloRegistro.mapaOpcoesPtParaEn,
+    );
 
     for (final bloco in proto.blocos) {
-      final bTr = blocosMap?[bloco.id] as Map<String, dynamic>?;
+      final bTr = blocosMapNorm?[bloco.id] as Map<String, dynamic>?;
       if (bTr != null) {
         final t = bTr['titulo']?.toString() ?? '';
         final st = bTr['subtitulo']?.toString() ?? '';
@@ -225,12 +264,27 @@ class ProtocolParser {
       }
       _traduzirSteps(
         bloco.steps,
-        conteudosMap: conteudosMap,
-        ramosMap: ramosMap,
-        tiposMap: tiposMap,
-        opcoesMap: opcoesMap,
+        conteudosMap: conteudosMapNorm,
+        ramosMap: ramosMapNorm,
+        tiposMap: tiposMapNorm,
+        opcoesMap: opcoesMapNorm,
       );
     }
+  }
+
+  static Map<String, dynamic>? _normalizarMapaChaves(
+    Map<String, dynamic>? origem,
+    Map<String, String> mapaPtParaEn,
+  ) {
+    if (origem == null) return null;
+    final resultado = <String, dynamic>{...origem};
+    for (final entry in origem.entries) {
+      final chaveEn = mapaPtParaEn[entry.key];
+      if (chaveEn != null && !resultado.containsKey(chaveEn)) {
+        resultado[chaveEn] = entry.value;
+      }
+    }
+    return resultado;
   }
 
   static void _traduzirSteps(
@@ -255,7 +309,10 @@ class ProtocolParser {
             if (l.isNotEmpty) c.campoSimples.label = l;
             if (sl.isNotEmpty) c.campoSimples.sublabel = sl;
           }
-          final opcoesLocais = cTr?['opcoes'] as Map<String, dynamic>?;
+          final opcoesLocais = _normalizarMapaChaves(
+            cTr?['opcoes'] as Map<String, dynamic>?,
+            MigradorProtocoloRegistro.mapaOpcoesPtParaEn,
+          );
           for (final op in c.campoSimples.opcoes) {
             final opTr =
                 (opcoesLocais?[op.valor] as Map<String, dynamic>?) ??

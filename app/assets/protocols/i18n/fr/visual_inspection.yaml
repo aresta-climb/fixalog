@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Inspection Visuelle des Ancrages Fixes"
+  descricao: "Rapport de suivi périodique et d'inspection visuelle point par point des ancrages fixes existants sans intervention mécanique."
+blocos:
+  route:
+    titulo: "Bloc 1 — Identification de la Voie"
+    subtitulo: "Données de date, localisation et identification de la voie inspectée"
+  inspection:
+    titulo: "Bloc 2 — Inspection Point par Point"
+    subtitulo: "Enregistrez l'état visuel de chaque point évalué le long de la voie. Minimum 1."
+  assessment:
+    titulo: "Bloc 3 — État Final de la Voie"
+    subtitulo: "Résumé général de l'état de la voie après l'inspection visuelle"
+conteudos:
+  route_notice:
+    titulo: "Identification de la Voie"
+    corpo: "Remplissez les données de localisation et la date de l'inspection visuelle. La coordonnée GPS est obligatoire."
+  route_date:
+    label: "Date de l'Inspection"
+    sublabel: "Remplie automatiquement avec la date actuelle (modifiable)"
+  route_gps:
+    label: "Localisation GPS"
+  route_name:
+    label: "Nom de la voie"
+  route_sector:
+    label: "Secteur / Bloc"
+  route_peak:
+    label: "Sommet / Zone"
+  vi_ap_position:
+    label: "Position / Identification du Point"
+    sublabel: "Ex. : 1er point, 3e broche, point du crux"
+  vi_ap_condition:
+    label: "État Général de la Protection"
+    sublabel: "Évaluez visuellement l'intégrité physique du métal et de la fixation."
+    opcoes:
+      good:
+        label: "Bon"
+        sublabel: "AUCUNE ANOMALIE"
+      worn:
+        label: "Usé / Attention"
+        sublabel: "À SURVEILLER"
+      critical:
+        label: "Critique / Condamné"
+        sublabel: "REMPLACEMENT REQUIS"
+  vi_ap_corrosion:
+    label: "Présence de Corrosion ou de Jeu ?"
+    sublabel: "Vérifiez les signes d'oxydation, fissures ou rotation de la plaquette."
+  vi_ap_notes:
+    label: "Observations"
+  vi_ap_media:
+    label: "Médias de Preuve"
+    sublabel: "Joignez des photos ou vidéos montrant l'état du point"
+  vi_ba_position:
+    label: "Identification du Relais"
+    sublabel: "Ex. : Relais R1, Relais Final"
+  vi_ba_condition:
+    label: "État Général du Relais"
+    opcoes:
+      good:
+        label: "Bon"
+        sublabel: "AUCUNE ANOMALIE"
+      worn:
+        label: "Usé / Attention"
+        sublabel: "SURVEILLER L'USURE DE L'ANNEAU/MAILLON"
+      critical:
+        label: "Critique / Condamné"
+        sublabel: "MAINTENANCE IMMÉDIATE REQUISE"
+  vi_ba_corrosion:
+    label: "Présence de Corrosion ou d'Usure Prononcée ?"
+  vi_ba_notes:
+    label: "Observations"
+  vi_ba_media:
+    label: "Médias de Preuve"
+  vi_re_description:
+    label: "Localisation et Description de l'Observation"
+  vi_re_condition:
+    label: "Niveau d'Attention"
+    opcoes:
+      informative:
+        label: "Informatif / Risque Faible"
+        sublabel: "Aucun impact immédiat sur la sécurité"
+      warning:
+        label: "Attention"
+        sublabel: "Requiert de la prudence en grimpant ou un nettoyage futur"
+      critical:
+        label: "Risque Critique"
+        sublabel: "Risque de chute de bloc ou d'accident"
+  vi_re_media:
+    label: "Médias de Preuve (optionnel)"
+  inspection_list_c:
+    label: "Points Inspectés"
+    sublabel: "Ajoutez chaque ancrage, relais ou état du rocher évalué. Minimum 1."
+  assessment_condition:
+    label: "État final de la voie pour l'escalade"
+    opcoes:
+      open:
+        label: "Ouverte à l'escalade"
+        sublabel: "Ancrages en bon état visuel"
+      open_with_restrictions:
+        label: "Ouverte avec restriction"
+        sublabel: "Certains points demandent de l'attention — voir observations"
+      closed:
+        label: "Fermée / En Attente de Maintenance"
+        sublabel: "Ne pas grimper avant la réalisation de la maintenance"
+  assessment_comments:
+    label: "Résumé et observations générales de l'inspection (optionnel)"
+tipos_acao:
+  anchor_protection:
+    label: "Protection / Ancrage"
+    sublabel: "Plaquette, goujon, broche ou scellement chimique intermédiaire"
+  belay_rappel_station:
+    label: "Relais / Rappel"
+    sublabel: "Ensemble de relais double/triple, anneaux ou chaînes"
+  rock_environment:
+    label: "Rocher / Environnement"
+    sublabel: "Bloc instable, écaille fragile, végétation ou accès"
+opcoes:
+  good:
+    label: "Bon"
+    sublabel: "AUCUNE ANOMALIE"
+  worn:
+    label: "Usé / Attention"
+    sublabel: "À SURVEILLER"
+  critical:
+    label: "Critique / Condamné"
+    sublabel: "REMPLACEMENT REQUIS"
+  informative:
+    label: "Informatif / Risque Faible"
+    sublabel: "Aucun impact immédiat sur la sécurité"
+  warning:
+    label: "Attention"
+    sublabel: "Requiert de la prudence en grimpant ou un nettoyage futur"
+  open:
+    label: "Ouverte à l'escalade"
+    sublabel: "Ancrages en bon état visuel"
+  open_with_restrictions:
+    label: "Ouverte avec restriction"
+    sublabel: "Certains points demandent de l'attention — voir observations"
+  closed:
+    label: "Fermée / En Attente de Maintenance"
+    sublabel: "Ne pas grimper avant la réalisation de la maintenance"

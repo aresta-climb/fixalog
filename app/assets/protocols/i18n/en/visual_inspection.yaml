@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Visual Inspection of Fixed Anchors"
+  descricao: "Periodic monitoring and point-by-point visual inspection report of existing fixed anchors without mechanical intervention."
+blocos:
+  route:
+    titulo: "Block 1 — Route Identification"
+    subtitulo: "Date, location and identification details of the inspected route"
+  inspection:
+    titulo: "Block 2 — Point-by-Point Inspection"
+    subtitulo: "Record the visual condition of each evaluated point along the route. Minimum 1."
+  assessment:
+    titulo: "Block 3 — Final Route Status"
+    subtitulo: "Overall summary of the route condition after visual inspection"
+conteudos:
+  route_notice:
+    titulo: "Route Identification"
+    corpo: "Fill in the location and date of the visual inspection. GPS coordinates are mandatory."
+  route_date:
+    label: "Inspection Date"
+    sublabel: "Automatically filled with current date (editable)"
+  route_gps:
+    label: "GPS Location"
+  route_name:
+    label: "Route Name"
+  route_sector:
+    label: "Sector / Crag"
+  route_peak:
+    label: "Peak / Area"
+  vi_ap_position:
+    label: "Point Position / Identification"
+    sublabel: "E.g.: 1st bolt, 3rd staple, crux bolt"
+  vi_ap_condition:
+    label: "Overall Anchor Condition"
+    sublabel: "Visually assess the physical integrity of the metal and placement."
+    opcoes:
+      good:
+        label: "Good"
+        sublabel: "NO ISSUES"
+      worn:
+        label: "Worn / Attention"
+        sublabel: "MONITOR"
+      critical:
+        label: "Critical / Condemned"
+        sublabel: "REQUIRES REPLACEMENT"
+  vi_ap_corrosion:
+    label: "Presence of Corrosion or Looseness?"
+    sublabel: "Check for signs of rust, cracks or hanger rotation."
+  vi_ap_notes:
+    label: "Observations"
+  vi_ap_media:
+    label: "Evidence Media"
+    sublabel: "Attach photos or videos showing the condition of the point"
+  vi_ba_position:
+    label: "Belay Station Identification"
+    sublabel: "E.g.: Belay P1, Top Anchor"
+  vi_ba_condition:
+    label: "Overall Belay Station Condition"
+    opcoes:
+      good:
+        label: "Good"
+        sublabel: "NO ISSUES"
+      worn:
+        label: "Worn / Attention"
+        sublabel: "MONITOR RING/LINK WEAR"
+      critical:
+        label: "Critical / Condemned"
+        sublabel: "REQUIRES IMMEDIATE MAINTENANCE"
+  vi_ba_corrosion:
+    label: "Presence of Corrosion or Deep Grooving?"
+  vi_ba_notes:
+    label: "Observations"
+  vi_ba_media:
+    label: "Evidence Media"
+  vi_re_description:
+    label: "Occurrence Location and Description"
+  vi_re_condition:
+    label: "Attention Level"
+    opcoes:
+      informative:
+        label: "Informational / Low Risk"
+        sublabel: "No immediate impact on safety"
+      warning:
+        label: "Caution"
+        sublabel: "Requires care when climbing or future cleaning"
+      critical:
+        label: "Critical Risk"
+        sublabel: "Risk of rockfall or accident"
+  vi_re_media:
+    label: "Evidence Media (optional)"
+  inspection_list_c:
+    label: "Inspected Points"
+    sublabel: "Add each evaluated anchor, belay station or rock condition. Minimum 1."
+  assessment_condition:
+    label: "Final route status for climbing"
+    opcoes:
+      open:
+        label: "Open for climbing"
+        sublabel: "Anchors in good visual condition"
+      open_with_restrictions:
+        label: "Open with restrictions"
+        sublabel: "Points require attention — check observations"
+      closed:
+        label: "Closed / Awaiting Maintenance"
+        sublabel: "Do not climb until maintenance is performed"
+  assessment_comments:
+    label: "General inspection summary and observations (optional)"
+tipos_acao:
+  anchor_protection:
+    label: "Anchor / Bolt"
+    sublabel: "Intermediate hanger, expansion bolt, staple or glue-in anchor"
+  belay_rappel_station:
+    label: "Belay / Rappel Station"
+    sublabel: "Double/triple anchor station, rings or chains"
+  rock_environment:
+    label: "Rock / Environment"
+    sublabel: "Loose block, unstable flake, vegetation or approach"
+opcoes:
+  good:
+    label: "Good"
+    sublabel: "NO ISSUES"
+  worn:
+    label: "Worn / Attention"
+    sublabel: "MONITOR"
+  critical:
+    label: "Critical / Condemned"
+    sublabel: "REQUIRES REPLACEMENT"
+  informative:
+    label: "Informational / Low Risk"
+    sublabel: "No immediate impact on safety"
+  warning:
+    label: "Caution"
+    sublabel: "Requires care when climbing or future cleaning"
+  open:
+    label: "Open for climbing"
+    sublabel: "Anchors in good visual condition"
+  open_with_restrictions:
+    label: "Open with restrictions"
+    sublabel: "Points require attention — check observations"
+  closed:
+    label: "Closed / Awaiting Maintenance"
+    sublabel: "Do not climb until maintenance is performed"

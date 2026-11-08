@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Inspección Visual de Anclajes Fijos"
+  descricao: "Informe de monitoreo periódico e inspección visual punto por punto de anclajes fijos existentes sin intervención mecánica."
+blocos:
+  route:
+    titulo: "Bloque 1 — Identificación de la Vía"
+    subtitulo: "Datos de fecha, ubicación e identificación de la vía inspeccionada"
+  inspection:
+    titulo: "Bloque 2 — Inspección Punto por Punto"
+    subtitulo: "Registre el estado visual de cada punto evaluado a lo largo de la vía. Mínimo 1."
+  assessment:
+    titulo: "Bloque 3 — Situación Final de la Vía"
+    subtitulo: "Resumen general del estado de la vía tras la inspección visual"
+conteudos:
+  route_notice:
+    titulo: "Identificación de la Vía"
+    corpo: "Complete los datos de ubicación y fecha de la inspección visual. La coordenada GPS es obligatoria."
+  route_date:
+    label: "Fecha de la Inspección"
+    sublabel: "Completada automáticamente con la fecha actual (editable)"
+  route_gps:
+    label: "Ubicación GPS"
+  route_name:
+    label: "Nombre de la vía"
+  route_sector:
+    label: "Sector / Bloque"
+  route_peak:
+    label: "Pico / Área"
+  vi_ap_position:
+    label: "Posición / Identificación del Punto"
+    sublabel: "Ej.: 1ª chapa, 3er grampo, seguro del crux"
+  vi_ap_condition:
+    label: "Estado General del Anclaje"
+    sublabel: "Evalúe visualmente la integridad física del metal y la fijación."
+    opcoes:
+      good:
+        label: "Bueno"
+        sublabel: "SIN ALTERACIONES"
+      worn:
+        label: "Desgastado / Atención"
+        sublabel: "MONITOREAR"
+      critical:
+        label: "Crítico / Condenado"
+        sublabel: "REQUIERE REEMPLAZO"
+  vi_ap_corrosion:
+    label: "¿Presencia de Corrosión o Holgura?"
+    sublabel: "Verifique signos de oxidación, grietas o giro de la chapa."
+  vi_ap_notes:
+    label: "Observaciones"
+  vi_ap_media:
+    label: "Medios de Evidencia"
+    sublabel: "Adjunte fotos o videos mostrando el estado del punto"
+  vi_ba_position:
+    label: "Identificación de la Reunión"
+    sublabel: "Ej.: Reunión R1, Reunión Final"
+  vi_ba_condition:
+    label: "Estado General de la Reunión"
+    opcoes:
+      good:
+        label: "Bueno"
+        sublabel: "SIN ALTERACIONES"
+      worn:
+        label: "Desgastado / Atención"
+        sublabel: "MONITOREAR DESGASTE DE ARGOLLA/ESLABÓN"
+      critical:
+        label: "Crítico / Condenado"
+        sublabel: "REQUIERE MANTENIMIENTO INMEDIATO"
+  vi_ba_corrosion:
+    label: "¿Presencia de Corrosión o Surco Profundo?"
+  vi_ba_notes:
+    label: "Observaciones"
+  vi_ba_media:
+    label: "Medios de Evidencia"
+  vi_re_description:
+    label: "Ubicación y Descripción de la Ocurrencia"
+  vi_re_condition:
+    label: "Nivel de Atención"
+    opcoes:
+      informative:
+        label: "Informativo / Bajo Riesgo"
+        sublabel: "Sin impacto inmediato en la seguridad"
+      warning:
+        label: "Atención"
+        sublabel: "Requiere cuidado al escalar o limpieza futura"
+      critical:
+        label: "Riesgo Crítico"
+        sublabel: "Riesgo de caída de bloque o accidente"
+  vi_re_media:
+    label: "Medios de Evidencia (opcional)"
+  inspection_list_c:
+    label: "Puntos Inspeccionados"
+    sublabel: "Agregue cada anclaje, reunión o condición de la roca evaluada. Mínimo 1."
+  assessment_condition:
+    label: "Situación final de la vía para escalada"
+    opcoes:
+      open:
+        label: "Liberada para escalada"
+        sublabel: "Anclajes en buenas condiciones visuales"
+      open_with_restrictions:
+        label: "Liberada con restricción"
+        sublabel: "Puntos requieren atención — verificar observaciones"
+      closed:
+        label: "Cerrada / Esperando Mantenimiento"
+        sublabel: "No escalar hasta realizar el mantenimiento"
+  assessment_comments:
+    label: "Resumen y observaciones generales de la inspección (opcional)"
+tipos_acao:
+  anchor_protection:
+    label: "Protección / Anclaje"
+    sublabel: "Chapa, parabolt, grapa o químico intermedio"
+  belay_rappel_station:
+    label: "Reunión / Rápel"
+    sublabel: "Conjunto de reunión doble/triple, argollas o cadenas"
+  rock_environment:
+    label: "Roca / Entorno"
+    sublabel: "Bloque suelto, laja inestable, vegetación o acceso"
+opcoes:
+  good:
+    label: "Bueno"
+    sublabel: "SIN ALTERACIONES"
+  worn:
+    label: "Desgastado / Atención"
+    sublabel: "MONITOREAR"
+  critical:
+    label: "Crítico / Condenado"
+    sublabel: "REQUIERE REEMPLAZO"
+  informative:
+    label: "Informativo / Bajo Riesgo"
+    sublabel: "Sin impacto inmediato en la seguridad"
+  warning:
+    label: "Atención"
+    sublabel: "Requiere cuidado al escalar o limpieza futura"
+  open:
+    label: "Liberada para escalada"
+    sublabel: "Anclajes en buenas condiciones visuales"
+  open_with_restrictions:
+    label: "Liberada con restricción"
+    sublabel: "Puntos requieren atención — verificar observaciones"
+  closed:
+    label: "Cerrada / Esperando Mantenimiento"
+    sublabel: "No escalar hasta realizar el mantenimiento"

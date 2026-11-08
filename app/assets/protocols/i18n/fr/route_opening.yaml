@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Ouverture de Voie"
+  descricao: "Registre technique d'expertise d'ouverture de nouvelles voies d'escalade et des ancrages fixes installés."
+blocos:
+  route:
+    titulo: "Bloc 1 — Identification de la Nouvelle Voie"
+    subtitulo: "Données techniques de localisation, ouvreurs et ligne de la nouvelle voie"
+  actions:
+    titulo: "Bloc 2 — Ancrages et Actions de l'Ouverture"
+    subtitulo: "Enregistrez chaque ancrage fixe, relais ou nettoyage effectué lors de l'ouverture. Minimum 1."
+  assessment:
+    titulo: "Bloc 3 — Évaluation et Clôture"
+    subtitulo: "Condition de la voie et équipement nécessaire pour répétition"
+conteudos:
+  route_notice:
+    titulo: "Identification de l'Ouverture"
+    corpo: "Remplissez les données de la nouvelle voie, les coordonnées GPS du pied et enregistrez l'image du tracé/topo."
+  route_date:
+    label: "Date de l'Ouverture"
+    sublabel: "Remplie automatiquement avec la date actuelle (modifiable)"
+  route_gps:
+    label: "Localisation GPS du Pied de Voie"
+    sublabel: "Capturez les coordonnées géographiques exactes du pied de la voie"
+  route_name:
+    label: "Nom de la Voie"
+    sublabel: "Nom donné à la voie par l'ouvreur / les ouvreurs"
+  route_first_ascensionists:
+    label: "Ouvreur(s)"
+    sublabel: "Noms des ouvreurs participants"
+  route_grade:
+    label: "Cotation Estimée"
+    sublabel: "Ex. : 6c+, 7b, ED-"
+  route_length:
+    label: "Longueur / Longueurs"
+    sublabel: "Ex. : 25m (couenne) ou 150m / 4 longueurs"
+  route_sector:
+    label: "Secteur / Bloc"
+  route_peak:
+    label: "Sommet / Zone"
+  route_line_media:
+    label: "Média du Secteur / Ligne de la Voie"
+    sublabel: "Joignez photo, vidéo ou PDF montrant la ligne de la voie ou le topo"
+  ia_position:
+    label: "Position / Identification de l'Ancrage"
+    sublabel: "Ex. : 1er point, L2 - 4e plaquette"
+  ref_mat_protection:
+    label: "Matériels utilisés"
+    sublabel: "Sélectionnez les matériels du catalogue installés sur ce point ou enregistrez-en un nouveau"
+  ia_media:
+    label: "Média après installation"
+  ia_notes:
+    label: "Observations (optionnel)"
+  ba_position:
+    label: "Identification du Relais"
+    sublabel: "Ex. : Relais R1, Relais Final"
+  ref_mat_belay:
+    label: "Matériels utilisés au relais"
+    sublabel: "Sélectionnez les matériels du catalogue installés sur ce relais ou enregistrez-en un nouveau"
+  ba_media:
+    label: "Média après installation"
+  ba_notes:
+    label: "Observations (optionnel)"
+  lr_notice:
+    titulo: "ATTENTION — Zone de Danger"
+    corpo: "La purge de blocs doit être effectuée avec le pied de voie isolé et sans personne en contrebas."
+  lr_size:
+    label: "Taille approximative du bloc"
+    opcoes:
+      small:
+        label: "Petit (taille du poing)"
+      medium:
+        label: "Moyen (taille d'une pastèque)"
+      large:
+        label: "Grand (plus grand qu'une pastèque)"
+  lr_media_before:
+    label: "Média avant la purge"
+  lr_media_after:
+    label: "Média après la purge"
+  vc_media_before:
+    label: "Média avant le nettoyage"
+  vc_notes:
+    label: "Description du nettoyage"
+  vc_media_after:
+    label: "Média après le nettoyage"
+  oth_description:
+    label: "Description de l'action effectuée"
+  ref_mat_other:
+    label: "Matériels utilisés (optionnel)"
+    sublabel: "Si cette action a utilisé des matériels du catalogue, sélectionnez-les ci-dessous"
+  oth_media:
+    label: "Média (optionnel)"
+  action_list_c:
+    label: "Ancrages et Actions Réalisés"
+    sublabel: "Ajoutez chaque ancrage fixe installé, relais ou intervention sur le rocher. Minimum 1."
+  assessment_condition:
+    label: "Condition actuelle de la voie"
+    opcoes:
+      open:
+        label: "Ouverte à l'escalade"
+        sublabel: "Ouverture terminée et prête pour les répétitions"
+      project_in_progress:
+        label: "En cours d'ouverture / Projet ouvert"
+        sublabel: "Voie non encore terminée"
+      open_with_restrictions:
+        label: "Ouverte avec restriction"
+        sublabel: "Vérifier les recommandations avant répétition"
+  assessment_comments:
+    label: "Équipement suggéré pour répétition et commentaires (optionnel)"
+    sublabel: "Ex. : 12 dégaines, jeu de coinceurs #0.5 à #2, corde de 60m"
+tipos_acao:
+  installed_protection:
+    label: "Ancrage Fixe Installé"
+    sublabel: "Installation de plaquette, goujon, broche ou scellement chimique"
+  belay_rappel_station:
+    label: "Relais / Rappel Installé"
+    sublabel: "Installation de relais double/triple ou station de rappel"
+  loose_rock_removal:
+    label: "Purge de Bloc Instable"
+    sublabel: "Retrait de pierre ou écaille instable lors de l'ouverture"
+  vegetation_cleaning:
+    label: "Nettoyage de Végétation"
+    sublabel: "Nettoyage des prises ou fissures sur la ligne d'ouverture"
+  other:
+    label: "Autre Action"
+    sublabel: "Action ou enregistrement supplémentaire de l'ouverture"
+opcoes:
+  small:
+    label: "Petit (taille du poing)"
+  medium:
+    label: "Moyen (taille d'une pastèque)"
+  large:
+    label: "Grand (plus grand qu'une pastèque)"
+  open:
+    label: "Ouverte à l'escalade"
+    sublabel: "Ouverture terminée et prête pour les répétitions"
+  project_in_progress:
+    label: "En cours d'ouverture / Projet ouvert"
+    sublabel: "Voie non encore terminée"
+  open_with_restrictions:
+    label: "Ouverte avec restriction"
+    sublabel: "Vérifier les recommandations avant répétition"

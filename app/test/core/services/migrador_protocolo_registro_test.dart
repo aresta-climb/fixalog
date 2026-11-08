@@ -10,36 +10,52 @@ import 'package:fixalog/core/services/protocol_parser.dart';
 
 void main() {
   group('MigradorProtocoloRegistro — Normalização de IDs e Caminhos', () {
-    test('normaliza IDs legados para os IDs canônicos atuais e resolve caminhos de asset', () {
+    test('normaliza IDs legados para os IDs canônicos atuais em inglês e resolve caminhos de asset', () {
       expect(
         MigradorProtocoloRegistro.normalizarIdProtocolo('manutencao_ferragens'),
-        equals('manutencao'),
+        equals('maintenance'),
+      );
+      expect(
+        MigradorProtocoloRegistro.normalizarIdProtocolo('manutencao'),
+        equals('maintenance'),
       );
       expect(
         MigradorProtocoloRegistro.normalizarIdProtocolo('abertura_via_v1'),
-        equals('abertura_vias'),
+        equals('route_opening'),
+      );
+      expect(
+        MigradorProtocoloRegistro.normalizarIdProtocolo('abertura_vias'),
+        equals('route_opening'),
       );
       expect(
         MigradorProtocoloRegistro.normalizarIdProtocolo('inspecao_visual_v1'),
-        equals('inspecao_visual'),
+        equals('visual_inspection'),
+      );
+      expect(
+        MigradorProtocoloRegistro.normalizarIdProtocolo('inspecao_visual'),
+        equals('visual_inspection'),
       );
       expect(
         MigradorProtocoloRegistro.normalizarIdProtocolo('registro_expresso'),
-        equals('registro_expresso'),
+        equals('express_log'),
       );
       expect(
         MigradorProtocoloRegistro.normalizarIdProtocolo('cadastro_material'),
-        equals('cadastro_material'),
+        equals('material_registration'),
       );
       expect(
         MigradorProtocoloRegistro.caminhoAssetParaProtocolo('manutencao_ferragens'),
         equals('assets/protocols/manutencao.yaml'),
       );
+      expect(
+        MigradorProtocoloRegistro.caminhoAssetParaProtocolo('maintenance'),
+        equals('assets/protocols/manutencao.yaml'),
+      );
     });
   });
 
-  group('MigradorProtocoloRegistro — Migrações 1 -> 2 dos Protocolos Reais', () {
-    test('migra registro legado de manutencao_ferragens (v2.1.0 -> v2) removendo Bloco 1 e renomeando ref_mat_* nas ações', () {
+  group('MigradorProtocoloRegistro — Migrações dos Protocolos Reais para IDs Canônicos em Inglês', () {
+    test('migra registro legado de manutencao_ferragens (v2.1.0 -> v3) para maintenance e IDs em inglês', () {
       final yamlNovo = File('assets/protocols/manutencao.yaml').readAsStringSync();
       final timestampInicio = DateTime.utc(2026, 5, 10, 12, 0).millisecondsSinceEpoch ~/ 1000;
 
@@ -81,33 +97,37 @@ void main() {
 
       MigradorProtocoloRegistro.migrarRegistro(registro, yamlAtual: yamlNovo);
 
-      expect(registro.idProtocolo, equals('manutencao'));
-      expect(registro.versaoProtocolo, equals('2'));
+      expect(registro.idProtocolo, equals('maintenance'));
+      expect(registro.versaoProtocolo, equals('3'));
       expect(registro.yamlConteudo, equals(yamlNovo));
       expect(registro.respostas.containsKey('lista_materiais_c'), isFalse);
       expect(registro.respostas.containsKey('assinatura_c'), isFalse);
-      expect(registro.respostas['via_nome']?.texto, equals('Via dos Italianos'));
-      expect(registro.respostas['via_data']?.texto, equals('10/05/2026'));
+      expect(registro.respostas['route_name']?.texto, equals('Via dos Italianos'));
+      expect(registro.respostas['route_date']?.texto, equals('10/05/2026'));
 
+      expect(acaoReusar.idLista, equals('action_list_c'));
+      expect(acaoReusar.idTipo, equals('anchor_inspection'));
       expect(
         acaoReusar.respostasItem.containsKey('ia_sub_rf_materiais'),
         isFalse,
       );
       expect(
-        acaoReusar.respostasItem['ref_mat_reusar_furo']?.lista.valores.first.texto,
+        acaoReusar.respostasItem['ref_mat_reuse_hole']?.lista.valores.first.texto,
         equals('mat-uuid-1'),
       );
       expect(
-        acaoReusar.respostasItem['ref_mat_novo_local']?.lista.valores.first.texto,
+        acaoReusar.respostasItem['ref_mat_new_location']?.lista.valores.first.texto,
         equals('mat-uuid-2'),
       );
+      expect(acaoNovoPonto.idLista, equals('action_list_c'));
+      expect(acaoNovoPonto.idTipo, equals('new_anchor_point'));
       expect(
-        acaoNovoPonto.respostasItem['ref_mat_novo_ponto']?.lista.valores.first.texto,
+        acaoNovoPonto.respostasItem['ref_mat_new_anchor']?.lista.valores.first.texto,
         equals('mat-uuid-1'),
       );
     });
 
-    test('migra registro legado de abertura_via_v1 (v1.0.0 -> v2) mapeando campos da via e preenchendo data', () {
+    test('migra registro legado de abertura_via_v1 (v1.0.0 -> v3) para route_opening e IDs em inglês', () {
       final yamlNovo = File('assets/protocols/abertura_vias.yaml').readAsStringSync();
       final registro = Registro(
         idSessao: 'sessao-abertura-1',
@@ -124,17 +144,17 @@ void main() {
 
       MigradorProtocoloRegistro.migrarRegistro(registro, yamlAtual: yamlNovo);
 
-      expect(registro.idProtocolo, equals('abertura_vias'));
-      expect(registro.versaoProtocolo, equals('2'));
-      expect(registro.respostas['via_nome']?.texto, equals('Aresta Nova'));
-      expect(registro.respostas['via_graduacao']?.texto, equals('7a'));
-      expect(registro.respostas['via_gps']?.texto, equals('-22.9,-43.1'));
-      expect(registro.respostas['via_foto_linha']?.midia.imagem.uuid, equals('img-linha'));
-      expect(registro.respostas['via_data']?.texto, isNotEmpty);
+      expect(registro.idProtocolo, equals('route_opening'));
+      expect(registro.versaoProtocolo, equals('3'));
+      expect(registro.respostas['route_name']?.texto, equals('Aresta Nova'));
+      expect(registro.respostas['route_grade']?.texto, equals('7a'));
+      expect(registro.respostas['route_gps']?.texto, equals('-22.9,-43.1'));
+      expect(registro.respostas['route_line_media']?.midia.imagem.uuid, equals('img-linha'));
+      expect(registro.respostas['route_date']?.texto, isNotEmpty);
       expect(registro.respostas.containsKey('nome_via'), isFalse);
     });
 
-    test('migra registro legado de inspecao_visual_v1 (v1.0.0 -> v2) convertendo campos soltos em item de lista ponto-a-ponto', () {
+    test('migra registro legado de inspecao_visual_v1 (v1.0.0 -> v3) para visual_inspection e IDs/opções em inglês', () {
       final yamlNovo = File('assets/protocols/inspecao_visual.yaml').readAsStringSync();
       final registro = Registro(
         idSessao: 'sessao-insp-1',
@@ -150,23 +170,23 @@ void main() {
 
       MigradorProtocoloRegistro.migrarRegistro(registro, yamlAtual: yamlNovo);
 
-      expect(registro.idProtocolo, equals('inspecao_visual'));
-      expect(registro.versaoProtocolo, equals('2'));
+      expect(registro.idProtocolo, equals('visual_inspection'));
+      expect(registro.versaoProtocolo, equals('3'));
       expect(registro.respostas.containsKey('estado_geral'), isFalse);
       expect(registro.respostas.containsKey('corrosao'), isFalse);
       expect(registro.respostas.containsKey('foto_evidencia'), isFalse);
       expect(registro.listas, hasLength(1));
 
       final item = registro.listas.first;
-      expect(item.idLista, equals('lista_inspecao_c'));
-      expect(item.idTipo, equals('protecao_ancoragem'));
-      expect(item.respostasItem['iv_pa_posicao']?.texto, equals('Proteção 1'));
-      expect(item.respostasItem['iv_pa_estado']?.texto, equals('critico'));
-      expect(item.respostasItem['iv_pa_corrosao']?.texto, equals('true'));
-      expect(item.respostasItem['iv_pa_midia']?.midia.imagem.uuid, equals('img-ev'));
+      expect(item.idLista, equals('inspection_list_c'));
+      expect(item.idTipo, equals('anchor_protection'));
+      expect(item.respostasItem['vi_ap_position']?.texto, equals('Proteção 1'));
+      expect(item.respostasItem['vi_ap_condition']?.texto, equals('critical'));
+      expect(item.respostasItem['vi_ap_corrosion']?.texto, equals('true'));
+      expect(item.respostasItem['vi_ap_media']?.midia.imagem.uuid, equals('img-ev'));
     });
 
-    test('migra registro legado de registro_expresso (v1.0.0 -> v2) unificando acao_foto e acao_video em lista_evidencias', () {
+    test('migra registro legado de registro_expresso (v1.0.0 -> v3) para express_log e IDs em inglês', () {
       final yamlNovo = File('assets/protocols/registro_expresso.yaml').readAsStringSync();
       final registro = Registro(
         idSessao: 'sessao-exp-1',
@@ -199,19 +219,61 @@ void main() {
 
       MigradorProtocoloRegistro.migrarRegistro(registro, yamlAtual: yamlNovo);
 
-      expect(registro.idProtocolo, equals('registro_expresso'));
-      expect(registro.versaoProtocolo, equals('2'));
-      expect(registro.respostas['via_gps']?.texto, equals('-22.1,-43.2'));
+      expect(registro.idProtocolo, equals('express_log'));
+      expect(registro.versaoProtocolo, equals('3'));
+      expect(registro.respostas['route_gps']?.texto, equals('-22.1,-43.2'));
       expect(registro.respostas.containsKey('gps'), isFalse);
       expect(registro.listas, hasLength(2));
-      expect(registro.listas[0].idLista, equals('lista_evidencias'));
-      expect(registro.listas[0].idTipo, equals('item_evidencia'));
-      expect(registro.listas[0].respostasItem['ev_midia']?.midia.imagem.uuid, equals('u-foto'));
-      expect(registro.listas[0].respostasItem['ev_descricao']?.texto, equals('Foto 1'));
-      expect(registro.listas[1].idLista, equals('lista_evidencias'));
-      expect(registro.listas[1].idTipo, equals('item_evidencia'));
-      expect(registro.listas[1].respostasItem['ev_midia']?.midia.video.uuid, equals('u-video'));
-      expect(registro.listas[1].respostasItem['ev_descricao']?.texto, equals('Vídeo 1'));
+      expect(registro.listas[0].idLista, equals('evidence_list'));
+      expect(registro.listas[0].idTipo, equals('evidence_item'));
+      expect(registro.listas[0].respostasItem['ev_media']?.midia.imagem.uuid, equals('u-foto'));
+      expect(registro.listas[0].respostasItem['ev_description']?.texto, equals('Foto 1'));
+      expect(registro.listas[1].idLista, equals('evidence_list'));
+      expect(registro.listas[1].idTipo, equals('evidence_item'));
+      expect(registro.listas[1].respostasItem['ev_media']?.midia.video.uuid, equals('u-video'));
+      expect(registro.listas[1].respostasItem['ev_description']?.texto, equals('Vídeo 1'));
+    });
+
+    test('migra registro legado de cadastro_material (v1 -> v2) para material_registration e IDs em inglês', () {
+      final yamlNovo = File('assets/protocols/cadastro_material.yaml').readAsStringSync();
+      final registro = Registro(
+        idSessao: 'sessao-mat-1',
+        idProtocolo: 'cadastro_material',
+        versaoProtocolo: '1',
+      );
+      registro.respostas['mat_nome'] = Resposta(texto: 'Kit Parabolt Inox');
+      registro.respostas['mat_data'] = Resposta(texto: '01/05/2026');
+
+      final itemParabolt = GrupoRepetido(
+        idLista: 'lista_itens_material_c',
+        idItem: 'p1',
+        idTipo: 'parabolt',
+      );
+      itemParabolt.respostasItem['pb_marca'] = Resposta(texto: 'Bonier');
+      itemParabolt.respostasItem['pb_liga'] = Resposta(texto: 'aco_inox_316');
+
+      final itemDetalhe = GrupoRepetido(
+        idLista: 'pb_detalhes__p1',
+        idItem: 'd1',
+        idTipo: 'detalhe_item',
+      );
+      itemDetalhe.respostasItem['det_titulo'] = Resposta(texto: 'Passivação');
+
+      registro.listas.addAll([itemParabolt, itemDetalhe]);
+
+      MigradorProtocoloRegistro.migrarRegistro(registro, yamlAtual: yamlNovo);
+
+      expect(registro.idProtocolo, equals('material_registration'));
+      expect(registro.versaoProtocolo, equals('2'));
+      expect(registro.respostas['mat_name']?.texto, equals('Kit Parabolt Inox'));
+      expect(registro.respostas['mat_date']?.texto, equals('01/05/2026'));
+      expect(itemParabolt.idLista, equals('material_items_list_c'));
+      expect(itemParabolt.idTipo, equals('expansion_bolt'));
+      expect(itemParabolt.respostasItem['eb_brand']?.texto, equals('Bonier'));
+      expect(itemParabolt.respostasItem['eb_alloy']?.texto, equals('stainless_steel_316'));
+      expect(itemDetalhe.idLista, equals('eb_details__p1'));
+      expect(itemDetalhe.idTipo, equals('manufacturing_detail'));
+      expect(itemDetalhe.respostasItem['det_title']?.texto, equals('Passivação'));
     });
 
     test('executa múltiplos migradores em cadeia (v1 -> v2 -> v3 -> v4) na ordem sequencial correta', () {
@@ -294,22 +356,22 @@ protocolo:
     test('detecta violação quando um campo do YAML muda sem incrementar a versão ou quando falta um migrador intermediário na cadeia', () {
       const yamlAlteradoSemSubirVersao = '''
 protocolo:
-  id: manutencao
-  nome: Manutenção
-  versao: 2
+  id: maintenance
+  nome: Maintenance
+  versao: 3
   blocos:
-    - id: via
-      titulo: Bloco 1
+    - id: route
+      titulo: Block 1
       steps:
-        - id: via_localizacao
+        - id: route_location
           conteudos:
-            - id: campo_novo_nao_migrado
+            - id: new_unmigrated_field
               campo_simples:
-                label: Novo
+                label: New
                 tipo: TEXT
 ''';
       final errosTravaA = MigradorProtocoloRegistro.validarContratoProtocolos({
-        'manutencao': yamlAlteradoSemSubirVersao,
+        'maintenance': yamlAlteradoSemSubirVersao,
       });
       expect(errosTravaA, isNotEmpty);
       expect(errosTravaA.first, contains('assinatura estrutural'));
@@ -317,30 +379,30 @@ protocolo:
       final protoAlterado = ProtocolParser.fromYaml(yamlAlteradoSemSubirVersao);
       final hashNovo = MigradorProtocoloRegistro.calcularAssinaturaEstrutural(protoAlterado);
 
-      const yamlVersao3SemMigrador2Para3 = '''
+      const yamlVersao4SemMigrador3Para4 = '''
 protocolo:
-  id: manutencao
-  nome: Manutenção
-  versao: 3
+  id: maintenance
+  nome: Maintenance
+  versao: 4
   blocos:
-    - id: via
-      titulo: Bloco 1
+    - id: route
+      titulo: Block 1
       steps:
-        - id: via_localizacao
+        - id: route_location
           conteudos:
-            - id: campo_novo_nao_migrado
+            - id: new_unmigrated_field
               campo_simples:
-                label: Novo
+                label: New
                 tipo: TEXT
 ''';
       final errosTravaB = MigradorProtocoloRegistro.validarContratoProtocolos(
-        {'manutencao': yamlVersao3SemMigrador2Para3},
+        {'maintenance': yamlVersao4SemMigrador3Para4},
         assinaturasEsperadas: {
-          'manutencao': (versaoAtual: 3, assinaturaEstrutural: hashNovo),
+          'maintenance': (versaoAtual: 4, assinaturaEstrutural: hashNovo),
         },
       );
       expect(errosTravaB, isNotEmpty);
-      expect(errosTravaB.first, contains('2 -> 3'));
+      expect(errosTravaB.first, contains('3 -> 4'));
 
       final errosNaoRegistrado = MigradorProtocoloRegistro.validarContratoProtocolos({
         'protocolo_desconhecido': yamlAlteradoSemSubirVersao,
@@ -349,13 +411,13 @@ protocolo:
       expect(errosNaoRegistrado.first, contains('não possui versão e assinatura'));
 
       final errosVersaoDivergente = MigradorProtocoloRegistro.validarContratoProtocolos(
-        {'manutencao': yamlVersao3SemMigrador2Para3},
+        {'maintenance': yamlVersao4SemMigrador3Para4},
         assinaturasEsperadas: {
-          'manutencao': (versaoAtual: 2, assinaturaEstrutural: hashNovo),
+          'maintenance': (versaoAtual: 3, assinaturaEstrutural: hashNovo),
         },
       );
       expect(errosVersaoDivergente, isNotEmpty);
-      expect(errosVersaoDivergente.first, contains('declara versao 3, mas a versão registrada'));
+      expect(errosVersaoDivergente.first, contains('declara versao 4, mas a versão registrada'));
     });
   });
 }

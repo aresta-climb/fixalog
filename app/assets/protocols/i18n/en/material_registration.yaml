@@ -1,0 +1,235 @@
+protocolo:
+  nome: "Maintenance Material Registration"
+  descricao: "Protocol for cataloging, traceability, quality testing and manufacturing processes of maintenance materials or assemblies"
+blocos:
+  material_identification:
+    titulo: "Block 1 — General Identification"
+    subtitulo: "Identification of single material or material assembly"
+  material_composition:
+    titulo: "Block 2 — Material Specifications"
+    subtitulo: "Add each material that makes up this record, including invoice, tests and details"
+conteudos:
+  mat_instruction:
+    titulo: "Material or Assembly Identification"
+    corpo: "Define a clear name for this material or assembly (e.g., '3/8 Bolt + Hanger Kit' or '316 Stainless Threaded Rod 14cm'). This name will appear in the catalog when selecting materials during maintenance."
+  mat_name:
+    label: "Material or Assembly Name"
+    sublabel: "Descriptive name for quick identification in the catalog"
+  mat_association_code:
+    label: "Association Tracking Code"
+    sublabel: "Internal association control code (optional)"
+  mat_date:
+    label: "Record Date"
+    sublabel: "Automatically filled with current date (editable)"
+  eb_brand:
+    label: "Brand / Manufacturer"
+  eb_alloy:
+    label: "Alloy / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "316 / 316L Stainless Steel"
+      stainless_steel_304:
+        label: "304 Stainless Steel"
+      titanium:
+        label: "Titanium"
+      other:
+        label: "Other"
+  eb_dimensions:
+    label: "Diameter and Length"
+    sublabel: "E.g.: 3/8 x 90mm or 10mm x 100mm"
+  eb_batch:
+    label: "Batch / Lot Number"
+  eb_expiry:
+    label: "Expiration Date (if applicable)"
+  eb_media:
+    label: "Material photo"
+  eb_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  eb_invoice_supplier:
+    label: "Supplier / Store"
+  eb_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  qt_type:
+    label: "Test / Inspection Type"
+  qt_result:
+    label: "Result / Achieved Load"
+  qt_media:
+    label: "Attach Media to Test / Report"
+  eb_tests:
+    label: "Quality Tests"
+    sublabel: "Add tensile, shear or batch inspection tests (optional)"
+  det_title:
+    label: "Detail or Step Title"
+  det_description:
+    label: "Detailed Description"
+  det_media:
+    label: "Attach Media to Step / Detail"
+  eb_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add extra information or step-by-step preparation/manufacturing (optional)"
+  hg_brand:
+    label: "Brand / Manufacturer"
+  hg_alloy:
+    label: "Alloy / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "316 / 316L Stainless Steel"
+      stainless_steel_304:
+        label: "304 Stainless Steel"
+      titanium:
+        label: "Titanium"
+      other:
+        label: "Other"
+  hg_hole_diameter:
+    label: "Hole Diameter"
+    sublabel: "E.g.: 3/8 (10mm) or 1/2 (12mm)"
+  hg_batch:
+    label: "Batch / Lot Number"
+  hg_media:
+    label: "Material photo"
+  hg_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  hg_invoice_supplier:
+    label: "Supplier / Store"
+  hg_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  hg_tests:
+    label: "Quality Tests"
+    sublabel: "Add tests or batch inspections (optional)"
+  hg_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add extra information or step-by-step manufacturing (optional)"
+  rh_brand:
+    label: "Brand / Manufacturer"
+  rh_alloy:
+    label: "Alloy / Material"
+    opcoes:
+      stainless_steel_316:
+        label: "316 / 316L Stainless Steel"
+      stainless_steel_304:
+        label: "304 Stainless Steel"
+      titanium:
+        label: "Titanium"
+      other:
+        label: "Other"
+  rh_batch:
+    label: "Batch / Lot Number"
+  rh_media:
+    label: "Material photo"
+  rh_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  rh_invoice_supplier:
+    label: "Supplier / Store"
+  rh_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  rh_tests:
+    label: "Quality Tests"
+    sublabel: "Add tests or batch inspections (optional)"
+  rh_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add extra information or step-by-step manufacturing (optional)"
+  ca_brand:
+    label: "Brand / Product"
+  ca_expiry:
+    label: "Expiration Date"
+  ca_batch:
+    label: "Batch / Lot Number"
+  ca_media:
+    label: "Packaging / material photo"
+  ca_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  ca_invoice_supplier:
+    label: "Supplier / Store"
+  ca_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  ca_tests:
+    label: "Quality Tests"
+    sublabel: "Add curing, pull-out or inspection tests (optional)"
+  ca_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add extra information or preparation procedures (optional)"
+  pq_brand:
+    label: "Brand / Manufacturer"
+  pq_alloy:
+    label: "Material / Alloy"
+    opcoes:
+      stainless_steel_316:
+        label: "316 / 316L Stainless Steel"
+      galvanized_steel:
+        label: "Galvanized Carbon Steel"
+      titanium:
+        label: "Titanium"
+      other:
+        label: "Other"
+  pq_breaking_load:
+    label: "Nominal Breaking Strength (kN)"
+  pq_batch:
+    label: "Batch / Lot Number"
+  pq_media:
+    label: "Material photo"
+  pq_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  pq_invoice_supplier:
+    label: "Supplier / Store"
+  pq_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  pq_tests:
+    label: "Quality Tests"
+    sublabel: "Add tests or batch inspections (optional)"
+  pq_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add extra information or assembly details (optional)"
+  oth_instruction:
+    titulo: "Custom Material or In-House Manufacturing"
+    corpo: "Record below the raw material purchase receipt, any quality tests and all manufacturing steps or technical details."
+  oth_invoice_number:
+    label: "Invoice / Receipt (Number or Access Key)"
+  oth_invoice_supplier:
+    label: "Supplier / Store"
+  oth_invoice_media:
+    label: "Invoice / Receipt Photo or PDF"
+  oth_tests:
+    label: "Quality Tests"
+    sublabel: "Add performed tests or inspections (optional)"
+  oth_details:
+    label: "Details & Manufacturing Process"
+    sublabel: "Add each manufacturing step or technical specification. Minimum 1."
+  material_items_list_c:
+    label: "Registered Materials"
+    sublabel: "Add 1 single material or multiple items that form the assembly. Minimum 1."
+tipos_acao:
+  expansion_bolt:
+    label: "Mechanical Anchor / Expansion Bolt"
+    sublabel: "Expansion bolt or mechanical stud anchor"
+  quality_test:
+    label: "Quality Test"
+    sublabel: "Mechanical, chemical test or lab report"
+  manufacturing_detail:
+    label: "Detail / Manufacturing Step"
+    sublabel: "Free description with photos, videos or PDFs"
+  hanger:
+    label: "Bolt Hanger"
+    sublabel: "Anchor hanger plate without ring"
+  ring_hanger:
+    label: "Hanger with Ring"
+    sublabel: "Belay / rappel assembly with integrated ring"
+  chemical_anchor:
+    label: "Glue-In / Chemical Anchor"
+    sublabel: "Chemical resin, capsule or glue-in bolt"
+  permanent_quickdraw:
+    label: "Permanent Quickdraw / Permadraw"
+    sublabel: "Fixed draw, quick link and permanent connector"
+  other:
+    label: "Other"
+    sublabel: "In-house manufacturing, custom assemblies or other supplies"
+opcoes:
+  stainless_steel_316:
+    label: "316 / 316L Stainless Steel"
+  stainless_steel_304:
+    label: "304 Stainless Steel"
+  titanium:
+    label: "Titanium"
+  other:
+    label: "Other"
+  galvanized_steel:
+    label: "Galvanized Carbon Steel"

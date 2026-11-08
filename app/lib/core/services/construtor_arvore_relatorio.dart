@@ -5,6 +5,7 @@ import 'dart:ui';
 import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
 import '../models/proto/protos/wizard.pb.dart';
+import 'migrador_protocolo_registro.dart';
 import 'protocol_parser.dart';
 
 /// Árvore semântica de um relatório gerada pelo cruzamento de [DefinicaoProtocolo] e [Registro].
@@ -263,19 +264,41 @@ class ConstrutorArvoreRelatorio {
 
     final uuids = <String>{};
     for (final entrada in registro.respostas.entries) {
-      if (idsRefMateriais.contains(entrada.key)) {
+      final chaveNorm = MigradorProtocoloRegistro.normalizarIdConteudo(
+        entrada.key,
+      );
+      if (idsRefMateriais.contains(entrada.key) ||
+          idsRefMateriais.contains(chaveNorm)) {
         uuids.addAll(extrairTextosDeResposta(entrada.value));
       }
     }
     for (final grupo in registro.listas) {
       for (final entrada in grupo.respostasItem.entries) {
-        if (idsRefMateriais.contains(entrada.key)) {
+        final chaveNorm = MigradorProtocoloRegistro.normalizarIdConteudo(
+          entrada.key,
+        );
+        if (idsRefMateriais.contains(entrada.key) ||
+            idsRefMateriais.contains(chaveNorm)) {
           uuids.addAll(extrairTextosDeResposta(entrada.value));
         }
       }
     }
 
     return uuids.toList();
+  }
+
+  static Resposta? _obterRespostaCompativel(
+    Map<String, Resposta> escopo,
+    String idConteudo,
+  ) {
+    final direta = escopo[idConteudo];
+    if (direta != null) return direta;
+    for (final e in escopo.entries) {
+      if (MigradorProtocoloRegistro.normalizarIdConteudo(e.key) == idConteudo) {
+        return e.value;
+      }
+    }
+    return null;
   }
 
   /// Determina o título principal de exibição de um [registro] buscando o primeiro
@@ -291,7 +314,11 @@ class ConstrutorArvoreRelatorio {
         for (final conteudo in step.conteudos) {
           if (conteudo.hasCampoSimples() &&
               conteudo.campoSimples.tipo == StepCampoSimples_TipoCampo.TEXT) {
-            final valor = registro.respostas[conteudo.id]?.texto.trim() ?? '';
+            final valor =
+                _obterRespostaCompativel(registro.respostas, conteudo.id)
+                    ?.texto
+                    .trim() ??
+                '';
             if (valor.isNotEmpty) {
               return valor;
             }
@@ -371,18 +398,26 @@ class ConstrutorArvoreRelatorio {
         if (conteudo.hasCampoSimples()) {
           _resolverCampoSimples(
             conteudo: conteudo,
-            resposta: respostasEscopo[conteudo.id],
+            resposta: _obterRespostaCompativel(respostasEscopo, conteudo.id),
             destino: nodos,
             codigoIdioma: codigoIdioma,
           );
         } else if (conteudo.hasSelecaoRamo()) {
           final selecao = conteudo.selecaoRamo;
           final valorRamo =
-              respostasEscopo[conteudo.id]?.texto.trim() ?? '';
+              _obterRespostaCompativel(respostasEscopo, conteudo.id)
+                  ?.texto
+                  .trim() ??
+              '';
           if (valorRamo.isNotEmpty) {
+            final valorRamoNorm =
+                MigradorProtocoloRegistro.normalizarValorOpcao(valorRamo);
             final ramo = selecao.ramos
                 .cast<Ramo?>()
-                .firstWhere((r) => r?.id == valorRamo, orElse: () => null);
+                .firstWhere(
+                  (r) => r?.id == valorRamo || r?.id == valorRamoNorm,
+                  orElse: () => null,
+                );
             if (ramo != null) {
               nodos.add(
                 DestaqueEscolhaRelatorio(
@@ -406,7 +441,9 @@ class ConstrutorArvoreRelatorio {
           }
         } else if (conteudo.hasRefMateriais()) {
           final refMat = conteudo.refMateriais;
-          final uuids = extrairTextosDeResposta(respostasEscopo[conteudo.id]);
+          final uuids = extrairTextosDeResposta(
+            _obterRespostaCompativel(respostasEscopo, conteudo.id),
+          );
           if (uuids.isNotEmpty) {
             nodos.add(
               ReferenciasMateriaisRelatorio(
@@ -424,7 +461,12 @@ class ConstrutorArvoreRelatorio {
               ? '${conteudo.id}__$idItemPai'
               : conteudo.id;
           final grupos = registro.listas
-              .where((g) => g.idLista == chaveLista)
+              .where(
+                (g) =>
+                    g.idLista == chaveLista ||
+                    MigradorProtocoloRegistro.normalizarIdConteudo(g.idLista) ==
+                        chaveLista,
+              )
               .toList();
 
           final itensResolvidos = <ItemListaRelatorio>[];
@@ -435,10 +477,13 @@ class ConstrutorArvoreRelatorio {
                 ? '#$numItem'
                 : '$prefixoIndice.$numItem';
 
+            final tipoNorm =
+                MigradorProtocoloRegistro.mapaTiposAcaoPtParaEn[grupo.idTipo] ??
+                    grupo.idTipo;
             final tipoAcao = listaAcoes.tiposDisponiveis
                 .cast<TipoAcao?>()
                 .firstWhere(
-                  (t) => t?.id == grupo.idTipo,
+                  (t) => t?.id == grupo.idTipo || t?.id == tipoNorm,
                   orElse: () => null,
                 );
 
@@ -515,9 +560,14 @@ class ConstrutorArvoreRelatorio {
 
     if (valorBruto.isNotEmpty) {
       if (campo.tipo == StepCampoSimples_TipoCampo.DROPDOWN) {
+        final valorNorm =
+            MigradorProtocoloRegistro.normalizarValorOpcao(valorBruto);
         final opcao = campo.opcoes
             .cast<OpcaoCampo?>()
-            .firstWhere((o) => o?.valor == valorBruto, orElse: () => null);
+            .firstWhere(
+              (o) => o?.valor == valorBruto || o?.valor == valorNorm,
+              orElse: () => null,
+            );
         final rotuloOpcao =
             (opcao != null && opcao.label.isNotEmpty) ? opcao.label : valorBruto;
         final subrotuloOpcao = opcao?.sublabel ?? '';

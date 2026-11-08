@@ -1,0 +1,235 @@
+protocolo:
+  nome: "メンテナンス資材登録"
+  descricao: "メンテナンス用資材またはアセンブリのカタログ化、トレーサビリティ、品質試験および製造プロセスのプロトコル"
+blocos:
+  material_identification:
+    titulo: "ブロック 1 — 基本識別情報"
+    subtitulo: "単一資材または資材セットの識別情報"
+  material_composition:
+    titulo: "ブロック 2 — 資材の仕様"
+    subtitulo: "請求書、試験、詳細を含め、この記録を構成する各資材を追加してください"
+conteudos:
+  mat_instruction:
+    titulo: "資材またはセットの識別"
+    corpo: "この資材またはセットの分かりやすい名称を設定してください（例：「3/8ボルト＋ハンガーセット」「SUS316寸切りボルト14cm」）。メンテナンス時の資材選択カタログに表示されます。"
+  mat_name:
+    label: "資材またはセットの名称"
+    sublabel: "カタログで素早く識別できる分かりやすい名称"
+  mat_association_code:
+    label: "協会トラッキングコード"
+    sublabel: "協会の内部管理コード（任意）"
+  mat_date:
+    label: "記録日"
+    sublabel: "現在の日付が自動入力されます（編集可能）"
+  eb_brand:
+    label: "ブランド / メーカー"
+  eb_alloy:
+    label: "合金 / 材質"
+    opcoes:
+      stainless_steel_316:
+        label: "ステンレス鋼 SUS316 / 316L"
+      stainless_steel_304:
+        label: "ステンレス鋼 SUS304"
+      titanium:
+        label: "チタン"
+      other:
+        label: "その他"
+  eb_dimensions:
+    label: "直径および長さ"
+    sublabel: "例：3/8 × 90mm または 10mm × 100mm"
+  eb_batch:
+    label: "ロット番号"
+  eb_expiry:
+    label: "有効期限（該当する場合）"
+  eb_media:
+    label: "資材の写真"
+  eb_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  eb_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  eb_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  qt_type:
+    label: "試験 / 検査の種類"
+  qt_result:
+    label: "結果 / 測定荷重"
+  qt_media:
+    label: "試験 / 報告書にメディアを添付"
+  eb_tests:
+    label: "品質試験"
+    sublabel: "引張試験、せん断試験、またはロット検査を追加（任意）"
+  det_title:
+    label: "詳細または工程のタイトル"
+  det_description:
+    label: "詳細説明"
+  det_media:
+    label: "工程 / 詳細にメディアを添付"
+  eb_details:
+    label: "詳細および製造プロセス"
+    sublabel: "追加情報や準備・製造の手順を追加（任意）"
+  hg_brand:
+    label: "ブランド / メーカー"
+  hg_alloy:
+    label: "合金 / 材質"
+    opcoes:
+      stainless_steel_316:
+        label: "ステンレス鋼 SUS316 / 316L"
+      stainless_steel_304:
+        label: "ステンレス鋼 SUS304"
+      titanium:
+        label: "チタン"
+      other:
+        label: "その他"
+  hg_hole_diameter:
+    label: "ボルト穴径"
+    sublabel: "例：3/8 (10mm) または 1/2 (12mm)"
+  hg_batch:
+    label: "ロット番号"
+  hg_media:
+    label: "資材の写真"
+  hg_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  hg_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  hg_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  hg_tests:
+    label: "品質試験"
+    sublabel: "試験またはロット検査を追加（任意）"
+  hg_details:
+    label: "詳細および製造プロセス"
+    sublabel: "追加情報や製造手順を追加（任意）"
+  rh_brand:
+    label: "ブランド / メーカー"
+  rh_alloy:
+    label: "合金 / 材質"
+    opcoes:
+      stainless_steel_316:
+        label: "ステンレス鋼 SUS316 / 316L"
+      stainless_steel_304:
+        label: "ステンレス鋼 SUS304"
+      titanium:
+        label: "チタン"
+      other:
+        label: "その他"
+  rh_batch:
+    label: "ロット番号"
+  rh_media:
+    label: "資材の写真"
+  rh_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  rh_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  rh_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  rh_tests:
+    label: "品質試験"
+    sublabel: "試験またはロット検査を追加（任意）"
+  rh_details:
+    label: "詳細および製造プロセス"
+    sublabel: "追加情報や製造手順を追加（任意）"
+  ca_brand:
+    label: "ブランド / 製品名"
+  ca_expiry:
+    label: "有効期限"
+  ca_batch:
+    label: "ロット番号"
+  ca_media:
+    label: "パッケージ / 資材の写真"
+  ca_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  ca_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  ca_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  ca_tests:
+    label: "品質試験"
+    sublabel: "硬化試験、引抜試験、または検査を追加（任意）"
+  ca_details:
+    label: "詳細および製造プロセス"
+    sublabel: "追加情報や準備手順を追加（任意）"
+  pq_brand:
+    label: "ブランド / メーカー"
+  pq_alloy:
+    label: "材質 / 合金"
+    opcoes:
+      stainless_steel_316:
+        label: "ステンレス鋼 SUS316 / 316L"
+      galvanized_steel:
+        label: "亜鉛メッキ炭素鋼"
+      titanium:
+        label: "チタン"
+      other:
+        label: "その他"
+  pq_breaking_load:
+    label: "公称破断強度 (kN)"
+  pq_batch:
+    label: "ロット番号"
+  pq_media:
+    label: "資材の写真"
+  pq_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  pq_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  pq_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  pq_tests:
+    label: "品質試験"
+    sublabel: "試験またはロット検査を追加（任意）"
+  pq_details:
+    label: "詳細および製造プロセス"
+    sublabel: "追加情報や組み立て詳細を追加（任意）"
+  oth_instruction:
+    titulo: "カスタム資材または自作資材"
+    corpo: "以下に原材料の購入証明、実施した品質試験、およびすべての製造工程または技術詳細を記録してください。"
+  oth_invoice_number:
+    label: "請求書 / 領収書（番号またはキー）"
+  oth_invoice_supplier:
+    label: "サプライヤー / 販売店"
+  oth_invoice_media:
+    label: "請求書 / 領収書の写真またはPDF"
+  oth_tests:
+    label: "品質試験"
+    sublabel: "実施した試験または検査を追加（任意）"
+  oth_details:
+    label: "詳細および製造プロセス"
+    sublabel: "各製造工程または技術仕様を追加してください（最低1件）。"
+  material_items_list_c:
+    label: "登録資材"
+    sublabel: "単一資材またはセットを構成する複数のアイテムを追加してください（最低1件）。"
+tipos_acao:
+  expansion_bolt:
+    label: "メカニカルアンカー / パラボルト"
+    sublabel: "拡張式アンカーまたは機械式スタッドボルト"
+  quality_test:
+    label: "品質試験"
+    sublabel: "機械試験、化学試験、または試験報告書"
+  manufacturing_detail:
+    label: "詳細 / 製造工程"
+    sublabel: "写真・動画・PDF付きの自由記述"
+  hanger:
+    label: "ボルトハンガー"
+    sublabel: "リングなしアンカーハンガー"
+  ring_hanger:
+    label: "リング付きハンガー"
+    sublabel: "リング一体型の終了点・懸垂セット"
+  chemical_anchor:
+    label: "ケミカルアンカー"
+    sublabel: "ケミカル樹脂、カプセル、またはケミカルボルト"
+  permanent_quickdraw:
+    label: "パーマドロー（常設クイックドロー）"
+    sublabel: "常設スリング、マイロン、常設カラビナ"
+  other:
+    label: "その他"
+    sublabel: "自作資材、カスタムアセンブリ、またはその他の資材"
+opcoes:
+  stainless_steel_316:
+    label: "ステンレス鋼 SUS316 / 316L"
+  stainless_steel_304:
+    label: "ステンレス鋼 SUS304"
+  titanium:
+    label: "チタン"
+  other:
+    label: "その他"
+  galvanized_steel:
+    label: "亜鉛メッキ炭素鋼"

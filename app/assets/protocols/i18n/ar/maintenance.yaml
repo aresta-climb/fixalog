@@ -1,0 +1,164 @@
+protocolo:
+  nome: "صيانة نقاط التثبيت الثابتة"
+  descricao: "بروتوكول لصيانة وتركيب نقاط التثبيت الثابتة (مسامير التمدد، الصفائح، الحلقات، المراسي، التنظيف والكتل الصخرية غير المستقرة)"
+blocos:
+  route:
+    titulo: "الكتلة 1 — تعريف المسار"
+    subtitulo: "بيانات التاريخ والموقع وتعريف المسار الذي تمت صيانته"
+  actions:
+    titulo: "الكتلة 2 — إجراءات الصيانة"
+    subtitulo: "سجل كل إجراء تم تنفيذه في هذا المسار. الحد الأدنى 1."
+  assessment:
+    titulo: "الكتلة 3 — التقييم والإغلاق"
+    subtitulo: "التقييم النهائي للمسار والملاحظات"
+conteudos:
+  route_notice:
+    titulo: "تعريف المسار"
+    corpo: "أدخل بيانات الموقع وتاريخ الصيانة. إحداثيات GPS إلزامية."
+  route_date:
+    label: "تاريخ الصيانة"
+    sublabel: "تتم تعبئته تلقائياً بالتاريخ الحالي (قابل للتعديل)"
+  route_gps:
+    label: "موقع GPS"
+  route_name:
+    label: "اسم المسار"
+  route_sector:
+    label: "القطاع / الكتلة"
+  route_peak:
+    label: "القمة / المنطقة"
+  route_has_permission:
+    label: "هل لديك إذن من فاتح المسار؟"
+  route_permission_media:
+    label: "وسائط الإذن (إن وجدت)"
+  ai_instruction:
+    titulo: "التقييم البصري والميكانيكي"
+    corpo: "سجل الحالة الحالية قبل أي تدخل. ثم قيّم بصرياً (التآكل، الشقوق) وميكانيكياً (إعادة الشد). صنّف النتيجة."
+  ai_media_before:
+    label: "وسائط قبل التدخل"
+  ai_ap_notes:
+    label: "ملاحظات"
+  ai_rt_torque:
+    label: "عزم الدوران المطبق (نيوتن متر)"
+  ai_rt_notes:
+    label: "ملاحظات"
+  ai_rep_notice:
+    titulo: "استراتيجية الاستبدال"
+    corpo: "إذا أمكن إعادة استخدام الثقب، فاستخدم مرساة كيميائية. وإلا قم بالحفر في موقع جديد."
+  ref_mat_reuse_hole:
+    label: "المواد المستخدمة"
+    sublabel: "اختر المواد من الكتالوج المركبة في نقطة التثبيت هذه أو سجل مادة جديدة"
+  ai_rep_rh_media:
+    label: "وسائط بعد التركيب"
+  ref_mat_new_location:
+    label: "المواد المستخدمة"
+    sublabel: "اختر المواد من الكتالوج المركبة في نقطة التثبيت هذه أو سجل مادة جديدة"
+  ai_rep_nl_notes:
+    label: "مبرر الموقع الجديد"
+  ai_rep_nl_media:
+    label: "وسائط بعد التركيب"
+  ai_rep_branch:
+    label: "كيف سيتم إجراء الاستبدال؟"
+  ai_result:
+    label: "نتيجة التقييم"
+  na_instruction:
+    titulo: "نقطة تثبيت جديدة"
+    corpo: "اختر المواد المركبة من الكتالوج المحلي وسجل الوسائط بعد التركيب."
+  ref_mat_new_anchor:
+    label: "المواد المستخدمة"
+    sublabel: "اختر المواد من الكتالوج المركبة في هذه النقطة أو سجل مادة جديدة"
+  na_media:
+    label: "وسائط بعد التركيب"
+  lr_notice:
+    titulo: "تحذير — منطقة خطر"
+    corpo: "يجب إزالة الكتل الصخرية مع إغلاق المسار وعدم وجود أشخاص في الأسفل."
+  lr_size:
+    label: "الحجم التقريبي للكتلة"
+    opcoes:
+      small:
+        label: "صغير (بحجم قبضة اليد)"
+      medium:
+        label: "متوسط (بحجم بطيخة)"
+      large:
+        label: "كبير (أكبر من بطيخة)"
+  lr_media_before:
+    label: "وسائط قبل الإزالة"
+  lr_media_after:
+    label: "وسائط بعد الإزالة"
+  vc_media_before:
+    label: "وسائط قبل التنظيف"
+  vc_notes:
+    label: "وصف التنظيف"
+  vc_media_after:
+    label: "وسائط بعد التنظيف"
+  oth_description:
+    label: "وصف الإجراء المنفذ"
+  ref_mat_other:
+    label: "المواد المستخدمة (اختياري)"
+    sublabel: "إذا استخدم هذا الإجراء مواد من الكتالوج، فاخترها أدناه"
+  oth_media:
+    label: "وسائط (اختياري)"
+  action_list_c:
+    label: "الإجراءات المنفذة"
+    sublabel: "أضف كل إجراء صيانة. الحد الأدنى 1."
+  assessment_condition:
+    label: "الحالة النهائية للمسار للتسلق"
+    opcoes:
+      open:
+        label: "مفتوح للتسلق"
+        sublabel: "المسار في حالة جيدة"
+      open_with_restrictions:
+        label: "مفتوح مع قيود"
+        sublabel: "تحقق من التنبيه قبل الاستخدام"
+      closed:
+        label: "مغلق"
+        sublabel: "لا تتسلق حتى إجراء صيانة جديدة"
+  assessment_comments:
+    label: "تعليقات إضافية (اختياري)"
+ramos:
+  approved:
+    label: "معتمد — دون تدخل"
+    sublabel: "نقطة التثبيت في حالة جيدة"
+  retightened:
+    label: "تمت إعادة الشد"
+    sublabel: "تمت إعادة شد المرساة بمفتاح عزم الدوران"
+  replace:
+    label: "الاستبدال مطلوب"
+    sublabel: "نقطة تثبيت بها ضرر هيكلي"
+  reuse_hole:
+    label: "إعادة استخدام الثقب الحالي"
+    sublabel: "باستخدام مرساة كيميائية"
+  new_location:
+    label: "موقع حفر جديد"
+    sublabel: "الحفر في موضع مختلف"
+tipos_acao:
+  anchor_inspection:
+    label: "فحص نقطة التثبيت"
+    sublabel: "تقييم حالة نقطة تثبيت حالية"
+  new_anchor_point:
+    label: "نقطة تثبيت جديدة"
+    sublabel: "تركيب نقطة تثبيت جديدة"
+  loose_rock_removal:
+    label: "إزالة كتلة صخرية مفككة"
+    sublabel: "إزالة صخرة غير مستقرة"
+  vegetation_cleaning:
+    label: "تنظيف النباتات"
+    sublabel: "إزالة النباتات من المسار"
+  other:
+    label: "إجراء آخر"
+    sublabel: "إجراء غير مدرج أعلاه"
+opcoes:
+  small:
+    label: "صغير (بحجم قبضة اليد)"
+  medium:
+    label: "متوسط (بحجم بطيخة)"
+  large:
+    label: "كبير (أكبر من بطيخة)"
+  open:
+    label: "مفتوح للتسلق"
+    sublabel: "المسار في حالة جيدة"
+  open_with_restrictions:
+    label: "مفتوح مع قيود"
+    sublabel: "تحقق من التنبيه قبل الاستخدام"
+  closed:
+    label: "مغلق"
+    sublabel: "لا تتسلق حتى إجراء صيانة جديدة"

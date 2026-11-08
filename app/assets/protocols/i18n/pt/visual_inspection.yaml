@@ -1,0 +1,141 @@
+protocolo:
+  nome: "Inspeção Visual de Proteções Fixas"
+  descricao: "Relatório de monitoramento periódico e inspeção visual ponto a ponto de proteções fixas existentes sem intervenção mecânica."
+blocos:
+  route:
+    titulo: "Bloco 1 — Identificação da Via"
+    subtitulo: "Dados de data, localização e identificação da via inspecionada"
+  inspection:
+    titulo: "Bloco 2 — Inspeção Ponto a Ponto"
+    subtitulo: "Registre o estado visual de cada ponto avaliado ao longo da via. Mínimo 1."
+  assessment:
+    titulo: "Bloco 3 — Situação Final da Via"
+    subtitulo: "Resumo geral do estado da via após a inspeção visual"
+conteudos:
+  route_notice:
+    titulo: "Identificação da Via"
+    corpo: "Preencha os dados de localização e data da inspeção visual. A coordenada GPS é obrigatória."
+  route_date:
+    label: "Data da Inspeção"
+    sublabel: "Preenchida automaticamente com a data atual (editável)"
+  route_gps:
+    label: "Localização GPS"
+  route_name:
+    label: "Nome da via"
+  route_sector:
+    label: "Setor / Bloco"
+  route_peak:
+    label: "Pico / Área"
+  vi_ap_position:
+    label: "Posição / Identificação do Ponto"
+    sublabel: "Ex.: 1ª proteção, 3º grampo, proteção do crux"
+  vi_ap_condition:
+    label: "Estado Geral da Proteção"
+    sublabel: "Avalie visualmente a integridade física do metal e fixação."
+    opcoes:
+      good:
+        label: "Bom"
+        sublabel: "SEM ALTERAÇÕES"
+      worn:
+        label: "Desgastado / Atenção"
+        sublabel: "MONITORAR"
+      critical:
+        label: "Crítico / Condenado"
+        sublabel: "REQUER SUBSTITUIÇÃO"
+  vi_ap_corrosion:
+    label: "Presença de Corrosão ou Folga?"
+    sublabel: "Verifique sinais de oxidação, trincas ou giro da chapeleta."
+  vi_ap_notes:
+    label: "Observações"
+  vi_ap_media:
+    label: "Mídias de Evidência"
+    sublabel: "Anexe fotos ou vídeos mostrando o estado do ponto"
+  vi_ba_position:
+    label: "Identificação da Parada"
+    sublabel: "Ex.: Parada P1, Parada Final"
+  vi_ba_condition:
+    label: "Estado Geral da Parada"
+    opcoes:
+      good:
+        label: "Bom"
+        sublabel: "SEM ALTERAÇÕES"
+      worn:
+        label: "Desgastado / Atenção"
+        sublabel: "MONITORAR DESGASTE DE ARGOLA/ELO"
+      critical:
+        label: "Crítico / Condenado"
+        sublabel: "REQUER MANUTENÇÃO IMEDIATA"
+  vi_ba_corrosion:
+    label: "Presença de Corrosão ou Sulco Profundo?"
+  vi_ba_notes:
+    label: "Observações"
+  vi_ba_media:
+    label: "Mídias de Evidência"
+  vi_re_description:
+    label: "Localização e Descrição da Ocorrência"
+  vi_re_condition:
+    label: "Nível de Atenção"
+    opcoes:
+      informative:
+        label: "Informativo / Baixo Risco"
+        sublabel: "Sem impacto imediato na segurança"
+      warning:
+        label: "Atenção"
+        sublabel: "Requer cuidado ao escalar ou limpeza futura"
+      critical:
+        label: "Risco Crítico"
+        sublabel: "Risco de queda de bloco ou acidente"
+  vi_re_media:
+    label: "Mídias de Evidência (opcional)"
+  inspection_list_c:
+    label: "Pontos Inspecionados"
+    sublabel: "Adicione cada proteção, parada ou condição da rocha avaliada. Mínimo 1."
+  assessment_condition:
+    label: "Situação final da via para escalada"
+    opcoes:
+      open:
+        label: "Liberada para escalada"
+        sublabel: "Proteções em boas condições visuais"
+      open_with_restrictions:
+        label: "Liberada com restrição"
+        sublabel: "Pontos exigem atenção — verificar observações"
+      closed:
+        label: "Interditada / Aguardando Manutenção"
+        sublabel: "Não escalar até realização de manutenção"
+  assessment_comments:
+    label: "Resumo e observações gerais da inspeção (opcional)"
+tipos_acao:
+  anchor_protection:
+    label: "Proteção / Ancoragem"
+    sublabel: "Chapeleta, parabolt, grampo ou químico intermediário"
+  belay_rappel_station:
+    label: "Parada / Rapel"
+    sublabel: "Conjunto de parada dupla/tripla, argolas ou correntes"
+  rock_environment:
+    label: "Rocha / Ambiente"
+    sublabel: "Bloco solto, laca instável, vegetação ou acesso"
+opcoes:
+  good:
+    label: "Bom"
+    sublabel: "SEM ALTERAÇÕES"
+  worn:
+    label: "Desgastado / Atenção"
+    sublabel: "MONITORAR"
+  critical:
+    label: "Crítico / Condenado"
+    sublabel: "REQUER SUBSTITUIÇÃO"
+  informative:
+    label: "Informativo / Baixo Risco"
+    sublabel: "Sem impacto imediato na segurança"
+  warning:
+    label: "Atenção"
+    sublabel: "Requer cuidado ao escalar ou limpeza futura"
+  open:
+    label: "Liberada para escalada"
+    sublabel: "Proteções em boas condições visuais"
+  open_with_restrictions:
+    label: "Liberada com restrição"
+    sublabel: "Pontos exigem atenção — verificar observações"
+  closed:
+    label: "Interditada / Aguardando Manutenção"
+    sublabel: "Não escalar até realização de manutenção"

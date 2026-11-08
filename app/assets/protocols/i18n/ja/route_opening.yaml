@@ -1,0 +1,141 @@
+protocolo:
+  nome: "ルート開拓"
+  descricao: "新しいクライミングルートの初登・開拓および設置された固定支点の技術鑑定記録。"
+blocos:
+  route:
+    titulo: "ブロック 1 — 新規ルートの特定"
+    subtitulo: "新規ルートの位置、開拓者、ラインの技術データ"
+  actions:
+    titulo: "ブロック 2 — 設置支点および開拓作業"
+    subtitulo: "開拓中に設置した各固定支点、終了点、清掃作業を記録してください（最低1件）。"
+  assessment:
+    titulo: "ブロック 3 — 最終評価と完了"
+    subtitulo: "ルートの状態および再登に必要なギア"
+conteudos:
+  route_notice:
+    titulo: "開拓情報の特定"
+    corpo: "新規ルートの詳細、取り付きのGPS座標を入力し、ルートライン・トポの画像を記録してください。"
+  route_date:
+    label: "開拓・初登日"
+    sublabel: "現在の日付が自動入力されます（編集可能）"
+  route_gps:
+    label: "取り付きのGPS位置情報"
+    sublabel: "ルート取り付きの正確な地理座標を取得してください"
+  route_name:
+    label: "ルート名"
+    sublabel: "開拓者が命名したルート名"
+  route_first_ascensionists:
+    label: "開拓者・初登者"
+    sublabel: "参加した開拓者の氏名"
+  route_grade:
+    label: "推定グレード"
+    sublabel: "例：5.11b、6c+、3級"
+  route_length:
+    label: "全長 / ピッチ数"
+    sublabel: "例：25m（スポート）または 150m / 4ピッチ"
+  route_sector:
+    label: "セクター / エリア"
+  route_peak:
+    label: "ピーク / 山域"
+  route_line_media:
+    label: "セクター / ルートラインのメディア"
+    sublabel: "ルートラインまたはトポを示す写真・動画・PDFを添付してください"
+  ia_position:
+    label: "支点の位置 / 識別"
+    sublabel: "例：1ピン目、2ピッチ目・4枚目のハンガー"
+  ref_mat_protection:
+    label: "使用した資材"
+    sublabel: "このポイントに設置したカタログ資材を選択するか、新規登録してください"
+  ia_media:
+    label: "設置後のメディア"
+  ia_notes:
+    label: "備考（任意）"
+  ba_position:
+    label: "終了点の識別"
+    sublabel: "例：P1終了点、最終終了点"
+  ref_mat_belay:
+    label: "終了点で使用した資材"
+    sublabel: "この終了点に設置したカタログ資材を選択するか、新規登録してください"
+  ba_media:
+    label: "設置後のメディア"
+  ba_notes:
+    label: "備考（任意）"
+  lr_notice:
+    titulo: "警告 — 危険区域"
+    corpo: "浮石の除去は取り付き周辺を立入禁止にし、下部に人がいない状態で実施してください。"
+  lr_size:
+    label: "浮石のおおよそのサイズ"
+    opcoes:
+      small:
+        label: "小（拳サイズ）"
+      medium:
+        label: "中（スイカサイズ）"
+      large:
+        label: "大（スイカ以上）"
+  lr_media_before:
+    label: "除去前のメディア"
+  lr_media_after:
+    label: "除去後のメディア"
+  vc_media_before:
+    label: "清掃前のメディア"
+  vc_notes:
+    label: "清掃内容の説明"
+  vc_media_after:
+    label: "清掃後のメディア"
+  oth_description:
+    label: "実施した作業の説明"
+  ref_mat_other:
+    label: "使用した資材（任意）"
+    sublabel: "この作業でカタログ資材を使用した場合は、以下から選択してください"
+  oth_media:
+    label: "メディア（任意）"
+  action_list_c:
+    label: "設置支点および実施作業"
+    sublabel: "設置した各固定支点、終了点、岩への処置を追加してください（最低1件）。"
+  assessment_condition:
+    label: "ルートの現在の状態"
+    opcoes:
+      open:
+        label: "登攀可能（開放）"
+        sublabel: "開拓完了・再登可能"
+      project_in_progress:
+        label: "開拓中 / 未完了プロジェクト"
+        sublabel: "ルートはまだ完成していません"
+      open_with_restrictions:
+        label: "条件付きで登攀可能"
+        sublabel: "再登前に推奨事項を確認してください"
+  assessment_comments:
+    label: "再登時の推奨ギアおよびコメント（任意）"
+    sublabel: "例：クイックドロー12本、カム #0.5〜#2、60mロープ"
+tipos_acao:
+  installed_protection:
+    label: "設置した固定支点"
+    sublabel: "ハンガー、ボルト、ステープル、またはケミカルアンカーの設置"
+  belay_rappel_station:
+    label: "設置した終了点 / 懸垂支点"
+    sublabel: "2点・3点終了点または懸垂ステーションの設置"
+  loose_rock_removal:
+    label: "浮石の除去"
+    sublabel: "開拓中の浮石や不安定なフレークの除去"
+  vegetation_cleaning:
+    label: "植生の清掃"
+    sublabel: "開拓ライン上のホールドやクラックの清掃"
+  other:
+    label: "その他の作業"
+    sublabel: "開拓における追加作業または記録"
+opcoes:
+  small:
+    label: "小（拳サイズ）"
+  medium:
+    label: "中（スイカサイズ）"
+  large:
+    label: "大（スイカ以上）"
+  open:
+    label: "登攀可能（開放）"
+    sublabel: "開拓完了・再登可能"
+  project_in_progress:
+    label: "開拓中 / 未完了プロジェクト"
+    sublabel: "ルートはまだ完成していません"
+  open_with_restrictions:
+    label: "条件付きで登攀可能"
+    sublabel: "再登前に推奨事項を確認してください"

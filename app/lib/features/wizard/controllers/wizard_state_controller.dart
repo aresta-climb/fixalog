@@ -444,7 +444,13 @@ class WizardStateController extends Notifier<WizardState> {
     // 1. Determinar chave de título e calcular sufixo incremental (Cópia), (Cópia 2)...
     String? chaveTituloEncontrada;
     String tituloBaseOriginal = '';
-    for (final chave in const ['mat_nome', 'via_nome', 'nome_via']) {
+    for (final chave in const [
+      'mat_name',
+      'route_name',
+      'mat_nome',
+      'via_nome',
+      'nome_via',
+    ]) {
       final valor = updatedAnswers[chave]?.texto.trim() ?? '';
       if (valor.isNotEmpty) {
         chaveTituloEncontrada = chave;
@@ -458,7 +464,11 @@ class WizardStateController extends Notifier<WizardState> {
           .expand((b) => b.steps)
           .expand((s) => s.conteudos);
       for (final c in todosConteudos) {
-        if (c.id == 'mat_nome' || c.id == 'via_nome' || c.id == 'nome_via') {
+        if (c.id == 'mat_name' ||
+            c.id == 'route_name' ||
+            c.id == 'mat_nome' ||
+            c.id == 'via_nome' ||
+            c.id == 'nome_via') {
           chaveTituloEncontrada = c.id;
           break;
         }
@@ -1459,13 +1469,20 @@ class WizardStateController extends Notifier<WizardState> {
         targetStatus = SubmissionStatus.emProgresso;
       }
 
-      final ehMaterial = protocol.id == 'cadastro_material';
+      final ehMaterial = protocol.id == 'material_registration' ||
+          protocol.id == 'cadastro_material';
       final tipoRegistro = ehMaterial
           ? SubmissionTipoRegistro.material
           : SubmissionTipoRegistro.manutencao;
 
       String tituloExtraido = '';
-      for (final chaveTitulo in const ['mat_nome', 'via_nome', 'nome_via']) {
+      for (final chaveTitulo in const [
+        'mat_name',
+        'route_name',
+        'mat_nome',
+        'via_nome',
+        'nome_via',
+      ]) {
         final texto = finalAnswers[chaveTitulo]?.texto.trim() ?? '';
         if (texto.isNotEmpty) {
           tituloExtraido = texto;

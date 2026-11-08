@@ -1,0 +1,235 @@
+protocolo:
+  nome: "تسجيل مواد الصيانة"
+  descricao: "بروتوكول للفهرسة والتتبع واختبارات الجودة وعمليات تصنيع مواد أو مجموعات الصيانة"
+blocos:
+  material_identification:
+    titulo: "الكتلة 1 — التعريف العام"
+    subtitulo: "تعريف المادة المنفردة أو مجموعة المواد"
+  material_composition:
+    titulo: "الكتلة 2 — مواصفات المواد"
+    subtitulo: "أضف كل مادة تشكل هذا السجل، بما في ذلك الفاتورة والاختبارات والتفاصيل"
+conteudos:
+  mat_instruction:
+    titulo: "تعريف المادة أو المجموعة"
+    corpo: "حدد اسماً واضحاً لهذه المادة أو المجموعة (مثل: 'طقم مسمار تمدد 3/8 + صفيحة' أو 'قضيب ملولب فولاذ مقاوم للصدأ 316 بطول 14 سم'). سيظهر هذا الاسم في الكتالوج عند اختيار المواد أثناء الصيانة."
+  mat_name:
+    label: "اسم المادة أو المجموعة"
+    sublabel: "اسم وصفي للتعرف السريع في الكتالوج"
+  mat_association_code:
+    label: "رمز التتبع الخاص بالجمعية"
+    sublabel: "رمز الرقابة الداخلي للجمعية (اختياري)"
+  mat_date:
+    label: "تاريخ التسجيل"
+    sublabel: "تتم تعبئته تلقائياً بالتاريخ الحالي (قابل للتعديل)"
+  eb_brand:
+    label: "العلامة التجارية / الشركة المصنعة"
+  eb_alloy:
+    label: "السبيكة / المادة"
+    opcoes:
+      stainless_steel_316:
+        label: "فولاذ مقاوم للصدأ 316 / 316L"
+      stainless_steel_304:
+        label: "فولاذ مقاوم للصدأ 304"
+      titanium:
+        label: "تيتانيوم"
+      other:
+        label: "أخرى"
+  eb_dimensions:
+    label: "القطر والطول"
+    sublabel: "مثال: 3/8 × 90 مم أو 10 مم × 100 مم"
+  eb_batch:
+    label: "رقم الدفعة (Lote)"
+  eb_expiry:
+    label: "تاريخ الصلاحية (إن وجد)"
+  eb_media:
+    label: "صورة المادة"
+  eb_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  eb_invoice_supplier:
+    label: "المورد / المتجر"
+  eb_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  qt_type:
+    label: "نوع الاختبار / الفحص"
+  qt_result:
+    label: "النتيجة / الحمل المحقق"
+  qt_media:
+    label: "إرفاق وسائط بالاختبار / التقرير"
+  eb_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف اختبارات الشد أو القص أو فحوصات الدفعة (اختياري)"
+  det_title:
+    label: "عنوان التفصيل أو الخطوة"
+  det_description:
+    label: "وصف مفصل"
+  det_media:
+    label: "إرفاق وسائط بالخطوة / التفصيل"
+  eb_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف معلومات إضافية أو خطوات التحضير/التصنيع (اختياري)"
+  hg_brand:
+    label: "العلامة التجارية / الشركة المصنعة"
+  hg_alloy:
+    label: "السبيكة / المادة"
+    opcoes:
+      stainless_steel_316:
+        label: "فولاذ مقاوم للصدأ 316 / 316L"
+      stainless_steel_304:
+        label: "فولاذ مقاوم للصدأ 304"
+      titanium:
+        label: "تيتانيوم"
+      other:
+        label: "أخرى"
+  hg_hole_diameter:
+    label: "قطر الثقب"
+    sublabel: "مثال: 3/8 (10 مم) أو 1/2 (12 مم)"
+  hg_batch:
+    label: "رقم الدفعة (Lote)"
+  hg_media:
+    label: "صورة المادة"
+  hg_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  hg_invoice_supplier:
+    label: "المورد / المتجر"
+  hg_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  hg_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف اختبارات أو فحوصات الدفعة (اختياري)"
+  hg_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف معلومات إضافية أو خطوات التصنيع (اختياري)"
+  rh_brand:
+    label: "العلامة التجارية / الشركة المصنعة"
+  rh_alloy:
+    label: "السبيكة / المادة"
+    opcoes:
+      stainless_steel_316:
+        label: "فولاذ مقاوم للصدأ 316 / 316L"
+      stainless_steel_304:
+        label: "فولاذ مقاوم للصدأ 304"
+      titanium:
+        label: "تيتانيوم"
+      other:
+        label: "أخرى"
+  rh_batch:
+    label: "رقم الدفعة (Lote)"
+  rh_media:
+    label: "صورة المادة"
+  rh_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  rh_invoice_supplier:
+    label: "المورد / المتجر"
+  rh_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  rh_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف اختبارات أو فحوصات الدفعة (اختياري)"
+  rh_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف معلومات إضافية أو خطوات التصنيع (اختياري)"
+  ca_brand:
+    label: "العلامة التجارية / المنتج"
+  ca_expiry:
+    label: "تاريخ الصلاحية"
+  ca_batch:
+    label: "رقم الدفعة (Lote)"
+  ca_media:
+    label: "صورة العبوة / المادة"
+  ca_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  ca_invoice_supplier:
+    label: "المورد / المتجر"
+  ca_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  ca_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف اختبارات التصلب أو الاقتلاع أو الفحوصات (اختياري)"
+  ca_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف معلومات إضافية أو إجراءات التحضير (اختياري)"
+  pq_brand:
+    label: "العلامة التجارية / الشركة المصنعة"
+  pq_alloy:
+    label: "المادة / السبيكة"
+    opcoes:
+      stainless_steel_316:
+        label: "فولاذ مقاوم للصدأ 316 / 316L"
+      galvanized_steel:
+        label: "فولاذ كربوني مجلفن"
+      titanium:
+        label: "تيتانيوم"
+      other:
+        label: "أخرى"
+  pq_breaking_load:
+    label: "حمل الكسر الاسمي (kN)"
+  pq_batch:
+    label: "رقم الدفعة (Lote)"
+  pq_media:
+    label: "صورة المادة"
+  pq_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  pq_invoice_supplier:
+    label: "المورد / المتجر"
+  pq_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  pq_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف اختبارات أو فحوصات الدفعة (اختياري)"
+  pq_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف معلومات إضافية أو تفاصيل التجميع (اختياري)"
+  oth_instruction:
+    titulo: "مادة مخصصة أو تصنيع ذاتي"
+    corpo: "سجل أدناه إيصال شراء المواد الخام وأي اختبارات جودة وجميع خطوات التصنيع أو التفاصيل الفنية."
+  oth_invoice_number:
+    label: "الفاتورة / الإيصال (الرقم أو المفتاح)"
+  oth_invoice_supplier:
+    label: "المورد / المتجر"
+  oth_invoice_media:
+    label: "صورة أو PDF للفاتورة / الإيصال"
+  oth_tests:
+    label: "اختبارات الجودة"
+    sublabel: "أضف الاختبارات أو الفحوصات التي تم إجراؤها (اختياري)"
+  oth_details:
+    label: "التفاصيل وعملية التصنيع"
+    sublabel: "أضف كل خطوة تصنيع أو مواصفة فنية. الحد الأدنى 1."
+  material_items_list_c:
+    label: "المواد المسجلة"
+    sublabel: "أضف مادة منفردة واحدة أو عدة عناصر تشكل المجموعة. الحد الأدنى 1."
+tipos_acao:
+  expansion_bolt:
+    label: "مرساة ميكانيكية / مسمار تمدد (Parabolt)"
+    sublabel: "مسمار تمدد أو وتد ميكانيكي"
+  quality_test:
+    label: "اختبار جودة"
+    sublabel: "اختبار ميكانيكي أو كيميائي أو تقرير فني"
+  manufacturing_detail:
+    label: "تفصيل / خطوة تصنيع"
+    sublabel: "وصف حر مع صور أو مقاطع فيديو أو ملفات PDF"
+  hanger:
+    label: "صفيحة تثبيت (Hanger)"
+    sublabel: "صفيحة تثبيت بدون حلقة"
+  ring_hanger:
+    label: "صفيحة تثبيت مع حلقة"
+    sublabel: "مجموعة محطة تأمين / إنزال مع حلقة مدمجة"
+  chemical_anchor:
+    label: "مرساة كيميائية"
+    sublabel: "راتنج كيميائي أو كبسولة أو خطاف كيميائي"
+  permanent_quickdraw:
+    label: "كويك درو دائم (Permadraw)"
+    sublabel: "وصلة ثابتة وحلقة سريعة وموصل دائم"
+  other:
+    label: "أخرى"
+    sublabel: "تصنيع ذاتي أو مجموعات مخصصة أو مستلزمات أخرى"
+opcoes:
+  stainless_steel_316:
+    label: "فولاذ مقاوم للصدأ 316 / 316L"
+  stainless_steel_304:
+    label: "فولاذ مقاوم للصدأ 304"
+  titanium:
+    label: "تيتانيوم"
+  other:
+    label: "أخرى"
+  galvanized_steel:
+    label: "فولاذ كربوني مجلفن"

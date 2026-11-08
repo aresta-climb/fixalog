@@ -1,87 +1,77 @@
 protocolo:
-  id: registro_expresso
-  nome: "Registro Expresso"
-  descricao: "Registro livre e rápido de ocorrências, mídias, coordenadas e materiais sem estrutura pré-estabelecida."
-  versao: 2
+  id: express_log
+  nome: "Express Log"
+  descricao: "Fast, free-form record of occurrences, media, coordinates and materials without predefined structure."
+  versao: 3
 
   blocos:
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 1 — Identificação e Localização
-    # ═══════════════════════════════════════════════════════════════
-    - id: bloco_identificacao
-      titulo: "Bloco 1 — Identificação e Local"
-      subtitulo: "Título do registro, data e localização opcional"
-
+    - id: identification_block
+      titulo: "Block 1 — Identification & Location"
+      subtitulo: "Record title, date and optional location"
       steps:
-        - id: step_identificacao
+        - id: identification_step
           conteudos:
-            - id: via_nome
+            - id: route_name
               campo_simples:
-                label: "Título / Identificação do Registro"
-                sublabel: "Nome da via, local ou assunto para identificar este registro no Histórico"
+                label: "Record Title / Identification"
+                sublabel: "Route name, location or subject to identify this record in History"
                 tipo: TEXT
                 obrigatorio: true
-            - id: via_data
+            - id: route_date
               campo_simples:
-                label: "Data do Registro"
-                sublabel: "Preenchida automaticamente com a data atual (editável)"
+                label: "Record Date"
+                sublabel: "Automatically filled with current date (editable)"
                 tipo: DATE
                 obrigatorio: true
                 preencher_data_atual: true
-            - id: via_gps
+            - id: route_gps
               campo_simples:
-                label: "Coordenadas GPS (opcional)"
-                sublabel: "Capture a localização atual se desejar."
+                label: "GPS Coordinates (optional)"
+                sublabel: "Capture the current location if desired."
                 tipo: GPS
                 obrigatorio: false
-            - id: observacoes_gerais
+            - id: general_notes
               campo_simples:
-                label: "Observações Gerais (opcional)"
+                label: "General Observations (optional)"
                 tipo: TEXT
                 ui_hint: TEXT_AREA
                 obrigatorio: false
-
-    # ═══════════════════════════════════════════════════════════════
-    # BLOCO 2 — Evidências e Materiais Opcionais
-    # ═══════════════════════════════════════════════════════════════
-    - id: bloco_evidencias
-      titulo: "Bloco 2 — Evidências e Materiais"
-      subtitulo: "Adicione mídias com descrições e vincule materiais do catálogo se desejar"
-
+    - id: evidence_block
+      titulo: "Block 2 — Evidence & Materials"
+      subtitulo: "Add media with descriptions and link catalog materials if desired"
       steps:
-        - id: step_evidencias
+        - id: evidence_step
           conteudos:
-            - id: lista_evidencias
+            - id: evidence_list
               lista_acoes:
-                label: "Evidências (Fotos, Vídeos ou PDFs)"
-                sublabel: "Adicione quantos registros de mídia e anotações desejar (opcional)."
+                label: "Evidence (Photos, Videos or PDFs)"
+                sublabel: "Add as many media records and notes as desired (optional)."
                 minimo: 0
                 maximo: 0
                 tipos_disponiveis:
-                  - id: item_evidencia
-                    label: "Evidência / Anotação"
-                    sublabel: "Fotos, vídeos ou PDFs com descrição"
+                  - id: evidence_item
+                    label: "Evidence / Note"
+                    sublabel: "Photos, videos or PDFs with description"
                     icon_name: camera
                     steps:
-                      - id: step_item_evidencia
+                      - id: evidence_item_step
                         conteudos:
-                          - id: ev_midia
+                          - id: ev_media
                             campo_simples:
-                              label: "Mídias da Evidência"
-                              sublabel: "Anexe fotos, vídeos ou PDFs"
+                              label: "Evidence Media"
+                              sublabel: "Attach photos, videos or PDFs"
                               tipo: IMAGE
                               ui_hint: CAMERA_ACTION
                               obrigatorio: true
-                          - id: ev_descricao
+                          - id: ev_description
                             campo_simples:
-                              label: "Descrição (opcional)"
+                              label: "Description (optional)"
                               tipo: TEXT
                               ui_hint: TEXT_AREA
                               obrigatorio: false
-            - id: ref_mat_expresso
+            - id: ref_mat_express
               ref_materiais:
-                label: "Materiais Relacionados (opcional)"
-                sublabel: "Selecione materiais do catálogo local caso este registro envolva algum insumo"
+                label: "Related Materials (optional)"
+                sublabel: "Select materials from the local catalog if this record involves any hardware"
                 origem_catalogo: true
                 obrigatorio: false

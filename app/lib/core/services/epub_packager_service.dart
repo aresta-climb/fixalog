@@ -60,6 +60,7 @@ class EpubPackagerService {
     required Uint8List binarypb,
     Map<String, Uint8List> arquivosMidia = const {},
     Map<String, Map<String, Uint8List>> materiaisAninhados = const {},
+    Map<String, String> titulosMateriais = const {},
     String? signaturesXml,
   }) {
     final arquivoZip = Archive();
@@ -89,8 +90,10 @@ class EpubPackagerService {
     // 4. OEBPS/nav.xhtml (Documento de navegação obrigatório no EPUB 3)
     final itensNavMateriais = StringBuffer();
     for (final uuidMat in materiaisAninhados.keys) {
+      final nomeMat = titulosMateriais[uuidMat]?.trim() ?? '';
+      final rotuloNav = nomeMat.isNotEmpty ? nomeMat : uuidMat;
       itensNavMateriais.writeln(
-        '      <li><a href="materiais/$uuidMat/OEBPS/relatorio.xhtml">Material: $uuidMat</a></li>',
+        '      <li><a href="materiais/$uuidMat/OEBPS/relatorio.xhtml">Material: $rotuloNav</a></li>',
       );
     }
 

@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:qr/qr.dart';
 import '../models/proto/protos/registro.pb.dart';
+import 'construtor_arvore_relatorio.dart';
 import 'epub_document_builder.dart';
 
 /// Representa os dados de um material vinculado a uma manutenção para inclusão sequencial ao final do PDF Resumido.
@@ -31,15 +32,19 @@ class RelatorioMaterialAnexo {
 /// Serviço responsável pela exportação de PDF Resumido para protocolo burocrático e órgãos ambientais/SEI.
 ///
 /// Constrói o documento A4 nativamente via `package:pdf` (`pw.Document` / `pw.MultiPage`),
-/// renderizando cabeçalho explicativo, link canônico, QR Codes vetoriais (`pw.BarcodeWidget`),
-/// textos com suporte a Markdown, imagens JPEG de 2MP pré-processadas (`pw.MemoryImage`)
-/// e concatenação das fichas técnicas de materiais utilizados.
+/// interpretando obrigatoriamente o schema YAML (`ConstrutorArvoreRelatorio`) para organizar
+/// blocos, traduzir rótulos humanos, dispor campos curtos e fotos em duas colunas,
+/// aninhar sub-listas recursivamente e concatenar as fichas técnicas de materiais utilizados.
 class PdfPrintSummaryService {
   final EpubDocumentBuilder _documentBuilder;
+  final ConstrutorArvoreRelatorio _construtorArvore;
 
   PdfPrintSummaryService({
     EpubDocumentBuilder? documentBuilder,
-  }) : _documentBuilder = documentBuilder ?? EpubDocumentBuilder();
+    ConstrutorArvoreRelatorio? construtorArvore,
+  })  : _documentBuilder = documentBuilder ?? EpubDocumentBuilder(),
+        _construtorArvore =
+            construtorArvore ?? const ConstrutorArvoreRelatorio();
 
   /// Gera a marcação SVG vetorial para um QR Code contendo o [texto] informado.
   static String gerarQrCodeSvg(String texto, {int moduloTamanho = 4}) {
@@ -176,11 +181,17 @@ class PdfPrintSummaryService {
   ) {
     final Map<String, String> titulosMateriais = {};
     for (final mat in materiaisAnexos) {
-      final nomeMat = mat.registro.respostas['mat_nome']?.texto.trim() ?? '';
       titulosMateriais[mat.idSessao] =
-          nomeMat.isNotEmpty ? nomeMat : mat.idSessao;
+          ConstrutorArvoreRelatorio.extrairTituloExibicao(
+        mat.registro,
+        fallback: mat.idSessao,
+      );
     }
     return titulosMateriais;
+  }
+
+  String _normalizarTextoLatin1(String texto) {
+    return texto.replaceAll('—', '-').replaceAll('–', '-');
   }
 
   pw.MemoryImage? _carregarImagemMemoria(String? referencia) {
@@ -197,114 +208,434 @@ class PdfPrintSummaryService {
     return null;
   }
 
-  String _formatarTextoReferenciaMaterial(
-    String chave,
-    String valorBruto,
-    Map<String, String> titulosMateriais,
-  ) {
-    if (chave != 'lista_materiais_c' && !chave.startsWith('ref_mat')) {
-      return valorBruto;
+  List<pw.Widget> _construirWidgetsNodo({
+    required NodoRelatorio nodo,
+    required String urlCanonica,
+    required Map<String, String> mapeamentoMidias,
+    required Map<String, String> posterFrames,
+    required Map<String, String> titulosMateriais,
+  }) {
+    switch (nodo) {
+      case GradePropriedadesRelatorio():
+        final widgets = <pw.Widget>[];
+        for (var i = 0; i < nodo.propriedades.length; i += 2) {
+          final propEsq = nodo.propriedades[i];
+          final propDir = (i + 1 < nodo.propriedades.length)
+              ? nodo.propriedades[i + 1]
+              : null;
+          widgets.add(
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 6),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(child: _construirCelulaPropriedade(propEsq)),
+                  pw.SizedBox(width: 8),
+                  pw.Expanded(
+                    child: propDir != null
+                        ? _construirCelulaPropriedade(propDir)
+                        : pw.SizedBox(),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return widgets;
+
+      case DestaqueEscolhaRelatorio():
+        return [
+          pw.Container(
+            width: double.infinity,
+            margin: const pw.EdgeInsets.only(bottom: 8),
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              border: pw.Border.all(color: PdfColors.grey600),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  _normalizarTextoLatin1(nodo.rotuloPergunta),
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  _normalizarTextoLatin1(nodo.rotuloOpcao),
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                if (nodo.subrotuloOpcao.isNotEmpty) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    _normalizarTextoLatin1(nodo.subrotuloOpcao),
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ];
+
+      case TextoLongoRelatorio():
+        return [
+          pw.Container(
+            width: double.infinity,
+            margin: const pw.EdgeInsets.only(bottom: 8),
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey400),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  _normalizarTextoLatin1(nodo.rotulo),
+                  style: pw.TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                if (nodo.subrotulo.isNotEmpty)
+                  pw.Text(
+                    _normalizarTextoLatin1(nodo.subrotulo),
+                    style: const pw.TextStyle(
+                      fontSize: 8.5,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                pw.SizedBox(height: 4),
+                _construirTextoMarkdownPdf(texto: nodo.textoMarkdown),
+              ],
+            ),
+          ),
+        ];
+
+      case GaleriaMidiasRelatorio():
+        return _construirWidgetsGaleriaMidias(
+          galeria: nodo,
+          urlCanonica: urlCanonica,
+          mapeamentoMidias: mapeamentoMidias,
+          posterFrames: posterFrames,
+        );
+
+      case ReferenciasMateriaisRelatorio():
+        final nomesResolvidos = nodo.uuidsMateriais
+            .map((uuid) => _normalizarTextoLatin1(titulosMateriais[uuid] ?? uuid))
+            .join(', ');
+        return [
+          pw.Container(
+            width: double.infinity,
+            margin: const pw.EdgeInsets.only(bottom: 8),
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey500),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  _normalizarTextoLatin1(nodo.rotulo),
+                  style: pw.TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                if (nodo.subrotulo.isNotEmpty)
+                  pw.Text(
+                    _normalizarTextoLatin1(nodo.subrotulo),
+                    style: const pw.TextStyle(
+                      fontSize: 8.5,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                pw.SizedBox(height: 3),
+                pw.Text(
+                  nomesResolvidos,
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+        ];
+
+      case SecaoListaRelatorio():
+        final widgets = <pw.Widget>[
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 8, bottom: 4),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  _normalizarTextoLatin1(nodo.rotulo),
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                if (nodo.subrotulo.isNotEmpty)
+                  pw.Text(
+                    _normalizarTextoLatin1(nodo.subrotulo),
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ];
+
+        for (final item in nodo.itens) {
+          widgets.add(
+            pw.Container(
+              width: double.infinity,
+              margin: const pw.EdgeInsets.only(top: 6),
+              padding:
+                  const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey200,
+                border: pw.Border.all(color: PdfColors.grey500),
+              ),
+              child: pw.Text(
+                _normalizarTextoLatin1(
+                  '#${item.indiceFormatado} - ${item.rotuloTipo}',
+                ),
+                style: pw.TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+
+          for (final subNodo in item.nodos) {
+            final filhosSub = _construirWidgetsNodo(
+              nodo: subNodo,
+              urlCanonica: urlCanonica,
+              mapeamentoMidias: mapeamentoMidias,
+              posterFrames: posterFrames,
+              titulosMateriais: titulosMateriais,
+            );
+            for (final w in filhosSub) {
+              widgets.add(
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: const pw.BoxDecoration(
+                    border: pw.Border(
+                      left: pw.BorderSide(color: PdfColors.grey500),
+                      right: pw.BorderSide(color: PdfColors.grey500),
+                      bottom: pw.BorderSide(color: PdfColors.grey300),
+                    ),
+                  ),
+                  child: w,
+                ),
+              );
+            }
+          }
+          widgets.add(pw.SizedBox(height: 6));
+        }
+
+        return widgets;
     }
-    return valorBruto
-        .split(',')
-        .map((id) {
-          final limpo = id.trim();
-          return titulosMateriais[limpo] ?? limpo;
-        })
-        .join(', ');
   }
 
-  List<pw.Widget> _construirWidgetsMidia({
-    required ReferenciaMidia midia,
+  pw.Widget _construirCelulaPropriedade(PropriedadeCurtaRelatorio prop) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(6),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey400),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            _normalizarTextoLatin1(prop.rotulo),
+            style: pw.TextStyle(
+              fontSize: 8.5,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey800,
+            ),
+          ),
+          if (prop.subrotulo.isNotEmpty)
+            pw.Text(
+              _normalizarTextoLatin1(prop.subrotulo),
+              style: const pw.TextStyle(
+                fontSize: 7.5,
+                color: PdfColors.grey600,
+              ),
+            ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            _normalizarTextoLatin1(prop.valor),
+            style: const pw.TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<pw.Widget> _construirWidgetsGaleriaMidias({
+    required GaleriaMidiasRelatorio galeria,
     required String urlCanonica,
     required Map<String, String> mapeamentoMidias,
     required Map<String, String> posterFrames,
   }) {
     final widgets = <pw.Widget>[];
+    final fotos = <({ItemMidiaRelatorio item, pw.MemoryImage? imagem})>[];
+    final videos = <ItemMidiaRelatorio>[];
+    final documentos = <ItemMidiaRelatorio>[];
 
-    if (midia.hasImagem()) {
-      final uuid = midia.imagem.uuid;
-      final img = _carregarImagemMemoria(mapeamentoMidias[uuid]);
-      if (img != null) {
-        widgets.add(
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(vertical: 6),
-            height: 180,
-            child: pw.Image(img, fit: pw.BoxFit.contain),
-          ),
-        );
+    for (final item in galeria.itens) {
+      if (item.midia.hasImagem()) {
+        final uuid = item.midia.imagem.uuid;
+        final img = _carregarImagemMemoria(mapeamentoMidias[uuid]);
+        fotos.add((item: item, imagem: img));
+      } else if (item.midia.hasVideo()) {
+        videos.add(item);
+      } else if (item.midia.hasDocumento()) {
+        documentos.add(item);
       }
-    } else if (midia.hasVideo()) {
-      final uuid = midia.video.uuid;
-      final imgPoster = _carregarImagemMemoria(posterFrames[uuid]);
-      final videoUrl = '$urlCanonica#video-$uuid';
+    }
 
+    // Fotos lado a lado em duas colunas
+    for (var i = 0; i < fotos.length; i += 2) {
+      final fotoEsq = fotos[i];
+      final fotoDir = (i + 1 < fotos.length) ? fotos[i + 1] : null;
       widgets.add(
-        pw.Container(
-          margin: const pw.EdgeInsets.symmetric(vertical: 6),
-          padding: const pw.EdgeInsets.all(8),
-          decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: PdfColors.grey500),
-          ),
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 8),
           child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              if (imgPoster != null) ...[
-                pw.Container(
-                  width: 150,
-                  height: 110,
-                  child: pw.Image(imgPoster, fit: pw.BoxFit.contain),
-                ),
-                pw.SizedBox(width: 12),
-              ],
-              pw.BarcodeWidget(
-                barcode: pw.Barcode.qrCode(),
-                data: videoUrl,
-                width: 48,
-                height: 48,
-              ),
-              pw.SizedBox(width: 10),
+              pw.Expanded(child: _construirCardFoto(fotoEsq.item, fotoEsq.imagem)),
+              pw.SizedBox(width: 8),
               pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Escaneie para assistir ao vídeo desta proteção online',
-                      style: pw.TextStyle(
-                        fontSize: 10,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      videoUrl,
-                      style: const pw.TextStyle(fontSize: 9),
-                    ),
-                  ],
-                ),
+                child: fotoDir != null
+                    ? _construirCardFoto(fotoDir.item, fotoDir.imagem)
+                    : pw.SizedBox(),
               ),
             ],
           ),
         ),
       );
-    } else if (midia.hasDocumento()) {
-      final doc = midia.documento;
+    }
+
+    // Vídeos com poster e QR Code
+    for (final itemVid in videos) {
+      final uuid = itemVid.midia.video.uuid;
+      final imgPoster = _carregarImagemMemoria(posterFrames[uuid]);
+      final videoUrl = '$urlCanonica#video-$uuid';
+
+      widgets.add(
+        pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 8),
+          padding: const pw.EdgeInsets.all(8),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColors.grey500),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                _normalizarTextoLatin1(itemVid.rotuloCampo),
+                style: pw.TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  if (imgPoster != null) ...[
+                    pw.Container(
+                      width: 150,
+                      height: 110,
+                      child: pw.Image(imgPoster, fit: pw.BoxFit.contain),
+                    ),
+                    pw.SizedBox(width: 12),
+                  ],
+                  pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: videoUrl,
+                    width: 48,
+                    height: 48,
+                  ),
+                  pw.SizedBox(width: 10),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Escaneie para assistir ao vídeo desta proteção online',
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          videoUrl,
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Documentos PDF rasterizados
+    for (final itemDoc in documentos) {
+      final doc = itemDoc.midia.documento;
       final nome = doc.nomeOriginal.isNotEmpty
           ? doc.nomeOriginal
           : '${doc.uuid}.pdf';
       final totalPaginas =
           doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 1;
 
+      widgets.add(
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 4, bottom: 2),
+          child: pw.Text(
+            _normalizarTextoLatin1(itemDoc.rotuloCampo),
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+
       for (var i = 1; i <= totalPaginas; i++) {
         final chavePag = '${doc.uuid}_p$i';
         final imgPag = _carregarImagemMemoria(mapeamentoMidias[chavePag]);
         widgets.add(
           pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
+            padding: const pw.EdgeInsets.only(top: 4, bottom: 4),
             child: pw.Text(
-              '$nome - Página $i de $totalPaginas',
+              _normalizarTextoLatin1('$nome - Página $i de $totalPaginas'),
               style: pw.TextStyle(
-                fontSize: 10,
+                fontSize: 9.5,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
@@ -325,67 +656,36 @@ class PdfPrintSummaryService {
     return widgets;
   }
 
-  List<pw.Widget> _construirWidgetsResposta({
-    required String chave,
-    required Resposta resposta,
-    required String urlCanonica,
-    required Map<String, String> mapeamentoMidias,
-    required Map<String, String> posterFrames,
-    required Map<String, String> titulosMateriais,
-  }) {
-    final widgets = <pw.Widget>[];
-    String valorTexto = '';
-
-    if (resposta.hasTexto()) {
-      valorTexto = _formatarTextoReferenciaMaterial(
-        chave,
-        resposta.texto,
-        titulosMateriais,
-      );
-    } else if (resposta.hasNumero()) {
-      valorTexto = resposta.numero.toString();
-    } else if (resposta.hasInteiro()) {
-      valorTexto = resposta.inteiro.toString();
-    } else if (resposta.hasBooleano()) {
-      valorTexto = resposta.booleano ? 'Sim' : 'Não';
-    } else if (resposta.hasLista()) {
-      final textos = resposta.lista.valores
-          .where((v) => v.hasTexto() && v.texto.isNotEmpty)
-          .map((v) => v.texto)
-          .join(', ');
-      if (textos.isNotEmpty) {
-        valorTexto = _formatarTextoReferenciaMaterial(
-          chave,
-          textos,
-          titulosMateriais,
-        );
-      }
-    }
-
-    if (valorTexto.isNotEmpty) {
-      widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 4),
-          child: _construirTextoMarkdownPdf(
-            prefixoChave: '$chave: ',
-            texto: valorTexto,
+  pw.Widget _construirCardFoto(
+    ItemMidiaRelatorio item,
+    pw.MemoryImage? imagem,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(6),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey400),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            _normalizarTextoLatin1(item.rotuloCampo),
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
-        ),
-      );
-    }
-
-    for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resposta)) {
-      widgets.addAll(
-        _construirWidgetsMidia(
-          midia: midia,
-          urlCanonica: urlCanonica,
-          mapeamentoMidias: mapeamentoMidias,
-          posterFrames: posterFrames,
-        ),
-      );
-    }
-
-    return widgets;
+          if (imagem != null) ...[
+            pw.SizedBox(height: 4),
+            pw.Container(
+              height: 150,
+              alignment: pw.Alignment.center,
+              child: pw.Image(imagem, fit: pw.BoxFit.contain),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   List<pw.Widget> _construirSecaoRegistro({
@@ -397,6 +697,7 @@ class PdfPrintSummaryService {
     required Map<String, String> titulosMateriais,
     String? tituloAnexo,
   }) {
+    final arvore = _construtorArvore.construir(registro);
     final widgets = <pw.Widget>[];
 
     if (tituloAnexo != null) {
@@ -406,12 +707,18 @@ class PdfPrintSummaryService {
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 6),
           child: pw.Text(
-            'Anexo - Ficha Técnica de Material: $tituloAnexo',
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            _normalizarTextoLatin1(
+              'Anexo - Ficha Técnica de Material: $tituloAnexo',
+            ),
+            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
           ),
         ),
       );
     }
+
+    final tituloExibicao = arvore.tituloExibicao != arvore.nomeProtocolo
+        ? '${arvore.nomeProtocolo} - ${arvore.tituloExibicao}'
+        : arvore.nomeProtocolo;
 
     // Cabeçalho Institucional da Versão Resumida com QR Code vetorial
     widgets.add(
@@ -429,7 +736,9 @@ class PdfPrintSummaryService {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Fixalog - Relatório Técnico de Manutenção (Versão Resumida)',
+                    _normalizarTextoLatin1(
+                      'Fixalog - $tituloExibicao (Versão Resumida)',
+                    ),
                     style: pw.TextStyle(
                       fontSize: 12,
                       fontWeight: pw.FontWeight.bold,
@@ -449,7 +758,9 @@ class PdfPrintSummaryService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'Protocolo: ${registro.idProtocolo} | Sessão ID: $idSessao',
+                    _normalizarTextoLatin1(
+                      'Protocolo: ${arvore.idProtocolo} (v${arvore.versaoProtocolo}) | Sessão ID: $idSessao',
+                    ),
                     style: const pw.TextStyle(fontSize: 9),
                   ),
                 ],
@@ -467,21 +778,44 @@ class PdfPrintSummaryService {
       ),
     );
 
-    if (registro.respostas.isNotEmpty) {
+    for (final bloco in arvore.blocos) {
       widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(top: 6, bottom: 4),
-          child: pw.Text(
-            'Dados Coletados',
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        pw.Container(
+          width: double.infinity,
+          margin: const pw.EdgeInsets.only(top: 8, bottom: 6),
+          padding: const pw.EdgeInsets.only(bottom: 4),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: PdfColors.grey700, width: 1),
+            ),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                _normalizarTextoLatin1(bloco.titulo),
+                style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              if (bloco.subtitulo.isNotEmpty)
+                pw.Text(
+                  _normalizarTextoLatin1(bloco.subtitulo),
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+            ],
           ),
         ),
       );
-      for (final entrada in registro.respostas.entries) {
+
+      for (final nodo in bloco.nodos) {
         widgets.addAll(
-          _construirWidgetsResposta(
-            chave: entrada.key,
-            resposta: entrada.value,
+          _construirWidgetsNodo(
+            nodo: nodo,
             urlCanonica: urlCanonica,
             mapeamentoMidias: mapeamentoMidias,
             posterFrames: posterFrames,
@@ -491,61 +825,14 @@ class PdfPrintSummaryService {
       }
     }
 
-    if (registro.listas.isNotEmpty) {
-      widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(top: 10, bottom: 4),
-          child: pw.Text(
-            'Itens Catalogados',
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          ),
-        ),
-      );
-      for (final grupo in registro.listas) {
-        widgets.add(
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 6, bottom: 2),
-            child: pw.Text(
-              '${grupo.idLista} (${grupo.idTipo})',
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-          ),
-        );
-        for (final item in grupo.respostasItem.entries) {
-          widgets.addAll(
-            _construirWidgetsResposta(
-              chave: item.key,
-              resposta: item.value,
-              urlCanonica: urlCanonica,
-              mapeamentoMidias: mapeamentoMidias,
-              posterFrames: posterFrames,
-              titulosMateriais: titulosMateriais,
-            ),
-          );
-        }
-      }
-    }
-
     return widgets;
   }
 
   pw.Widget _construirTextoMarkdownPdf({
-    String prefixoChave = '',
     required String texto,
   }) {
-    final normalizado = texto.replaceAll('\r\n', '\n');
+    final normalizado = _normalizarTextoLatin1(texto.replaceAll('\r\n', '\n'));
     final spans = <pw.InlineSpan>[];
-    if (prefixoChave.isNotEmpty) {
-      spans.add(
-        pw.TextSpan(
-          text: prefixoChave,
-          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
-        ),
-      );
-    }
 
     final linhas = normalizado.split('\n');
     for (var i = 0; i < linhas.length; i++) {
@@ -558,7 +845,7 @@ class PdfPrintSummaryService {
         spans.add(
           pw.TextSpan(
             text: matchHeading.group(1)!,
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold),
           ),
         );
         continue;
@@ -572,7 +859,7 @@ class PdfPrintSummaryService {
 
     return pw.RichText(
       text: pw.TextSpan(
-        style: const pw.TextStyle(fontSize: 11),
+        style: const pw.TextStyle(fontSize: 10.5),
         children: spans,
       ),
     );
@@ -629,6 +916,8 @@ class PdfPrintSummaryService {
   }
 
   /// Gera os bytes do PDF A4 formatado nativamente via `package:pdf` sem WebView.
+  ///
+  /// Lança [FormatException] caso `registro.yamlConteudo` esteja vazio.
   Future<Uint8List> gerarPdfResumidoBytes({
     required Registro registro,
     required String idSessao,
@@ -640,40 +929,39 @@ class PdfPrintSummaryService {
   }) async {
     final pdf = pw.Document(compress: false);
     final titulosMateriais = _resolverTitulosMateriais(materiaisAnexos);
+    final secaoPrincipal = _construirSecaoRegistro(
+      registro: registro,
+      idSessao: idSessao,
+      urlCanonica: urlCanonica,
+      mapeamentoMidias: mapeamentoMidias,
+      posterFrames: posterFrames,
+      titulosMateriais: titulosMateriais,
+    );
+
+    final secoesAnexos = <pw.Widget>[];
+    for (final mat in materiaisAnexos) {
+      final tituloMat = titulosMateriais[mat.idSessao]!;
+      secoesAnexos.addAll(
+        _construirSecaoRegistro(
+          registro: mat.registro,
+          idSessao: mat.idSessao,
+          urlCanonica: mat.urlCanonica,
+          mapeamentoMidias: mat.mapeamentoMidias,
+          posterFrames: mat.posterFrames,
+          titulosMateriais: const {},
+          tituloAnexo: tituloMat,
+        ),
+      );
+    }
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(28),
-        build: (pw.Context context) {
-          final widgets = <pw.Widget>[
-            ..._construirSecaoRegistro(
-              registro: registro,
-              idSessao: idSessao,
-              urlCanonica: urlCanonica,
-              mapeamentoMidias: mapeamentoMidias,
-              posterFrames: posterFrames,
-              titulosMateriais: titulosMateriais,
-            ),
-          ];
-
-          for (final mat in materiaisAnexos) {
-            final tituloMat = titulosMateriais[mat.idSessao]!;
-            widgets.addAll(
-              _construirSecaoRegistro(
-                registro: mat.registro,
-                idSessao: mat.idSessao,
-                urlCanonica: mat.urlCanonica,
-                mapeamentoMidias: mat.mapeamentoMidias,
-                posterFrames: mat.posterFrames,
-                titulosMateriais: const {},
-                tituloAnexo: tituloMat,
-              ),
-            );
-          }
-
-          return widgets;
-        },
+        build: (pw.Context context) => [
+          ...secaoPrincipal,
+          ...secoesAnexos,
+        ],
       ),
     );
 

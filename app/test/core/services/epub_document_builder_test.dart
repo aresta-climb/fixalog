@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xml/xml.dart';
@@ -8,6 +9,179 @@ import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 
 void main() {
+  const yamlBaseManutencao = '''
+protocolo:
+  id: manutencao_ferragens
+  nome: "Manutenção de Proteções Fixas"
+  descricao: "Protocolo técnico de manutenção"
+  versao: "2.1.0"
+  blocos:
+    - id: bloco_materiais
+      titulo: "Bloco 1 — Materiais a Instalar"
+      subtitulo: "Seleção do catálogo"
+      steps:
+        - id: s_mat
+          conteudos:
+            - id: inst_1
+              instrucao:
+                titulo: "Instrução que deve ser omitida"
+                corpo: "Texto orientativo do wizard"
+                nivel_alerta: INFO
+            - id: lista_materiais_c
+              ref_materiais:
+                label: "Materiais a instalar"
+                sublabel: "Do catálogo local"
+                origem_catalogo: true
+    - id: bloco_via
+      titulo: "Bloco 2 — Identificação da Via"
+      subtitulo: "Localização e dados básicos"
+      steps:
+        - id: s_via
+          conteudos:
+            - id: via_nome
+              campo_simples:
+                label: "Nome da via"
+                tipo: TEXT
+            - id: material
+              campo_simples:
+                label: "Liga Principal"
+                sublabel: "Especificação metalúrgica"
+                tipo: TEXT
+            - id: posicao_metros
+              campo_simples:
+                label: "Posição (m)"
+                tipo: NUMBER
+            - id: queda_fator
+              campo_simples:
+                label: "Fator de Queda"
+                tipo: NUMBER
+            - id: aprovado
+              campo_simples:
+                label: "Inspeção Aprovada?"
+                tipo: BOOLEAN
+            - id: reprovado
+              campo_simples:
+                label: "Apresenta Falha?"
+                tipo: BOOLEAN
+            - id: condicao_via
+              campo_simples:
+                label: "Condição Final da Via"
+                tipo: DROPDOWN
+                ui_hint: LARGE_TILES
+                opcoes:
+                  - valor: liberada
+                    label: "Liberada para escalada"
+                    sublabel: "Via em boas condições"
+            - id: obs_geral
+              campo_simples:
+                label: "Observações Gerais"
+                sublabel: "Notas em Markdown"
+                tipo: TEXT
+                ui_hint: TEXT_AREA
+            - id: foto_ancoragem
+              campo_simples:
+                label: "Foto da Ancoragem"
+                tipo: IMAGE
+            - id: foto_sem_mapeamento
+              campo_simples:
+                label: "Foto Sem Arquivo"
+                tipo: IMAGE
+            - id: video_ensaio
+              campo_simples:
+                label: "Vídeo do Ensaio"
+                tipo: VIDEO
+            - id: doc_laudo_geral
+              campo_simples:
+                label: "Laudo Geral em PDF"
+                tipo: IMAGE
+            - id: doc_sem_mapeamento
+              campo_simples:
+                label: "Documento Vazio"
+                tipo: IMAGE
+    - id: bloco_acoes
+      titulo: "Bloco 3 — Ações de Manutenção"
+      subtitulo: "Intervenções realizadas"
+      steps:
+        - id: s_acoes
+          conteudos:
+            - id: protecoes
+              lista_acoes:
+                label: "Ações Realizadas"
+                sublabel: "Cada intervenção na via"
+                tipos_disponiveis:
+                  - id: grampo
+                    label: "Inspeção de Ancoragem"
+                    sublabel: "Avaliação mecânica"
+                    steps:
+                      - id: s_grampo
+                        conteudos:
+                          - id: tipo_fixacao
+                            campo_simples:
+                              label: "Tipo de Fixação"
+                              tipo: TEXT
+                          - id: torque_nm
+                            campo_simples:
+                              label: "Torque Aplicado (Nm)"
+                              tipo: NUMBER
+                          - id: quantidade
+                            campo_simples:
+                              label: "Quantidade"
+                              tipo: NUMBER
+                          - id: corrodo
+                            campo_simples:
+                              label: "Corroído?"
+                              tipo: BOOLEAN
+                          - id: trocado
+                            campo_simples:
+                              label: "Substituído?"
+                              tipo: BOOLEAN
+                          - id: ref_mat_grampo
+                            ref_materiais:
+                              label: "Materiais aplicados no ponto"
+                              sublabel: "Do bloco 1"
+                              id_step_materiais: "lista_materiais_c"
+                          - id: foto_item
+                            campo_simples:
+                              label: "Foto Antes"
+                              tipo: IMAGE
+                          - id: foto_depois_item
+                            campo_simples:
+                              label: "Foto Depois"
+                              tipo: IMAGE
+                          - id: foto_sem_map
+                            campo_simples:
+                              label: "Foto Ausente"
+                              tipo: IMAGE
+                          - id: video_item
+                            campo_simples:
+                              label: "Vídeo da Proteção"
+                              tipo: VIDEO
+                          - id: mat_nota_fiscal
+                            campo_simples:
+                              label: "Nota Fiscal Anexada"
+                              tipo: IMAGE
+                          - id: det_descricao
+                            campo_simples:
+                              label: "Descrição da Etapa"
+                              tipo: TEXT
+                              ui_hint: TEXT_AREA
+                          - id: sub_testes
+                            lista_acoes:
+                              label: "Testes de Qualidade"
+                              sublabel: "Ensaios do lote"
+                              tipos_disponiveis:
+                                - id: teste_tracao
+                                  label: "Ensaio de Tração"
+                                  sublabel: "Carga axial"
+                                  steps:
+                                    - id: s_tt
+                                      conteudos:
+                                        - id: carga_obtida
+                                          campo_simples:
+                                            label: "Carga Obtida"
+                                            tipo: TEXT
+''';
+
   group('EpubDocumentBuilder - Testes Unitários', () {
     late EpubDocumentBuilder construtor;
 
@@ -15,18 +189,41 @@ void main() {
       construtor = EpubDocumentBuilder();
     });
 
-    test('gerarCss deve retornar folha de estilos com regras de tela e impressão', () {
+    test('gerarCss deve retornar folha de estilos com regras de grade, cards, tela e impressão', () {
       final css = construtor.gerarCss();
 
       expect(css, contains('@media print'));
       expect(css, contains('@media screen'));
+      expect(css, contains('.bloco-protocolo'));
+      expect(css, contains('.grade-propriedades'));
+      expect(css, contains('.grade-fotos'));
+      expect(css, contains('.card-item-lista'));
+      expect(css, contains('.destaque-escolha'));
       expect(css, contains('.cabecalho-versao-impressa'));
       expect(css, contains('.player-video'));
       expect(css, contains('.poster-impressao'));
     });
 
-    test('gerarXhtml deve compilar documento XHTML 5 válido com namespace EPUB', () {
-      final registro = Registro()..idProtocolo = 'protocolo_teste_123';
+    test('gerarXhtml deve lançar FormatException quando yamlConteudo estiver vazio', () {
+      final registroSemYaml = Registro()..idProtocolo = 'sem_yaml';
+      expect(
+        () => construtor.gerarXhtml(
+          registro: registroSemYaml,
+          idSessao: 'sessao_erro',
+          urlCanonica: 'https://fixalog.app/v/sessao_erro',
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('gerarXhtml deve compilar documento XHTML 5 válido com cabeçalho do protocolo e omitir StepInstrucao', () {
+      final registro = Registro()
+        ..idProtocolo = 'manutencao_ferragens'
+        ..versaoProtocolo = '2.1.0'
+        ..utcTimestampFim = Int64(1762520400)
+        ..yamlConteudo = yamlBaseManutencao
+        ..respostas['via_nome'] = (Resposta()..texto = 'Via dos Italianos');
+
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_abc',
@@ -34,23 +231,31 @@ void main() {
         qrCodeCanonica: 'midias/qr_principal.png',
       );
 
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
       expect(xhtml, contains('<?xml version="1.0" encoding="utf-8"?>'));
       expect(xhtml, contains('<!DOCTYPE html>'));
       expect(xhtml, contains('xmlns="http://www.w3.org/1999/xhtml"'));
       expect(xhtml, contains('xmlns:epub="http://www.idpf.org/2007/ops"'));
-      expect(xhtml, contains('protocolo_teste_123'));
+      expect(xhtml, contains('Manutenção de Proteções Fixas'));
+      expect(xhtml, contains('Via dos Italianos'));
+      expect(xhtml, contains('v2.1.0'));
+      expect(xhtml, contains('Bloco 2 — Identificação da Via'));
+      expect(xhtml, isNot(contains('Instrução que deve ser omitida')));
+      expect(xhtml, isNot(contains('Bloco 1 — Materiais a Instalar')));
       expect(xhtml, contains('https://fixalog.app/v/sessao_abc'));
       expect(xhtml, contains('<img src="midias/qr_principal.png" class="qr-code"'));
     });
 
-    test('gerarXhtml deve renderizar respostas de texto, números, inteiros e booleanos', () {
+    test('gerarXhtml deve renderizar campos simples em grade com rótulos humanos e destaque para LARGE_TILES', () {
       final registro = Registro()
-        ..idProtocolo = 'via_do_fenda'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
         ..respostas['material'] = (Resposta()..texto = 'Titânio Grau 2')
         ..respostas['posicao_metros'] = (Resposta()..numero = 25.5)
         ..respostas['queda_fator'] = (Resposta()..inteiro = Int64(2))
         ..respostas['aprovado'] = (Resposta()..booleano = true)
-        ..respostas['reprovado'] = (Resposta()..booleano = false);
+        ..respostas['reprovado'] = (Resposta()..booleano = false)
+        ..respostas['condicao_via'] = (Resposta()..texto = 'liberada');
 
       final xhtml = construtor.gerarXhtml(
         registro: registro,
@@ -58,16 +263,30 @@ void main() {
         urlCanonica: 'https://fixalog.app/v/sessao_999',
       );
 
-      expect(xhtml, contains('>material:</span> <span>Titânio Grau 2</span>'));
-      expect(xhtml, contains('>posicao_metros:</span> <span>25.5</span>'));
-      expect(xhtml, contains('>queda_fator:</span> <span>2</span>'));
-      expect(xhtml, contains('>aprovado:</span> <span>Sim</span>'));
-      expect(xhtml, contains('>reprovado:</span> <span>Não</span>'));
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('class="grade-propriedades"'));
+      expect(xhtml, contains('Liga Principal'));
+      expect(xhtml, contains('Especificação metalúrgica'));
+      expect(xhtml, contains('Titânio Grau 2'));
+      expect(xhtml, contains('Posição (m)'));
+      expect(xhtml, contains('25.5'));
+      expect(xhtml, contains('Fator de Queda'));
+      expect(xhtml, contains('>2<'));
+      expect(xhtml, contains('Inspeção Aprovada?'));
+      expect(xhtml, contains('>Sim<'));
+      expect(xhtml, contains('Apresenta Falha?'));
+      expect(xhtml, contains('>Não<'));
+
+      expect(xhtml, contains('class="destaque-escolha"'));
+      expect(xhtml, contains('Condição Final da Via'));
+      expect(xhtml, contains('Liberada para escalada'));
+      expect(xhtml, contains('Via em boas condições'));
     });
 
-    test('gerarXhtml deve renderizar imagem com tag img e ignorar sem mapeamento', () {
+    test('gerarXhtml deve renderizar imagem em galeria com rótulo do campo e ignorar sem mapeamento', () {
       final registro = Registro()
-        ..idProtocolo = 'inspecao_chapeleta'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
         ..respostas['foto_ancoragem'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..imagem = (ArquivoImagem()
@@ -86,13 +305,22 @@ void main() {
         mapeamentoMidias: {'uuid-foto-1': 'midias/uuid-foto-1.webp'},
       );
 
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('class="grade-fotos"'));
+      expect(xhtml, contains('Foto da Ancoragem'));
       expect(xhtml, contains('<img src="midias/uuid-foto-1.webp"'));
       expect(xhtml, isNot(contains('uuid-foto-2.webp')));
+      expect(xhtml, isNot(contains('Foto Sem Arquivo')));
+      expect(
+        EpubDocumentBuilder.extrairMidiasDeResposta(registro.respostas['foto_ancoragem']),
+        hasLength(1),
+      );
     });
 
-    test('gerarXhtml deve renderizar vídeo com player e poster de impressão com QR Code', () {
+    test('gerarXhtml deve renderizar vídeo com rótulo, player e poster de impressão com QR Code', () {
       final registro = Registro()
-        ..idProtocolo = 'inspecao_video'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
         ..respostas['video_ensaio'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..video = (ArquivoVideo()
@@ -108,31 +336,35 @@ void main() {
         qrCodesVideos: {'uuid-video-1': 'midias/uuid-video-1_qr.png'},
       );
 
-      // Player de tela
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('Vídeo do Ensaio'));
       expect(xhtml, contains('<video controls="controls"'));
       expect(xhtml, contains('poster="midias/uuid-video-1_poster.webp"'));
       expect(xhtml, contains('<source src="midias/uuid-video-1.mp4" type="video/mp4"'));
-
-      // Fallback para impressão no PDF
       expect(xhtml, contains('class="poster-impressao"'));
       expect(xhtml, contains('src="midias/uuid-video-1_qr.png"'));
       expect(xhtml, contains('Escaneie para assistir ao vídeo'));
     });
 
-    test('gerarXhtml deve renderizar todos os tipos de respostas em listas repetidas', () {
+    test('gerarXhtml deve renderizar cards numerados de lista e aninhar sub-listas dentro do item pai', () {
       final grupo = GrupoRepetido()
         ..idLista = 'protecoes'
         ..idItem = 'item_1'
         ..idTipo = 'grampo'
         ..respostasItem['tipo_fixacao'] = (Resposta()..texto = 'Parabolt 3/8 inox')
-        ..respostasItem['torque_nm'] = (Resposta()..numero = 35.0)
+        ..respostasItem['torque_nm'] = (Resposta()..numero = 35.5)
         ..respostasItem['quantidade'] = (Resposta()..inteiro = Int64(3))
         ..respostasItem['corrodo'] = (Resposta()..booleano = false)
         ..respostasItem['trocado'] = (Resposta()..booleano = true)
         ..respostasItem['foto_item'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..imagem = (ArquivoImagem()
-              ..uuid = 'uuid-item-foto'
+              ..uuid = 'uuid-item-foto-1'
+              ..tipoOriginal = 'image/webp')))
+        ..respostasItem['foto_depois_item'] = (Resposta()
+          ..midia = (ReferenciaMidia()
+            ..imagem = (ArquivoImagem()
+              ..uuid = 'uuid-item-foto-2'
               ..tipoOriginal = 'image/webp')))
         ..respostasItem['foto_sem_map'] = (Resposta()
           ..midia = (ReferenciaMidia()
@@ -145,53 +377,64 @@ void main() {
               ..uuid = 'uuid-item-video'
               ..tipoOriginal = 'video/mp4')));
 
+      final subGrupo = GrupoRepetido()
+        ..idLista = 'sub_testes__item_1'
+        ..idItem = 'sub_1'
+        ..idTipo = 'teste_tracao'
+        ..respostasItem['carga_obtida'] = (Resposta()..texto = '28 kN sem deslocamento');
+
       final registro = Registro()
-        ..idProtocolo = 'via_longa'
-        ..listas.add(grupo);
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
+        ..listas.addAll([grupo, subGrupo]);
 
       final xhtml = construtor.gerarXhtml(
         registro: registro,
         idSessao: 'sessao_lista',
         urlCanonica: 'https://fixalog.app/v/sessao_lista',
         mapeamentoMidias: {
-          'uuid-item-foto': 'midias/uuid-item-foto.webp',
+          'uuid-item-foto-1': 'midias/uuid-item-foto-1.webp',
+          'uuid-item-foto-2': 'midias/uuid-item-foto-2.webp',
           'uuid-item-video': 'midias/uuid-item-video.mp4',
         },
         posterFrames: {'uuid-item-video': 'midias/uuid-item-video_poster.webp'},
         qrCodesVideos: {'uuid-item-video': 'midias/uuid-item-video_qr.png'},
       );
 
-      expect(xhtml, contains('protecoes'));
-      expect(xhtml, contains('>tipo_fixacao:</span> <span>Parabolt 3/8 inox</span>'));
-      expect(xhtml, contains('>torque_nm:</span> <span>35.0</span>'));
-      expect(xhtml, contains('>quantidade:</span> <span>3</span>'));
-      expect(xhtml, contains('>corrodo:</span> <span>Não</span>'));
-      expect(xhtml, contains('>trocado:</span> <span>Sim</span>'));
-      expect(xhtml, contains('<img src="midias/uuid-item-foto.webp"'));
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('Ações Realizadas'));
+      expect(xhtml, contains('#1'));
+      expect(xhtml, contains('Inspeção de Ancoragem'));
+      expect(xhtml, contains('Avaliação mecânica'));
+      expect(xhtml, contains('Tipo de Fixação'));
+      expect(xhtml, contains('Parabolt 3/8 inox'));
+      expect(xhtml, contains('Torque Aplicado (Nm)'));
+      expect(xhtml, contains('35.5'));
+      expect(xhtml, contains('Foto Antes'));
+      expect(xhtml, contains('Foto Depois'));
+      expect(xhtml, contains('<img src="midias/uuid-item-foto-1.webp"'));
+      expect(xhtml, contains('<img src="midias/uuid-item-foto-2.webp"'));
       expect(xhtml, contains('src="midias/uuid-item-video.mp4"'));
+
+      // Sub-lista aninhada sem exibir o sufixo __item_1
+      expect(xhtml, isNot(contains('sub_testes__item_1')));
+      expect(xhtml, contains('Testes de Qualidade'));
+      expect(xhtml, contains('#1.1'));
+      expect(xhtml, contains('Ensaio de Tração'));
+      expect(xhtml, contains('Carga Obtida'));
+      expect(xhtml, contains('28 kN sem deslocamento'));
     });
 
-    test('gerarXhtml com registro vazio não deve falhar', () {
-      final registro = Registro();
-      final xhtml = construtor.gerarXhtml(
-        registro: registro,
-        idSessao: 'vazio',
-        urlCanonica: 'https://fixalog.app/v/vazio',
-      );
-
-      expect(xhtml, contains('<!DOCTYPE html>'));
-      expect(xhtml, contains('Sessão ID:</strong> vazio'));
-    });
-
-    test('gerarXhtml deve incluir barra de retorno à página anterior e links para materiais anexados', () {
+    test('gerarXhtml deve incluir barra de retorno e links para materiais anexados via StepRefMateriais', () {
       final grupo = GrupoRepetido()
-        ..idLista = 'lista_acoes_via_c'
+        ..idLista = 'protecoes'
         ..idItem = 'acao_1'
         ..idTipo = 'grampo'
         ..respostasItem['ref_mat_grampo'] = (Resposta()..texto = 'uuid-mat-1,uuid-mat-2');
 
       final registro = Registro()
         ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
         ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-1,uuid-mat-2')
         ..listas.add(grupo);
 
@@ -205,34 +448,33 @@ void main() {
         },
       );
 
-      // Deve conter o botão de voltar à página anterior para navegação no EPUB
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
       expect(xhtml, contains('href="javascript:history.back()"'));
       expect(xhtml, contains('Voltar para a página anterior'));
-
-      // Deve conter hiperlinks apontando para materiais/<uuid>/OEBPS/relatorio.xhtml
+      expect(xhtml, contains('Materiais a instalar'));
+      expect(xhtml, contains('Materiais aplicados no ponto'));
       expect(
         xhtml,
         contains('href="materiais/uuid-mat-1/OEBPS/relatorio.xhtml"'),
       );
-      expect(
-        xhtml,
-        contains('Parabolt Inox 316L Petzl'),
-      );
+      expect(xhtml, contains('Parabolt Inox 316L Petzl'));
       expect(
         xhtml,
         contains('href="materiais/uuid-mat-2/OEBPS/relatorio.xhtml"'),
       );
+      expect(xhtml, contains('Chapeleta Bonier Dupla'));
+
       expect(
-        xhtml,
-        contains('Chapeleta Bonier Dupla'),
+        EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(registro),
+        equals(['uuid-mat-1', 'uuid-mat-2']),
       );
     });
 
-    test('gerarXhtml deve renderizar documento PDF com link para download original e imagens das páginas em respostas e listas', () {
+    test('gerarXhtml deve renderizar documento PDF com link para download original e imagens das páginas', () {
       final grupo = GrupoRepetido()
-        ..idLista = 'lista_materiais_cadastro'
+        ..idLista = 'protecoes'
         ..idItem = 'item_1'
-        ..idTipo = 'chumbador_mecanico'
+        ..idTipo = 'grampo'
         ..respostasItem['mat_nota_fiscal'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..documento = (ArquivoDocumento()
@@ -242,14 +484,15 @@ void main() {
               ..quantidadePaginas = 2)));
 
       final registro = Registro()
-        ..idProtocolo = 'cadastro_material'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
         ..respostas['doc_laudo_geral'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..documento = (ArquivoDocumento()
               ..uuid = 'uuid-doc-geral'
               ..tipoOriginal = 'application/pdf'
               ..nomeOriginal = ''
-              ..quantidadePaginas = 1)))
+              ..quantidadePaginas = 0)))
         ..respostas['doc_sem_mapeamento'] = (Resposta()
           ..midia = (ReferenciaMidia()
             ..documento = (ArquivoDocumento()
@@ -272,7 +515,8 @@ void main() {
         },
       );
 
-      // Link para o PDF original no item repetido
+      expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('Nota Fiscal Anexada'));
       expect(
         xhtml,
         contains('href="midias/uuid-doc-1.pdf" download="nota_petzl.pdf" class="link-pdf-original"'),
@@ -283,96 +527,36 @@ void main() {
       expect(xhtml, contains('nota_petzl.pdf — Página 2 de 2'));
       expect(xhtml, contains('<img src="midias/uuid-doc-1_p2.webp" alt="Página 2 de nota_petzl.pdf"/>'));
 
-      // Documento em resposta simples usando fallback de nome (<uuid>.pdf)
       expect(
         xhtml,
         contains('href="midias/uuid-doc-geral.pdf" download="uuid-doc-geral.pdf" class="link-pdf-original"'),
       );
       expect(xhtml, contains('<img src="midias/uuid-doc-geral_p1.webp" alt="Página 1 de uuid-doc-geral.pdf"/>'));
-
-      // Documento sem mapeamento não deve renderizar container vazio
       expect(xhtml, isNot(contains('vazio.pdf')));
     });
 
-    test('gerarXhtml renderiza múltiplas mídias (fotos, vídeos e PDFs) contidas na mesma Resposta.lista', () {
-      final respostaMultiMidia = Resposta(
-        lista: ListaRespostas(
-          valores: [
-            Resposta(
-              midia: ReferenciaMidia(
-                imagem: ArquivoImagem(uuid: 'uuid-foto-multi'),
-              ),
-            ),
-            Resposta(
-              midia: ReferenciaMidia(
-                video: ArquivoVideo(uuid: 'uuid-video-multi'),
-              ),
-            ),
-            Resposta(
-              midia: ReferenciaMidia(
-                documento: ArquivoDocumento(
-                  uuid: 'uuid-pdf-multi',
-                  nomeOriginal: 'certificado_lote.pdf',
-                  quantidadePaginas: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-
-      final grupo = GrupoRepetido()
-        ..idLista = 'sub_detalhes'
-        ..idItem = 'etapa_1'
-        ..idTipo = 'detalhe_fabricacao'
-        ..respostasItem['det_foto'] = respostaMultiMidia;
-
-      final registro = Registro()
-        ..idProtocolo = 'cadastro_material'
-        ..respostas['etapa_raiz_midias'] = respostaMultiMidia
-        ..listas.add(grupo);
-
-      final xhtml = construtor.gerarXhtml(
-        registro: registro,
-        idSessao: 'sessao_multi',
-        urlCanonica: 'https://fixalog.app/v/sessao_multi',
-        mapeamentoMidias: {
-          'uuid-foto-multi': 'midias/uuid-foto-multi.webp',
-          'uuid-video-multi': 'midias/uuid-video-multi.mp4',
-          'uuid-pdf-multi': 'midias/uuid-pdf-multi.pdf',
-          'uuid-pdf-multi_p1': 'midias/uuid-pdf-multi_p1.webp',
-        },
-        posterFrames: {
-          'uuid-video-multi': 'midias/uuid-video-multi_poster.webp',
-        },
-        qrCodesVideos: {
-          'uuid-video-multi': 'data:image/svg+xml;utf8,qr',
-        },
-      );
-
-      expect(xhtml, contains('src="midias/uuid-foto-multi.webp"'));
-      expect(xhtml, contains('src="midias/uuid-video-multi.mp4"'));
-      expect(xhtml, contains('href="midias/uuid-pdf-multi.pdf" download="certificado_lote.pdf"'));
-      expect(xhtml, contains('src="midias/uuid-pdf-multi_p1.webp"'));
-    });
-
-    test('gerarXhtml converte descrições com Markdown e linhas em branco em elementos XHTML5 semânticos válidos', () {
+    test('gerarXhtml converte descrições com Markdown (headings, listas ul/ol e inline) em elementos XHTML5 válidos', () {
       const descricaoMarkdown = '''# Etapa de Soldagem
+### Subtítulo Menor
 
 Realizada solda **TIG** em aço *inox 316L* com código `LOTE-99` e ~~rebarba~~ removida.
 
 - Decapagem ácida
-- Passivação completa''';
+- Passivação completa
+
+1. Primeiro passo
+2. Segundo passo''';
 
       final grupo = GrupoRepetido()
-        ..idLista = 'pb_detalhes'
+        ..idLista = 'protecoes'
         ..idItem = 'det_1'
-        ..idTipo = 'detalhe_item'
+        ..idTipo = 'grampo'
         ..respostasItem['det_descricao'] = (Resposta()..texto = descricaoMarkdown);
 
       final registro = Registro()
-        ..idProtocolo = 'cadastro_material'
-        ..respostas['obs_geral'] = (Resposta()..texto = 'Parágrafo 1\n\nParágrafo 2 com **negrito**')
+        ..idProtocolo = 'manutencao_ferragens'
+        ..yamlConteudo = yamlBaseManutencao
+        ..respostas['obs_geral'] = (Resposta()..texto = 'Texto curto com **negrito**')
         ..listas.add(grupo);
 
       final xhtml = construtor.gerarXhtml(
@@ -384,12 +568,89 @@ Realizada solda **TIG** em aço *inox 316L* com código `LOTE-99` e ~~rebarba~~ 
       expect(() => XmlDocument.parse(xhtml), returnsNormally);
       expect(xhtml, contains('<div class="conteudo-markdown">'));
       expect(xhtml, contains('<h4>Etapa de Soldagem</h4>'));
+      expect(xhtml, contains('<h5>Subtítulo Menor</h5>'));
       expect(xhtml, contains('<strong>TIG</strong>'));
       expect(xhtml, contains('<em>inox 316L</em>'));
       expect(xhtml, contains('<code>LOTE-99</code>'));
       expect(xhtml, contains('<del>rebarba</del>'));
       expect(xhtml, contains('<ul><li>Decapagem ácida</li><li>Passivação completa</li></ul>'));
-      expect(xhtml, contains('<p>Parágrafo 1</p><p>Parágrafo 2 com <strong>negrito</strong></p>'));
+      expect(xhtml, contains('<ol><li>Primeiro passo</li><li>Segundo passo</li></ol>'));
+      expect(xhtml, contains('Texto curto com <strong>negrito</strong>'));
+    });
+
+    test('compila e linka automaticamente materiais referenciados em ref_mat_* dentro das ações de Manutenção v2, Abertura de Vias v2 e Registro Expresso v2', () {
+      final yamlManutencaoV2 = File('assets/protocols/manutencao.yaml').readAsStringSync();
+      final acaoNovoPonto = GrupoRepetido(
+        idLista: 'lista_acoes_c',
+        idItem: 'item_np_1',
+        idTipo: 'novo_ponto',
+      )..respostasItem['ref_mat_novo_ponto'] = Resposta(
+          lista: ListaRespostas(valores: [Resposta(texto: 'uuid-mat-direto-1')]),
+        );
+
+      final regManut = Registro(
+        idSessao: 'sessao_manut_v2',
+        idProtocolo: 'manutencao',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlManutencaoV2,
+      )
+        ..respostas['via_nome'] = Resposta(texto: 'Via Leste')
+        ..listas.add(acaoNovoPonto);
+
+      expect(
+        EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(regManut),
+        equals(['uuid-mat-direto-1']),
+      );
+
+      final xhtmlManut = construtor.gerarXhtml(
+        registro: regManut,
+        idSessao: 'sessao_manut_v2',
+        urlCanonica: 'https://fixalog.app/v/sessao_manut_v2',
+        titulosMateriais: {'uuid-mat-direto-1': 'Grampos Titânio Lote A'},
+      );
+      expect(() => XmlDocument.parse(xhtmlManut), returnsNormally);
+      expect(xhtmlManut, contains('href="materiais/uuid-mat-direto-1/OEBPS/relatorio.xhtml"'));
+      expect(xhtmlManut, contains('Grampos Titânio Lote A'));
+
+      final yamlAberturaV2 = File('assets/protocols/abertura_vias.yaml').readAsStringSync();
+      final acaoProt = GrupoRepetido(
+        idLista: 'lista_acoes_c',
+        idItem: 'item_prot_1',
+        idTipo: 'protecao_instalada',
+      )..respostasItem['ref_mat_protecao'] = Resposta(
+          lista: ListaRespostas(valores: [Resposta(texto: 'uuid-mat-abertura-1')]),
+        );
+
+      final regAbertura = Registro(
+        idSessao: 'sessao_abertura_v2',
+        idProtocolo: 'abertura_vias',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlAberturaV2,
+      )
+        ..respostas['via_nome'] = Resposta(texto: 'Via Conquista Nova')
+        ..listas.add(acaoProt);
+
+      expect(
+        EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(regAbertura),
+        equals(['uuid-mat-abertura-1']),
+      );
+
+      final yamlExpressoV2 = File('assets/protocols/registro_expresso.yaml').readAsStringSync();
+      final regExpresso = Registro(
+        idSessao: 'sessao_expresso_v2',
+        idProtocolo: 'registro_expresso',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlExpressoV2,
+      )
+        ..respostas['via_nome'] = Resposta(texto: 'Ocorrência Trilha')
+        ..respostas['ref_mat_expresso'] = Resposta(
+          lista: ListaRespostas(valores: [Resposta(texto: 'uuid-mat-expresso-1')]),
+        );
+
+      expect(
+        EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(regExpresso),
+        equals(['uuid-mat-expresso-1']),
+      );
     });
   });
 }

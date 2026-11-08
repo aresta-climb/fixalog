@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/construtor_arvore_relatorio.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
@@ -112,15 +113,6 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         File(record.protobufPath).existsSync()) {
       return record.protobufPath;
     }
-    if (record.pdfPath.endsWith('.epub') && File(record.pdfPath).existsSync()) {
-      return record.pdfPath;
-    }
-    if (record.pdfPath.endsWith('.pdf')) {
-      final irmao = record.pdfPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
-      if (File(irmao).existsSync()) {
-        return irmao;
-      }
-    }
     return null;
   }
 
@@ -128,13 +120,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
     Registro registro, {
     required String fallback,
   }) {
-    final matNome = registro.respostas['mat_nome']?.texto.trim() ?? '';
-    if (matNome.isNotEmpty) return matNome;
-
-    final viaNome = registro.respostas['via_nome']?.texto.trim() ?? '';
-    if (viaNome.isNotEmpty) return viaNome;
-
-    return fallback;
+    return ConstrutorArvoreRelatorio.extrairTituloExibicao(
+      registro,
+      fallback: fallback,
+    );
   }
 
   /// Inicia a esteira de geração assíncrona do relatório técnico.
@@ -150,14 +139,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       final sid = sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-      Registro? registro;
+      Registro registro;
       if (sessionId != null) {
-        try {
-          final bytes = await _sessionManager.readManifest(sessionId: sessionId);
-          registro = Registro.fromBuffer(bytes);
-        } catch (_) {
-          registro = Registro()..idProtocolo = title;
-        }
+        final bytes = await _sessionManager.readManifest(sessionId: sessionId);
+        registro = Registro.fromBuffer(bytes);
       } else {
         registro = Registro()..idProtocolo = title;
       }
@@ -169,7 +154,11 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final Set<String> videosUuids = {};
       final Map<String, ArquivoDocumento> documentosPorUuid = {};
 
-      for (final resp in registro.respostas.values) {
+      final todasRespostas = [
+        ...registro.respostas.values,
+        ...registro.listas.expand((g) => g.respostasItem.values),
+      ];
+      for (final resp in todasRespostas) {
         for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
           if (midia.hasImagem()) {
             fotosUuids.add(midia.imagem.uuid);
@@ -177,19 +166,6 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
             videosUuids.add(midia.video.uuid);
           } else if (midia.hasDocumento()) {
             documentosPorUuid[midia.documento.uuid] = midia.documento;
-          }
-        }
-      }
-      for (final grupo in registro.listas) {
-        for (final resp in grupo.respostasItem.values) {
-          for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
-            if (midia.hasImagem()) {
-              fotosUuids.add(midia.imagem.uuid);
-            } else if (midia.hasVideo()) {
-              videosUuids.add(midia.video.uuid);
-            } else if (midia.hasDocumento()) {
-              documentosPorUuid[midia.documento.uuid] = midia.documento;
-            }
           }
         }
       }
@@ -303,9 +279,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       final epubPath = outputPath.endsWith('.epub')
           ? outputPath
-          : (outputPath.endsWith('.pdf')
-              ? outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub')
-              : '$outputPath.epub');
+          : outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
 
       // 3b. Resolver materiais do catálogo referenciados na manutenção (com fallback para EPUB anterior)
       final uuidsMateriais =
@@ -343,9 +317,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
               titulosMateriais[uuidMat] =
                   matRecord.tituloExibicao.trim().isNotEmpty
                       ? matRecord.tituloExibicao.trim()
-                      : (matRecord.nomeProtocolo.trim().isNotEmpty
-                          ? matRecord.nomeProtocolo.trim()
-                          : uuidMat);
+                      : uuidMat;
             } catch (_) {}
           }
         }
@@ -366,24 +338,16 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           }
         }
 
-        // Se ainda não temos o título amigável do material, tenta ler do registro.binarypb embutido
+        // Se ainda não temos o título amigável do material, lê do registro.binarypb embutido
         if (!titulosMateriais.containsKey(uuidMat) &&
             materiaisAninhados.containsKey(uuidMat)) {
           final pbBytes =
-              materiaisAninhados[uuidMat]!['OEBPS/dados/registro.binarypb'];
-          if (pbBytes != null) {
-            try {
-              final regMat = Registro.fromBuffer(pbBytes);
-              titulosMateriais[uuidMat] = _extrairTituloExibicaoDoRegistro(
-                regMat,
-                fallback: uuidMat,
-              );
-            } catch (_) {
-              titulosMateriais[uuidMat] = uuidMat;
-            }
-          } else {
-            titulosMateriais[uuidMat] = uuidMat;
-          }
+              materiaisAninhados[uuidMat]!['OEBPS/dados/registro.binarypb']!;
+          final regMat = Registro.fromBuffer(pbBytes);
+          titulosMateriais[uuidMat] = _extrairTituloExibicaoDoRegistro(
+            regMat,
+            fallback: uuidMat,
+          );
         }
       }
 
@@ -463,6 +427,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         binarypb: binarypbBytes,
         arquivosMidia: arquivosMidiaBytes,
         materiaisAninhados: materiaisAninhados,
+        titulosMateriais: titulosMateriais,
         signaturesXml: signaturesXml,
       );
 

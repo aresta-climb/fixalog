@@ -4,7 +4,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:pdf/pdf.dart';
@@ -23,7 +22,25 @@ import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 
-class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
+const String kYamlProtocoloFluxo = '''
+id: "PROT-2026-99"
+versao: "1.0.0"
+nome: "Protocolo de Fluxo"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "foto_1"
+            campo_simples:
+              label: "Foto 1"
+              tipo: "IMAGE"
+          - id: "video_1"
+            campo_simples:
+              label: "Vídeo 1"
+              tipo: "VIDEO"
+''';
 
 class FakePrintingPlatform extends Fake
     with MockPlatformInterfaceMixin
@@ -76,11 +93,9 @@ void main() {
     late Directory tempDir;
     late SessionBundleManager sessionManager;
     late GenerationRecoveryService recoveryService;
-    late MockFlutterSecureStorage mockSecureStorage;
     late CryptoService cryptoService;
     late GenerationNotifier notifier;
     late PdfPrintSummaryService pdfSummaryService;
-    final Map<String, String> memoriaSecureStorage = {};
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
@@ -95,9 +110,6 @@ void main() {
         tempDirGetter: () async => tempDir,
       );
 
-      mockSecureStorage = MockFlutterSecureStorage();
-      memoriaSecureStorage.clear();
-
       final keyPair = CryptoUtils.generateEcKeyPair();
       final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(
         keyPair.privateKey as ECPrivateKey,
@@ -105,24 +117,12 @@ void main() {
       final publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(
         keyPair.publicKey as ECPublicKey,
       );
-      memoriaSecureStorage['private_key'] = privateKeyPem;
-      memoriaSecureStorage['public_key'] = publicKeyPem;
-
-      when(() => mockSecureStorage.read(key: any(named: 'key'))).thenAnswer((inv) async {
-        final k = inv.namedArguments[#key] as String;
-        return memoriaSecureStorage[k];
+      FlutterSecureStorage.setMockInitialValues({
+        'private_key': privateKeyPem,
+        'public_key': publicKeyPem,
       });
 
-      when(() => mockSecureStorage.write(
-            key: any(named: 'key'),
-            value: any(named: 'value'),
-          )).thenAnswer((inv) async {
-        final k = inv.namedArguments[#key] as String;
-        final v = inv.namedArguments[#value] as String;
-        memoriaSecureStorage[k] = v;
-      });
-
-      cryptoService = CryptoService(secureStorage: mockSecureStorage);
+      cryptoService = CryptoService();
       pdfSummaryService = PdfPrintSummaryService();
 
       notifier = GenerationNotifier(
@@ -149,6 +149,7 @@ void main() {
       final sid = 'sessao_fluxo_123';
       final registro = Registro()
         ..idProtocolo = 'PROT-2026-99'
+        ..yamlConteudo = kYamlProtocoloFluxo
         ..respostas['foto_1'] = (Resposta()
           ..midia = (ReferenciaMidia()..imagem = (ArquivoImagem()..uuid = 'foto_p1')))
         ..respostas['video_1'] = (Resposta()

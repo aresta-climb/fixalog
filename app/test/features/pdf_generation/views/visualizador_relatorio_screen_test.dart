@@ -13,6 +13,71 @@ import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
+const String kYamlManutencaoVis = '''
+id: "manutencao_ferragens"
+versao: "1.0.0"
+nome: "Manutenção de Ferragens"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "via_nome"
+            campo_simples:
+              label: "Nome da Via"
+              tipo: "TEXT"
+          - id: "r1"
+            campo_simples:
+              label: "Foto 1"
+              tipo: "IMAGE"
+          - id: "r2"
+            campo_simples:
+              label: "Vídeo 1"
+              tipo: "VIDEO"
+          - id: "laudo_pdf"
+            campo_simples:
+              label: "Laudo PDF"
+              tipo: "IMAGE"
+          - id: "lista_materiais_c"
+            ref_materiais:
+              label: "Materiais"
+              origem_catalogo: true
+''';
+
+const String kYamlMaterialVis = '''
+id: "cadastro_material"
+versao: "1.0.0"
+nome: "Cadastro de Material"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "mat_nome"
+            campo_simples:
+              label: "Nome do Conjunto"
+              tipo: "TEXT"
+          - id: "nf_foto"
+            campo_simples:
+              label: "Foto da NF"
+              tipo: "IMAGE"
+          - id: "lista_materiais_cadastro"
+            lista_acoes:
+              label: "Itens"
+              tipos_disponiveis:
+                - id: "chapeleta"
+                  label: "Chapeleta"
+                  steps:
+                    - id: "s_ch"
+                      conteudos:
+                        - id: "mat_nota_fiscal"
+                          campo_simples:
+                            label: "Nota Fiscal PDF"
+                            tipo: "IMAGE"
+''';
+
 class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService {
   String? ultimoCaminhoSaida;
   Registro? ultimoRegistro;
@@ -517,6 +582,7 @@ void main() {
 
         final registro = Registro()
           ..idProtocolo = 'Protocolo Teste'
+          ..yamlConteudo = kYamlManutencaoVis
           ..respostas['r1'] = (Resposta()
             ..midia = (ReferenciaMidia()
               ..imagem = (ArquivoImagem()..uuid = 'foto1')))
@@ -598,6 +664,7 @@ void main() {
 
         final registroManut = Registro()
           ..idProtocolo = 'manutencao_ferragens'
+          ..yamlConteudo = kYamlManutencaoVis
           ..respostas['via_nome'] = (Resposta()..texto = 'Via Teste')
           ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuid);
         final pbFile = File(
@@ -609,6 +676,7 @@ void main() {
         // Cria o material embutido em OEBPS/materiais/<matUuid>/OEBPS/dados/registro.binarypb e sua foto
         final registroMat = Registro()
           ..idProtocolo = 'cadastro_material'
+          ..yamlConteudo = kYamlMaterialVis
           ..respostas['mat_nome'] = (Resposta()..texto = 'Parabolt Inox Embutido')
           ..respostas['nf_foto'] = (Resposta()
             ..midia = (ReferenciaMidia()
@@ -696,6 +764,7 @@ void main() {
 
         final registroManut = Registro()
           ..idProtocolo = 'manutencao_ferragens'
+          ..yamlConteudo = kYamlManutencaoVis
           ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuid)
           ..respostas['laudo_pdf'] = (Resposta()
             ..midia = (ReferenciaMidia()
@@ -722,6 +791,7 @@ void main() {
                 ..quantidadePaginas = 2)));
         final registroMat = Registro()
           ..idProtocolo = 'cadastro_material'
+          ..yamlConteudo = kYamlMaterialVis
           ..respostas['mat_nome'] = (Resposta()..texto = 'Chapeleta Inox')
           ..listas.add(grupoMat);
 

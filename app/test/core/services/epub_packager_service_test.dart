@@ -106,13 +106,20 @@ void main() {
       expect(utf8.decode(sigFile.content as List<int>), contains('<Signature>abc</Signature>'));
     });
 
-    test('empacotarEpub deve criar nav.xhtml válido com o sumário', () {
+    test('empacotarEpub deve criar nav.xhtml válido com o sumário e nomes reais dos materiais', () {
       final epubBytes = empacotador.empacotarEpub(
         idSessao: 'sessao_nav',
         idProtocolo: 'via_nav',
         xhtmlConteudo: '<html><body>Nav</body></html>',
         cssConteudo: 'body {}',
         binarypb: Uint8List.fromList([0]),
+        materiaisAninhados: {
+          'uuid-mat-1': {'OEBPS/relatorio.xhtml': Uint8List.fromList([1])},
+          'uuid-mat-2': {'OEBPS/relatorio.xhtml': Uint8List.fromList([2])},
+        },
+        titulosMateriais: {
+          'uuid-mat-1': 'Kit Parabolt Inox 316L',
+        },
       );
 
       final zip = ZipDecoder().decodeBytes(epubBytes);
@@ -120,6 +127,14 @@ void main() {
       final navXml = utf8.decode(navFile.content as List<int>);
       expect(navXml, contains('epub:type="toc"'));
       expect(navXml, contains('<a href="relatorio.xhtml">Relatório de Vistoria</a>'));
+      expect(
+        navXml,
+        contains('<a href="materiais/uuid-mat-1/OEBPS/relatorio.xhtml">Material: Kit Parabolt Inox 316L</a>'),
+      );
+      expect(
+        navXml,
+        contains('<a href="materiais/uuid-mat-2/OEBPS/relatorio.xhtml">Material: uuid-mat-2</a>'),
+      );
     });
 
     test('determinarTipoMime deve resolver corretamente todos os formatos e fallback', () {

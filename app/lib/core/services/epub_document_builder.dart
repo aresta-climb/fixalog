@@ -2,59 +2,34 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import '../models/proto/protos/registro.pb.dart';
+import 'construtor_arvore_relatorio.dart';
 
 /// Construtor de documentos semânticos em XHTML5 e CSS para relatórios técnicos em EPUB 3.
 ///
-/// Produz a marcação padronizada de acordo com a especificação W3C EPUB 3.3,
-/// contendo regras para exibição interativa em tela e regras de impressão (@media print)
-/// para exportação de PDFs resumidos de protocolo.
+/// Consome a [ArvoreRelatorio] gerada pelo [ConstrutorArvoreRelatorio] para produzir
+/// marcação padronizada de acordo com a especificação W3C EPUB 3.3, organizada pelos blocos
+/// do protocolo YAML, com grades de propriedades, galerias de fotos lado a lado, cartões
+/// aninhados recursivamente e regras de impressão (`@media print`).
 class EpubDocumentBuilder {
+  final ConstrutorArvoreRelatorio _construtorArvore;
+
+  const EpubDocumentBuilder({
+    ConstrutorArvoreRelatorio construtorArvore =
+        const ConstrutorArvoreRelatorio(),
+  }) : _construtorArvore = construtorArvore;
+
   /// Extrai todas as [ReferenciaMidia] presentes em uma [Resposta],
   /// seja como mídia única (`resp.hasMidia()`) ou dentro de `resp.lista`.
   static List<ReferenciaMidia> extrairMidiasDeResposta(Resposta? resp) {
-    if (resp == null) return const [];
-    if (resp.hasMidia()) return [resp.midia];
-    if (resp.hasLista()) {
-      return resp.lista.valores
-          .where((v) => v.hasMidia())
-          .map((v) => v.midia)
-          .toList();
-    }
-    return const [];
+    return ConstrutorArvoreRelatorio.extrairMidiasDeResposta(resp);
   }
 
-  /// Extrai de um [registro] o conjunto ordenado de UUIDs de materiais do catálogo referenciados.
+  /// Extrai de um [registro] o conjunto ordenado de UUIDs de materiais do catálogo referenciados
+  /// em elementos `StepRefMateriais` do protocolo YAML.
   static List<String> extrairUuidsMateriaisReferenciados(Registro registro) {
-    final Set<String> uuids = {};
-
-    void processarChaveValor(String chave, Resposta resposta) {
-      if (chave != 'lista_materiais_c' && !chave.startsWith('ref_mat')) return;
-      if (resposta.hasTexto()) {
-        for (final parte in resposta.texto.split(',')) {
-          final limpo = parte.trim();
-          if (limpo.isNotEmpty) {
-            uuids.add(limpo);
-          }
-        }
-      } else if (resposta.hasLista()) {
-        for (final item in resposta.lista.valores) {
-          if (item.hasTexto() && item.texto.trim().isNotEmpty) {
-            uuids.add(item.texto.trim());
-          }
-        }
-      }
-    }
-
-    for (final entrada in registro.respostas.entries) {
-      processarChaveValor(entrada.key, entrada.value);
-    }
-    for (final grupo in registro.listas) {
-      for (final entrada in grupo.respostasItem.entries) {
-        processarChaveValor(entrada.key, entrada.value);
-      }
-    }
-
-    return uuids.toList();
+    return ConstrutorArvoreRelatorio.extrairUuidsMateriaisReferenciados(
+      registro,
+    );
   }
 
   /// Gera a folha de estilos CSS completa com regras para visualização em tela e impressão.
@@ -64,9 +39,11 @@ class EpubDocumentBuilder {
 :root {
   --cor-fundo: #121416;
   --cor-superficie: #1a1c1e;
+  --cor-superficie-elevada: #222528;
   --cor-destaque: #ff6b00;
+  --cor-destaque-suave: rgba(255, 107, 0, 0.12);
   --cor-texto: #e1e2e5;
-  --cor-texto-suave: #9e9e9e;
+  --cor-texto-suave: #9ea3a8;
   --cor-borda: #333537;
 }
 
@@ -76,7 +53,7 @@ body {
   color: var(--cor-texto);
   background-color: var(--cor-fundo);
   margin: 0;
-  padding: 24px;
+  padding: 20px;
 }
 
 .barra-navegacao-retorno {
@@ -94,67 +71,232 @@ body {
   border-radius: 6px;
 }
 
-.link-material {
-  color: var(--cor-destaque);
-  font-weight: bold;
-  text-decoration: underline;
+.cabecalho-protocolo {
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-destaque);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
 }
 
-header {
-  border-bottom: 2px solid var(--cor-destaque);
-  padding-bottom: 16px;
-  margin-bottom: 24px;
+.topo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.badge-versao {
+  display: inline-block;
+  background-color: var(--cor-destaque-suave);
+  color: var(--cor-destaque);
+  border: 1px solid var(--cor-destaque);
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 h1 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   color: var(--cor-destaque);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
 }
 
-h2 {
-  font-size: 1.3rem;
-  margin-top: 24px;
-  border-bottom: 1px solid var(--cor-borda);
-  padding-bottom: 6px;
+.subtitulo-protocolo {
+  color: var(--cor-texto-suave);
+  font-size: 0.92rem;
+  margin: 0 0 12px 0;
 }
 
 .metadados-sessao {
-  background-color: var(--cor-superficie);
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  margin-bottom: 24px;
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 10px;
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px 16px;
 }
 
-.campo-registro {
-  margin-bottom: 12px;
-  padding: 8px 0;
+.bloco-protocolo {
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.cabecalho-bloco {
+  border-bottom: 1px solid var(--cor-borda);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+h2 {
+  font-size: 1.25rem;
+  color: var(--cor-texto);
+  margin: 0;
+}
+
+.subtitulo-bloco {
+  color: var(--cor-texto-suave);
+  font-size: 0.88rem;
+  margin: 4px 0 0 0;
+}
+
+/* Grade de Propriedades Curtas (2 colunas responsivas) */
+.grade-propriedades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.item-propriedade {
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 10px 14px;
 }
 
 .campo-chave {
   font-weight: bold;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--cor-destaque);
 }
 
+.campo-subrotulo {
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+  margin-top: 2px;
+}
+
+.campo-valor {
+  font-size: 1rem;
+  color: var(--cor-texto);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Destaque de Escolha (LARGE_TILES e SelecaoRamo) */
+.destaque-escolha {
+  background-color: var(--cor-destaque-suave);
+  border-left: 4px solid var(--cor-destaque);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.pergunta-escolha {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto-suave);
+  font-weight: bold;
+}
+
+.opcao-escolhida {
+  font-size: 1.08rem;
+  font-weight: bold;
+  color: var(--cor-destaque);
+  margin-top: 2px;
+}
+
+.subrotulo-escolha {
+  font-size: 0.86rem;
+  color: var(--cor-texto);
+  margin-top: 2px;
+}
+
+/* Bloco de Texto Longo (TEXT_AREA / Markdown) */
+.bloco-texto-longo {
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+/* Referências de Materiais */
+.bloco-ref-materiais {
+  margin-bottom: 16px;
+}
+
+.lista-chips-materiais {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.link-material {
+  display: inline-block;
+  background-color: var(--cor-destaque-suave);
+  color: var(--cor-destaque);
+  border: 1px solid var(--cor-destaque);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+/* Galeria de Mídias e Fotos Lado a Lado */
+.galeria-midias {
+  margin-bottom: 16px;
+}
+
+.grade-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 12px 0;
+}
+
 .midia-foto {
-  margin: 16px 0;
+  margin: 0;
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 10px;
   text-align: center;
+}
+
+.legenda-midia {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--cor-destaque);
+  margin-bottom: 8px;
+  text-align: left;
 }
 
 .midia-foto img {
   max-width: 100%;
+  max-height: 360px;
+  width: auto;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
 }
 
 .container-video {
-  margin: 16px 0;
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
 }
 
 .documento-pdf-container {
-  margin: 16px 0;
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
 }
 
 .acao-pdf-original {
@@ -176,6 +318,86 @@ h2 {
   font-size: 0.85rem;
   color: var(--cor-texto-suave);
   margin: 4px 0;
+}
+
+/* Seções de Lista e Cartões Numerados Aninháveis */
+.secao-lista {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.cabecalho-secao-lista {
+  margin-bottom: 12px;
+}
+
+.titulo-secao-lista {
+  font-size: 1.1rem;
+  color: var(--cor-destaque);
+  margin: 0;
+}
+
+.subtitulo-secao-lista {
+  font-size: 0.84rem;
+  color: var(--cor-texto-suave);
+  margin: 2px 0 0 0;
+}
+
+.card-item-lista {
+  background-color: var(--cor-superficie-elevada);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.corpo-card-item .card-item-lista {
+  background-color: var(--cor-superficie);
+  border-left: 3px solid var(--cor-destaque);
+}
+
+.cabecalho-card-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--cor-borda);
+  padding: 10px 16px;
+}
+
+.badge-indice-item {
+  background-color: var(--cor-destaque);
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 0.82rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.titulos-card-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.titulo-card-item {
+  font-size: 1.02rem;
+  color: var(--cor-texto);
+}
+
+.subtitulo-card-item {
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+}
+
+.corpo-card-item {
+  padding: 16px;
+}
+
+.secao-materiais-anexos {
+  background-color: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-top: 24px;
 }
 
 .conteudo-markdown {
@@ -230,11 +452,18 @@ h2 {
   .barra-navegacao-retorno, .acao-pdf-original {
     display: none !important;
   }
-  header {
-    border-bottom: 2px solid #000000;
-  }
-  h1, h2, .campo-chave, .link-material {
+  .cabecalho-protocolo, .bloco-protocolo, .item-propriedade, .bloco-texto-longo, .card-item-lista, .midia-foto, .container-video, .documento-pdf-container, .secao-materiais-anexos {
+    background-color: #ffffff !important;
+    border-color: #cccccc !important;
     color: #000000 !important;
+    page-break-inside: avoid;
+  }
+  h1, h2, .titulo-secao-lista, .campo-chave, .opcao-escolhida, .link-material, .legenda-midia {
+    color: #000000 !important;
+  }
+  .badge-indice-item {
+    background-color: #222222 !important;
+    color: #ffffff !important;
   }
   .cabecalho-versao-impressa {
     display: block !important;
@@ -278,35 +507,12 @@ h2 {
 ''';
   }
 
-  String _renderizarTextoOuReferenciaMaterial(
-    String chave,
-    String valorTexto,
-    Map<String, String> titulosMateriais,
-  ) {
-    final ehCampoRefMaterial =
-        chave == 'lista_materiais_c' || chave.startsWith('ref_mat');
-    final tokens = valorTexto
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    final contemMaterialConhecido =
-        tokens.any((t) => titulosMateriais.containsKey(t));
-
-    if (!ehCampoRefMaterial && !contemMaterialConhecido) {
-      return _renderizarTextoOuMarkdown(valorTexto);
-    }
-
-    final links = tokens.map((token) {
-      if (ehCampoRefMaterial || titulosMateriais.containsKey(token)) {
-        final rotulo = titulosMateriais[token] ?? token;
-        return '<a href="materiais/$token/OEBPS/relatorio.xhtml" class="link-material">$rotulo</a>';
-      }
-      return '<span>$token</span>';
-    }).join(', ');
-
-    return '<span>$links</span>';
+  String _escaparXml(String texto) {
+    return texto
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
   }
 
   String _renderizarTextoOuMarkdown(String valorTexto) {
@@ -316,21 +522,14 @@ h2 {
       r'^(#{1,6}\s+|[-*]\s+|\d+\.\s+)',
       multiLine: true,
     ).hasMatch(normalizado);
-    final possuiInlineMarkdown = RegExp(
-      r'(\*\*[^*]+\*\*|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*)',
-    ).hasMatch(normalizado);
-
     if (!possuiMultiplasLinhas && !possuiBlocoMarkdown) {
-      if (!possuiInlineMarkdown) {
-        return '<span>$valorTexto</span>';
-      }
-      return '<span>${_renderizarInlineMarkdown(normalizado)}</span>';
+      return '<div class="campo-valor">${_renderizarInlineMarkdown(normalizado)}</div>';
     }
 
     final linhas = normalizado.split('\n');
     final buffer = StringBuffer('<div class="conteudo-markdown">');
     final paragrafoAtual = <String>[];
-    String? tipoListaAberta; // 'ul' ou 'ol'
+    String? tipoListaAberta;
 
     void fecharParagrafo() {
       if (paragrafoAtual.isNotEmpty) {
@@ -402,10 +601,7 @@ h2 {
   }
 
   String _renderizarInlineMarkdown(String texto) {
-    var escapado = texto
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
+    var escapado = _escaparXml(texto);
 
     escapado = escapado.replaceAllMapped(
       RegExp(r'`([^`]+)`'),
@@ -426,10 +622,11 @@ h2 {
     return escapado;
   }
 
-  String _renderizarMidiaDocumento(
-    ArquivoDocumento doc,
-    Map<String, String> mapeamentoMidias,
-  ) {
+  String _renderizarMidiaDocumento({
+    required String rotuloCampo,
+    required ArquivoDocumento doc,
+    required Map<String, String> mapeamentoMidias,
+  }) {
     final uuid = doc.uuid;
     final nome = doc.nomeOriginal.isNotEmpty ? doc.nomeOriginal : '$uuid.pdf';
     final caminhoPdf = mapeamentoMidias[uuid] ?? '';
@@ -452,28 +649,219 @@ h2 {
     final totalPaginas = doc.quantidadePaginas > 0
         ? doc.quantidadePaginas
         : paginasMapeadas.length;
+    final nomeEscapado = _escaparXml(nome);
 
     final buf = StringBuffer();
     buf.write('<div class="documento-pdf-container">');
+    buf.write('<div class="legenda-midia">${_escaparXml(rotuloCampo)}</div>');
     if (caminhoPdf.isNotEmpty) {
       buf.write(
         '<div class="acao-pdf-original">'
-        '<a href="$caminhoPdf" download="$nome" class="link-pdf-original">'
-        '📄 Baixar / Abrir PDF Original ($nome)'
+        '<a href="$caminhoPdf" download="$nomeEscapado" class="link-pdf-original">'
+        '📄 Baixar / Abrir PDF Original ($nomeEscapado)'
         '</a>'
         '</div>',
       );
     }
-    for (final pag in paginasMapeadas) {
-      buf.write(
-        '<div class="midia-foto pagina-pdf">'
-        '<p class="legenda-pagina-pdf">$nome — Página ${pag.numero} de $totalPaginas</p>'
-        '<img src="${pag.caminho}" alt="Página ${pag.numero} de $nome"/>'
-        '</div>',
-      );
+    if (paginasMapeadas.isNotEmpty) {
+      buf.write('<div class="grade-fotos">');
+      for (final pag in paginasMapeadas) {
+        buf.write(
+          '<div class="midia-foto pagina-pdf">'
+          '<p class="legenda-pagina-pdf">$nomeEscapado — Página ${pag.numero} de $totalPaginas</p>'
+          '<img src="${pag.caminho}" alt="Página ${pag.numero} de $nomeEscapado"/>'
+          '</div>',
+        );
+      }
+      buf.write('</div>');
     }
     buf.write('</div>');
     return buf.toString();
+  }
+
+  String _renderizarNodo({
+    required NodoRelatorio nodo,
+    required Map<String, String> mapeamentoMidias,
+    required Map<String, String> posterFrames,
+    required Map<String, String> qrCodesVideos,
+    required Map<String, String> titulosMateriais,
+  }) {
+    switch (nodo) {
+      case GradePropriedadesRelatorio():
+        final buf = StringBuffer('<div class="grade-propriedades">');
+        for (final prop in nodo.propriedades) {
+          buf.write('<div class="item-propriedade">');
+          buf.write('<div class="campo-chave">${_escaparXml(prop.rotulo)}</div>');
+          if (prop.subrotulo.isNotEmpty) {
+            buf.write(
+              '<div class="campo-subrotulo">${_escaparXml(prop.subrotulo)}</div>',
+            );
+          }
+          buf.write(
+            '<div class="campo-valor">${_escaparXml(prop.valor)}</div>',
+          );
+          buf.write('</div>');
+        }
+        buf.write('</div>');
+        return buf.toString();
+
+      case DestaqueEscolhaRelatorio():
+        final buf = StringBuffer('<div class="destaque-escolha">');
+        buf.write(
+          '<div class="pergunta-escolha">${_escaparXml(nodo.rotuloPergunta)}</div>',
+        );
+        buf.write(
+          '<div class="opcao-escolhida">${_escaparXml(nodo.rotuloOpcao)}</div>',
+        );
+        if (nodo.subrotuloOpcao.isNotEmpty) {
+          buf.write(
+            '<div class="subrotulo-escolha">${_escaparXml(nodo.subrotuloOpcao)}</div>',
+          );
+        }
+        buf.write('</div>');
+        return buf.toString();
+
+      case TextoLongoRelatorio():
+        final buf = StringBuffer('<div class="bloco-texto-longo">');
+        buf.write('<div class="campo-chave">${_escaparXml(nodo.rotulo)}</div>');
+        if (nodo.subrotulo.isNotEmpty) {
+          buf.write(
+            '<div class="campo-subrotulo">${_escaparXml(nodo.subrotulo)}</div>',
+          );
+        }
+        buf.write(_renderizarTextoOuMarkdown(nodo.textoMarkdown));
+        buf.write('</div>');
+        return buf.toString();
+
+      case ReferenciasMateriaisRelatorio():
+        final buf = StringBuffer('<div class="bloco-ref-materiais">');
+        buf.write('<div class="campo-chave">${_escaparXml(nodo.rotulo)}</div>');
+        if (nodo.subrotulo.isNotEmpty) {
+          buf.write(
+            '<div class="campo-subrotulo">${_escaparXml(nodo.subrotulo)}</div>',
+          );
+        }
+        buf.write('<div class="lista-chips-materiais">');
+        for (final uuid in nodo.uuidsMateriais) {
+          final rotuloMat = titulosMateriais[uuid] ?? uuid;
+          buf.write(
+            '<a href="materiais/$uuid/OEBPS/relatorio.xhtml" class="link-material">${_escaparXml(rotuloMat)}</a>',
+          );
+        }
+        buf.write('</div></div>');
+        return buf.toString();
+
+      case GaleriaMidiasRelatorio():
+        final fotosBuffer = StringBuffer();
+        final outrosBuffer = StringBuffer();
+
+        for (final item in nodo.itens) {
+          final midia = item.midia;
+          final rotuloEscapado = _escaparXml(item.rotuloCampo);
+          if (midia.hasImagem()) {
+            final uuid = midia.imagem.uuid;
+            final caminho = mapeamentoMidias[uuid] ?? '';
+            if (caminho.isNotEmpty) {
+              fotosBuffer.write(
+                '<figure class="midia-foto">'
+                '<figcaption class="legenda-midia">$rotuloEscapado</figcaption>'
+                '<img src="$caminho" alt="$rotuloEscapado"/>'
+                '</figure>',
+              );
+            }
+          } else if (midia.hasVideo()) {
+            final uuid = midia.video.uuid;
+            final caminhoVideo = mapeamentoMidias[uuid] ?? '';
+            final caminhoPoster = posterFrames[uuid] ?? '';
+            final caminhoQr = qrCodesVideos[uuid] ?? '';
+
+            outrosBuffer.write('<div class="container-video">');
+            outrosBuffer.write('<div class="legenda-midia">$rotuloEscapado</div>');
+            outrosBuffer.write(
+              '<video controls="controls" poster="$caminhoPoster" class="player-video">'
+              '<source src="$caminhoVideo" type="video/mp4" />'
+              'Seu visualizador não suporta reprodução de vídeo.'
+              '</video>',
+            );
+            outrosBuffer.write(
+              '<div class="poster-impressao">'
+              '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
+              '<div class="qr-box">'
+              '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
+              '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
+              '</div>'
+              '</div>',
+            );
+            outrosBuffer.write('</div>');
+          } else if (midia.hasDocumento()) {
+            outrosBuffer.write(
+              _renderizarMidiaDocumento(
+                rotuloCampo: item.rotuloCampo,
+                doc: midia.documento,
+                mapeamentoMidias: mapeamentoMidias,
+              ),
+            );
+          }
+        }
+
+        if (fotosBuffer.isEmpty && outrosBuffer.isEmpty) {
+          return '';
+        }
+
+        final buf = StringBuffer('<div class="galeria-midias">');
+        if (fotosBuffer.isNotEmpty) {
+          buf.write('<div class="grade-fotos">${fotosBuffer.toString()}</div>');
+        }
+        buf.write(outrosBuffer.toString());
+        buf.write('</div>');
+        return buf.toString();
+
+      case SecaoListaRelatorio():
+        final buf = StringBuffer('<div class="secao-lista">');
+        buf.write('<div class="cabecalho-secao-lista">');
+        buf.write(
+          '<h3 class="titulo-secao-lista">${_escaparXml(nodo.rotulo)}</h3>',
+        );
+        if (nodo.subrotulo.isNotEmpty) {
+          buf.write(
+            '<p class="subtitulo-secao-lista">${_escaparXml(nodo.subrotulo)}</p>',
+          );
+        }
+        buf.write('</div>');
+
+        for (final item in nodo.itens) {
+          buf.write('<article class="card-item-lista">');
+          buf.write('<div class="cabecalho-card-item">');
+          buf.write(
+            '<span class="badge-indice-item">${_escaparXml(item.indiceFormatado)}</span>',
+          );
+          buf.write('<div class="titulos-card-item">');
+          buf.write(
+            '<strong class="titulo-card-item">${_escaparXml(item.rotuloTipo)}</strong>',
+          );
+          if (item.subrotuloTipo.isNotEmpty) {
+            buf.write(
+              '<span class="subtitulo-card-item">${_escaparXml(item.subrotuloTipo)}</span>',
+            );
+          }
+          buf.write('</div></div>');
+          buf.write('<div class="corpo-card-item">');
+          for (final subNodo in item.nodos) {
+            buf.write(
+              _renderizarNodo(
+                nodo: subNodo,
+                mapeamentoMidias: mapeamentoMidias,
+                posterFrames: posterFrames,
+                qrCodesVideos: qrCodesVideos,
+                titulosMateriais: titulosMateriais,
+              ),
+            );
+          }
+          buf.write('</div></article>');
+        }
+        buf.write('</div>');
+        return buf.toString();
+    }
   }
 
   /// Gera a marcação XHTML5 semântica para o relatório a partir dos dados do [registro].
@@ -487,7 +875,12 @@ h2 {
     String? qrCodeCanonica,
     Map<String, String> titulosMateriais = const {},
   }) {
+    final arvore = _construtorArvore.construir(registro);
     final buffer = StringBuffer();
+
+    final tituloPrincipal = arvore.tituloExibicao != arvore.nomeProtocolo
+        ? '${arvore.nomeProtocolo} — ${arvore.tituloExibicao}'
+        : arvore.nomeProtocolo;
 
     buffer.writeln('<?xml version="1.0" encoding="utf-8"?>');
     buffer.writeln('<!DOCTYPE html>');
@@ -496,232 +889,99 @@ h2 {
     );
     buffer.writeln('<head>');
     buffer.writeln('  <meta charset="utf-8"/>');
-    buffer.writeln('  <title>Relatório de Manutenção - ${registro.idProtocolo}</title>');
+    buffer.writeln('  <title>${_escaparXml(tituloPrincipal)}</title>');
     buffer.writeln('  <link rel="stylesheet" type="text/css" href="estilo.css"/>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
 
-    // Barra de navegação de retorno (útil ao navegar da manutenção para a ficha do material)
     buffer.writeln('  <nav class="barra-navegacao-retorno">');
     buffer.writeln(
       '    <a href="javascript:history.back()" class="botao-voltar">← Voltar para a página anterior</a>',
     );
     buffer.writeln('  </nav>');
 
-    // Cabeçalho exclusivo para versão impressa (PDF Resumido)
     buffer.writeln('  <div class="cabecalho-versao-impressa">');
-    buffer.writeln('    <p><strong>Fixalog — Relatório Técnico de Manutenção (Versão Resumida)</strong></p>');
+    buffer.writeln(
+      '    <p><strong>Fixalog — ${_escaparXml(arvore.nomeProtocolo)} (Versão Resumida)</strong></p>',
+    );
     buffer.writeln(
       '    <p>Este documento é uma representação impressa. O relatório canônico oficial — contendo os vídeos originais de inspeção em alta definição e dados brutos — está disponível em:</p>',
     );
     buffer.writeln('    <p><a href="$urlCanonica">$urlCanonica</a></p>');
     if (qrCodeCanonica != null && qrCodeCanonica.isNotEmpty) {
-      buffer.writeln('    <img src="$qrCodeCanonica" class="qr-code" alt="QR Code do Relatório Oficial"/>');
+      buffer.writeln(
+        '    <img src="$qrCodeCanonica" class="qr-code" alt="QR Code do Relatório Oficial"/>',
+      );
     }
     buffer.writeln('  </div>');
 
-    // Cabeçalho Principal
-    buffer.writeln('  <header>');
-    buffer.writeln('    <h1>Relatório de Vistoria: ${registro.idProtocolo}</h1>');
+    buffer.writeln('  <header class="cabecalho-protocolo">');
+    if (arvore.versaoProtocolo.isNotEmpty) {
+      buffer.writeln('    <div class="topo-cabecalho">');
+      buffer.writeln(
+        '      <span class="badge-versao">v${_escaparXml(arvore.versaoProtocolo)}</span>',
+      );
+      buffer.writeln('    </div>');
+    }
+    buffer.writeln('    <h1>${_escaparXml(tituloPrincipal)}</h1>');
+    if (arvore.descricaoProtocolo.isNotEmpty) {
+      buffer.writeln(
+        '    <p class="subtitulo-protocolo">${_escaparXml(arvore.descricaoProtocolo)}</p>',
+      );
+    }
     buffer.writeln('    <div class="metadados-sessao">');
     buffer.writeln('      <div><strong>Sessão ID:</strong> $idSessao</div>');
-    buffer.writeln('      <div><strong>URL Canônica:</strong> $urlCanonica</div>');
+    buffer.writeln(
+      '      <div><strong>URL Canônica:</strong> $urlCanonica</div>',
+    );
     buffer.writeln('    </div>');
     buffer.writeln('  </header>');
 
     buffer.writeln('  <main>');
 
-    // Respostas Simples
-    if (registro.respostas.isNotEmpty) {
-      buffer.writeln('    <section class="secao-respostas">');
-      buffer.writeln('      <h2>Dados Coletados</h2>');
-
-      for (final entrada in registro.respostas.entries) {
-        final chave = entrada.key;
-        final resposta = entrada.value;
-
-        buffer.write('      <div class="campo-registro">');
-        buffer.write('<span class="campo-chave">$chave:</span> ');
-
-        final midiasResposta = extrairMidiasDeResposta(resposta);
-        if (resposta.hasTexto()) {
-          buffer.write(
-            _renderizarTextoOuReferenciaMaterial(
-              chave,
-              resposta.texto,
-              titulosMateriais,
-            ),
-          );
-        } else if (resposta.hasNumero()) {
-          buffer.write('<span>${resposta.numero}</span>');
-        } else if (resposta.hasInteiro()) {
-          buffer.write('<span>${resposta.inteiro}</span>');
-        } else if (resposta.hasBooleano()) {
-          buffer.write('<span>${resposta.booleano ? "Sim" : "Não"}</span>');
-        } else if (midiasResposta.isNotEmpty) {
-          for (final midia in midiasResposta) {
-            if (midia.hasImagem()) {
-              final uuid = midia.imagem.uuid;
-              final caminho = mapeamentoMidias[uuid] ?? '';
-              if (caminho.isNotEmpty) {
-                buffer.write(
-                  '<div class="midia-foto"><img src="$caminho" alt="Foto da proteção $chave"/></div>',
-                );
-              }
-            } else if (midia.hasVideo()) {
-              final uuid = midia.video.uuid;
-              final caminhoVideo = mapeamentoMidias[uuid] ?? '';
-              final caminhoPoster = posterFrames[uuid] ?? '';
-              final caminhoQr = qrCodesVideos[uuid] ?? '';
-
-              buffer.write('<div class="container-video">');
-              // Player de tela
-              buffer.write(
-                '<video controls="controls" poster="$caminhoPoster" class="player-video">'
-                '<source src="$caminhoVideo" type="video/mp4" />'
-                'Seu visualizador não suporta reprodução de vídeo.'
-                '</video>',
-              );
-              // Fallback de impressão (PDF)
-              buffer.write(
-                '<div class="poster-impressao">'
-                '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
-                '<div class="qr-box">'
-                '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
-                '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
-                '</div>'
-                '</div>',
-              );
-              buffer.write('</div>');
-            } else if (midia.hasDocumento()) {
-              buffer.write(
-                _renderizarMidiaDocumento(midia.documento, mapeamentoMidias),
-              );
-            }
-          }
-        } else if (resposta.hasLista()) {
-          final textos = resposta.lista.valores
-              .where((v) => v.hasTexto() && v.texto.isNotEmpty)
-              .map((v) => v.texto)
-              .join(', ');
-          if (textos.isNotEmpty) {
-            buffer.write(
-              _renderizarTextoOuReferenciaMaterial(
-                chave,
-                textos,
-                titulosMateriais,
-              ),
-            );
-          }
-        }
-        buffer.writeln('</div>');
+    for (final bloco in arvore.blocos) {
+      buffer.writeln(
+        '    <section class="bloco-protocolo" id="bloco-${_escaparXml(bloco.id)}">',
+      );
+      buffer.writeln('      <div class="cabecalho-bloco">');
+      buffer.writeln('        <h2>${_escaparXml(bloco.titulo)}</h2>');
+      if (bloco.subtitulo.isNotEmpty) {
+        buffer.writeln(
+          '        <p class="subtitulo-bloco">${_escaparXml(bloco.subtitulo)}</p>',
+        );
       }
-      buffer.writeln('    </section>');
-    }
+      buffer.writeln('      </div>');
 
-    // Listas / Grupos Repetidos
-    if (registro.listas.isNotEmpty) {
-      buffer.writeln('    <section class="secao-listas">');
-      buffer.writeln('      <h2>Itens Catalogados</h2>');
-
-      for (final grupo in registro.listas) {
-        buffer.writeln('      <div class="grupo-lista">');
-        buffer.writeln('        <h3>${grupo.idLista} (${grupo.idTipo})</h3>');
-
-        for (final item in grupo.respostasItem.entries) {
-          final chaveItem = item.key;
-          final respItem = item.value;
-
-          buffer.write('        <div class="campo-registro">');
-          buffer.write('<span class="campo-chave">$chaveItem:</span> ');
-
-          final midiasItem = extrairMidiasDeResposta(respItem);
-          if (respItem.hasTexto()) {
-            buffer.write(
-              _renderizarTextoOuReferenciaMaterial(
-                chaveItem,
-                respItem.texto,
-                titulosMateriais,
-              ),
-            );
-          } else if (respItem.hasNumero()) {
-            buffer.write('<span>${respItem.numero}</span>');
-          } else if (respItem.hasInteiro()) {
-            buffer.write('<span>${respItem.inteiro}</span>');
-          } else if (respItem.hasBooleano()) {
-            buffer.write('<span>${respItem.booleano ? "Sim" : "Não"}</span>');
-          } else if (midiasItem.isNotEmpty) {
-            for (final midia in midiasItem) {
-              if (midia.hasImagem()) {
-                final uuid = midia.imagem.uuid;
-                final caminho = mapeamentoMidias[uuid] ?? '';
-                if (caminho.isNotEmpty) {
-                  buffer.write(
-                    '<div class="midia-foto"><img src="$caminho" alt="Foto do item $chaveItem"/></div>',
-                  );
-                }
-              } else if (midia.hasVideo()) {
-                final uuid = midia.video.uuid;
-                final caminhoVideo = mapeamentoMidias[uuid] ?? '';
-                final caminhoPoster = posterFrames[uuid] ?? '';
-                final caminhoQr = qrCodesVideos[uuid] ?? '';
-
-                buffer.write('<div class="container-video">');
-                buffer.write(
-                  '<video controls="controls" poster="$caminhoPoster" class="player-video">'
-                  '<source src="$caminhoVideo" type="video/mp4" />'
-                  '</video>',
-                );
-                buffer.write(
-                  '<div class="poster-impressao">'
-                  '<img src="$caminhoPoster" class="foto-poster" alt="Frame da inspeção"/>'
-                  '<div class="qr-box">'
-                  '<img src="$caminhoQr" class="qr-code" alt="QR Code do Vídeo"/>'
-                  '<p>Escaneie para assistir ao vídeo desta proteção online</p>'
-                  '</div>'
-                  '</div>',
-                );
-                buffer.write('</div>');
-              } else if (midia.hasDocumento()) {
-                buffer.write(
-                  _renderizarMidiaDocumento(midia.documento, mapeamentoMidias),
-                );
-              }
-            }
-          } else if (respItem.hasLista()) {
-            final textos = respItem.lista.valores
-                .where((v) => v.hasTexto() && v.texto.isNotEmpty)
-                .map((v) => v.texto)
-                .join(', ');
-            if (textos.isNotEmpty) {
-              buffer.write(
-                _renderizarTextoOuReferenciaMaterial(
-                  chaveItem,
-                  textos,
-                  titulosMateriais,
-                ),
-              );
-            }
-          }
-          buffer.writeln('</div>');
+      for (final nodo in bloco.nodos) {
+        final htmlNodo = _renderizarNodo(
+          nodo: nodo,
+          mapeamentoMidias: mapeamentoMidias,
+          posterFrames: posterFrames,
+          qrCodesVideos: qrCodesVideos,
+          titulosMateriais: titulosMateriais,
+        );
+        if (htmlNodo.isNotEmpty) {
+          buffer.writeln('      $htmlNodo');
         }
-        buffer.writeln('      </div>');
       }
+
       buffer.writeln('    </section>');
     }
 
     if (titulosMateriais.isNotEmpty) {
       buffer.writeln('    <section class="secao-materiais-anexos">');
-      buffer.writeln('      <h2>Materiais Utilizados (Fichas Técnicas Anexas)</h2>');
-      buffer.writeln('      <ul>');
+      buffer.writeln(
+        '      <h2>Materiais Utilizados (Fichas Técnicas Anexas)</h2>',
+      );
+      buffer.writeln('      <div class="lista-chips-materiais">');
       for (final entradaMat in titulosMateriais.entries) {
         final uuidMat = entradaMat.key;
         final tituloMat = entradaMat.value;
         buffer.writeln(
-          '        <li><a href="materiais/$uuidMat/OEBPS/relatorio.xhtml" class="link-material">$tituloMat</a></li>',
+          '        <a href="materiais/$uuidMat/OEBPS/relatorio.xhtml" class="link-material">${_escaparXml(tituloMat)}</a>',
         );
       }
-      buffer.writeln('      </ul>');
+      buffer.writeln('      </div>');
       buffer.writeln('    </section>');
     }
 

@@ -23,6 +23,93 @@ import 'package:fixalog/features/pdf_generation/providers/generation_provider.da
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
 
+const String kYamlProtocoloManut = '''
+id: "manutencao_ferragens"
+versao: "2.0.0"
+nome: "Manutenção de Ferragens"
+descricao: "Protocolo de manutenção"
+
+blocos:
+  - id: "bloco_1"
+    titulo: "Bloco 1 — Identificação e Mídias"
+    steps:
+      - id: "step_1"
+        conteudos:
+          - id: "titulo_inspecao"
+            campo_simples:
+              label: "Título da Inspeção"
+              tipo: "TEXT"
+          - id: "via_nome"
+            campo_simples:
+              label: "Nome da Via"
+              tipo: "TEXT"
+          - id: "foto"
+            campo_simples:
+              label: "Foto Principal"
+              tipo: "IMAGE"
+          - id: "video"
+            campo_simples:
+              label: "Vídeo Principal"
+              tipo: "VIDEO"
+          - id: "lista_materiais_c"
+            ref_materiais:
+              label: "Materiais do Catálogo"
+              multipla_escolha: true
+              origem_catalogo: true
+          - id: "lista_acoes_via_c"
+            lista_acoes:
+              label: "Ações na Via"
+              tipos_disponiveis:
+                - id: "grampo"
+                  label: "Grampo"
+                  steps:
+                    - id: "s_g"
+                      conteudos:
+                        - id: "ref_mat_grampo"
+                          ref_materiais:
+                            label: "Material do Grampo"
+                            origem_catalogo: true
+''';
+
+const String kYamlProtocoloMaterial = '''
+id: "cadastro_material"
+versao: "1.4.0"
+nome: "Cadastro de Material"
+descricao: "Ficha técnica de material"
+
+blocos:
+  - id: "bloco_mat"
+    titulo: "Bloco 1 — Conjunto"
+    steps:
+      - id: "step_mat"
+        conteudos:
+          - id: "mat_nome"
+            campo_simples:
+              label: "Nome do Conjunto"
+              tipo: "TEXT"
+          - id: "mat_codigo_associacao"
+            campo_simples:
+              label: "Código de Lote"
+              tipo: "TEXT"
+          - id: "etapa_midias"
+            campo_simples:
+              label: "Mídias do Conjunto"
+              tipo: "IMAGE"
+          - id: "lista_materiais_cadastro"
+            lista_acoes:
+              label: "Itens do Conjunto"
+              tipos_disponiveis:
+                - id: "chumbador_mecanico"
+                  label: "Chumbador Mecânico"
+                  steps:
+                    - id: "s_cm"
+                      conteudos:
+                        - id: "mat_nota_fiscal"
+                          campo_simples:
+                            label: "Nota Fiscal (PDF)"
+                            tipo: "IMAGE"
+''';
+
 class _FakeGenerationRecoveryService extends GenerationRecoveryService {
   final Directory workspaceDir;
   final bool falharAoIniciar;
@@ -169,7 +256,10 @@ void main() {
   });
 
   test('Deve processar manifest e gerar relatório canônico em EPUB 3 assinado sem chamada síncrona de PDF', () async {
-    final registro = Registro()..idProtocolo = 'Test Protocol';
+    final registro = Registro()
+      ..idProtocolo = 'manutencao_ferragens'
+      ..yamlConteudo = kYamlProtocoloManut
+      ..respostas['via_nome'] = (Resposta()..texto = 'Via Teste');
     await sessionManager.saveManifest(
       sessionId: '123',
       binarypb: Uint8List.fromList(registro.writeToBuffer()),
@@ -187,8 +277,11 @@ void main() {
     expect(draftService.chamadas, equals(0));
   });
 
-  test('Deve gravar um SubmissionRecord no banco local SQLite após a geração do relatório', () async {
-    final registro = Registro()..idProtocolo = 'Test Protocol';
+  test('Deve gravar um SubmissionRecord no banco local SQLite extraindo tituloExibicao genericamente pelo protocolo YAML', () async {
+    final registro = Registro()
+      ..idProtocolo = 'manutencao_ferragens'
+      ..yamlConteudo = kYamlProtocoloManut
+      ..respostas['titulo_inspecao'] = (Resposta()..texto = 'Inspeção Estrutural Setor Norte');
     await sessionManager.saveManifest(
       sessionId: '123',
       binarypb: Uint8List.fromList(registro.writeToBuffer()),
@@ -200,6 +293,7 @@ void main() {
     final savedRecord = await banco.obterSubmissaoPorIdSessao('123');
     expect(savedRecord, isNotNull);
     expect(savedRecord!.nomeProtocolo, 'Teste Protocolo');
+    expect(savedRecord.tituloExibicao, 'Inspeção Estrutural Setor Norte');
     expect(savedRecord.pdfPath, '');
     expect(savedRecord.idSessao, '123');
     expect(savedRecord.protobufPath, endsWith('.epub'));
@@ -231,7 +325,8 @@ void main() {
     );
 
     final registroComMidias = Registro()
-      ..idProtocolo = 'Via com Fotos e Vídeos'
+      ..idProtocolo = 'manutencao_ferragens'
+      ..yamlConteudo = kYamlProtocoloManut
       ..respostas['foto'] = (Resposta()
         ..midia = (ReferenciaMidia()
           ..imagem = (ArquivoImagem()..uuid = 'uuid-foto')))
@@ -305,6 +400,7 @@ void main() {
 
     final registroComPdf = Registro()
       ..idProtocolo = 'cadastro_material'
+      ..yamlConteudo = kYamlProtocoloMaterial
       ..respostas['mat_nome'] = (Resposta()..texto = 'Chumbador com NF em PDF')
       ..listas.add(grupoMat);
 
@@ -365,10 +461,11 @@ void main() {
     );
   });
 
-  test('Deve incorporar materiais assinados em OEBPS/materiais/<uuid>/, validar ambas as assinaturas XML-DSig, atualizar na re-geração e manter fallback se removido do catálogo', () async {
+  test('Deve incorporar materiais assinados em OEBPS/materiais/<uuid>/, exibir seus títulos reais no nav.xhtml, validar ambas as assinaturas XML-DSig, atualizar na re-geração e manter fallback se removido do catálogo', () async {
     // 1. Gerar e assinar um material v1 no catálogo
     final registroMatV1 = Registro()
       ..idProtocolo = 'cadastro_material'
+      ..yamlConteudo = kYamlProtocoloMaterial
       ..respostas['mat_nome'] = (Resposta()..texto = 'Chumbador Químico Inox 316 v1')
       ..respostas['mat_codigo_associacao'] = (Resposta()..texto = 'LOTE-001');
     await sessionManager.saveManifest(
@@ -398,6 +495,7 @@ void main() {
 
     final registroManut = Registro()
       ..idProtocolo = 'manutencao_ferragens'
+      ..yamlConteudo = kYamlProtocoloManut
       ..respostas['via_nome'] = (Resposta()..texto = 'Via Paredão Sul')
       ..respostas['lista_materiais_c'] = (Resposta()..texto = 'uuid-mat-inox')
       ..listas.add(grupoAcao);
@@ -439,7 +537,9 @@ void main() {
     );
     expect(xhtmlMatEmbutidoV1, contains('Chumbador Químico Inox 316 v1'));
 
-    // Verifica que o relatorio.xhtml da manutenção aponta para materiais/uuid-mat-inox/OEBPS/relatorio.xhtml
+    // Verifica que o nav.xhtml e o relatorio.xhtml da manutenção apontam para materiais/uuid-mat-inox/OEBPS/relatorio.xhtml com o título real
+    final navManut1 = utf8.decode(mapaArquivosManut1['OEBPS/nav.xhtml']!);
+    expect(navManut1, contains('Chumbador Químico Inox 316 v1'));
     final xhtmlManut1 = utf8.decode(mapaArquivosManut1['OEBPS/relatorio.xhtml']!);
     expect(
       xhtmlManut1,
@@ -482,6 +582,7 @@ void main() {
     // 4. Editar e re-assinar o material no catálogo (v2) e re-gerar a manutenção -> deve atualizar para v2!
     final registroMatV2 = Registro()
       ..idProtocolo = 'cadastro_material'
+      ..yamlConteudo = kYamlProtocoloMaterial
       ..respostas['mat_nome'] = (Resposta()..texto = 'Chumbador Químico Inox 316 v2 Repassivado')
       ..respostas['mat_codigo_associacao'] = (Resposta()..texto = 'LOTE-002');
     await sessionManager.saveManifest(
@@ -581,10 +682,11 @@ void main() {
     expect(atualizado.pdfPath, '/saida.pdf');
   });
 
-  test('startGeneration com sessionId nulo gera id dinâmico', () async {
+  test('startGeneration sem yamlConteudo recusa geração e registra FormatException no estado', () async {
     final outPath = '${tempDir.path}/relatorio_sem_sessao.pdf';
     await notifier.startGeneration('Vistoria sem Sessao', outPath);
-    expect(notifier.state.isComplete, isTrue);
+    expect(notifier.state.hasError, isTrue);
+    expect(notifier.state.isComplete, isFalse);
   });
 
   test('GenerationNotifier pode ser instanciado com construtor padrão sem parâmetros opcionais', () {
@@ -680,6 +782,7 @@ void main() {
 
     final registroMulti = Registro()
       ..idProtocolo = 'cadastro_material'
+      ..yamlConteudo = kYamlProtocoloMaterial
       ..respostas['etapa_midias'] = respostaMulti;
 
     await sessionManager.saveManifest(

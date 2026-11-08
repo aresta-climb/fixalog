@@ -542,5 +542,38 @@ protocolo:
         expect(find.text('監査履歴'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'Exibe Icons.cloud_done_outlined quando enviadoNuvem=true, Icons.cloud_upload_outlined quando enviadoNuvem=false e aciona sincronização manual',
+      (tester) async {
+        final logs = [
+          SubmissionRecord()
+            ..idSessao = 's_sincronizado'
+            ..nomeProtocolo = 'Via na Nuvem'
+            ..dataInclusao = DateTime(2026, 11, 8)
+            ..status = SubmissionStatus.gerado
+            ..pdfPath = '/docs/a.pdf'
+            ..enviadoNuvem = true,
+          SubmissionRecord()
+            ..idSessao = 's_pendente'
+            ..nomeProtocolo = 'Via Pendente Upload'
+            ..dataInclusao = DateTime(2026, 11, 7)
+            ..status = SubmissionStatus.gerado
+            ..pdfPath = '/docs/b.pdf'
+            ..enviadoNuvem = false,
+        ];
+
+        await tester.pumpWidget(_buildScreen(customLogs: logs));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.cloud_done_outlined), findsOneWidget);
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsOneWidget);
+
+        final botaoSync = find.byKey(const Key('botao_sincronizar_nuvem'));
+        expect(botaoSync, findsOneWidget);
+        await tester.tap(botaoSync);
+        await tester.pump();
+      },
+    );
   });
 }

@@ -3,6 +3,7 @@
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -347,6 +348,8 @@ class MediaCompressorService {
     required SessionBundleManager sessionManager,
     required String sessionId,
     required String mediaUuid,
+    double? inicioSegundos,
+    double? duracaoSegundos,
   }) {
     final chave = '$sessionId:$mediaUuid';
     final existente = _tarefasVideoEmAndamento[chave];
@@ -387,6 +390,25 @@ class MediaCompressorService {
         return (video: null, poster: null);
       }
 
+      double? inicioEfetivo = inicioSegundos;
+      double? duracaoEfetiva = duracaoSegundos;
+      if (inicioEfetivo == null && duracaoEfetiva == null) {
+        final cortePath = await sessionManager.getMediaFilePath(
+          sessionId: sessionId,
+          mediaUuid: '${mediaUuid}_corte',
+          extension: '.json',
+        );
+        final corteFile = File(cortePath);
+        if (corteFile.existsSync()) {
+          try {
+            final dados =
+                jsonDecode(corteFile.readAsStringSync()) as Map<String, dynamic>;
+            inicioEfetivo = (dados['inicio'] as num?)?.toDouble();
+            duracaoEfetiva = (dados['duracao'] as num?)?.toDouble();
+          } catch (_) {}
+        }
+      }
+
       try {
         final videoFile =
             (videoPronto.existsSync() && videoPronto.lengthSync() > 0)
@@ -394,14 +416,18 @@ class MediaCompressorService {
             : await _videoTranscoderService.transcodificarVideo(
                 arquivoEntrada: originalFile,
                 caminhoSaida: outVideoPath,
+                inicioSegundos: inicioEfetivo,
+                duracaoSegundos: duracaoEfetiva,
               );
 
+        final tempoPoster = (inicioEfetivo ?? 0.0) + 0.5;
         final posterFile =
             (posterPronto.existsSync() && posterPronto.lengthSync() > 0)
             ? posterPronto
             : await _videoTranscoderService.extrairPosterFrame(
                 arquivoEntrada: originalFile,
                 caminhoSaida: outPosterPath,
+                tempoSegundos: tempoPoster,
               );
 
         return (video: videoFile, poster: posterFile);

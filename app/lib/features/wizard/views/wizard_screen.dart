@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter/services.dart';
@@ -19,6 +20,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../../media/services/seletor_documento_service.dart';
 import '../../media/services/servico_galeria_dispositivo.dart';
+import '../../media/services/video_transcoder_service.dart';
+import '../../media/widgets/seletor_trecho_video_dialog.dart';
 import '../../pdf_generation/providers/generation_provider.dart';
 import '../../pdf_generation/ui/generation_progress_dialog.dart';
 
@@ -1940,6 +1943,29 @@ class _CampoSimplesContent extends ConsumerWidget {
                 } else if (origem == _OrigemMidia.videoCamera) {
                   final video = await picker.pickVideo(source: ImageSource.camera);
                   if (video != null) {
+                    try {
+                      await ref
+                          .read(servicoGaleriaDispositivoProvider)
+                          .salvarVideoNoRoloDaCamera(video.path);
+                    } catch (_) {}
+
+                    double? inicioCorte;
+                    double? duracaoCorte;
+                    final duracaoTotal = await ref
+                        .read(videoTranscoderServiceProvider)
+                        .obterDuracaoSegundos(File(video.path));
+                    if (duracaoTotal != null &&
+                        duracaoTotal > limiteMaximoDuracaoVideoSegundos) {
+                      if (!context.mounted) return;
+                      final trecho = await SeletorTrechoVideoDialog.exibir(
+                        context,
+                        duracaoTotalSegundos: duracaoTotal,
+                      );
+                      if (trecho == null) return;
+                      inicioCorte = trecho.inicioSegundos;
+                      duracaoCorte = trecho.duracaoSegundos;
+                    }
+
                     await ref
                         .read(wizardControllerProvider.notifier)
                         .saveMediaAnswer(
@@ -1947,12 +1973,9 @@ class _CampoSimplesContent extends ConsumerWidget {
                           video.path,
                           StepCampoSimples_TipoCampo.VIDEO,
                           listItemId: listItemId,
+                          inicioCorteSegundos: inicioCorte,
+                          duracaoCorteSegundos: duracaoCorte,
                         );
-                    try {
-                      await ref
-                          .read(servicoGaleriaDispositivoProvider)
-                          .salvarVideoNoRoloDaCamera(video.path);
-                    } catch (_) {}
                   }
                 } else if (origem == _OrigemMidia.galeria) {
                   final arquivos = await picker.pickMultipleMedia();
@@ -1960,6 +1983,8 @@ class _CampoSimplesContent extends ConsumerWidget {
                   final itensSelecionados = <({
                     String filePath,
                     StepCampoSimples_TipoCampo tipo,
+                    double? inicioCorteSegundos,
+                    double? duracaoCorteSegundos,
                   })>[];
                   for (final arquivo in arquivos) {
                     final ext = p.extension(arquivo.path).toLowerCase();
@@ -1974,13 +1999,34 @@ class _CampoSimplesContent extends ConsumerWidget {
                           '.3gp',
                           '.m4v',
                         }.contains(ext);
+                    double? inicioCorte;
+                    double? duracaoCorte;
+                    if (ehVideo) {
+                      final duracaoTotal = await ref
+                          .read(videoTranscoderServiceProvider)
+                          .obterDuracaoSegundos(File(arquivo.path));
+                      if (duracaoTotal != null &&
+                          duracaoTotal > limiteMaximoDuracaoVideoSegundos) {
+                        if (!context.mounted) return;
+                        final trecho = await SeletorTrechoVideoDialog.exibir(
+                          context,
+                          duracaoTotalSegundos: duracaoTotal,
+                        );
+                        if (trecho == null) continue;
+                        inicioCorte = trecho.inicioSegundos;
+                        duracaoCorte = trecho.duracaoSegundos;
+                      }
+                    }
                     itensSelecionados.add((
                       filePath: arquivo.path,
                       tipo: ehVideo
                           ? StepCampoSimples_TipoCampo.VIDEO
                           : StepCampoSimples_TipoCampo.IMAGE,
+                      inicioCorteSegundos: inicioCorte,
+                      duracaoCorteSegundos: duracaoCorte,
                     ));
                   }
+                  if (itensSelecionados.isEmpty) return;
                   await ref
                       .read(wizardControllerProvider.notifier)
                       .saveMultipleMediaAnswers(

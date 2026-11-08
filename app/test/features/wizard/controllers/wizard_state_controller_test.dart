@@ -1330,8 +1330,18 @@ protocolo:
       await notifier.saveMultipleMediaAnswers(
         'det_foto',
         [
-          (filePath: arqFoto.path, tipo: StepCampoSimples_TipoCampo.IMAGE),
-          (filePath: arqVideo.path, tipo: StepCampoSimples_TipoCampo.VIDEO),
+          (
+            filePath: arqFoto.path,
+            tipo: StepCampoSimples_TipoCampo.IMAGE,
+            inicioCorteSegundos: null,
+            duracaoCorteSegundos: null,
+          ),
+          (
+            filePath: arqVideo.path,
+            tipo: StepCampoSimples_TipoCampo.VIDEO,
+            inicioCorteSegundos: null,
+            duracaoCorteSegundos: null,
+          ),
         ],
       );
 
@@ -1402,7 +1412,14 @@ protocolo:
         ..writeAsBytesSync([1, 2, 3, 4]);
       await notifier.saveMultipleMediaAnswers(
         'campo_midia',
-        [(filePath: arqVideo.path, tipo: StepCampoSimples_TipoCampo.VIDEO)],
+        [
+          (
+            filePath: arqVideo.path,
+            tipo: StepCampoSimples_TipoCampo.VIDEO,
+            inicioCorteSegundos: null,
+            duracaoCorteSegundos: null,
+          ),
+        ],
       );
 
       final state = container.read(wizardControllerProvider);

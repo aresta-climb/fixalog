@@ -10,14 +10,16 @@ import 'package:xml/xml.dart';
 /// Serviço responsável por gerar e validar assinaturas digitais W3C XML-DSig para containers EPUB 3.
 ///
 /// Adere à especificação W3C XML Signature (RFC 3275) e EPUB Open Container Format (OCF),
-/// calculando digests SHA-256 de todos os recursos (XHTML, CSS, imagens WebP, vídeos MP4, Protobuf)
-/// e envelopando a assinatura criptográfica com chaves ECDSA secp256r1.
+/// calculando digests SHA-256 de todos os recursos (XHTML, CSS, imagens WebP, vídeos MP4, Protobuf),
+/// envelopando a assinatura criptográfica com chaves ECDSA secp256r1 e embutindo o atestado OIDC
+/// (`atestado_oidc_jwt`) que vincula a chave pública à conta Google/Apple do autor.
 class XmlDsigSigner {
   /// Gera o documento XML para `META-INF/signatures.xml` assinando a lista de [arquivos] fornecida.
   Future<String> gerarAssinaturaXml({
     required Map<String, List<int>> arquivos,
     required String privateKeyPem,
     String? certificadoX509Pem,
+    String? atestadoOidcJwt,
   }) async {
     final bufferSignedInfo = StringBuffer();
     bufferSignedInfo.writeln('<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">');
@@ -71,10 +73,29 @@ class XmlDsigSigner {
       bufferFinal.writeln('    </KeyInfo>');
     }
 
+    if (atestadoOidcJwt != null && atestadoOidcJwt.trim().isNotEmpty) {
+      bufferFinal.writeln('    <Object Id="oidc-attestation">');
+      bufferFinal.writeln('      <OidcIdToken>${atestadoOidcJwt.trim()}</OidcIdToken>');
+      bufferFinal.writeln('    </Object>');
+    }
+
     bufferFinal.writeln('  </Signature>');
     bufferFinal.writeln('</signatures>');
 
     return bufferFinal.toString();
+  }
+
+  /// Extrai o `atestado_oidc_jwt` (`<OidcIdToken>`) embutido em [signaturesXml], ou `null` se ausente.
+  String? extrairAtestadoOidcJwt(String signaturesXml) {
+    try {
+      final doc = XmlDocument.parse(signaturesXml);
+      final tokenEl = doc.findAllElements('OidcIdToken').firstOrNull;
+      final texto = tokenEl?.innerText.trim();
+      if (texto == null || texto.isEmpty) return null;
+      return texto;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Verifica a integridade dos [arquivos] e a validade da assinatura digital contida em [signaturesXml].

@@ -337,6 +337,7 @@ protocolo:
       );
 
       expect(() => XmlDocument.parse(xhtml), returnsNormally);
+      expect(xhtml, contains('<div id="video-uuid-video-1" class="container-video">'));
       expect(xhtml, contains('Vídeo do Ensaio'));
       expect(xhtml, contains('<video controls="controls"'));
       expect(xhtml, contains('poster="midias/uuid-video-1_poster.webp"'));

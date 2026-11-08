@@ -18,7 +18,6 @@ void main() {
     setUp(() {
       assinador = XmlDsigSigner();
 
-      // Gera um par de chaves ECDSA secp256r1 em memória para os testes
       final keyPair = CryptoUtils.generateEcKeyPair();
       privateKey = keyPair.privateKey as ECPrivateKey;
       publicKey = keyPair.publicKey as ECPublicKey;
@@ -27,7 +26,7 @@ void main() {
       publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(publicKey);
     });
 
-    test('gerarAssinaturaXml deve construir estrutura W3C XML-DSig completa com referências corretas', () async {
+    test('gerarAssinaturaXml deve construir estrutura W3C XML-DSig completa com referências e atestado OIDC', () async {
       final arquivos = {
         'OEBPS/content.opf': utf8.encode('<package>manifesto</package>'),
         'OEBPS/relatorio.xhtml': utf8.encode('<html>corpo</html>'),
@@ -38,6 +37,7 @@ void main() {
         arquivos: arquivos,
         privateKeyPem: privateKeyPem,
         certificadoX509Pem: '-----BEGIN CERTIFICATE-----\nMOCK_CERT\n-----END CERTIFICATE-----',
+        atestadoOidcJwt: 'eyJhbGciOiJSUzI1NiJ9.payload.sig',
       );
 
       expect(xmlAssinatura, contains('xmlns="http://www.w3.org/2000/09/xmldsig#"'));
@@ -45,13 +45,26 @@ void main() {
       expect(xmlAssinatura, contains('Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"'));
       expect(xmlAssinatura, contains('<SignatureValue>'));
       expect(xmlAssinatura, contains('<X509Certificate>MOCK_CERT</X509Certificate>'));
+      expect(xmlAssinatura, contains('<OidcIdToken>eyJhbGciOiJSUzI1NiJ9.payload.sig</OidcIdToken>'));
+      expect(
+        assinador.extrairAtestadoOidcJwt(xmlAssinatura),
+        equals('eyJhbGciOiJSUzI1NiJ9.payload.sig'),
+      );
 
-      // Verifica cada referência e seu hash SHA-256
       for (final entrada in arquivos.entries) {
         final hashEsperado = base64.encode(sha256.convert(entrada.value).bytes);
         expect(xmlAssinatura, contains('URI="${entrada.key}"'));
         expect(xmlAssinatura, contains('<DigestValue>$hashEsperado</DigestValue>'));
       }
+    });
+
+    test('extrairAtestadoOidcJwt retorna null quando XML nao possui OidcIdToken ou eh malformado', () async {
+      final xmlSemOidc = await assinador.gerarAssinaturaXml(
+        arquivos: {'OEBPS/relatorio.xhtml': utf8.encode('<html/>')},
+        privateKeyPem: privateKeyPem,
+      );
+      expect(assinador.extrairAtestadoOidcJwt(xmlSemOidc), isNull);
+      expect(assinador.extrairAtestadoOidcJwt('<xml-invalido'), isNull);
     });
 
     test('verificarAssinatura deve retornar true para arquivos íntegros', () async {
@@ -74,7 +87,7 @@ void main() {
       expect(valida, isTrue);
     });
 
-    test('verificarAssinatura deve retornar false se qualquer arquivo for alterado', () async {
+    test('verificarAssinatura deve retornar false se qualquer arquivo for alterado ou ausente', () async {
       final arquivos = {
         'OEBPS/relatorio.xhtml': utf8.encode('<html>dados originais</html>'),
       };
@@ -88,13 +101,31 @@ void main() {
         'OEBPS/relatorio.xhtml': utf8.encode('<html>dados ADULTERADOS!</html>'),
       };
 
-      final valida = assinador.verificarAssinatura(
-        signaturesXml: xmlAssinatura,
-        arquivos: arquivosAdulterados,
-        publicKeyPem: publicKeyPem,
+      expect(
+        assinador.verificarAssinatura(
+          signaturesXml: xmlAssinatura,
+          arquivos: arquivosAdulterados,
+          publicKeyPem: publicKeyPem,
+        ),
+        isFalse,
       );
 
-      expect(valida, isFalse);
+      expect(
+        assinador.verificarAssinatura(
+          signaturesXml: xmlAssinatura,
+          arquivos: const {},
+          publicKeyPem: publicKeyPem,
+        ),
+        isFalse,
+      );
+      expect(
+        assinador.verificarAssinatura(
+          signaturesXml: '<invalido/>',
+          arquivos: arquivos,
+          publicKeyPem: publicKeyPem,
+        ),
+        isFalse,
+      );
     });
 
     test('verificarAssinatura deve retornar false se chave pública for diferente', () async {
@@ -107,7 +138,6 @@ void main() {
         privateKeyPem: privateKeyPem,
       );
 
-      // Gera outra chave pública
       final outroKeyPair = CryptoUtils.generateEcKeyPair();
       final outraPublicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(outroKeyPair.publicKey as ECPublicKey);
 

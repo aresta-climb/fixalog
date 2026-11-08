@@ -4,6 +4,7 @@
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -679,6 +680,8 @@ class WizardStateController extends Notifier<WizardState> {
     required String sessionId,
     required String mediaUuid,
     required StepCampoSimples_TipoCampo tipo,
+    double? inicioCorteSegundos,
+    double? duracaoCorteSegundos,
   }) {
     final mediaService = ref.read(mediaCompressorProvider);
     if (tipo == StepCampoSimples_TipoCampo.IMAGE) {
@@ -695,6 +698,8 @@ class WizardStateController extends Notifier<WizardState> {
           sessionManager: sessionManager,
           sessionId: sessionId,
           mediaUuid: mediaUuid,
+          inicioSegundos: inicioCorteSegundos,
+          duracaoSegundos: duracaoCorteSegundos,
         ),
       );
     }
@@ -807,10 +812,19 @@ class WizardStateController extends Notifier<WizardState> {
     String filePath,
     StepCampoSimples_TipoCampo tipo, {
     String? listItemId,
+    double? inicioCorteSegundos,
+    double? duracaoCorteSegundos,
   }) async {
     await saveMultipleMediaAnswers(
       conteudoId,
-      [(filePath: filePath, tipo: tipo)],
+      [
+        (
+          filePath: filePath,
+          tipo: tipo,
+          inicioCorteSegundos: inicioCorteSegundos,
+          duracaoCorteSegundos: duracaoCorteSegundos,
+        ),
+      ],
       listItemId: listItemId,
     );
   }
@@ -819,7 +833,13 @@ class WizardStateController extends Notifier<WizardState> {
   /// [WizardState.processandoMidiasPorCampo] e persistindo a sessão uma única vez ao final.
   Future<void> saveMultipleMediaAnswers(
     String conteudoId,
-    List<({String filePath, StepCampoSimples_TipoCampo tipo})> arquivos, {
+    List<
+        ({
+          String filePath,
+          StepCampoSimples_TipoCampo tipo,
+          double? inicioCorteSegundos,
+          double? duracaoCorteSegundos,
+        })> arquivos, {
     String? listItemId,
   }) async {
     if (arquivos.isEmpty) return;
@@ -851,11 +871,29 @@ class WizardStateController extends Notifier<WizardState> {
           bytes: lido.bytes,
         );
 
+        if (item.tipo == StepCampoSimples_TipoCampo.VIDEO &&
+            (item.inicioCorteSegundos != null ||
+                item.duracaoCorteSegundos != null)) {
+          final cortePath = await sessionManager.getMediaFilePath(
+            sessionId: state.sessionId,
+            mediaUuid: '${mediaUuid}_corte',
+            extension: '.json',
+          );
+          File(cortePath).writeAsStringSync(
+            jsonEncode(<String, dynamic>{
+              'inicio': item.inicioCorteSegundos ?? 0.0,
+              'duracao': item.duracaoCorteSegundos ?? 60.0,
+            }),
+          );
+        }
+
         _dispararPreProcessamentoEmBackground(
           sessionManager: sessionManager,
           sessionId: state.sessionId,
           mediaUuid: mediaUuid,
           tipo: item.tipo,
+          inicioCorteSegundos: item.inicioCorteSegundos,
+          duracaoCorteSegundos: item.duracaoCorteSegundos,
         );
 
         final refMidia = ReferenciaMidia();

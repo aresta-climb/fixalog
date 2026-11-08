@@ -394,11 +394,16 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       String x509CertPem;
       try {
-        x509CertPem = await _cryptoService.generateX509Certificate(
-          registro.idProtocolo.isNotEmpty
-              ? registro.idProtocolo
-              : 'Fixalog',
-        );
+        final certSalvo = await _cryptoService.obterCertificadoX509Pem();
+        if (certSalvo != null && certSalvo.trim().isNotEmpty) {
+          x509CertPem = certSalvo;
+        } else {
+          x509CertPem = await _cryptoService.generateX509Certificate(
+            registro.idProtocolo.isNotEmpty
+                ? registro.idProtocolo
+                : 'Fixalog',
+          );
+        }
       } catch (_) {
         x509CertPem = publicKeyPem;
       }
@@ -428,10 +433,12 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         }
       }
 
+      final atestadoOidcJwt = await _cryptoService.obterAtestadoOidcJwt();
       final signaturesXml = await _xmlSigner.gerarAssinaturaXml(
         arquivos: recursosAssinatura,
         privateKeyPem: privateKeyPem,
         certificadoX509Pem: x509CertPem,
+        atestadoOidcJwt: atestadoOidcJwt,
       );
 
       // 6. Empacotamento do Container EPUB 3

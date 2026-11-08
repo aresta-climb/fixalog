@@ -4,8 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
-import '../viewmodels/identity_form_view_model.dart';
+import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../home/views/home_screen.dart';
+import '../viewmodels/identity_form_view_model.dart';
 
 class IdentitySetupScreen extends ConsumerStatefulWidget {
   const IdentitySetupScreen({super.key});
@@ -33,11 +34,20 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
     final l10n = ResolvedorIdioma.obterTraducoes(locale);
     final ehPt = locale.languageCode == 'pt';
 
-    // React to success
     ref.listen<IdentityFormState>(identityFormViewModelProvider, (
       previous,
       next,
     ) {
+      if (next.nomeSugerido != null &&
+          next.nomeSugerido!.isNotEmpty &&
+          _nomeController.text.trim().isEmpty) {
+        _nomeController.text = next.nomeSugerido!;
+      }
+      if (next.clubeSugerido != null &&
+          next.clubeSugerido!.isNotEmpty &&
+          _clubeController.text.trim().isEmpty) {
+        _clubeController.text = next.clubeSugerido!;
+      }
       if (next.isSuccess) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -56,8 +66,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
     });
 
     return Scaffold(
-      backgroundColor:
-          Colors.transparent, // Permite que o container de fora mostre o fundo
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -65,9 +74,9 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
             end: Alignment.bottomRight,
             stops: [0.0, 0.5, 1.0],
             colors: [
-              Color(0xFF2D3328), // Dark moss
-              Color(0xFF9CB892), // Lighter moss green
-              Color(0xFF455A46), // Dark greenish bottom
+              Color(0xFF2D3328),
+              Color(0xFF9CB892),
+              Color(0xFF455A46),
             ],
           ),
         ),
@@ -80,7 +89,6 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Ícones de topo superior
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -98,7 +106,6 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Typography 'FIX LOG'
                 Text(
                   'FIX',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
@@ -119,15 +126,129 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 ),
                 const SizedBox(height: 12),
                 Container(width: 60, height: 4, color: const Color(0xFFFF6B00)),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+
+                Text(
+                  ehPt
+                      ? 'CONTA DE IDENTIDADE CRIPTOGRÁFICA (OBRIGATÓRIO)'
+                      : 'CRYPTOGRAPHIC IDENTITY ACCOUNT (REQUIRED)',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: const Color(0xFFFFB693),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                if (state.sessaoNuvem != null)
+                  Container(
+                    key: const Key('badge_sessao_oidc'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1C1E),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFAED09F)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.verified,
+                          color: Color(0xFFAED09F),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${state.sessaoNuvem!.provedor.valor.toUpperCase()} • ${state.sessaoNuvem!.email}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const Key('botao_login_google'),
+                        onPressed: state.isLoading
+                            ? null
+                            : () {
+                                ref
+                                    .read(
+                                      identityFormViewModelProvider.notifier,
+                                    )
+                                    .autenticarComProvedor(ProvedorOidc.google);
+                              },
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A1C1E),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFFFF6B00)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.g_mobiledata, size: 22),
+                        label: Text(
+                          ehPt ? 'GOOGLE' : 'GOOGLE',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const Key('botao_login_apple'),
+                        onPressed: state.isLoading
+                            ? null
+                            : () {
+                                ref
+                                    .read(
+                                      identityFormViewModelProvider.notifier,
+                                    )
+                                    .autenticarComProvedor(ProvedorOidc.apple);
+                              },
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A1C1E),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFFFF6B00)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.apple, size: 20),
+                        label: Text(
+                          ehPt ? 'APPLE' : 'APPLE',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
 
                 // Campo Nome
                 Text(
                   ehPt ? 'NOME COMPLETO' : l10n.identidadeLabelNome,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: const Color(
-                      0xFFFFB693,
-                    ), // primary_dim ou orange claro
+                    color: const Color(0xFFFFB693),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.0,
                     fontSize: 12,
@@ -142,9 +263,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.3),
                     ),
-                    fillColor: const Color(
-                      0xFF1A1C1E,
-                    ), // Fundo ainda mais escuro para campos
+                    fillColor: const Color(0xFF1A1C1E),
                     focusedBorder: OutlineInputBorder(
                       borderSide: const BorderSide(
                         color: Color(0xFFFF6B00),
@@ -215,7 +334,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 Container(
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1C1E), // Fundo técnico escuro
+                    color: const Color(0xFF1A1C1E),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.05),
@@ -239,9 +358,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                                   : l10n.identidadeTituloInicial,
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(
-                                    color: const Color(
-                                      0xFFAED09F,
-                                    ), // Verde técnico do mock
+                                    color: const Color(0xFFAED09F),
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
                                   ),
@@ -252,12 +369,10 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                       const SizedBox(height: 16),
                       Text(
                         ehPt
-                            ? 'Ao prosseguir, uma chave privada RSA-4096 será gerada no Secure Enclave deste dispositivo. Suas manutenções serão assinadas digitalmente, garantindo integridade técnica inquestionável.'
+                            ? 'Ao prosseguir, uma chave privada ECDSA P-256 será gerada no cofre criptografado deste dispositivo e vinculada ao seu login Google ou Apple (OpenPubkey). Suas manutenções serão assinadas digitalmente com autoria verificável.'
                             : l10n.identidadeSubtituloInicial,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(
-                            0xFFFFB693,
-                          ), // Texto salmão/laranja claro
+                          color: const Color(0xFFFFB693),
                           fontSize: 14,
                           height: 1.5,
                         ),
@@ -332,7 +447,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 // Botão Tátil de Ação
                 SizedBox(
                   width: double.infinity,
-                  height: 64, // Touch target gigante
+                  height: 64,
                   child: ElevatedButton(
                     onPressed: state.isLoading
                         ? null
@@ -343,6 +458,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                                 .submitIdentity(
                                   _nomeController.text,
                                   _clubeController.text,
+                                  exigirAutenticacaoOidc: true,
                                 );
                           },
                     style: ElevatedButton.styleFrom(

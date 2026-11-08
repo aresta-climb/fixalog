@@ -942,4 +942,40 @@ void main() {
       expect(find.text('共有'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Compartilha link público web https://fixalog.app/v/<idSessao> pelo modal de compartilhamento',
+    (tester) async {
+      String? textoCompartilhado;
+      String? assuntoCompartilhado;
+
+      await tester.pumpWidget(
+        criarTelaParaTeste(
+          caminhoEpub: '/meu/laudo.epub',
+          caminhoPdf: '/meu/laudo.pdf',
+          caminhoXhtml: '/cache/relatorio.xhtml',
+          idSessao: 'sessao_web_99',
+          compartilharArquivosProxy: (paths, {text, subject}) async {
+            textoCompartilhado = text;
+            assuntoCompartilhado = subject;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_compartilhar')));
+      await tester.pumpAndSettle();
+
+      final opcaoLink = find.byKey(const Key('opcao_compartilhar_link_web'));
+      expect(opcaoLink, findsOneWidget);
+      await tester.tap(opcaoLink);
+      await tester.pumpAndSettle();
+
+      expect(
+        textoCompartilhado,
+        equals('https://fixalog.app/v/sessao_web_99'),
+      );
+      expect(assuntoCompartilhado, isNotNull);
+    },
+  );
 }

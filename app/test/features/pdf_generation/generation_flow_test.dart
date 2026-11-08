@@ -77,6 +77,8 @@ class FakeMediaCompressorService extends MediaCompressorService {
     required SessionBundleManager sessionManager,
     required String sessionId,
     required String mediaUuid,
+    double? inicioSegundos,
+    double? duracaoSegundos,
   }) async {
     final video = File('${dir.path}/$mediaUuid.mp4');
     final poster = File('${dir.path}/${mediaUuid}_poster.jpg');

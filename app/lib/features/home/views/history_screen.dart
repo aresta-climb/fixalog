@@ -10,6 +10,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
@@ -176,6 +177,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         fontSize: 16,
                         letterSpacing: 2.0,
                       ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const Key('botao_sincronizar_nuvem'),
+                      tooltip: 'Sincronizar com a nuvem',
+                      icon: const Icon(
+                        Icons.cloud_sync_outlined,
+                        color: Color(0xFFFF6B00),
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        ref
+                            .read(sincronizadorNuvemServiceProvider)
+                            .sincronizarPendentes();
+                      },
                     ),
                   ],
                 ),
@@ -414,10 +430,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   : const Color(0xFF10B981);
                               final cloudIcon = isEmProgresso
                                   ? Icons.pending_actions_outlined
-                                  : Icons.cloud_done_outlined;
+                                  : (record.enviadoNuvem
+                                        ? Icons.cloud_done_outlined
+                                        : Icons.cloud_upload_outlined);
                               final cloudIconColor = isEmProgresso
                                   ? const Color(0xFFF59E0B)
-                                  : const Color(0xFF4F6D44);
+                                  : (record.enviadoNuvem
+                                        ? const Color(0xFF4F6D44)
+                                        : const Color(0xFF9CA3AF));
 
                               return _buildHistoryItem(
                                 title: _obterTituloRegistro(record),

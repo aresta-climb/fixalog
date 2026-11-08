@@ -348,6 +348,41 @@ void main() {
       expect(await originalFile.exists(), isTrue);
     });
 
+    test('transcodificarVideoSessao le metadado _corte.json quando presente e aplica -ss e -t', () async {
+      const sessionId = 'sessao-video-corte';
+      const mediaUuid = 'video-longo-uuid';
+
+      await sessionManager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: '.mp4',
+        bytes: Uint8List.fromList([5, 6, 7, 8]),
+      );
+
+      final cortePath = await sessionManager.getMediaFilePath(
+        sessionId: sessionId,
+        mediaUuid: '${mediaUuid}_corte',
+        extension: '.json',
+      );
+      await File(cortePath).writeAsString('{"inicio": 12.0, "duracao": 60.0}');
+
+      final resultado = await service.transcodificarVideoSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+
+      expect(resultado.video, isNotNull);
+      expect(
+        comandosExecutados.any((cmd) => cmd.contains('-ss 12.0 -t 60.0')),
+        isTrue,
+      );
+      expect(
+        comandosExecutados.any((cmd) => cmd.contains('-ss 12.5')),
+        isTrue,
+      );
+    });
+
     test('transcodificarVideoSessao retorna nulos se arquivo original não existir', () async {
       const sessionId = 'sessao-video-vazia';
       const mediaUuid = 'video-inexistente';

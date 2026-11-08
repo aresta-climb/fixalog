@@ -17,6 +17,7 @@ import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
 /// Tela para visualização no aplicativo do relatório técnico de manutenção gerado em EPUB 3 (XHTML responsivo).
 ///
@@ -629,6 +630,23 @@ class _VisualizadorRelatorioScreenState
                   enabled: true,
                   onTap: () => Navigator.of(modalContext).pop('pdf'),
                 ),
+                ListTile(
+                  key: const Key('opcao_compartilhar_link_web'),
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFE3F2FD),
+                    child: Icon(Icons.link, color: Colors.blue),
+                  ),
+                  title: Text(
+                    ehPt
+                        ? 'Link Público Web (fixalog.app)'
+                        : 'Public Web Link (fixalog.app)',
+                  ),
+                  subtitle: const Text(
+                    'Visualização instantânea no navegador com verificação criptográfica',
+                  ),
+                  enabled: true,
+                  onTap: () => Navigator.of(modalContext).pop('link_web'),
+                ),
               ],
             ),
           ),
@@ -640,6 +658,42 @@ class _VisualizadorRelatorioScreenState
       await _compartilharEpub();
     } else if (opcao == 'pdf') {
       await _compartilharPdf();
+    } else if (opcao == 'link_web') {
+      await _compartilharLinkWeb();
+    }
+  }
+
+  Future<void> _compartilharLinkWeb() async {
+    final id = (widget.idSessao != null && widget.idSessao!.trim().isNotEmpty)
+        ? widget.idSessao!.trim()
+        : p.basename(
+            p.dirname(widget.caminhoEpub ?? _caminhoXhtmlFinal ?? 'relatorio'),
+          );
+    final urlPublica = SincronizadorNuvemService.obterUrlCompartilhamentoPublico(
+      id,
+    );
+    try {
+      if (widget.compartilharArquivosProxy != null) {
+        await widget.compartilharArquivosProxy!(
+          const [],
+          text: urlPublica,
+          subject: widget.titulo,
+        );
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(
+            text: urlPublica,
+            subject: widget.titulo,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao compartilhar link web: $e')),
+        );
+      }
     }
   }
 

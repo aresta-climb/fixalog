@@ -3,40 +3,69 @@
 
 import 'dart:io';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Assinatura da função executora de comandos FFmpeg (permite injeção em testes).
 typedef ExecutadorFfmpeg = Future<bool> Function(String comando);
 
-/// Serviço responsável pela transcodificação padronizada de vídeos de inspeção
+/// Assinatura da função inspetora da duração de um arquivo de vídeo em segundos.
+typedef InspetorDuracaoVideo = Future<double?> Function(File arquivoVideo);
+
+/// Limite máximo canônico de duração (em segundos) para vídeos anexados em laudos do Fixalog.
+const double limiteMaximoDuracaoVideoSegundos = 60.0;
+
+/// Serviço responsável pela transcodificação padronizada de vídeos de inspeção,
+/// corte de trechos selecionados (máximo 60s), garantia de I-Frames a cada 10s (`-g 300`)
 /// e extração de poster frames estáticos para o relatório EPUB 3 e PDF.
-///
-/// Calibração oficial conforme especificações:
-/// - Vídeo: H.264 (High profile), 720p a 30fps, CRF 26, preset veryfast, -movflags +faststart.
-/// - Áudio: AAC mono a 64 kbps (-ac 1 -b:a 64k).
-/// - Poster frame: Extração estática aos 0.5s (-ss 0.5 -vframes 1) em formato JPEG.
 class VideoTranscoderService {
   final ExecutadorFfmpeg _executador;
+  final InspetorDuracaoVideo _inspetorDuracao;
 
-  VideoTranscoderService({ExecutadorFfmpeg? executador})
-      : _executador = executador ?? executarFfmpeg;
+  VideoTranscoderService({
+    ExecutadorFfmpeg? executador,
+    InspetorDuracaoVideo? inspetorDuracao,
+  })  : _executador = executador ?? executarFfmpeg,
+        _inspetorDuracao = inspetorDuracao ?? inspecionarDuracaoPadrao;
 
-  /// Transcodifica um arquivo de vídeo para H.264 720p 30fps CRF 26 (preset veryfast) com áudio mono AAC 64k.
+  /// Inspeciona a duração total em segundos de [arquivoVideo] (retorna `null` se inexistente ou ilegível).
+  Future<double?> obterDuracaoSegundos(File arquivoVideo) async {
+    if (!arquivoVideo.existsSync()) {
+      return null;
+    }
+    return _inspetorDuracao(arquivoVideo);
+  }
+
+  /// Transcodifica um arquivo de vídeo para H.264 720p 30fps CRF 26 (`-preset veryfast -g 300`)
+  /// com áudio mono AAC 64k, aplicando corte opcional via [inicioSegundos] (`-ss`) e
+  /// [duracaoSegundos] (`-t`).
   ///
   /// Retorna o [File] gerado em [caminhoSaida] em caso de sucesso, ou `null` se houver falha
   /// ou se [arquivoEntrada] não existir.
   Future<File?> transcodificarVideo({
     required File arquivoEntrada,
     required String caminhoSaida,
+    double? inicioSegundos,
+    double? duracaoSegundos,
   }) async {
     if (!await arquivoEntrada.exists()) {
       return null;
     }
 
     final inputPath = arquivoEntrada.absolute.path;
+    final prefixosCorte = <String>[];
+    if (inicioSegundos != null && inicioSegundos > 0) {
+      prefixosCorte.add('-ss $inicioSegundos');
+    }
+    if (duracaoSegundos != null && duracaoSegundos > 0) {
+      prefixosCorte.add('-t $duracaoSegundos');
+    }
+    final trechoArgs =
+        prefixosCorte.isEmpty ? '' : '${prefixosCorte.join(' ')} ';
+
     final comando =
-        '-i "$inputPath" -vf scale=-2:720 -r 30 -c:v libx264 -crf 26 -preset veryfast -c:a aac -ac 1 -b:a 64k -movflags +faststart -y "$caminhoSaida"';
+        '$trechoArgs-i "$inputPath" -vf scale=-2:720 -r 30 -c:v libx264 -crf 26 -preset veryfast -g 300 -c:a aac -ac 1 -b:a 64k -movflags +faststart -y "$caminhoSaida"';
 
     final sucesso = await _executador(comando);
     if (sucesso) {
@@ -74,6 +103,17 @@ class VideoTranscoderService {
     final session = await FFmpegKit.execute(comando);
     final returnCode = await session.getReturnCode();
     return ReturnCode.isSuccess(returnCode);
+  }
+
+  /// Inspeciona a duração do vídeo via [FFprobeKit.getMediaInformation].
+  static Future<double?> inspecionarDuracaoPadrao(File arquivoVideo) async {
+    final sessao = await FFprobeKit.getMediaInformation(arquivoVideo.absolute.path);
+    final info = sessao.getMediaInformation();
+    final duracaoStr = info?.getDuration();
+    if (duracaoStr == null) {
+      return null;
+    }
+    return double.tryParse(duracaoStr);
   }
 }
 

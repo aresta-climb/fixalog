@@ -28,7 +28,7 @@ void main() {
   });
 
   group('VideoTranscoderService - Testes Unitários', () {
-    test('transcodificarVideo gera comando otimizado para H.264 720p CRF 26 mono 64k faststart', () async {
+    test('transcodificarVideo gera comando otimizado com -g 300 para I-Frames a cada 10s', () async {
       String? comandoExecutado;
       final service = VideoTranscoderService(
         executador: (cmd) async {
@@ -51,11 +51,46 @@ void main() {
       expect(comandoExecutado, contains('-c:v libx264'));
       expect(comandoExecutado, contains('-crf 26'));
       expect(comandoExecutado, contains('-preset veryfast'));
+      expect(comandoExecutado, contains('-g 300'));
       expect(comandoExecutado, contains('-c:a aac'));
       expect(comandoExecutado, contains('-ac 1'));
       expect(comandoExecutado, contains('-b:a 64k'));
       expect(comandoExecutado, contains('-movflags +faststart'));
       expect(comandoExecutado, contains('-y "$outputPath"'));
+    });
+
+    test('transcodificarVideo aplica -ss e -t quando inicioSegundos e duracaoSegundos sao informados', () async {
+      String? comandoExecutado;
+      final service = VideoTranscoderService(
+        executador: (cmd) async {
+          comandoExecutado = cmd;
+          return true;
+        },
+      );
+
+      final outputPath = '${tempDir.path}/video_cortado.mp4';
+      final resultado = await service.transcodificarVideo(
+        arquivoEntrada: videoOriginal,
+        caminhoSaida: outputPath,
+        inicioSegundos: 15.0,
+        duracaoSegundos: 60.0,
+      );
+
+      expect(resultado, isNotNull);
+      expect(comandoExecutado, startsWith('-ss 15.0 -t 60.0 -i '));
+      expect(comandoExecutado, contains('-g 300'));
+    });
+
+    test('obterDuracaoSegundos retorna duracao do inspetor ou null quando arquivo nao existe', () async {
+      final service = VideoTranscoderService(
+        inspetorDuracao: (_) async => 82.5,
+      );
+
+      expect(await service.obterDuracaoSegundos(videoOriginal), equals(82.5));
+      expect(
+        await service.obterDuracaoSegundos(File('${tempDir.path}/inexistente.mp4')),
+        isNull,
+      );
     });
 
     test('transcodificarVideo retorna null quando o comando falha', () async {
@@ -171,16 +206,24 @@ void main() {
       expect(service, isA<VideoTranscoderService>());
     });
 
-    test('executarFfmpeg utiliza FFmpegKit através da plataforma mockada', () async {
+    test('executarFfmpeg e inspecionarDuracaoPadrao utilizam FFmpegKit/FFprobeKit através da plataforma', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('flutter.arthenica.com/ffmpeg_kit_event'),
         (MethodCall call) async => null,
       );
 
-      FFmpegKitPlatform.instance = FakeFFmpegKitPlatform();
+      final fakePlatform = FakeFFmpegKitPlatform(duracaoSimulada: '75.4');
+      FFmpegKitPlatform.instance = fakePlatform;
 
       final sucesso = await VideoTranscoderService.executarFfmpeg('-version');
       expect(sucesso, isTrue);
+
+      final duracao = await VideoTranscoderService.inspecionarDuracaoPadrao(videoOriginal);
+      expect(duracao, equals(75.4));
+
+      fakePlatform.duracaoSimulada = null;
+      final duracaoNula = await VideoTranscoderService.inspecionarDuracaoPadrao(videoOriginal);
+      expect(duracaoNula, isNull);
     });
   });
 }
@@ -188,10 +231,15 @@ void main() {
 class FakeFFmpegKitPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements FFmpegKitPlatform {
+  String? duracaoSimulada;
+
+  FakeFFmpegKitPlatform({this.duracaoSimulada});
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
     final name = invocation.memberName.toString();
-    if (name.contains('ffmpegKitConfigGetSession')) {
+    if (name.contains('ffmpegKitConfigGetSession') ||
+        name.contains('createMediaInformationSession')) {
       return Future.value({
         'sessionId': 1,
         'createTime': 0,
@@ -201,6 +249,18 @@ class FakeFFmpegKitPlatform extends Fake
         'command': '-version',
         'state': 2,
         'returnCode': 0,
+      });
+    }
+    if (name.contains('mediaInformationSessionGetMediaInformation')) {
+      if (duracaoSimulada == null) return Future.value(null);
+      return Future.value({
+        'format': {'duration': duracaoSimulada},
+      });
+    }
+    if (name.contains('mediaInformationJsonParserFrom')) {
+      if (duracaoSimulada == null) return Future.value(null);
+      return Future.value({
+        'format': {'duration': duracaoSimulada},
       });
     }
     if (name.contains('abstractSessionGetReturnCode')) {

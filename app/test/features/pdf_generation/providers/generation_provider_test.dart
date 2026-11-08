@@ -165,6 +165,8 @@ class _FakeMediaCompressorService extends MediaCompressorService {
     required SessionBundleManager sessionManager,
     required String sessionId,
     required String mediaUuid,
+    double? inicioSegundos,
+    double? duracaoSegundos,
   }) async {
     videosSolicitados.add(mediaUuid);
     return videosTranscodificados[mediaUuid] ?? (video: null, poster: null);

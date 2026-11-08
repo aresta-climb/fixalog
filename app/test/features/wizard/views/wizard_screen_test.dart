@@ -13,10 +13,12 @@ import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/seletor_documento_service.dart';
 import 'package:fixalog/features/media/services/servico_galeria_dispositivo.dart';
+import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
 import '../../../fakes/servico_galeria_dispositivo_fake.dart';
+import '../../../fakes/video_transcoder_service_fake.dart';
 
 void main() {
   const testYaml = '''
@@ -1391,12 +1393,14 @@ blocos:
 ''';
 
       final galeriaFake = ServicoGaleriaDispositivoFake();
+      final transcoderFake = VideoTranscoderServiceFake(duracaoPadraoSegundos: 30.0);
       final container = ProviderContainer(
         overrides: [
           sessionBundleManagerProvider.overrideWithValue(
             SessionBundleManager(baseDirectoryGetter: () async => tempDir),
           ),
           servicoGaleriaDispositivoProvider.overrideWithValue(galeriaFake),
+          videoTranscoderServiceProvider.overrideWithValue(transcoderFake),
         ],
       );
       addTearDown(container.dispose);
@@ -1450,6 +1454,23 @@ blocos:
       await tester.pumpAndSettle();
 
       expect(find.text('FOTO CAPTURADA'), findsNWidgets(3));
+
+      // 5. Vídeo > 60s na câmera salva o vídeo completo no rolo e abre SeletorTrechoVideoDialog
+      transcoderFake.duracoesPorCaminho[arqVideoCamera.path] = 95.0;
+      galeriaFake.simularFalha = false;
+
+      await tester.tap(find.text('ADICIONAR MÍDIA'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gravar com a Câmera'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selecionar trecho do vídeo (máx. 60s)'), findsOneWidget);
+      expect(galeriaFake.videosSalvos.length, equals(2));
+
+      await tester.tap(find.byKey(const Key('btn_confirmar_trecho_video')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('VÍDEO GRAVADO'), findsNWidgets(2));
     });
 
     testWidgets(

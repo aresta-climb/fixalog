@@ -1,276 +1,133 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:basic_utils/basic_utils.dart';
-import 'package:local_auth/local_auth.dart';
-
-class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
-
-class MockLocalAuthentication extends Mock implements LocalAuthentication {}
+import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late CryptoService cryptoService;
-  late MockFlutterSecureStorage mockSecureStorage;
-  late MockLocalAuthentication mockLocalAuth;
+  late bool biometriaPermitida;
 
   setUp(() {
-    mockSecureStorage = MockFlutterSecureStorage();
-    mockLocalAuth = MockLocalAuthentication();
-    // Assuming we refactor CryptoService to take dependencies via constructor
+    FlutterSecureStorage.setMockInitialValues({});
+    biometriaPermitida = true;
     cryptoService = CryptoService(
-      secureStorage: mockSecureStorage,
-      localAuth: mockLocalAuth,
+      autenticadorBiometrico: (_) async => biometriaPermitida,
     );
   });
 
-  group('ECDSA Key Generation & Storage', () {
-    test('Should generate and store ECDSA keys when none exist', () async {
-      // Arrange
-      when(
-        () => mockSecureStorage.read(key: 'private_key'),
-      ).thenAnswer((_) async => null);
-      when(
-        () => mockSecureStorage.write(
-          key: 'private_key',
-          value: any(named: 'value'),
-        ),
-      ).thenAnswer((_) async {});
-      when(
-        () => mockSecureStorage.write(
-          key: 'public_key',
-          value: any(named: 'value'),
-        ),
-      ).thenAnswer((_) async {});
-
-      // Act
+  group('Geração e Armazenamento de Chaves ECDSA', () {
+    test('Gera e persiste par de chaves ECDSA quando nenhuma chave existe no cofre', () async {
       await cryptoService.generateAndStoreKeysIfNeeded();
 
-      // Assert
-      verify(() => mockSecureStorage.read(key: 'private_key')).called(1);
+      final privateKeyPem = await cryptoService.getPrivateKeyPem();
+      final publicKeyPem = await cryptoService.getPublicKeyPem();
 
-      // Verify that write was called with PEM formatted keys
-      final capturedPrivate = verify(
-        () => mockSecureStorage.write(
-          key: 'private_key',
-          value: captureAny(named: 'value'),
-        ),
-      ).captured;
-      final capturedPublic = verify(
-        () => mockSecureStorage.write(
-          key: 'public_key',
-          value: captureAny(named: 'value'),
-        ),
-      ).captured;
-
-      expect(
-        capturedPrivate.first as String,
-        contains('BEGIN EC PRIVATE KEY'),
-      ); // basic_utils PEM format
-      expect(capturedPublic.first as String, contains('BEGIN PUBLIC KEY'));
+      expect(privateKeyPem, contains('BEGIN EC PRIVATE KEY'));
+      expect(publicKeyPem, contains('BEGIN PUBLIC KEY'));
     });
 
-    test(
-      'Should not generate new keys if private_key already exists',
-      () async {
-        // Arrange
-        when(
-          () => mockSecureStorage.read(key: 'private_key'),
-        ).thenAnswer((_) async => 'some_existing_pem');
+    test('Preserva par de chaves existente sem sobrescrever em chamadas subsequentes', () async {
+      await cryptoService.generateAndStoreKeysIfNeeded();
+      final primeiraPrivada = await cryptoService.getPrivateKeyPem();
+      final primeiraPublica = await cryptoService.getPublicKeyPem();
 
-        // Act
-        await cryptoService.generateAndStoreKeysIfNeeded();
-
-        // Assert
-        verify(() => mockSecureStorage.read(key: 'private_key')).called(1);
-        verifyNever(
-          () => mockSecureStorage.write(
-            key: 'private_key',
-            value: any(named: 'value'),
-          ),
-        );
-        verifyNever(
-          () => mockSecureStorage.write(
-            key: 'public_key',
-            value: any(named: 'value'),
-          ),
-        );
-      },
-    );
+      await cryptoService.generateAndStoreKeysIfNeeded();
+      expect(await cryptoService.getPrivateKeyPem(), equals(primeiraPrivada));
+      expect(await cryptoService.getPublicKeyPem(), equals(primeiraPublica));
+    });
   });
 
-  group('X.509 Certificate Generation', () {
-    test('Should generate a valid Self-Signed X.509 Certificate', () async {
-      // Arrange
-      // Mock the storage to return valid PEMs so the service can read them to generate the cert
-      final keyPair = CryptoUtils.generateEcKeyPair();
-      final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(
-        keyPair.privateKey as ECPrivateKey,
-      );
-      final publicKeyPem = CryptoUtils.encodeEcPublicKeyToPem(
-        keyPair.publicKey as ECPublicKey,
+  group('Certificado X.509, Nonce OpenPubkey e Atestado OIDC', () {
+    test('Gera certificado X.509 autoassinado com CN, O e OU sem regenerar chave ECDSA', () async {
+      await cryptoService.generateAndStoreKeysIfNeeded();
+      final fingerprintInicial = await cryptoService.calcularFingerprintChavePublica();
+
+      final certPem = await cryptoService.generateX509Certificate(
+        'Renato',
+        clubeAssociacao: 'FEMERJ',
       );
 
-      when(
-        () => mockSecureStorage.read(key: 'private_key'),
-      ).thenAnswer((_) async => privateKeyPem);
-      when(
-        () => mockSecureStorage.read(key: 'public_key'),
-      ).thenAnswer((_) async => publicKeyPem);
-
-      // Act
-      final certPem = await cryptoService.generateX509Certificate('Renato');
-
-      // Assert
-      expect(certPem, isNotNull);
       expect(certPem, contains('BEGIN CERTIFICATE'));
+      expect(await cryptoService.obterCertificadoX509Pem(), equals(certPem));
 
-      // Parse the cert to verify its subject
       final x509 = X509Utils.x509CertificateFromPem(certPem);
-      expect(x509.subject, containsPair('2.5.4.3', 'Renato')); // CN
-      expect(x509.subject, containsPair('2.5.4.10', 'Fixalog')); // O
-      when(
-        () => mockSecureStorage.read(key: 'public_key'),
-      ).thenAnswer((_) async => null);
+      expect(x509.subject, containsPair('2.5.4.3', 'Renato'));
+      expect(x509.subject, containsPair('2.5.4.10', 'Fixalog'));
+      expect(x509.subject, containsPair('2.5.4.11', 'FEMERJ'));
 
+      final certAtualizado = await cryptoService.generateX509Certificate(
+        'Renato Ferreira',
+        clubeAssociacao: 'N/A',
+      );
+      final x509Atualizado = X509Utils.x509CertificateFromPem(certAtualizado);
+      expect(x509Atualizado.subject, containsPair('2.5.4.3', 'Renato Ferreira'));
+      expect(x509Atualizado.subject.containsKey('2.5.4.11'), isFalse);
       expect(
-        () => cryptoService.generateX509Certificate('Renato'),
+        await cryptoService.calcularFingerprintChavePublica(),
+        equals(fingerprintInicial),
+      );
+    });
+
+    test('Lança exceção ao tentar gerar X.509 sem chaves previamente geradas', () async {
+      await expectLater(
+        cryptoService.generateX509Certificate('Renato'),
         throwsException,
       );
     });
-  });
 
-  group('PdfSigner & Biometrics', () {
-    test(
-      'Should return PdfSigner when biometric authentication succeeds',
-      () async {
-        // Arrange
-        final keyPair = CryptoUtils.generateEcKeyPair();
-        final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(
-          keyPair.privateKey as ECPrivateKey,
-        );
-
-        when(
-          () => mockSecureStorage.read(key: 'private_key'),
-        ).thenAnswer((_) async => privateKeyPem);
-
-        when(
-          () => mockLocalAuth.authenticate(
-            localizedReason: any(named: 'localizedReason'),
-          ),
-        ).thenAnswer((_) async => true);
-
-        // Act
-        final signer = await cryptoService.getPdfSigner();
-
-        // Assert
-        expect(signer, isNotNull);
-        verify(
-          () => mockLocalAuth.authenticate(
-            localizedReason: any(named: 'localizedReason'),
-          ),
-        ).called(1);
-      },
-    );
-
-    test(
-      'Should throw Exception when biometric authentication fails',
-      () async {
-        // Arrange
-        when(
-          () => mockLocalAuth.authenticate(
-            localizedReason: any(named: 'localizedReason'),
-          ),
-        ).thenAnswer((_) async => false);
-
-        // Act & Assert
-        expect(() => cryptoService.getPdfSigner(), throwsException);
-      },
-    );
-
-    test(
-      'Should throw Exception in getPdfSigner if private key is missing',
-      () async {
-        when(
-          () => mockLocalAuth.authenticate(
-            localizedReason: any(named: 'localizedReason'),
-          ),
-        ).thenAnswer((_) async => true);
-        when(
-          () => mockSecureStorage.read(key: 'private_key'),
-        ).thenAnswer((_) async => null);
-
-        expect(() => cryptoService.getPdfSigner(), throwsException);
-      },
-    );
-  });
-
-  group('Sign Document and PublicKey', () {
-    test('Should sign document using real ECDSA', () async {
-      final keyPair = CryptoUtils.generateEcKeyPair();
-      final privateKeyPem = CryptoUtils.encodeEcPrivateKeyToPem(
-        keyPair.privateKey as ECPrivateKey,
+    test('Calcula rawNonce SHA-256 da chave pública e persiste atestado OIDC JWT', () async {
+      final rawNonce = await cryptoService.calcularRawNonceChavePublica();
+      expect(rawNonce.length, equals(64));
+      expect(
+        await cryptoService.calcularFingerprintChavePublica(),
+        equals(rawNonce),
       );
 
-      when(
-        () => mockSecureStorage.read(key: 'private_key'),
-      ).thenAnswer((_) async => privateKeyPem);
+      expect(await cryptoService.obterAtestadoOidcJwt(), isNull);
+      await cryptoService.salvarAtestadoOidcJwt('  jwt.oidc.google  ');
+      expect(await cryptoService.obterAtestadoOidcJwt(), equals('jwt.oidc.google'));
+    });
+  });
 
+  group('Biometria, Assinatura e Hash de Documento', () {
+    test('Retorna chave privada em getPdfSigner quando biometria é aprovada', () async {
+      await cryptoService.generateAndStoreKeysIfNeeded();
+      final signer = await cryptoService.getPdfSigner();
+      expect(signer, contains('BEGIN EC PRIVATE KEY'));
+    });
+
+    test('Lança exceção em getPdfSigner quando biometria falha ou chave inexiste', () async {
+      await expectLater(cryptoService.getPdfSigner(), throwsException);
+
+      await cryptoService.generateAndStoreKeysIfNeeded();
+      biometriaPermitida = false;
+      await expectLater(cryptoService.getPdfSigner(), throwsException);
+    });
+
+    test('Assina documento com ECDSA real e valida exceções quando chaves não existem', () async {
+      await expectLater(cryptoService.getPublicKeyPem(), throwsException);
+      await expectLater(cryptoService.getPrivateKeyPem(), throwsException);
+      await expectLater(cryptoService.signDocument([1, 2, 3]), throwsException);
+
+      await cryptoService.generateAndStoreKeysIfNeeded();
       final signatureBase64 = await cryptoService.signDocument([1, 2, 3]);
+      expect(signatureBase64.length, greaterThan(20));
 
-      expect(signatureBase64, isNotNull);
-      expect(
-        signatureBase64.length,
-        greaterThan(20),
-      ); // Base64 encoded ASN.1 DER is around 96 bytes
-    });
-
-    test(
-      'Should throw Exception in signDocument if private key is missing',
-      () async {
-        when(
-          () => mockSecureStorage.read(key: 'private_key'),
-        ).thenAnswer((_) async => null);
-        expect(() => cryptoService.signDocument([1, 2, 3]), throwsException);
-      },
-    );
-
-    test('Should get PublicKeyPem successfully', () async {
-      when(
-        () => mockSecureStorage.read(key: 'public_key'),
-      ).thenAnswer((_) async => 'mocked_public_key');
-
-      final pub = await cryptoService.getPublicKeyPem();
-
-      expect(pub, 'mocked_public_key');
-    });
-
-    test(
-      'Should throw Exception in getPublicKeyPem if public key is missing',
-      () async {
-        when(
-          () => mockSecureStorage.read(key: 'public_key'),
-        ).thenAnswer((_) async => null);
-        expect(() => cryptoService.getPublicKeyPem(), throwsException);
-      },
-    );
-
-    test('Should compute document hash correctly', () {
-      final docBytes = [1, 2, 3, 4, 5];
-      final hash = cryptoService.computeDocumentHash(docBytes);
-      // SHA-256 of [1, 2, 3, 4, 5]
+      final hash = cryptoService.computeDocumentHash([1, 2, 3, 4, 5]);
       expect(
         hash,
         '74f81fe167d99b4cb41d6d0ccda82278caee9f3e2f25d5e5a3936ff3dcec60d0',
       );
     });
-  });
 
-  test('Should initialize with default instances when parameters are null', () {
-    final service = CryptoService();
-    expect(service, isNotNull);
+    test('Inicializa com instâncias padrão quando nenhum parâmetro é fornecido', () {
+      final padrao = CryptoService();
+      expect(padrao, isNotNull);
+    });
   });
 }

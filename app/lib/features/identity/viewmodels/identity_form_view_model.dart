@@ -3,29 +3,43 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/local/identity_record.dart';
+import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../../core/services/crypto_service.dart';
+import '../../../core/services/providers.dart';
 import '../repositories/identity_repository.dart';
 
 class IdentityFormState {
   final bool isLoading;
   final String? errorMessage;
   final bool isSuccess;
+  final SessaoUsuarioNuvem? sessaoNuvem;
+  final String? nomeSugerido;
+  final String? clubeSugerido;
 
   IdentityFormState({
     this.isLoading = false,
     this.errorMessage,
     this.isSuccess = false,
+    this.sessaoNuvem,
+    this.nomeSugerido,
+    this.clubeSugerido,
   });
 
   IdentityFormState copyWith({
     bool? isLoading,
     String? errorMessage,
     bool? isSuccess,
+    SessaoUsuarioNuvem? sessaoNuvem,
+    String? nomeSugerido,
+    String? clubeSugerido,
   }) {
     return IdentityFormState(
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
       isSuccess: isSuccess ?? this.isSuccess,
+      sessaoNuvem: sessaoNuvem ?? this.sessaoNuvem,
+      nomeSugerido: nomeSugerido ?? this.nomeSugerido,
+      clubeSugerido: clubeSugerido ?? this.clubeSugerido,
     );
   }
 }
@@ -33,11 +47,45 @@ class IdentityFormState {
 class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
   final IdentityRepository _repository;
   final CryptoService _cryptoService;
+  final AutenticacaoNuvemService _autenticacaoService;
 
-  IdentityFormViewModel(this._repository, this._cryptoService)
-    : super(IdentityFormState());
+  IdentityFormViewModel(
+    this._repository,
+    this._cryptoService, [
+    AutenticacaoNuvemService? autenticacaoService,
+  ])  : _autenticacaoService =
+            autenticacaoService ??
+            AutenticacaoNuvemService(cryptoService: _cryptoService),
+        super(IdentityFormState());
 
-  Future<void> submitIdentity(String nome, String clube) async {
+  /// Autentica com Google ou Apple vinculando o `nonce` OpenPubkey da chave
+  /// pública ECDSA local (gerada ou restaurada do cofre do SO) ao `id_token` OIDC.
+  Future<void> autenticarComProvedor(ProvedorOidc provedor) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final sessao = await _autenticacaoService.entrarComProvedorOidc(provedor);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: null,
+        sessaoNuvem: sessao,
+        nomeSugerido: sessao.nomeCompleto,
+        clubeSugerido: sessao.clubeAssociacao,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Falha na autenticação OIDC: $e',
+      );
+    }
+  }
+
+  /// Salva a identidade local, sincroniza Nome e Clube com a conta autenticada
+  /// e atualiza o certificado X.509 mantendo o mesmo par de chaves ECDSA.
+  Future<void> submitIdentity(
+    String nome,
+    String clube, {
+    bool exigirAutenticacaoOidc = false,
+  }) async {
     if (nome.trim().isEmpty) {
       state = state.copyWith(
         errorMessage: 'Atenção. O nome não pode estar vazio.',
@@ -45,16 +93,32 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       return;
     }
 
+    if (exigirAutenticacaoOidc && state.sessaoNuvem == null) {
+      final sessaoSalva = await _autenticacaoService.obterSessaoAtual();
+      if (sessaoSalva == null) {
+        state = state.copyWith(
+          errorMessage: 'Autentique-se com Google ou Apple antes de continuar.',
+        );
+        return;
+      }
+      state = state.copyWith(sessaoNuvem: sessaoSalva);
+    }
+
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      // 1. Gera e guarda assimetricamente usando flutter_secure_storage
       await _cryptoService.generateAndStoreKeysIfNeeded();
 
-      // 2. Persiste a Identidade usando o Repository
+      final nomeLimpo = nome.trim();
+      final clubeLimpo = clube.trim();
+      await _autenticacaoService.atualizarPerfilConta(
+        nomeCompleto: nomeLimpo,
+        clubeAssociacao: clubeLimpo,
+      );
+
       final identity = IdentityRecord()
-        ..nome = nome
-        ..clubeAssociacao = clube.isEmpty ? 'N/A' : clube
+        ..nome = nomeLimpo
+        ..clubeAssociacao = clubeLimpo.isEmpty ? 'N/A' : clubeLimpo
         ..dataRegistro = DateTime.now();
 
       await _repository.saveIdentity(identity);
@@ -63,7 +127,7 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Falha durante registro: \$e',
+        errorMessage: 'Falha durante registro: $e',
       );
     }
   }
@@ -72,8 +136,13 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
 final identityFormViewModelProvider =
     StateNotifierProvider<IdentityFormViewModel, IdentityFormState>((ref) {
       final repository = ref.watch(identityRepositoryProvider);
-      final cryptoService = CryptoService();
-      return IdentityFormViewModel(repository, cryptoService);
+      final cryptoService = ref.watch(cryptoServiceProvider);
+      final autenticacaoService = ref.watch(autenticacaoNuvemServiceProvider);
+      return IdentityFormViewModel(
+        repository,
+        cryptoService,
+        autenticacaoService,
+      );
     });
 
 final hasIdentityProvider = FutureProvider<bool>((ref) async {

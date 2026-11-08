@@ -825,7 +825,9 @@ h2 {
             final caminhoPoster = posterFrames[uuid] ?? '';
             final caminhoQr = qrCodesVideos[uuid] ?? '';
 
-            outrosBuffer.write('<div class="container-video">');
+            outrosBuffer.write(
+              '<div id="video-${_escaparXml(uuid)}" class="container-video">',
+            );
             outrosBuffer.write('<div class="legenda-midia">$rotuloEscapado</div>');
             outrosBuffer.write(
               '<video controls="controls" poster="$caminhoPoster" class="player-video">'

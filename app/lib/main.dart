@@ -24,7 +24,11 @@ import 'core/services/servico_configuracao_remota.dart';
 import 'core/services/servico_telemetria.dart';
 
 /// DSN do projeto `fixalog` no Sentry (pode ser sobrescrito via `--dart-define=SENTRY_DSN=...`).
-const String kSentryDsn = String.fromEnvironment('SENTRY_DSN');
+const String kSentryDsn = String.fromEnvironment(
+  'SENTRY_DSN',
+  defaultValue:
+      'https://40a871e3f8b31e36201e4825ce94ad0c@o4511980548849664.ingest.us.sentry.io/4512399433269248',
+);
 
 /// Inicializa de forma resiliente e não-bloqueante a gestão adaptativa de memória,
 /// os serviços do Firebase (Core, App Check, Telemetria e Configuração Remota),

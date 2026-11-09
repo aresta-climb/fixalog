@@ -306,6 +306,10 @@ void main() {
         await req.response.close();
       });
 
+      expect(
+        AutenticacaoNuvemService.chaveAnonSupabasePadrao,
+        equals('sb_publishable_-pmZpZIRey5ukpGubgzVwg_fT_qKRJN'),
+      );
       AutenticacaoNuvemService.urlSupabaseAtiva =
           'http://127.0.0.1:${server.port}';
 

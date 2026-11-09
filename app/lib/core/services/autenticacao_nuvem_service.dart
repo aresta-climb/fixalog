@@ -127,10 +127,10 @@ class AutenticacaoNuvemService {
     defaultValue: 'https://yzkhiaoqtxvvcyyuwmqg.supabase.co',
   );
 
-  /// Chave anônima pública padrão do projeto Supabase (`aresta`).
+  /// Publishable key pública padrão do projeto Supabase (`aresta`) exigida no cabeçalho `apikey` do gateway.
   static const String chaveAnonSupabasePadrao = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_dHPpa5I1hOmKQ9RiNcaXWA_TP5edNam',
+    defaultValue: 'sb_publishable_-pmZpZIRey5ukpGubgzVwg_fT_qKRJN',
   );
 
   /// Web Client ID do Google Cloud Console para emissão de `id_token` via Credential Manager.

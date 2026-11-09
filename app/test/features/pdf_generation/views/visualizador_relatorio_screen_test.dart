@@ -12,6 +12,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
@@ -593,9 +594,9 @@ void main() {
           ..respostas['r2'] = (Resposta()
             ..midia = (ReferenciaMidia()
               ..video = (ArquivoVideo()..uuid = 'vid1')));
-        final pbFile = File('${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.binarypb');
-        pbFile.parent.createSync(recursive: true);
-        pbFile.writeAsBytesSync(registro.writeToBuffer());
+        final yamlFile = File('${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.yaml');
+        yamlFile.parent.createSync(recursive: true);
+        yamlFile.writeAsStringSync(SerializadorYamlRegistro.paraYaml(registro));
 
         List<String>? arquivosCompartilhados;
 
@@ -671,13 +672,13 @@ void main() {
           ..yamlConteudo = kYamlManutencaoVis
           ..respostas['via_nome'] = (Resposta()..texto = 'Via Teste')
           ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuid);
-        final pbFile = File(
-          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.binarypb',
+        final yamlFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/dados/registro.yaml',
         );
-        pbFile.parent.createSync(recursive: true);
-        pbFile.writeAsBytesSync(registroManut.writeToBuffer());
+        yamlFile.parent.createSync(recursive: true);
+        yamlFile.writeAsStringSync(SerializadorYamlRegistro.paraYaml(registroManut));
 
-        // Cria o material embutido em OEBPS/materiais/<matUuid>/OEBPS/dados/registro.binarypb e sua foto
+        // Cria o material embutido em OEBPS/materiais/<matUuid>/OEBPS/dados/registro.yaml e sua foto
         final registroMat = Registro()
           ..idProtocolo = 'cadastro_material'
           ..yamlConteudo = kYamlMaterialVis
@@ -685,11 +686,11 @@ void main() {
           ..respostas['nf_foto'] = (Resposta()
             ..midia = (ReferenciaMidia()
               ..imagem = (ArquivoImagem()..uuid = 'foto-nf-1')));
-        final pbMatFile = File(
-          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/dados/registro.binarypb',
+        final yamlMatFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/dados/registro.yaml',
         );
-        pbMatFile.parent.createSync(recursive: true);
-        pbMatFile.writeAsBytesSync(registroMat.writeToBuffer());
+        yamlMatFile.parent.createSync(recursive: true);
+        yamlMatFile.writeAsStringSync(SerializadorYamlRegistro.paraYaml(registroMat));
 
         final fotoMatFile = File(
           '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/materiais/$matUuid/OEBPS/midias/foto-nf-1.webp',
@@ -976,6 +977,78 @@ void main() {
         equals('https://fixalog.app/v/sessao_web_99'),
       );
       expect(assuntoCompartilhado, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'Geração padrão sob demanda faz fallback para sessionManager.lerRegistroSessao quando OEBPS/dados não está no cache',
+    (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_fallback_sess_');
+      try {
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final fakePdfService = FakePdfPrintSummaryService();
+        const sessionId = 'sessao-sem-oebps-dados';
+        const matUuidSessao = 'mat-em-sessao';
+
+        final xhtmlFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/relatorio.xhtml',
+        );
+        xhtmlFile.parent.createSync(recursive: true);
+        xhtmlFile.writeAsStringSync('<html><body>Manutenção</body></html>');
+
+        final registroManut = Registro()
+          ..idProtocolo = 'manutencao_ferragens'
+          ..yamlConteudo = kYamlManutencaoVis
+          ..respostas['via_nome'] = (Resposta()..texto = 'Via da Sessão')
+          ..respostas['lista_materiais_c'] = (Resposta()..texto = matUuidSessao);
+        await sessionManager.salvarRegistroSessao(
+          sessionId: sessionId,
+          registro: registroManut,
+        );
+
+        final registroMat = Registro()
+          ..idProtocolo = 'cadastro_material'
+          ..yamlConteudo = kYamlMaterialVis
+          ..respostas['mat_nome'] = (Resposta()..texto = 'Material da Sessão');
+        await sessionManager.salvarRegistroSessao(
+          sessionId: matUuidSessao,
+          registro: registroMat,
+        );
+
+        await tester.pumpWidget(criarTelaParaTeste(
+          caminhoEpub: '${tempDir.path}/manut.epub',
+          caminhoPdf: null,
+          caminhoXhtml: xhtmlFile.path,
+          idSessao: sessionId,
+          pdfSummaryService: fakePdfService,
+          sessionManager: sessionManager,
+          compartilharArquivosProxy: (paths, {text, subject}) async {},
+        ));
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('btn_compartilhar')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opcao_compartilhar_pdf')));
+        await tester.pumpAndSettle();
+
+        expect(fakePdfService.chamadas, equals(1));
+        expect(
+          fakePdfService.ultimoRegistro?.respostas['via_nome']?.texto,
+          equals('Via da Sessão'),
+        );
+        expect(fakePdfService.ultimosMateriaisAnexos?.length, equals(1));
+        expect(
+          fakePdfService.ultimosMateriaisAnexos?.first.registro.respostas['mat_nome']?.texto,
+          equals('Material da Sessão'),
+        );
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
     },
   );
 }

@@ -68,6 +68,7 @@ flutter:
 
   assets:
     - assets/protocols/
+    - protos/
     - assets/protocols/i18n/pt/
     - assets/protocols/i18n/en/
     - assets/protocols/i18n/es/

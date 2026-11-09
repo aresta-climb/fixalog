@@ -3,23 +3,21 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 
-// Mock path_provider
 class FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements PathProviderPlatform {
   final String path;
   FakePathProviderPlatform(this.path);
-  
+
   @override
   Future<String?> getApplicationDocumentsPath() async => path;
-  
-  // Note: PathProviderPlatform uses getApplicationDocumentsPath() in its interface,
-  // but path_provider library exposes getApplicationDocumentsDirectory() which calls getApplicationDocumentsPath() internally.
 }
 
 void main() {
@@ -39,88 +37,141 @@ void main() {
   });
 
   group('SessionBundleManager', () {
+    test('sessionBundleManagerProvider instancia SessionBundleManager padrão', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      expect(
+        container.read(sessionBundleManagerProvider),
+        isA<SessionBundleManager>(),
+      );
+    });
+
     test('getSessionDirectory should return correct path and create directory if not exists', () async {
-      final sessionId = 'test-session-123';
+      const sessionId = 'test-session-123';
       final dir = await manager.getSessionDirectory(sessionId);
 
       expect(dir.path, contains('sessoes'));
       expect(dir.path, contains(sessionId));
       expect(dir.existsSync(), isTrue);
+
+      final customManager = SessionBundleManager(
+        baseDirectoryGetter: () async => tempDir,
+      );
+      final dirCustom = await customManager.getSessionDirectory(sessionId);
+      expect(dirCustom.path, equals(dir.path));
     });
 
-    test('saveOriginalMedia should save with _original suffix', () async {
-      final sessionId = 'session-456';
-      final mediaUuid = 'media-789';
+    test('saveOriginalMedia e saveCompressedMedia salvam com e sem ponto na extensão', () async {
+      const sessionId = 'session-456';
+      const mediaUuid = 'media-789';
       final bytes = Uint8List.fromList([1, 2, 3]);
 
-      final file = await manager.saveOriginalMedia(
+      final fileOrig = await manager.saveOriginalMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: 'jpg',
+        bytes: bytes,
+      );
+      expect(fileOrig.path, endsWith('${mediaUuid}_original.jpg'));
+      expect(fileOrig.readAsBytesSync(), equals(bytes));
+
+      final fileComp = await manager.saveCompressedMedia(
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+        extension: 'webp',
+        bytes: bytes,
+      );
+      expect(fileComp.path, endsWith('$mediaUuid.webp'));
+      expect(fileComp.readAsBytesSync(), equals(bytes));
+
+      final pathComPonto = await manager.getMediaFilePath(
         sessionId: sessionId,
         mediaUuid: mediaUuid,
         extension: '.jpg',
-        bytes: bytes,
       );
-
-      expect(file.path, endsWith('${mediaUuid}_original.jpg'));
-      expect(file.existsSync(), isTrue);
-      expect(file.readAsBytesSync(), equals(bytes));
-    });
-
-    test('saveCompressedMedia should save without suffix', () async {
-      final sessionId = 'session-456';
-      final mediaUuid = 'media-789';
-      final bytes = Uint8List.fromList([4, 5, 6]);
-
-      final file = await manager.saveCompressedMedia(
+      final pathSemPonto = await manager.getMediaFilePath(
         sessionId: sessionId,
         mediaUuid: mediaUuid,
-        extension: '.jpg',
-        bytes: bytes,
+        extension: 'jpg',
       );
-
-      expect(file.path, endsWith('$mediaUuid.jpg'));
-      expect(file.existsSync(), isTrue);
-      expect(file.readAsBytesSync(), equals(bytes));
+      expect(pathComPonto, equals(pathSemPonto));
     });
 
-    test('saveManifest should save registro.binarypb', () async {
-      final sessionId = 'session-456';
-      final bytes = Uint8List.fromList([7, 8, 9]);
+    test('salvarRegistroSessao grava registro.yaml e lerRegistroSessao / readManifest leem de registro.yaml com fallback para registro.binarypb', () async {
+      const idYaml = 'sessao-yaml';
+      final regOriginal = Registro(
+        idSessao: idYaml,
+        idProtocolo: 'maintenance',
+        versaoProtocolo: '3',
+        yamlConteudo: 'id: maintenance\nversao: 3\n',
+      )..respostas['route_name'] = Resposta(texto: 'Via Leste');
 
-      final file = await manager.saveManifest(
-        sessionId: sessionId,
-        binarypb: bytes,
+      final arquivoYaml = await manager.salvarRegistroSessao(
+        sessionId: idYaml,
+        registro: regOriginal,
       );
+      expect(arquivoYaml.path, endsWith('registro.yaml'));
+      expect(arquivoYaml.readAsStringSync(), contains('route_name'));
 
-      expect(file.path, endsWith('registro.binarypb'));
-      expect(file.existsSync(), isTrue);
-      expect(file.readAsBytesSync(), equals(bytes));
+      final lidoDeYaml = await manager.lerRegistroSessao(sessionId: idYaml);
+      expect(lidoDeYaml, equals(regOriginal));
+
+      final bytesDeYaml = await manager.readManifest(sessionId: idYaml);
+      expect(Registro.fromBuffer(bytesDeYaml), equals(regOriginal));
+
+      // Fallback legado para registro.binarypb
+      const idLegado = 'sessao-legada-pb';
+      final regLegado = Registro(
+        idSessao: idLegado,
+        idProtocolo: 'maintenance',
+        versaoProtocolo: '2',
+      )..respostas['via_nome'] = Resposta(texto: 'Via Antiga');
+
+      final arquivoPb = await manager.saveManifest(
+        sessionId: idLegado,
+        binarypb: Uint8List.fromList(regLegado.writeToBuffer()),
+      );
+      expect(arquivoPb.path, endsWith('registro.binarypb'));
+
+      final lidoDePb = await manager.lerRegistroSessao(sessionId: idLegado);
+      expect(lidoDePb, equals(regLegado));
+
+      final bytesDePb = await manager.readManifest(sessionId: idLegado);
+      expect(Registro.fromBuffer(bytesDePb), equals(regLegado));
+
+      final arquivoJson = await manager.saveManifestJson(
+        sessionId: idLegado,
+        jsonStr: '{"idSessao":"$idLegado"}',
+      );
+      expect(arquivoJson.path, endsWith('registro.json'));
+      expect(arquivoJson.readAsStringSync(), contains(idLegado));
     });
 
     test('deleteSessionBundle should delete directory and all contents', () async {
-      final sessionId = 'session-to-delete';
-      
-      // Setup some files
-      await manager.saveManifest(sessionId: sessionId, binarypb: Uint8List.fromList([1]));
+      const sessionId = 'session-to-delete';
+
+      await manager.salvarRegistroSessao(
+        sessionId: sessionId,
+        registro: Registro(idSessao: sessionId),
+      );
       final dir = await manager.getSessionDirectory(sessionId);
       expect(dir.existsSync(), isTrue);
 
-      // Act
       await manager.deleteSessionBundle(sessionId);
 
-      // Assert
       expect(dir.existsSync(), isFalse);
     });
 
     test('getReportFilePath should return correct format fixalog_<uuid>.pdf', () async {
-      final sessionId = 'b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h';
-      
+      const sessionId = 'b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h';
+
       final reportPath = await manager.getReportFilePath(sessionId: sessionId);
-      
+
       expect(reportPath, contains('sessoes'));
       expect(reportPath, endsWith('fixalog_b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h.pdf'));
     });
 
-    test('copiarArquivosMidiaSessao copia midias originais e pre-processadas ignorando manifestos, temporarios e relatorios finais', () async {
+    test('copiarArquivosMidiaSessao copia midias originais e pre-processadas ignorando registro.yaml, registro.binarypb, temporarios e relatorios finais', () async {
       const idOrigem = 'sessao-origem';
       const idDestino = 'sessao-destino';
       final dirOrigem = await manager.getSessionDirectory(idOrigem);
@@ -137,6 +188,7 @@ void main() {
       File('${dirOrigem.path}/doc1_p1_thumb.jpg').writeAsBytesSync([20, 21]);
 
       // Arquivos que NÃO devem ser copiados
+      File('${dirOrigem.path}/registro.yaml').writeAsStringSync('idSessao: "$idOrigem"\n');
       File('${dirOrigem.path}/registro.binarypb').writeAsBytesSync([99]);
       File('${dirOrigem.path}/registro.json').writeAsStringSync('{}');
       File('${dirOrigem.path}/foto2.webp.tmp').writeAsBytesSync([88]);
@@ -160,6 +212,7 @@ void main() {
       expect(File('${dirDestino.path}/doc1_p1.webp').readAsBytesSync(), equals([18, 19]));
       expect(File('${dirDestino.path}/doc1_p1_thumb.jpg').readAsBytesSync(), equals([20, 21]));
 
+      expect(File('${dirDestino.path}/registro.yaml').existsSync(), isFalse);
       expect(File('${dirDestino.path}/registro.binarypb').existsSync(), isFalse);
       expect(File('${dirDestino.path}/registro.json').existsSync(), isFalse);
       expect(File('${dirDestino.path}/foto2.webp.tmp').existsSync(), isFalse);

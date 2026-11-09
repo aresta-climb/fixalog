@@ -22,6 +22,7 @@ import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/protocol_parser.dart';
+import 'package:fixalog/core/services/migrador_protocolo_registro.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 import 'package:fixnum/fixnum.dart';
@@ -1823,6 +1824,27 @@ protocolo:
       expect(stateAbertura.protocol!.versao, equals('3'));
       expect(stateAbertura.answers['route_name']?.texto, equals('Via Nova Sul (Cópia)'));
       expect(stateAbertura.answers['route_grade']?.texto, equals('7a'));
+
+      // 3. Verifica que a nova sessão duplicada foi persistida em registro.yaml e que loadSession recusa versão futura (versaoOrigem > versaoAlvo)
+      final dirCopia = await sessionManager.getSessionDirectory(idAberturaCopia);
+      expect(File('${dirCopia.path}/registro.yaml').existsSync(), isTrue);
+
+      const idSessaoFutura = 'sessao-futura-v99';
+      final regFuturo = Registro(
+        idSessao: idSessaoFutura,
+        idProtocolo: 'maintenance',
+        versaoProtocolo: '99',
+        yamlConteudo: 'id: maintenance\nversao: 99\nnome: "Manutenção"\nblocos: []',
+      );
+      await sessionManager.salvarRegistroSessao(
+        sessionId: idSessaoFutura,
+        registro: regFuturo,
+      );
+
+      await expectLater(
+        notifier.loadSession(idSessaoFutura),
+        throwsA(isA<ExcecaoVersaoProtocoloNaoSuportada>()),
+      );
     });
   });
 }

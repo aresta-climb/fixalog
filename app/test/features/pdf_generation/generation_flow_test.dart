@@ -205,7 +205,9 @@ void main() {
       expect(nomesArquivos, contains('OEBPS/content.opf'));
       expect(nomesArquivos, contains('OEBPS/relatorio.xhtml'));
       expect(nomesArquivos, contains('OEBPS/estilo.css'));
-      expect(nomesArquivos, contains('OEBPS/dados/registro.binarypb'));
+      expect(nomesArquivos, contains('OEBPS/dados/registro.yaml'));
+      expect(nomesArquivos, contains('OEBPS/dados/registro.proto'));
+      expect(nomesArquivos, contains('OEBPS/dados/wizard.proto'));
       expect(nomesArquivos, contains('OEBPS/midias/foto_p1.webp'));
       expect(nomesArquivos, contains('OEBPS/midias/video_p1.mp4'));
       expect(nomesArquivos, contains('OEBPS/midias/video_p1_poster.jpg'));

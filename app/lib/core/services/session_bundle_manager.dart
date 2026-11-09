@@ -6,11 +6,13 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import '../models/proto/protos/registro.pb.dart';
+import 'serializador_yaml_registro.dart';
 
 /// Gerencia a persistência de mídias e manifestos para uma Sessão de Geração.
 /// 
 /// Cada relatório/protocolo gerado no aplicativo pertence a uma "Sessão" única (`sessionId`).
-/// Todos os arquivos (mídias originais, comprimidas, manifestos binarypb/json e o próprio PDF gerado)
+/// Todos os arquivos (mídias originais, comprimidas, manifestos yaml/binarypb/json e o relatório gerado)
 /// ficam isolados dentro do diretório específico da sessão (`/sessoes/<sessionId>/`).
 /// Esta classe é a principal interface para escrever e ler esses bundles isolados no disco local.
 class SessionBundleManager {
@@ -65,11 +67,35 @@ class SessionBundleManager {
     return file;
   }
 
-  /// Salva o manifesto de dados em formato binário (Protobuf) no bundle da sessão.
+  /// Salva o manifesto de dados em formato YAML legível (`registro.yaml`) no bundle da sessão.
+  ///
+  /// Este arquivo é a Single Source of Truth legível por humanos para re-edição e geração de laudos.
+  Future<File> salvarRegistroSessao({
+    required String sessionId,
+    required Registro registro,
+  }) async {
+    final dir = await getSessionDirectory(sessionId);
+    final file = File(p.join(dir.path, 'registro.yaml'));
+    final conteudoYaml = SerializadorYamlRegistro.paraYaml(registro);
+    file.writeAsStringSync(conteudoYaml);
+    return file;
+  }
+
+  /// Lê e reconstrói o [Registro] tipado a partir de `registro.yaml` no disco,
+  /// com fallback transparente para `registro.binarypb` legado se `registro.yaml` não existir.
+  Future<Registro> lerRegistroSessao({required String sessionId}) async {
+    final dir = await getSessionDirectory(sessionId);
+    final arquivoYaml = File(p.join(dir.path, 'registro.yaml'));
+    if (arquivoYaml.existsSync()) {
+      return SerializadorYamlRegistro.deYaml(arquivoYaml.readAsStringSync());
+    }
+    final arquivoPb = File(p.join(dir.path, 'registro.binarypb'));
+    return Registro.fromBuffer(arquivoPb.readAsBytesSync());
+  }
+
+  /// Salva o manifesto de dados em formato binário (Protobuf) no bundle da sessão (suporte legado).
   ///
   /// O nome do arquivo será sempre `registro.binarypb`.
-  /// Este formato é usado pela biblioteca FFI no Rust para a geração do PDF e também
-  /// serve como a Single Source of Truth para re-edição de relatórios passados.
   Future<File> saveManifest({
     required String sessionId,
     required Uint8List binarypb,
@@ -94,11 +120,17 @@ class SessionBundleManager {
     return file;
   }
 
-  /// Lê o manifesto Protobuf binário a partir do disco, se existir.
-  ///
-  /// Usado primordialmente ao re-editar um relatório a partir do Histórico.
+  /// Lê o manifesto da sessão retornando os bytes Protobuf correspondentes
+  /// (lendo de `registro.yaml` quando disponível ou `registro.binarypb` como fallback).
   Future<Uint8List> readManifest({required String sessionId}) async {
     final dir = await getSessionDirectory(sessionId);
+    final arquivoYaml = File(p.join(dir.path, 'registro.yaml'));
+    if (arquivoYaml.existsSync()) {
+      final registro = SerializadorYamlRegistro.deYaml(
+        arquivoYaml.readAsStringSync(),
+      );
+      return Uint8List.fromList(registro.writeToBuffer());
+    }
     final file = File(p.join(dir.path, 'registro.binarypb'));
     return file.readAsBytesSync();
   }
@@ -122,7 +154,7 @@ class SessionBundleManager {
 
   /// Copia todos os arquivos de mídia (originais `_original.*` e pré-processados
   /// `.webp`, `_thumb.jpg`, `.mp4`, `_poster.jpg`) do diretório de [idSessaoOrigem]
-  /// para [idSessaoDestino], ignorando manifestos (`registro.binarypb`, `registro.json`),
+  /// para [idSessaoDestino], ignorando manifestos (`registro.yaml`, `registro.binarypb`, `registro.json`),
   /// arquivos temporários (`*.tmp`) e relatórios finais (`fixalog_*`, `relatorio.*`).
   Future<void> copiarArquivosMidiaSessao({
     required String idSessaoOrigem,
@@ -130,13 +162,13 @@ class SessionBundleManager {
   }) async {
     final dirOrigem = await getSessionDirectory(idSessaoOrigem);
     final dirDestino = await getSessionDirectory(idSessaoDestino);
-    if (!dirOrigem.existsSync()) return;
 
     final arquivos = dirOrigem.listSync().whereType<File>();
     for (final arquivo in arquivos) {
       final nome = p.basename(arquivo.path);
       final nomeLower = nome.toLowerCase();
-      if (nomeLower == 'registro.binarypb' ||
+      if (nomeLower == 'registro.yaml' ||
+          nomeLower == 'registro.binarypb' ||
           nomeLower == 'registro.json' ||
           nomeLower.endsWith('.tmp') ||
           nomeLower.startsWith('fixalog_') ||

@@ -4,8 +4,36 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
+
+class _AssetBundleFonteFake extends CachingAssetBundle {
+  final Map<String, Uint8List> ativos;
+  final bool lancarErro;
+
+  _AssetBundleFonteFake({
+    this.ativos = const {},
+    this.lancarErro = false,
+  });
+
+  @override
+  Future<ByteData> load(String key) async {
+    if (lancarErro || !ativos.containsKey(key)) {
+      throw StateError('Ativo não encontrado no bundle: $key');
+    }
+    final bytes = ativos[key]!;
+    return ByteData.sublistView(bytes);
+  }
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async {
+    if (lancarErro || !ativos.containsKey(key)) {
+      throw StateError('Ativo não encontrado no bundle: $key');
+    }
+    return utf8.decode(ativos[key]!);
+  }
+}
 
 void main() {
   group('EpubPackagerService - Testes Unitários', () {
@@ -58,13 +86,15 @@ void main() {
       expect(containerXml, contains('media-type="application/oebps-package+xml"'));
     });
 
-    test('empacotarEpub deve gerar manifesto content.opf com todos os itens declarados', () {
+    test('empacotarEpub deve gerar manifesto content.opf com todos os itens declarados incluindo registro.yaml e schemas .proto', () {
       final epubBytes = empacotador.empacotarEpub(
         idSessao: 'sessao_456',
         idProtocolo: 'via_fenda',
         xhtmlConteudo: '<html><body>Conteudo</body></html>',
         cssConteudo: 'body { margin: 0; }',
-        binarypb: Uint8List.fromList([10, 20, 30]),
+        registroYaml: 'idSessao: "sessao_456"\nidProtocolo: "via_fenda"\n',
+        registroProto: 'syntax = "proto3";\nmessage Registro {}\n',
+        wizardProto: 'syntax = "proto3";\nmessage DefinicaoProtocolo {}\n',
         arquivosMidia: {
           'midias/foto1.webp': Uint8List.fromList([1, 2]),
           'midias/foto2.jpg': Uint8List.fromList([3, 4]),
@@ -83,7 +113,9 @@ void main() {
       expect(opfConteudo, contains('href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"'));
       expect(opfConteudo, contains('href="relatorio.xhtml" media-type="application/xhtml+xml"'));
       expect(opfConteudo, contains('href="estilo.css" media-type="text/css"'));
-      expect(opfConteudo, contains('href="dados/registro.binarypb" media-type="application/x-protobuf"'));
+      expect(opfConteudo, contains('href="dados/registro.yaml" media-type="application/yaml"'));
+      expect(opfConteudo, contains('href="dados/registro.proto" media-type="text/plain"'));
+      expect(opfConteudo, contains('href="dados/wizard.proto" media-type="text/plain"'));
       expect(opfConteudo, contains('href="midias/foto1.webp" media-type="image/webp"'));
       expect(opfConteudo, contains('href="midias/foto2.jpg" media-type="image/jpeg"'));
       expect(opfConteudo, contains('href="midias/foto3.png" media-type="image/png"'));
@@ -147,18 +179,23 @@ void main() {
       expect(empacotador.determinarTipoMime('teste.css'), equals('text/css'));
       expect(empacotador.determinarTipoMime('teste.xhtml'), equals('application/xhtml+xml'));
       expect(empacotador.determinarTipoMime('teste.html'), equals('application/xhtml+xml'));
+      expect(empacotador.determinarTipoMime('dados/registro.yaml'), equals('application/yaml'));
+      expect(empacotador.determinarTipoMime('dados/protocolo.yml'), equals('application/yaml'));
+      expect(empacotador.determinarTipoMime('dados/registro.proto'), equals('text/plain'));
       expect(empacotador.determinarTipoMime('teste.binarypb'), equals('application/x-protobuf'));
       expect(empacotador.determinarTipoMime('fonts/NotoSans-Regular.ttf'), equals('font/ttf'));
       expect(empacotador.determinarTipoMime('teste.desconhecido'), equals('application/octet-stream'));
     });
 
-    test('empacotarEpub deve incorporar a árvore extraída de materiais em OEBPS/materiais/<uuid>/ preservando signatures.xml e registro.binarypb originais', () {
+    test('empacotarEpub deve incorporar a árvore extraída de materiais em OEBPS/materiais/<uuid>/ preservando signatures.xml, registro.yaml e schemas .proto originais', () {
       final epubMaterialBytes = empacotador.empacotarEpub(
         idSessao: 'uuid-mat-1',
-        idProtocolo: 'cadastro_material',
+        idProtocolo: 'material_registration',
         xhtmlConteudo: '<html><body>Ficha do Material</body></html>',
         cssConteudo: 'body { color: #fff; }',
-        binarypb: Uint8List.fromList([0x0A, 0x0B, 0x0C]),
+        registroYaml: 'idSessao: "uuid-mat-1"\nidProtocolo: "material_registration"\n',
+        registroProto: 'syntax = "proto3";\nmessage Registro {}\n',
+        wizardProto: 'syntax = "proto3";\nmessage Step {}\n',
         arquivosMidia: {
           'midias/nota_fiscal.webp': Uint8List.fromList([9, 8, 7]),
         },
@@ -168,14 +205,16 @@ void main() {
       final arquivosExtraidosMat = empacotador.extrairArquivosDeEpubAninhado(epubMaterialBytes);
       expect(arquivosExtraidosMat.containsKey('mimetype'), isFalse);
       expect(arquivosExtraidosMat.containsKey('META-INF/signatures.xml'), isTrue);
-      expect(arquivosExtraidosMat.containsKey('OEBPS/dados/registro.binarypb'), isTrue);
+      expect(arquivosExtraidosMat.containsKey('OEBPS/dados/registro.yaml'), isTrue);
+      expect(arquivosExtraidosMat.containsKey('OEBPS/dados/registro.proto'), isTrue);
+      expect(arquivosExtraidosMat.containsKey('OEBPS/dados/wizard.proto'), isTrue);
 
       final epubManutencaoBytes = empacotador.empacotarEpub(
         idSessao: 'sessao_manut_99',
-        idProtocolo: 'manutencao_ferragens',
+        idProtocolo: 'maintenance',
         xhtmlConteudo: '<html><body>Manutenção Principal</body></html>',
         cssConteudo: 'body {}',
-        binarypb: Uint8List.fromList([0x01, 0x02]),
+        registroYaml: 'idSessao: "sessao_manut_99"\n',
         materiaisAninhados: {
           'uuid-mat-1': arquivosExtraidosMat,
         },
@@ -191,7 +230,15 @@ void main() {
       );
       expect(
         nomesArquivos,
-        contains('OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.binarypb'),
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.yaml'),
+      );
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.proto'),
+      );
+      expect(
+        nomesArquivos,
+        contains('OEBPS/materiais/uuid-mat-1/OEBPS/dados/wizard.proto'),
       );
       expect(
         nomesArquivos,
@@ -213,20 +260,27 @@ void main() {
         contains('AssinaturaMaterialOriginal'),
       );
 
-      final pbMat = zip.files.firstWhere(
-        (f) => f.name == 'OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.binarypb',
+      final yamlMat = zip.files.firstWhere(
+        (f) => f.name == 'OEBPS/materiais/uuid-mat-1/OEBPS/dados/registro.yaml',
       );
-      expect(pbMat.content, equals([0x0A, 0x0B, 0x0C]));
+      expect(
+        utf8.decode(yamlMat.content as List<int>),
+        contains('idSessao: "uuid-mat-1"'),
+      );
     });
 
-    test('empacotarEpub armazena mídias já comprimidas (.mp4, .webp, .jpg, .jpeg, .png, .pdf) com CompressionType.none e mantém DEFLATE para textos e protobuf', () {
+    test('empacotarEpub armazena mídias já comprimidas (.mp4, .webp, .jpg, .jpeg, .png, .pdf) com CompressionType.none e mantém DEFLATE para textos, YAML, schemas .proto e protobuf', () {
       // Usa payloads grandes o suficiente (> 64 bytes repetidos) para que o ZipEncoder aplique DEFLATE quando habilitado
       final payloadRepetido = Uint8List.fromList(List<int>.filled(256, 65));
+      final textoRepetido = 'linha_repetida: "valor"\n' * 20;
       final epubBytes = empacotador.empacotarEpub(
         idSessao: 'sessao_store',
         idProtocolo: 'via_store',
         xhtmlConteudo: '<html><body>${'Texto repetido ' * 20}</body></html>',
         cssConteudo: 'body { color: #000000; margin: 0; padding: 0; } ' * 5,
+        registroYaml: textoRepetido,
+        registroProto: textoRepetido,
+        wizardProto: textoRepetido,
         binarypb: payloadRepetido,
         arquivosMidia: {
           'midias/foto.webp': payloadRepetido,
@@ -258,6 +312,9 @@ void main() {
       expect(encontrar('OEBPS/relatorio.xhtml').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/estilo.css').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/content.opf').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/dados/registro.yaml').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/dados/registro.proto').compression, equals(CompressionType.deflate));
+      expect(encontrar('OEBPS/dados/wizard.proto').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/dados/registro.binarypb').compression, equals(CompressionType.deflate));
       expect(encontrar('OEBPS/materiais/mat-1/OEBPS/relatorio.xhtml').compression, equals(CompressionType.deflate));
     });
@@ -333,6 +390,61 @@ void main() {
       final opfAr = utf8.decode(zipAr.files.firstWhere((f) => f.name == 'OEBPS/content.opf').content as List<int>);
       expect(opfAr, contains('<dc:language>ar</dc:language>'));
       expect(opfAr, contains('href="fonts/NotoSansArabic-Regular.ttf" media-type="font/ttf"'));
+    });
+
+    test('carregarFontesNotoSansParaIdioma deve carregar fontes via AssetBundle e fazer fallback para arquivo local se o bundle falhar', () async {
+      final bytesFakeRegular = Uint8List.fromList([0, 1, 0, 0, 10, 20]);
+      final bytesFakeBold = Uint8List.fromList([0, 1, 0, 0, 30, 40]);
+      final bundleSucesso = _AssetBundleFonteFake(
+        ativos: {
+          'assets/fonts/NotoSans-Regular.ttf': bytesFakeRegular,
+          'assets/fonts/NotoSans-Bold.ttf': bytesFakeBold,
+        },
+      );
+
+      final carregadasBundle = await empacotador.carregarFontesNotoSansParaIdioma(
+        'pt-BR',
+        bundle: bundleSucesso,
+      );
+      expect(carregadasBundle['fonts/NotoSans-Regular.ttf'], equals(bytesFakeRegular));
+      expect(carregadasBundle['fonts/NotoSans-Bold.ttf'], equals(bytesFakeBold));
+      expect(
+        EpubPackagerService.obterBytesFonteNotoSans('NotoSans-Regular.ttf'),
+        equals(bytesFakeRegular),
+      );
+
+      // Restaura as fontes reais do disco via fallback quando o bundle falha
+      final bundleFalha = _AssetBundleFonteFake(lancarErro: true);
+      final carregadasFallback = await empacotador.carregarFontesNotoSansParaIdioma(
+        'pt-BR',
+        bundle: bundleFalha,
+      );
+      expect(carregadasFallback['fonts/NotoSans-Regular.ttf']!.length, greaterThan(1000));
+      expect(carregadasFallback['fonts/NotoSans-Bold.ttf']!.length, greaterThan(1000));
+
+      // Segunda chamada sem bundle explícito reutiliza o cache em memória
+      final emCache = await empacotador.carregarFontesNotoSansParaIdioma('pt-BR');
+      expect(
+        emCache['fonts/NotoSans-Regular.ttf'],
+        equals(carregadasFallback['fonts/NotoSans-Regular.ttf']),
+      );
+    });
+
+    test('carregarSchemasProto carrega registro.proto e wizard.proto via AssetBundle e faz fallback para protos/ no disco', () async {
+      final bundleSucesso = _AssetBundleFonteFake(
+        ativos: {
+          'protos/registro.proto': Uint8List.fromList(utf8.encode('syntax = "proto3"; // registro bundle')),
+          'protos/wizard.proto': Uint8List.fromList(utf8.encode('syntax = "proto3"; // wizard bundle')),
+        },
+      );
+      final doBundle = await empacotador.carregarSchemasProto(bundle: bundleSucesso);
+      expect(doBundle.registroProto, contains('registro bundle'));
+      expect(doBundle.wizardProto, contains('wizard bundle'));
+
+      final bundleFalha = _AssetBundleFonteFake(lancarErro: true);
+      final doDisco = await empacotador.carregarSchemasProto(bundle: bundleFalha);
+      expect(doDisco.registroProto, contains('message Registro'));
+      expect(doDisco.wizardProto, contains('message DefinicaoProtocolo'));
     });
   });
 }

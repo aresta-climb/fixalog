@@ -1,0 +1,20 @@
+# Tasks
+
+## 1. Serializador YAML Canônico (`SerializadorYamlRegistro`) e Trava de Sincronia `.proto` ↔ `.pb.dart`
+
+- [x] 1.1 Declarar `- protos/` nos `assets` do `app/pubspec.yaml` e escrever testes unitários comportamentais em `app/test/core/services/serializador_yaml_registro_test.dart` validando a ida e volta (`paraYaml` e `deYaml`) de `Registro` completo (com respostas de todos os tipos `oneof`, listas repetidas, documentos PDF e `yamlConteudo` em bloco multiline `|`), a rejeição de tipos/campos inválidos pelo `mergeFromProto3Json` e a leitura retrocompatível de bytes `.binarypb` ou `.yaml`, verificando que falham (*Red*) antes da implementação e passam (*Green*) com 100% de cobertura após criar `app/lib/core/services/serializador_yaml_registro.dart`.
+- [x] 1.2 Adicionar em `app/test/core/services/serializador_yaml_registro_test.dart` e `app/lib/core/services/serializador_yaml_registro.dart` a validação de contrato `validarSincroniaSchemasProto` que lê `app/protos/registro.proto` e `app/protos/wizard.proto` e compara todos os blocos `message` e números/nomes de campos contra os descritores `BuilderInfo` (`info_`) das classes geradas em `registro.pb.dart` e `wizard.pb.dart`, verificando que `flutter test test/core/services/serializador_yaml_registro_test.dart` passa com 100% de cobertura.
+
+## 2. Bloqueio de Downgrade no Motor de Migração (`MigradorProtocoloRegistro`)
+
+- [x] 2.1 Atualizar `app/test/core/services/migrador_protocolo_registro_test.dart` e `app/lib/core/services/migrador_protocolo_registro.dart` para introduzir `ExcecaoVersaoProtocoloNaoSuportada` e garantir que `MigradorProtocoloRegistro.migrarRegistro` recuse imediatamente registros com `versaoOrigem > versaoAlvo` orientando o usuário a atualizar o aplicativo, além de validar que `loadSession` em `app/test/features/wizard/controllers/wizard_state_controller_test.dart` propaga esse erro quando uma sessão de versão futura é aberta para edição, mantendo 100% de cobertura.
+
+## 3. Persistência em `registro.yaml` na Sessão Local e Empacotamento de `registro.yaml` + `.proto` no EPUB 3
+
+- [x] 3.1 Atualizar `app/test/core/services/session_bundle_manager_test.dart`, `app/lib/core/services/session_bundle_manager.dart`, `app/test/features/wizard/controllers/wizard_state_controller_test.dart` e `app/lib/features/wizard/controllers/wizard_state_controller.dart` para gravar e ler `registro.yaml` no diretório da sessão (`sessoes/<sessionId>/registro.yaml`) com fallback transparente de leitura para `registro.binarypb` legado e exclusão de `registro.yaml` ao copiar mídias entre sessões, verificando que os testes de ambos passam com 100% de cobertura.
+- [x] 3.2 Atualizar `app/test/core/services/epub_packager_service_test.dart`, `app/lib/core/services/epub_packager_service.dart`, `app/test/features/pdf_generation/providers/generation_provider_test.dart` e `app/lib/features/pdf_generation/providers/generation_provider.dart` para empacotar e assinar digitalmente `OEBPS/dados/registro.yaml`, `OEBPS/dados/registro.proto` e `OEBPS/dados/wizard.proto` no container EPUB 3 (e ler `OEBPS/dados/registro.yaml` com fallback para `OEBPS/dados/registro.binarypb` em materiais aninhados), verificando que os testes passam com 100% de cobertura.
+- [x] 3.3 Atualizar `app/test/core/services/banco_dados_local_test.dart`, `app/lib/core/services/banco_dados_local.dart`, `app/test/features/pdf_generation/views/visualizador_relatorio_screen_test.dart` e `app/lib/features/pdf_generation/views/visualizador_relatorio_screen.dart` para ler `registro.yaml` (com fallback para `registro.binarypb`) tanto da pasta da sessão quanto de `OEBPS/dados/` do EPUB principal e dos materiais aninhados, verificando que os testes passam com 100% de cobertura.
+
+## 4. Verificação de Integração, Espelhamento 1:1 e Cobertura Integral
+
+- [x] 4.1 Executar `flutter test test/architecture/test_structure_mirror_test.dart` e a suíte de testes com `--coverage` sobre todos os módulos tocados, verificando que todos os testes passam e que 100% das linhas dos arquivos criados e modificados estão cobertas em `coverage/lcov.info`.

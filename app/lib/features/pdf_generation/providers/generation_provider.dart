@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/construtor_arvore_relatorio.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
@@ -141,8 +143,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       Registro registro;
       if (sessionId != null) {
-        final bytes = await _sessionManager.readManifest(sessionId: sessionId);
-        registro = Registro.fromBuffer(bytes);
+        registro = await _sessionManager.lerRegistroSessao(sessionId: sessionId);
       } else {
         registro = Registro()..idProtocolo = title;
       }
@@ -338,12 +339,12 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           }
         }
 
-        // Se ainda não temos o título amigável do material, lê do registro.binarypb embutido
+        // Se ainda não temos o título amigável do material, lê do registro.yaml (ou registro.binarypb legado) embutido
         if (!titulosMateriais.containsKey(uuidMat) &&
             materiaisAninhados.containsKey(uuidMat)) {
-          final pbBytes =
-              materiaisAninhados[uuidMat]!['OEBPS/dados/registro.binarypb']!;
-          final regMat = Registro.fromBuffer(pbBytes);
+          final regMat = SerializadorYamlRegistro.lerDeMapaArquivos(
+            materiaisAninhados[uuidMat]!,
+          )!;
           titulosMateriais[uuidMat] = _extrairTituloExibicaoDoRegistro(
             regMat,
             fallback: uuidMat,
@@ -365,6 +366,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final codigoIdioma = (idiomaPreferido != null && idiomaPreferido.trim().isNotEmpty)
           ? idiomaPreferido.trim()
           : 'pt-BR';
+
+      await ProtocolParser.garantirTraducoesCarregadas(
+        codigoIdioma.split(RegExp(r'[-_]')).first,
+      );
 
       final estiloCss = _epubBuilder.gerarCss(codigoIdioma: codigoIdioma);
       final qrPrincipalSvg = PdfPrintSummaryService.gerarQrCodeSvg(urlCanonica);
@@ -408,14 +413,17 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         x509CertPem = publicKeyPem;
       }
 
-      final binarypbBytes = Uint8List.fromList(registro.writeToBuffer());
+      final registroYaml = SerializadorYamlRegistro.paraYaml(registro);
+      final schemasProto = await _epubPackager.carregarSchemasProto();
       final fontesIdioma =
-          _epubPackager.obterFontesNotoSansParaIdioma(codigoIdioma);
+          await _epubPackager.carregarFontesNotoSansParaIdioma(codigoIdioma);
 
       final Map<String, List<int>> recursosAssinatura = {
         'OEBPS/relatorio.xhtml': utf8.encode(relatorioXhtml),
         'OEBPS/estilo.css': utf8.encode(estiloCss),
-        'OEBPS/dados/registro.binarypb': binarypbBytes,
+        'OEBPS/dados/registro.yaml': utf8.encode(registroYaml),
+        'OEBPS/dados/registro.proto': utf8.encode(schemasProto.registroProto),
+        'OEBPS/dados/wizard.proto': utf8.encode(schemasProto.wizardProto),
       };
       for (final entradaFonte in fontesIdioma.entries) {
         recursosAssinatura['OEBPS/${entradaFonte.key}'] = entradaFonte.value;
@@ -450,7 +458,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         idProtocolo: registro.idProtocolo,
         xhtmlConteudo: relatorioXhtml,
         cssConteudo: estiloCss,
-        binarypb: binarypbBytes,
+        registroYaml: registroYaml,
+        registroProto: schemasProto.registroProto,
+        wizardProto: schemasProto.wizardProto,
         arquivosMidia: arquivosMidiaBytes,
         materiaisAninhados: materiaisAninhados,
         titulosMateriais: titulosMateriais,

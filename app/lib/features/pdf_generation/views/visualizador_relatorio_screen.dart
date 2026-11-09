@@ -13,6 +13,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
@@ -381,8 +382,15 @@ class _VisualizadorRelatorioScreenState
     Registro? registro;
     if (_caminhoXhtmlFinal != null) {
       oebpsDir = File(_caminhoXhtmlFinal!).parent;
+      final yamlFile = File(p.join(oebpsDir.path, 'dados', 'registro.yaml'));
       final pbFile = File(p.join(oebpsDir.path, 'dados', 'registro.binarypb'));
-      if (pbFile.existsSync()) {
+      if (yamlFile.existsSync()) {
+        try {
+          registro = SerializadorYamlRegistro.deYaml(
+            yamlFile.readAsStringSync(),
+          );
+        } catch (_) {}
+      } else if (pbFile.existsSync()) {
         try {
           final bytes = pbFile.readAsBytesSync();
           registro = Registro.fromBuffer(bytes);
@@ -392,8 +400,7 @@ class _VisualizadorRelatorioScreenState
 
     if (registro == null) {
       try {
-        final bytes = await sessionManager.readManifest(sessionId: sid);
-        registro = Registro.fromBuffer(bytes);
+        registro = await sessionManager.lerRegistroSessao(sessionId: sid);
       } catch (_) {}
     }
 
@@ -431,10 +438,20 @@ class _VisualizadorRelatorioScreenState
       if (oebpsDir != null) {
         final candidatoOebpsMat =
             Directory(p.join(oebpsDir.path, 'materiais', uuidMat, 'OEBPS'));
+        final yamlMatFile = File(
+          p.join(candidatoOebpsMat.path, 'dados', 'registro.yaml'),
+        );
         final pbMatFile = File(
           p.join(candidatoOebpsMat.path, 'dados', 'registro.binarypb'),
         );
-        if (pbMatFile.existsSync()) {
+        if (yamlMatFile.existsSync()) {
+          oebpsMatDir = candidatoOebpsMat;
+          try {
+            regMat = SerializadorYamlRegistro.deYaml(
+              yamlMatFile.readAsStringSync(),
+            );
+          } catch (_) {}
+        } else if (pbMatFile.existsSync()) {
           oebpsMatDir = candidatoOebpsMat;
           try {
             regMat = Registro.fromBuffer(pbMatFile.readAsBytesSync());
@@ -444,8 +461,7 @@ class _VisualizadorRelatorioScreenState
 
       if (regMat == null) {
         try {
-          final bytesMat = await sessionManager.readManifest(sessionId: uuidMat);
-          regMat = Registro.fromBuffer(bytesMat);
+          regMat = await sessionManager.lerRegistroSessao(sessionId: uuidMat);
         } catch (_) {}
       }
 

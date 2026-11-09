@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:flutter/services.dart';
 
 /// Serviço responsável pelo empacotamento de relatórios no formato padronizado EPUB 3 (OCF/W3C).
 ///
@@ -14,6 +15,14 @@ import 'package:archive/archive.dart';
 /// (`OEBPS/materiais/<uuid>/`) e assinaturas digitais W3C XML-DSig.
 class EpubPackagerService {
   static final Map<String, Uint8List> _cacheFontes = {};
+
+  /// Obtém sincronamente os bytes de uma fonte TTF [nomeArquivo] do cache em memória ou do disco local.
+  static Uint8List obterBytesFonteNotoSans(String nomeArquivo) {
+    return _cacheFontes.putIfAbsent(
+      nomeArquivo,
+      () => File('assets/fonts/$nomeArquivo').readAsBytesSync(),
+    );
+  }
 
   /// Determina o tipo MIME correspondente a partir da extensão do arquivo.
   String determinarTipoMime(String caminho) {
@@ -26,6 +35,8 @@ class EpubPackagerService {
     if (minusculo.endsWith('.css')) return 'text/css';
     if (minusculo.endsWith('.xhtml') || minusculo.endsWith('.html')) return 'application/xhtml+xml';
     if (minusculo.endsWith('.xml') || minusculo.endsWith('.opf')) return 'application/xml';
+    if (minusculo.endsWith('.yaml') || minusculo.endsWith('.yml')) return 'application/yaml';
+    if (minusculo.endsWith('.proto')) return 'text/plain';
     if (minusculo.endsWith('.binarypb')) return 'application/x-protobuf';
     if (minusculo.endsWith('.ttf')) return 'font/ttf';
     return 'application/octet-stream';
@@ -43,17 +54,58 @@ class EpubPackagerService {
     return fontes;
   }
 
+  /// Carrega de forma assíncrona via [AssetBundle] (com fallback para disco local em testes)
+  /// os arquivos TTF de `Noto Sans` necessários para [codigoIdioma].
+  Future<Map<String, Uint8List>> carregarFontesNotoSansParaIdioma(
+    String codigoIdioma, {
+    AssetBundle? bundle,
+  }) async {
+    final resultado = <String, Uint8List>{};
+    for (final nomeArquivo in nomesFontesParaIdioma(codigoIdioma)) {
+      if (bundle == null && _cacheFontes.containsKey(nomeArquivo)) {
+        resultado['fonts/$nomeArquivo'] = _cacheFontes[nomeArquivo]!;
+        continue;
+      }
+      Uint8List bytes;
+      try {
+        final byteData =
+            await (bundle ?? rootBundle).load('assets/fonts/$nomeArquivo');
+        bytes = Uint8List.sublistView(byteData);
+      } catch (_) {
+        bytes = File('assets/fonts/$nomeArquivo').readAsBytesSync();
+      }
+      _cacheFontes[nomeArquivo] = bytes;
+      resultado['fonts/$nomeArquivo'] = bytes;
+    }
+    return resultado;
+  }
+
   /// Carrega dos assets locais apenas os arquivos TTF de `Noto Sans` necessários para [codigoIdioma].
   Map<String, Uint8List> obterFontesNotoSansParaIdioma(String codigoIdioma) {
     final resultado = <String, Uint8List>{};
     for (final nomeArquivo in nomesFontesParaIdioma(codigoIdioma)) {
-      final bytes = _cacheFontes.putIfAbsent(
-        nomeArquivo,
-        () => File('assets/fonts/$nomeArquivo').readAsBytesSync(),
-      );
-      resultado['fonts/$nomeArquivo'] = bytes;
+      resultado['fonts/$nomeArquivo'] = obterBytesFonteNotoSans(nomeArquivo);
     }
     return resultado;
+  }
+
+  /// Carrega os esquemas formais `registro.proto` e `wizard.proto` via [AssetBundle]
+  /// (com fallback para o diretório local `protos/` em ambiente de testes).
+  Future<({String registroProto, String wizardProto})> carregarSchemasProto({
+    AssetBundle? bundle,
+  }) async {
+    Future<String> lerProto(String nomeArquivo) async {
+      try {
+        return await (bundle ?? rootBundle).loadString('protos/$nomeArquivo');
+      } catch (_) {
+        return File('protos/$nomeArquivo').readAsStringSync();
+      }
+    }
+
+    return (
+      registroProto: await lerProto('registro.proto'),
+      wizardProto: await lerProto('wizard.proto'),
+    );
   }
 
   /// Extrai todos os arquivos internos de um pacote `.epub` de material (exceto `mimetype`)
@@ -86,7 +138,10 @@ class EpubPackagerService {
     required String idProtocolo,
     required String xhtmlConteudo,
     required String cssConteudo,
-    required Uint8List binarypb,
+    String? registroYaml,
+    String? registroProto,
+    String? wizardProto,
+    Uint8List? binarypb,
     Map<String, Uint8List> arquivosMidia = const {},
     Map<String, Map<String, Uint8List>> materiaisAninhados = const {},
     Map<String, String> titulosMateriais = const {},
@@ -165,17 +220,45 @@ ${itensNavMateriais.toString().trimRight()}
 
     // 5b. Fontes tipográficas Noto Sans em OEBPS/fonts/ comprimidas com DEFLATE
     for (final entradaFonte in fontesEfetivas.entries) {
-      final caminhoRelativo = entradaFonte.key.startsWith('OEBPS/')
-          ? entradaFonte.key
-          : 'OEBPS/${entradaFonte.key}';
+      final caminhoRelativo = 'OEBPS/${entradaFonte.key}';
       final bytesFonte = entradaFonte.value;
       final arquivoFonte = ArchiveFile(caminhoRelativo, bytesFonte.length, bytesFonte)
         ..compression = CompressionType.deflate;
       arquivoZip.addFile(arquivoFonte);
     }
 
-    // 6. OEBPS/dados/registro.binarypb (Protobuf original da vistoria)
-    arquivoZip.addFile(ArchiveFile('OEBPS/dados/registro.binarypb', binarypb.length, binarypb));
+    // 6. OEBPS/dados/ (registro.yaml legível, schemas .proto e suporte legado registro.binarypb)
+    if (registroYaml != null) {
+      final bytesYaml = utf8.encode(registroYaml);
+      arquivoZip.addFile(
+        ArchiveFile('OEBPS/dados/registro.yaml', bytesYaml.length, bytesYaml),
+      );
+    }
+    if (registroProto != null) {
+      final bytesRegProto = utf8.encode(registroProto);
+      arquivoZip.addFile(
+        ArchiveFile(
+          'OEBPS/dados/registro.proto',
+          bytesRegProto.length,
+          bytesRegProto,
+        ),
+      );
+    }
+    if (wizardProto != null) {
+      final bytesWizProto = utf8.encode(wizardProto);
+      arquivoZip.addFile(
+        ArchiveFile(
+          'OEBPS/dados/wizard.proto',
+          bytesWizProto.length,
+          bytesWizProto,
+        ),
+      );
+    }
+    if (binarypb != null) {
+      arquivoZip.addFile(
+        ArchiveFile('OEBPS/dados/registro.binarypb', binarypb.length, binarypb),
+      );
+    }
 
     // 7. Mídias (fotos e vídeos)
     for (final entrada in arquivosMidia.entries) {
@@ -220,7 +303,18 @@ ${itensNavMateriais.toString().trimRight()}
     bufferOpf.writeln('    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>');
     bufferOpf.writeln('    <item id="relatorio" href="relatorio.xhtml" media-type="application/xhtml+xml"/>');
     bufferOpf.writeln('    <item id="estilo" href="estilo.css" media-type="text/css"/>');
-    bufferOpf.writeln('    <item id="dados-protobuf" href="dados/registro.binarypb" media-type="application/x-protobuf"/>');
+    if (registroYaml != null) {
+      bufferOpf.writeln('    <item id="dados-registro" href="dados/registro.yaml" media-type="application/yaml"/>');
+    }
+    if (registroProto != null) {
+      bufferOpf.writeln('    <item id="schema-registro-proto" href="dados/registro.proto" media-type="text/plain"/>');
+    }
+    if (wizardProto != null) {
+      bufferOpf.writeln('    <item id="schema-wizard-proto" href="dados/wizard.proto" media-type="text/plain"/>');
+    }
+    if (binarypb != null) {
+      bufferOpf.writeln('    <item id="dados-protobuf" href="dados/registro.binarypb" media-type="application/x-protobuf"/>');
+    }
 
     var contadorFonte = 1;
     for (final entradaFonte in fontesEfetivas.entries) {

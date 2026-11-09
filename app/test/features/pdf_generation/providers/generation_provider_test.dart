@@ -526,13 +526,33 @@ void main() {
       }
     }
 
-    // Verifica que o material v1 está em OEBPS/materiais/uuid-mat-inox/
+    // Verifica que o material v1 está em OEBPS/materiais/uuid-mat-inox/ com registro.yaml e schemas .proto
     expect(
       mapaArquivosManut1.containsKey('OEBPS/materiais/uuid-mat-inox/META-INF/signatures.xml'),
       isTrue,
     );
     expect(
-      mapaArquivosManut1.containsKey('OEBPS/materiais/uuid-mat-inox/OEBPS/dados/registro.binarypb'),
+      mapaArquivosManut1.containsKey('OEBPS/materiais/uuid-mat-inox/OEBPS/dados/registro.yaml'),
+      isTrue,
+    );
+    expect(
+      mapaArquivosManut1.containsKey('OEBPS/materiais/uuid-mat-inox/OEBPS/dados/registro.proto'),
+      isTrue,
+    );
+    expect(
+      mapaArquivosManut1.containsKey('OEBPS/materiais/uuid-mat-inox/OEBPS/dados/wizard.proto'),
+      isTrue,
+    );
+    expect(
+      mapaArquivosManut1.containsKey('OEBPS/dados/registro.yaml'),
+      isTrue,
+    );
+    expect(
+      mapaArquivosManut1.containsKey('OEBPS/dados/registro.proto'),
+      isTrue,
+    );
+    expect(
+      mapaArquivosManut1.containsKey('OEBPS/dados/wizard.proto'),
       isTrue,
     );
     final xhtmlMatEmbutidoV1 = utf8.decode(

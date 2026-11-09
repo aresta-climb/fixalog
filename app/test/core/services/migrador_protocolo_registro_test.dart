@@ -194,6 +194,7 @@ void main() {
         versaoProtocolo: '1.0.0',
       );
       registro.respostas['gps'] = Resposta(texto: '-22.1,-43.2');
+      registro.respostas['via_data'] = Resposta(texto: '15/06/2026');
 
       final itemFoto = GrupoRepetido(
         idLista: 'lista_fotos',
@@ -326,6 +327,40 @@ protocolo:
       expect(ordemExecutada, equals(['1->2', '2->3', '3->4']));
       expect(registro.versaoProtocolo, equals('4'));
       expect(registro.respostas['passo']?.texto, equals('v2_v3_v4'));
+    });
+
+    test('recusa migração lançando ExcecaoVersaoProtocoloNaoSuportada quando versaoOrigem é maior que versaoAlvo (bloqueio de downgrade)', () {
+      final yamlAtual = File('assets/protocols/manutencao.yaml').readAsStringSync();
+      final registroFuturo = Registro(
+        idSessao: 'sessao-futura',
+        idProtocolo: 'maintenance',
+        versaoProtocolo: '99',
+        yamlConteudo: 'yaml-da-v99',
+      );
+
+      expect(
+        () => MigradorProtocoloRegistro.migrarRegistro(
+          registroFuturo,
+          yamlAtual: yamlAtual,
+        ),
+        throwsA(
+          isA<ExcecaoVersaoProtocoloNaoSuportada>()
+              .having((e) => e.idProtocolo, 'idProtocolo', 'maintenance')
+              .having((e) => e.versaoRegistro, 'versaoRegistro', 99)
+              .having((e) => e.versaoSuportada, 'versaoSuportada', 3)
+              .having(
+                (e) => e.toString(),
+                'mensagem',
+                allOf(
+                  contains('versão 99'),
+                  contains('versão 3'),
+                  contains('Atualize o aplicativo'),
+                ),
+              ),
+        ),
+      );
+      expect(registroFuturo.versaoProtocolo, equals('99'));
+      expect(registroFuturo.yamlConteudo, equals('yaml-da-v99'));
     });
   });
 

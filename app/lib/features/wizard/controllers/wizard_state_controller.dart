@@ -285,8 +285,7 @@ class WizardStateController extends Notifier<WizardState> {
 
   Future<void> loadSession(String sessionId) async {
     final sessionManager = ref.read(sessionBundleManagerProvider);
-    final bytes = await sessionManager.readManifest(sessionId: sessionId);
-    final registro = Registro.fromBuffer(bytes);
+    final registro = await sessionManager.lerRegistroSessao(sessionId: sessionId);
 
     if (registro.yamlConteudo.isEmpty) {
       throw Exception("O registro antigo não contém o YAML original salvo. Não é possível recriar a interface.");
@@ -309,6 +308,8 @@ class WizardStateController extends Notifier<WizardState> {
       registro,
       yamlAtual: yamlAlvo,
     );
+
+    await ProtocolParser.garantirTraducoesCarregadas('pt');
 
     final yamlStr = registro.yamlConteudo;
     final protocol = ProtocolParser.fromYaml(yamlStr);
@@ -1484,9 +1485,11 @@ class WizardStateController extends Notifier<WizardState> {
       }
     }
 
-    // 4. Salvar binarypb e atualizar banco local SQLite
-    final binarypb = registro.writeToBuffer();
-    await sessionManager.saveManifest(sessionId: sessionId, binarypb: binarypb);
+    // 4. Salvar registro.yaml e atualizar banco local SQLite
+    await sessionManager.salvarRegistroSessao(
+      sessionId: sessionId,
+      registro: registro,
+    );
 
     if (banco != null) {
       final bancoDb = banco;
@@ -1543,7 +1546,7 @@ class WizardStateController extends Notifier<WizardState> {
         ..dataUltimaSelecao = existingRecord?.dataUltimaSelecao
         ..hashAssinatura = existingRecord?.hashAssinatura ?? ''
         ..pdfPath = (targetStatus == SubmissionStatus.emProgresso ? '' : (existingRecord?.pdfPath ?? ''))
-        ..protobufPath = p.join(sessionDir.path, 'registro.binarypb')
+        ..protobufPath = p.join(sessionDir.path, 'registro.yaml')
         ..status = targetStatus;
 
       await bancoDb.salvarSubmissao(record);

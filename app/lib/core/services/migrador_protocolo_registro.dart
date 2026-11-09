@@ -10,6 +10,24 @@ import 'protocol_parser.dart';
 /// Função de migração que transforma um [Registro] de uma versão inteira `v` para `v + 1`.
 typedef PassoMigracaoProtocolo = void Function(Registro registro);
 
+/// Exceção lançada quando o usuário tenta abrir para edição ou duplicação um [Registro]
+/// cuja versão do protocolo é superior à versão suportada pelo aplicativo atual.
+class ExcecaoVersaoProtocoloNaoSuportada implements Exception {
+  final String idProtocolo;
+  final int versaoRegistro;
+  final int versaoSuportada;
+
+  const ExcecaoVersaoProtocoloNaoSuportada({
+    required this.idProtocolo,
+    required this.versaoRegistro,
+    required this.versaoSuportada,
+  });
+
+  @override
+  String toString() =>
+      "O relatório utiliza a versão $versaoRegistro do protocolo '$idProtocolo', que é mais recente que a versão suportada por este aplicativo (versão $versaoSuportada). Atualize o aplicativo para editar ou duplicar este relatório.";
+}
+
 /// Serviço responsável pela normalização de identificadores legados, cálculo de assinatura
 /// estrutural de protocolos YAML e execução de migrações sequenciais em cadeia (`v -> v + 1`).
 class MigradorProtocoloRegistro {
@@ -407,6 +425,14 @@ class MigradorProtocoloRegistro {
     final versaoOrigem =
         ProtocolParser.extrairVersaoInteira(registro.versaoProtocolo);
     final versaoAlvo = ProtocolParser.extrairVersaoInteira(protoAtual.versao);
+
+    if (versaoOrigem > versaoAlvo) {
+      throw ExcecaoVersaoProtocoloNaoSuportada(
+        idProtocolo: idCanonico,
+        versaoRegistro: versaoOrigem,
+        versaoSuportada: versaoAlvo,
+      );
+    }
 
     final tabela = migradoresCustomizados ?? migradoresPorProtocolo;
     final passosDoProtocolo = tabela[idCanonico];

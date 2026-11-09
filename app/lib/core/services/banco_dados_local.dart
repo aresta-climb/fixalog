@@ -12,6 +12,7 @@ import '../models/local/identity_record.dart';
 import '../models/local/submission_record.dart';
 import '../models/proto/protos/registro.pb.dart';
 import 'epub_packager_service.dart';
+import 'serializador_yaml_registro.dart';
 
 /// Serviço central de persistência local em SQLite (`sqflite`) do Fixalog.
 ///
@@ -239,12 +240,24 @@ class BancoDadosLocal {
       final idSessao = p.basename(dirSessao.path);
       if (_submissoesPorSessao.containsKey(idSessao)) continue;
 
+      final arquivoYaml = File(p.join(dirSessao.path, 'registro.yaml'));
       final arquivoPb = File(p.join(dirSessao.path, 'registro.binarypb'));
       final arquivoEpub = File(p.join(dirSessao.path, 'relatorio.epub'));
-      if (!arquivoPb.existsSync() && !arquivoEpub.existsSync()) continue;
+      if (!arquivoYaml.existsSync() &&
+          !arquivoPb.existsSync() &&
+          !arquivoEpub.existsSync()) {
+        continue;
+      }
 
       Registro? registro;
-      if (arquivoPb.existsSync()) {
+      if (arquivoYaml.existsSync()) {
+        try {
+          registro = SerializadorYamlRegistro.deYaml(
+            arquivoYaml.readAsStringSync(),
+          );
+        } catch (_) {}
+      }
+      if (registro == null && arquivoPb.existsSync()) {
         try {
           registro = Registro.fromBuffer(arquivoPb.readAsBytesSync());
         } catch (_) {}
@@ -254,10 +267,7 @@ class BancoDadosLocal {
           final arquivos = EpubPackagerService().extrairArquivosDeEpubAninhado(
             arquivoEpub.readAsBytesSync(),
           );
-          final bytesPb = arquivos['OEBPS/dados/registro.binarypb'];
-          if (bytesPb != null) {
-            registro = Registro.fromBuffer(bytesPb);
-          }
+          registro = SerializadorYamlRegistro.lerDeMapaArquivos(arquivos);
         } catch (_) {}
       }
       if (registro == null) continue;
@@ -315,7 +325,9 @@ class BancoDadosLocal {
             : SubmissionTipoRegistro.manutencao
         ..dataInclusao = dataInclusao
         ..pdfPath = arquivoPdf.existsSync() ? arquivoPdf.path : ''
-        ..protobufPath = possuiEpub ? arquivoEpub.path : arquivoPb.path
+        ..protobufPath = possuiEpub
+            ? arquivoEpub.path
+            : (arquivoPb.existsSync() ? arquivoPb.path : arquivoYaml.path)
         ..status =
             possuiEpub ? SubmissionStatus.gerado : SubmissionStatus.emProgresso;
 

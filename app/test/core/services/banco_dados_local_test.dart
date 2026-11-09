@@ -13,6 +13,7 @@ import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
+import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 
 void main() {
   group('BancoDadosLocal', () {
@@ -134,7 +135,7 @@ void main() {
       final isarLock = File(p.join(tempDir.path, 'default.isar.lock'))
         ..writeAsStringSync('lock');
 
-      // 1) Sessão em progresso com registro.binarypb e título via_nome
+      // 1) Sessão em progresso com registro.yaml e título via_nome
       final dirSessao1 = Directory(
         p.join(tempDir.path, 'sessoes', 'sessao-rascunho'),
       )..createSync(recursive: true);
@@ -147,10 +148,22 @@ void main() {
         yamlConteudo: 'id: manutencao_ferragens\nnome: Manutenção de Ferragens\n',
       );
       reg1.respostas['via_nome'] = Resposta(texto: 'Via Diedro Sul');
-      File(p.join(dirSessao1.path, 'registro.binarypb'))
-          .writeAsBytesSync(reg1.writeToBuffer());
+      File(p.join(dirSessao1.path, 'registro.yaml')).writeAsStringSync(
+        SerializadorYamlRegistro.paraYaml(reg1),
+      );
 
-      // 2) Sessão gerada de material extraída diretamente de relatorio.epub (sem registro.binarypb solto) e com PDF
+      // 1b) Sessão legada em progresso com registro.binarypb
+      final dirSessaoLegada = Directory(
+        p.join(tempDir.path, 'sessoes', 'sessao-rascunho-legado'),
+      )..createSync(recursive: true);
+      final regLegado = Registro(
+        idSessao: 'sessao-rascunho-legado',
+        idProtocolo: 'manutencao_ferragens',
+      )..respostas['via_nome'] = Resposta(texto: 'Via Legada PB');
+      File(p.join(dirSessaoLegada.path, 'registro.binarypb'))
+          .writeAsBytesSync(regLegado.writeToBuffer());
+
+      // 2) Sessão gerada de material extraída diretamente de relatorio.epub (com OEBPS/dados/registro.yaml) e com PDF
       final dirSessao2 = Directory(
         p.join(tempDir.path, 'sessoes', 'sessao-material-epub'),
       )..createSync(recursive: true);
@@ -163,7 +176,7 @@ void main() {
         idProtocolo: 'cadastro_material',
         xhtmlConteudo: '<html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>',
         cssConteudo: '',
-        binarypb: reg2.writeToBuffer(),
+        registroYaml: SerializadorYamlRegistro.paraYaml(reg2),
         signaturesXml: '<Signature/>',
       );
       File(p.join(dirSessao2.path, 'relatorio.epub'))
@@ -193,7 +206,13 @@ void main() {
       expect(sub1!.nomeProtocolo, equals('Manutenção de Ferragens'));
       expect(sub1.tituloExibicao, equals('Via Diedro Sul'));
       expect(sub1.status, equals(SubmissionStatus.emProgresso));
+      expect(sub1.protobufPath, endsWith('registro.yaml'));
       expect(sub1.isManutencao, isTrue);
+
+      final subLegado = await banco1.obterSubmissaoPorIdSessao('sessao-rascunho-legado');
+      expect(subLegado, isNotNull);
+      expect(subLegado!.tituloExibicao, equals('Via Legada PB'));
+      expect(subLegado.protobufPath, endsWith('registro.binarypb'));
 
       final sub2 = await banco1.obterSubmissaoPorIdSessao('sessao-material-epub');
       expect(sub2, isNotNull);
@@ -212,7 +231,7 @@ void main() {
       final banco2 = await BancoDadosLocal.abrirEmArquivo(tempDir.path);
       expect(banco2.obterConfiguracaoSync()?.versaoTermosAceita, equals(4));
       expect(banco2.obterConfiguracaoSync()?.idiomaPreferido, equals('fr'));
-      expect(banco2.listarSubmissoesSync().length, equals(2));
+      expect(banco2.listarSubmissoesSync().length, equals(3));
       await banco2.fechar();
     });
 

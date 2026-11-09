@@ -253,5 +253,60 @@ void main() {
         expect(container.read(servicoFilaFeedbackProvider), isA<ServicoFilaFeedback>());
       },
     );
+
+    test(
+      'realiza mock gracioso local em modo de desenvolvimento quando App Check retorna token de fallback, limpando a fila sem requisição HTTP',
+      () async {
+        authFake.tokenAppCheckRetornado =
+            AutenticacaoNuvemService.tokenAppCheckFallbackLocal;
+        var chamouHttp = false;
+        final mockClientProibido = MockClient((_) async {
+          chamouHttp = true;
+          throw const SocketException('Rede não deveria ser chamada no mock dev');
+        });
+
+        final servicoDevMock = ServicoFilaFeedback(
+          banco: banco,
+          autenticacaoService: authFake,
+          compressorImagem: compressorDeterministico,
+          logger: loggerFake,
+          clienteHttp: mockClientProibido,
+          obterDiretorioSuporte: () async => tempDir,
+          geradorIdFeedback: () => 'fb-dev-mock-001',
+          emModoDesenvolvimento: true,
+        );
+
+        final registro = await servicoDevMock.enfileirarEDespacharFeedback(
+          mensagem: 'Feedback em dev sem App Check registrado',
+          capturaTela: Uint8List.fromList([1, 2, 3]),
+        );
+
+        expect(chamouHttp, isFalse);
+        expect(await banco.listarFeedbacksPendentes(), isEmpty);
+        expect(File(registro.caminhoImagem).existsSync(), isFalse);
+        expect(
+          loggerFake.infosRegistrados,
+          contains(
+            contains(
+              '📝 [DEBUG MOCK] Feedback concluído localmente (App Check não registrado em dev): fb-dev-mock-001',
+            ),
+          ),
+        );
+
+        // Em modo release (emModoDesenvolvimento: false), tenta enviar via HTTP real
+        final servicoRelease = ServicoFilaFeedback(
+          banco: banco,
+          autenticacaoService: authFake,
+          compressorImagem: compressorDeterministico,
+          logger: loggerFake,
+          clienteHttp: mockClientProibido,
+          obterDiretorioSuporte: () async => tempDir,
+          geradorIdFeedback: () => 'fb-release-002',
+          emModoDesenvolvimento: false,
+        );
+        expect(await servicoRelease.enviarItemFeedback(registro), isFalse);
+        expect(chamouHttp, isTrue);
+      },
+    );
   });
 }

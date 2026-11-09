@@ -37,6 +37,7 @@ class ServicoFilaFeedback {
   final Future<Directory> Function() _obterDiretorioSuporte;
   final String Function() _geradorIdFeedback;
   final String? _urlEdgeFunctionOverride;
+  final bool _emModoDesenvolvimento;
 
   /// Cria uma instância de [ServicoFilaFeedback] com dependências injetáveis para testes.
   ServicoFilaFeedback({
@@ -48,6 +49,7 @@ class ServicoFilaFeedback {
     Future<Directory> Function()? obterDiretorioSuporte,
     String Function()? geradorIdFeedback,
     String? urlEdgeFunction,
+    bool emModoDesenvolvimento = kModoDesenvolvimento,
   })  : _banco = banco,
         _autenticacaoService = autenticacaoService,
         _compressorImagem = compressorImagem ?? CompressorImagemFeedback(),
@@ -56,7 +58,8 @@ class ServicoFilaFeedback {
         _obterDiretorioSuporte =
             obterDiretorioSuporte ?? getApplicationSupportDirectory,
         _geradorIdFeedback = geradorIdFeedback ?? const Uuid().v4,
-        _urlEdgeFunctionOverride = urlEdgeFunction;
+        _urlEdgeFunctionOverride = urlEdgeFunction,
+        _emModoDesenvolvimento = emModoDesenvolvimento;
 
   String _obterUrlEdgeFunction() {
     if (_urlEdgeFunctionOverride != null &&
@@ -179,10 +182,18 @@ class ServicoFilaFeedback {
   /// autenticada com o cabeçalho `X-Firebase-AppCheck`.
   Future<bool> enviarItemFeedback(FeedbackRecord item) async {
     try {
+      final tokenAppCheck = await _autenticacaoService?.obterTokenAppCheck();
+      if (_emModoDesenvolvimento &&
+          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        _logger.logInfo(
+          '📝 [DEBUG MOCK] Feedback concluído localmente (App Check não registrado em dev): ${item.idFeedback}',
+        );
+        return true;
+      }
+
       final uri = Uri.parse(_obterUrlEdgeFunction());
       final request = http.MultipartRequest('POST', uri);
 
-      final tokenAppCheck = await _autenticacaoService?.obterTokenAppCheck();
       if (tokenAppCheck != null && tokenAppCheck.isNotEmpty) {
         request.headers['X-Firebase-AppCheck'] = tokenAppCheck;
       }

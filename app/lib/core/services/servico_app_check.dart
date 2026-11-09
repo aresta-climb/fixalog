@@ -26,15 +26,18 @@ class ServicoAppCheck {
   final RegistroLogger _logger;
   final AtivarAppCheckCallback _ativarAppCheck;
   final ObterTokenAppCheckCallback _obterTokenAppCheck;
+  final bool _emModoDesenvolvimento;
 
   /// Cria uma instância de [ServicoAppCheck] permitindo injeção determinística de dependências.
   ServicoAppCheck({
     RegistroLogger? logger,
     AtivarAppCheckCallback? ativarAppCheck,
     ObterTokenAppCheckCallback? obterTokenAppCheck,
+    bool emModoDesenvolvimento = kModoDesenvolvimento,
   })  : _logger = logger ?? RegistroLogger.instancia,
         _ativarAppCheck = ativarAppCheck ?? _ativarPadrao,
-        _obterTokenAppCheck = obterTokenAppCheck ?? _obterTokenPadrao;
+        _obterTokenAppCheck = obterTokenAppCheck ?? _obterTokenPadrao,
+        _emModoDesenvolvimento = emModoDesenvolvimento;
 
   /// Instância global padrão utilizada pela aplicação.
   static ServicoAppCheck instancia = ServicoAppCheck();
@@ -98,6 +101,10 @@ class ServicoAppCheck {
       if (RegistroLogger.isFalhaConexaoOuTimeout(e)) {
         _logger.logAviso(
           '🛡️ [ServicoAppCheck] Falha de conexão ao obter token do App Check (offline/timeout): $e',
+        );
+      } else if (_emModoDesenvolvimento) {
+        _logger.logAviso(
+          '🛡️ [ServicoAppCheck] Token do App Check indisponível em modo de desenvolvimento (UUID de debug não registrado): $e',
         );
       } else {
         _logger.logError(

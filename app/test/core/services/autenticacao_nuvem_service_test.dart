@@ -197,7 +197,25 @@ void main() {
 
       expect(
         await service.obterTokenAppCheck(),
-        equals('app_check_token_fixalog_padrao'),
+        equals(AutenticacaoNuvemService.tokenAppCheckFallbackLocal),
+      );
+      expect(
+        AutenticacaoNuvemService.possuiTokenAppCheckReal(null),
+        isFalse,
+      );
+      expect(
+        AutenticacaoNuvemService.possuiTokenAppCheckReal('   '),
+        isFalse,
+      );
+      expect(
+        AutenticacaoNuvemService.possuiTokenAppCheckReal(
+          AutenticacaoNuvemService.tokenAppCheckFallbackLocal,
+        ),
+        isFalse,
+      );
+      expect(
+        AutenticacaoNuvemService.possuiTokenAppCheckReal('jwt.appcheck.real'),
+        isTrue,
       );
 
       await secureStorage.write(

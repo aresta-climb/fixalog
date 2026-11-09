@@ -347,6 +347,7 @@ class SincronizadorNuvemService {
   final int _tamanhoBlocoBytes;
   final Duration _intervaloPollingModeracao;
   final int _maxTentativasPollingModeracao;
+  final bool _emModoDesenvolvimento;
 
   final Map<String, Future<bool>> _uploadsEmAndamento = {};
   final Map<String, ProgressoPublicacaoLaudo> _progressoPorSessao = {};
@@ -361,13 +362,15 @@ class SincronizadorNuvemService {
     int tamanhoBlocoBytes = tamanhoPadraoBlocoBytes,
     Duration intervaloPollingModeracao = const Duration(seconds: 2),
     int maxTentativasPollingModeracao = 30,
+    bool emModoDesenvolvimento = kModoDesenvolvimento,
   })  : _banco = banco,
         _autenticacaoService = autenticacaoService,
         _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao(),
         _logger = logger ?? RegistroLogger.instancia,
         _tamanhoBlocoBytes = tamanhoBlocoBytes,
         _intervaloPollingModeracao = intervaloPollingModeracao,
-        _maxTentativasPollingModeracao = maxTentativasPollingModeracao;
+        _maxTentativasPollingModeracao = maxTentativasPollingModeracao,
+        _emModoDesenvolvimento = emModoDesenvolvimento;
 
   /// Constrói a URL canônica pública de compartilhamento web de uma sessão.
   static String obterUrlCompartilhamentoPublico(String idSessao) {
@@ -598,11 +601,32 @@ class SincronizadorNuvemService {
 
     try {
       final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
-      final hashSha256 = calcularSha256Hex(epubBytes);
       final totalBlocos = (epubBytes.length / _tamanhoBlocoBytes).ceil().clamp(
         1,
         1000000,
       );
+
+      if (_emModoDesenvolvimento &&
+          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        _logger.logInfo(
+          '📝 [DEBUG MOCK] Upload de laudo concluído localmente (App Check não registrado em dev): ${record.idSessao}',
+        );
+        record.enviadoNuvem = true;
+        if (banco != null) {
+          await banco.salvarSubmissao(record);
+        }
+        _emitirProgresso(
+          ProgressoPublicacaoLaudo(
+            idSessao: record.idSessao,
+            etapa: EtapaPublicacaoLaudo.concluidoAtivo,
+            blocosEnviados: totalBlocos,
+            totalBlocos: totalBlocos,
+          ),
+        );
+        return true;
+      }
+
+      final hashSha256 = calcularSha256Hex(epubBytes);
 
       final statusRemoto = await _clienteHttp.consultarStatusLaudo(
         idSessao: record.idSessao,
@@ -743,6 +767,20 @@ class SincronizadorNuvemService {
           tentativa < _maxTentativasPollingModeracao;
           tentativa++) {
         final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
+        if (_emModoDesenvolvimento &&
+            !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+          if (registro != null && !registro.enviadoNuvem) {
+            await enviarSubmissao(registro);
+          }
+          final concluidoMock = ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.concluidoAtivo,
+            blocosEnviados: 1,
+            totalBlocos: 1,
+          );
+          _emitirProgresso(concluidoMock);
+          return concluidoMock;
+        }
         final status = await _clienteHttp.consultarStatusLaudo(
           idSessao: idSessao,
           sha256: hashSha256,
@@ -835,6 +873,13 @@ class SincronizadorNuvemService {
 
     try {
       final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
+      if (_emModoDesenvolvimento &&
+          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        _logger.logInfo(
+          '📝 [DEBUG MOCK] Restauração de relatórios concluída localmente (App Check não registrado em dev).',
+        );
+        return 0;
+      }
       final remotos = await _clienteHttp.listarLaudosConta(
         jwtSupabase: sessao.jwtSupabase,
         tokenAppCheck: tokenAppCheck,

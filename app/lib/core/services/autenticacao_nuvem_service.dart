@@ -121,6 +121,20 @@ class SessaoUsuarioNuvem {
 class AutenticacaoNuvemService {
   static const String _chaveSessaoJson = 'fixalog_sessao_nuvem_json';
 
+  /// Marcador local retornado quando o `ServicoAppCheck` não possui um JWT real emitido pelo Firebase.
+  static const String tokenAppCheckFallbackLocal =
+      'app_check_token_fixalog_padrao';
+
+  /// Indica se [token] representa um token JWT real do App Check (ou token de teste explícito),
+  /// retornando `false` quando ausente, em branco ou igual ao [tokenAppCheckFallbackLocal].
+  static bool possuiTokenAppCheckReal(String? token) {
+    if (token == null) {
+      return false;
+    }
+    final limpo = token.trim();
+    return limpo.isNotEmpty && limpo != tokenAppCheckFallbackLocal;
+  }
+
   /// URL padrão do projeto Supabase compartilhado (`aresta`).
   static const String urlSupabasePadrao = String.fromEnvironment(
     'SUPABASE_URL',
@@ -383,7 +397,7 @@ class AutenticacaoNuvemService {
 
   static Future<String> _provedorAppCheckPadrao() async {
     final token = await ServicoAppCheck.instancia.obterToken();
-    return token ?? 'app_check_token_fixalog_padrao';
+    return token ?? tokenAppCheckFallbackLocal;
   }
 
   /// Valida que o `id_token` OIDC recebido contém o claim `nonce` correspondente

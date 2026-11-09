@@ -590,5 +590,87 @@ void main() {
         equals(2),
       );
     });
+
+    test(
+      'realiza mock gracioso local em enviarSubmissao, publicarEAguardarLiberacao e restaurarRelatoriosDaConta quando em modo de desenvolvimento sem token real do App Check',
+      () async {
+        final loggerMockDev = RegistroLoggerFake();
+        auth.tokenAppCheckRetornado =
+            AutenticacaoNuvemService.tokenAppCheckFallbackLocal;
+        // Mesmo com erro de rede forçado no cliente HTTP, o mock gracioso não deve tocar na rede
+        clienteHttp.deveLancarErroRede = true;
+
+        final syncDevSemAppCheck = SincronizadorNuvemService(
+          banco: banco,
+          autenticacaoService: auth,
+          clienteHttp: clienteHttp,
+          logger: loggerMockDev,
+          emModoDesenvolvimento: true,
+        );
+
+        final epubDev = File(p.join(tempDir.path, 'dev_mock.epub'))
+          ..writeAsBytesSync(_criarZipEpubTeste());
+        final recDev = SubmissionRecord()
+          ..idSessao = 'sessao_dev_mock'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Manutenção Mock Dev'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..status = SubmissionStatus.gerado
+          ..enviadoNuvem = false
+          ..epubPath = epubDev.path;
+        await banco.salvarSubmissao(recDev);
+
+        final resultadoPublicacao =
+            await syncDevSemAppCheck.publicarEAguardarLiberacao(
+              idSessao: 'sessao_dev_mock',
+              epubPath: epubDev.path,
+            );
+        expect(
+          resultadoPublicacao.etapa,
+          equals(EtapaPublicacaoLaudo.concluidoAtivo),
+        );
+
+        // Exercita publicarEAguardarLiberacao com sessão avulsa ainda não persistida no banco
+        final resultadoAvulso =
+            await syncDevSemAppCheck.publicarEAguardarLiberacao(
+              idSessao: 'sessao_avulsa_dev',
+              epubPath: epubDev.path,
+            );
+        expect(
+          resultadoAvulso.etapa,
+          equals(EtapaPublicacaoLaudo.concluidoAtivo),
+        );
+
+        final salvoNoBanco = await banco.obterSubmissaoPorIdSessao(
+          'sessao_dev_mock',
+        );
+        expect(salvoNoBanco?.enviadoNuvem, isTrue);
+        expect(
+          loggerMockDev.infosRegistrados,
+          contains(contains('📝 [DEBUG MOCK] Upload de laudo concluído localmente')),
+        );
+
+        final restauradosDev = await syncDevSemAppCheck
+            .restaurarRelatoriosDaConta(diretorioBase: tempDir);
+        expect(restauradosDev, equals(0));
+        expect(
+          loggerMockDev.infosRegistrados,
+          contains(
+            contains('📝 [DEBUG MOCK] Restauração de relatórios concluída localmente'),
+          ),
+        );
+
+        // Em modo release (emModoDesenvolvimento: false), não usa mock gracioso e tenta a rede real
+        final syncRelease = SincronizadorNuvemService(
+          banco: banco,
+          autenticacaoService: auth,
+          clienteHttp: clienteHttp,
+          logger: loggerMockDev,
+          emModoDesenvolvimento: false,
+        );
+        recDev.enviadoNuvem = false;
+        expect(await syncRelease.enviarSubmissao(recDev), isFalse);
+      },
+    );
   });
 }

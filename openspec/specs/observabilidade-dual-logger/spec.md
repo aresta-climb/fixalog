@@ -21,11 +21,15 @@ O sistema DEVE (MUST) reconhecer falhas decorrentes de perda temporária de sina
 - **THEN** o sistema classifica a falha via `RegistroLogger.isFalhaConexaoOuTimeout` e grava apenas um breadcrumb de aviso (`logAviso`), sem emitir alerta de erro no Sentry ou Crashlytics
 
 ### Requirement: Atestação de Integridade via Firebase App Check
-O sistema DEVE (MUST) ativar o Firebase App Check (`ServicoAppCheck`) utilizando Play Integrity no Android, App Attest no iOS e provedores de depuração fora de builds de release oficial, fornecendo tokens JWT válidos para o `AutenticacaoNuvemService` e degradando graciosamente sem bloquear o aplicativo quando offline.
+O sistema DEVE (MUST) ativar o Firebase App Check (`ServicoAppCheck`) utilizando Play Integrity no Android, App Attest no iOS e provedores de depuração fora de builds de release oficial, fornecendo tokens JWT válidos para o `AutenticacaoNuvemService` e degradando graciosamente sem bloquear o aplicativo quando offline ou quando o UUID de depuração local não estiver cadastrado no Firebase Console em modo de desenvolvimento (`kModoDesenvolvimento`).
 
 #### Scenario: Obtenção de token App Check sem conexão
 - **WHEN** o `AutenticacaoNuvemService` solicita um token ao `ServicoAppCheck` enquanto o dispositivo está sem sinal na montanha
 - **THEN** o `ServicoAppCheck` captura a exceção de rede, registra apenas um aviso no `RegistroLogger` e retorna de forma segura sem interromper o fluxo offline do auditor
+
+#### Scenario: Obtenção de token App Check em modo de desenvolvimento sem UUID cadastrado no Firebase Console
+- **WHEN** o `ServicoAppCheck.obterToken` é acionado em modo de desenvolvimento (`kModoDesenvolvimento`) e o `DebugAppCheckProvider` falha com `403 App attestation failed` por ausência de registro do UUID local no console do Firebase
+- **THEN** o `ServicoAppCheck` captura a falha, registra apenas um aviso contextual (`logAviso`) sem emitir erro no Sentry ou Crashlytics, e retorna `null` para acionar o mock gracioso nos serviços consumidores
 
 ### Requirement: Enfileiramento Offline em Disco
 O sistema DEVE (MUST) persistir localmente em disco os envelopes do Sentry e registros do Crashlytics durante períodos sem sinal de rede, enviando-os automaticamente após a recuperação da conectividade.

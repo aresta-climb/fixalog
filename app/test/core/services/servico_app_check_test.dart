@@ -111,16 +111,36 @@ void main() {
     );
 
     test(
-      'obterToken registra logError quando ocorre erro não relacionado a rede e instância padrão degrada com segurança sem Firebase inicializado',
+      'obterToken registra logAviso em modo de desenvolvimento quando o UUID de debug não está cadastrado e logError apenas em modo release',
       () async {
-        final servicoComErro = ServicoAppCheck(
+        final servicoDevSemUuid = ServicoAppCheck(
           logger: loggerFake,
+          emModoDesenvolvimento: true,
+          obterTokenAppCheck: (_) async {
+            throw Exception(
+              '[firebase_app_check/unknown] Error returned from API. code: 403 body: App attestation failed.',
+            );
+          },
+        );
+
+        final tokenDev = await servicoDevSemUuid.obterToken();
+        expect(tokenDev, isNull);
+        expect(loggerFake.errosRegistrados, isEmpty);
+        expect(loggerFake.avisosRegistrados, hasLength(1));
+        expect(
+          loggerFake.avisosRegistrados.single,
+          contains('modo de desenvolvimento'),
+        );
+
+        final servicoReleaseComErro = ServicoAppCheck(
+          logger: loggerFake,
+          emModoDesenvolvimento: false,
           obterTokenAppCheck: (_) async {
             throw StateError('App Check bloqueado');
           },
         );
 
-        final token = await servicoComErro.obterToken();
+        final token = await servicoReleaseComErro.obterToken();
         expect(token, isNull);
         expect(loggerFake.errosRegistrados, hasLength(1));
         expect(

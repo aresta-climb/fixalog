@@ -106,5 +106,31 @@ void main() {
             'O workflow deve executar sentry_dart_plugin para upload de símbolos ao Sentry.',
       );
     });
+
+    test(
+      'release_new_app_version.yml deve possuir input executar_robo_caotico e steps de testes e campanha de 5 minutos com Sentry',
+      () {
+        var releaseFile = File('../.github/workflows/release_new_app_version.yml');
+        if (!releaseFile.existsSync()) {
+          releaseFile = File('.github/workflows/release_new_app_version.yml');
+        }
+        expect(releaseFile.existsSync(), isTrue);
+        final releaseContent = releaseFile.readAsStringSync();
+
+        expect(releaseContent, contains('executar_robo_caotico:'));
+        expect(releaseContent, contains('flutter analyze --fatal-infos --fatal-warnings'));
+        expect(releaseContent, contains('Executar Suíte de Testes (TDD & Regressão)'));
+        expect(
+          releaseContent,
+          contains(
+            'flutter test test/caos/robo_caotico_exploratorio_test.dart --dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS=300 --dart-define=REPORTAR_SENTRY_CAOS=true',
+          ),
+        );
+        expect(
+          releaseContent,
+          contains('app/test/caos/caminhos_regressao/*.json'),
+        );
+      },
+    );
   });
 }

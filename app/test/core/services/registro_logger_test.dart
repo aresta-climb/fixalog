@@ -154,6 +154,61 @@ void main() {
     );
 
     test(
+      'aoRegistrarErroOuCrash é notificado sincronamente tanto em logError quanto em logCrash',
+      () {
+        final notificacoes = <Map<String, Object?>>[];
+        final logger = RegistroLogger(
+          emModoDesenvolvimento: false,
+          impressorConsole: (_) {},
+          enviarErroCrashlytics: (
+            erro,
+            stack, {
+            required String motivo,
+            required bool fatal,
+          }) async {},
+          enviarExcecaoSentry: (
+            erro, {
+            required StackTrace stackTrace,
+            required String motivo,
+            required bool fatal,
+            Map<String, Map<String, Object?>>? contextosExtras,
+          }) async {},
+        );
+        logger.aoRegistrarErroOuCrash = (
+          erro,
+          stackTrace,
+          mensagem, {
+          required fatal,
+        }) {
+          notificacoes.add({
+            'erro': erro,
+            'stack': stackTrace,
+            'mensagem': mensagem,
+            'fatal': fatal,
+          });
+        };
+
+        final trilha = StackTrace.current;
+        logger.logError(
+          'Erro tratado em try/catch',
+          error: const FormatException('JSON inválido'),
+          stackTrace: trilha,
+        );
+        logger.logCrash(
+          'Crash crítico',
+          stackTrace: trilha,
+        );
+
+        expect(notificacoes, hasLength(2));
+        expect(notificacoes[0]['erro'], isA<FormatException>());
+        expect(notificacoes[0]['mensagem'], equals('Erro tratado em try/catch'));
+        expect(notificacoes[0]['fatal'], isFalse);
+        expect(notificacoes[1]['mensagem'], equals('Crash crítico'));
+        expect(notificacoes[1]['fatal'], isTrue);
+      },
+    );
+
+    test(
       'configurarEscopoSentry preenche nível e contextos estruturados no Scope do Sentry',
       () {
         final escopoErro = Scope(SentryOptions(dsn: ''));

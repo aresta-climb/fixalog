@@ -41,12 +41,26 @@ typedef EnviarExcecaoSentryCallback = FutureOr<void> Function(
   Map<String, Map<String, Object?>>? contextosExtras,
 });
 
+/// Assinatura para inspeção síncrona de erros ou crashes registrados no [RegistroLogger].
+typedef AoRegistrarErroOuCrashCallback = void Function(
+  Object erro,
+  StackTrace stackTrace,
+  String mensagem, {
+  required bool fatal,
+});
+
 /// Serviço centralizado para registro de logs informativos, avisos operacionais e
 /// captura dual de exceções (Firebase Crashlytics + Sentry) com filtro inteligente
 /// de instabilidades transitórias de rede em ambientes remotos de montanha.
 class RegistroLogger {
   /// Indica se as mensagens informativas e de aviso devem ser impressas no console local.
   final bool emModoDesenvolvimento;
+
+  /// Callback opcional invocado sincronamente sempre que [logError] ou [logCrash]
+  /// registra uma falha, permitindo que oráculos de teste (como o Robô Caótico)
+  /// interceptem erros tratados em blocos `try/catch`.
+  @visibleForTesting
+  AoRegistrarErroOuCrashCallback? aoRegistrarErroOuCrash;
 
   final void Function(String mensagem) _impressorConsole;
   final EnviarLogCrashlyticsCallback _enviarLogCrashlytics;
@@ -301,6 +315,12 @@ class RegistroLogger {
     _impressorConsole('Stack: $stackTrace');
 
     final excecaoEfetiva = error ?? Exception(mensagemContexto);
+    aoRegistrarErroOuCrash?.call(
+      excecaoEfetiva,
+      stackTrace,
+      mensagemContexto,
+      fatal: fatal,
+    );
 
     _executarComProtecao(
       () => _enviarExcecaoSentry(

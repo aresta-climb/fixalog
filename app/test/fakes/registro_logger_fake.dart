@@ -77,6 +77,13 @@ class RegistroLoggerFake extends RegistroLogger {
     bool fatal = false,
     Map<String, Map<String, Object?>>? contextosExtras,
   }) {
+    final excecaoEfetiva = error ?? Exception(mensagemContexto);
+    aoRegistrarErroOuCrash?.call(
+      excecaoEfetiva,
+      stackTrace,
+      mensagemContexto,
+      fatal: fatal,
+    );
     errosRegistrados.add(
       EventoErroRegistrado(
         mensagemContexto: mensagemContexto,

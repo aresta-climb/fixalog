@@ -1,0 +1,104 @@
+{
+  "seed": 1,
+  "dataset": "toxico",
+  "oraculo": "flutter_error",
+  "assinatura_falha": "FlutterError|tela_configuracoes.dart:112",
+  "resumo_erro": "Validação canônica de navegação entre abas e troca de idioma para árabe (RTL) e alemão sem RenderFlex overflow",
+  "instrucoes_regressao": "1. Salve este JSON em app/test/caos/caminhos_regressao/regressao_navegacao_abas_idioma_seed_1.json\n2. Reproduza localmente com: flutter test test/caos/regressao_caminhos_test.dart\n3. Corrija a causa raiz e mantenha o arquivo JSON commitado para evitar regressão.",
+  "passos_minimos": [
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porTipoETexto",
+        "tipoWidget": "InkWell",
+        "texto": "Histórico",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porTipoETexto",
+        "tipoWidget": "InkWell",
+        "texto": "Configurações",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porKey",
+        "valorKey": "dropdown_idioma_config",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porKey",
+        "valorKey": "opcao_idioma_ar",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "alternarConectividade",
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "dispararEventoSync",
+      "pumpAndSettle": true
+    }
+  ],
+  "passos_originais": [
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porTipoETexto",
+        "tipoWidget": "InkWell",
+        "texto": "Histórico",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porTipoETexto",
+        "tipoWidget": "InkWell",
+        "texto": "Configurações",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porKey",
+        "valorKey": "dropdown_idioma_config",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "tap",
+      "alvo": {
+        "tipo": "porKey",
+        "valorKey": "opcao_idioma_ar",
+        "ocorrencia": 0
+      },
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "alternarConectividade",
+      "pumpAndSettle": true
+    },
+    {
+      "acao": "dispararEventoSync",
+      "pumpAndSettle": true
+    }
+  ]
+}

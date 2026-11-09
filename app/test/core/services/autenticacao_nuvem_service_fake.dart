@@ -18,6 +18,7 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
   SessaoUsuarioNuvem? sessaoArmazenada;
   final List<ProvedorOidc> loginsRealizados = [];
   final List<({String nome, String clube})> perfisAtualizados = [];
+  bool ultimoAtualizarNomeNoAresta = true;
 
   AutenticacaoNuvemServiceFake({
     required this.crypto,
@@ -79,9 +80,11 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
   Future<SessaoUsuarioNuvem?> atualizarPerfilConta({
     required String nomeCompleto,
     required String clubeAssociacao,
+    bool atualizarNomeNoAresta = true,
   }) async {
     final nomeLimpo = nomeCompleto.trim();
     final clubeLimpo = clubeAssociacao.trim();
+    ultimoAtualizarNomeNoAresta = atualizarNomeNoAresta;
     perfisAtualizados.add((nome: nomeLimpo, clube: clubeLimpo));
 
     if (nomeLimpo.isNotEmpty) {

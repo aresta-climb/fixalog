@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'crypto_service.dart';
 import 'providers.dart';
+import 'registro_logger.dart';
+import 'servico_app_check.dart';
 
 /// Provedores OIDC exclusivos suportados pelo Fixalog (sem magic link por e-mail).
 enum ProvedorOidc {
@@ -158,9 +160,6 @@ class AutenticacaoNuvemService {
       synchronizable: true,
       accessibility: KeychainAccessibility.first_unlock,
     ),
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
   );
 
   final CryptoService _cryptoService;
@@ -272,17 +271,56 @@ class AutenticacaoNuvemService {
           const <String, dynamic>{};
       final userId = (usuario['id'] as String?) ?? '';
       final email = (usuario['email'] as String?) ?? emailInicial;
+      final nomeFixalogMeta =
+          (metadados['nome_completo_fixalog'] as String?)?.trim() ?? '';
+      final clubeFixalogMeta =
+          (metadados['clube_associacao_fixalog'] as String?)?.trim() ?? '';
+      final nomePublicoMeta =
+          (metadados['autor_nome_publico'] as String?)?.trim() ?? '';
       final nomeMeta = (metadados['full_name'] as String?) ??
           (metadados['name'] as String?) ??
           '';
-      final nomeEfetivo =
-          nomeInicial.trim().isNotEmpty ? nomeInicial.trim() : nomeMeta;
+
+      var nomePerfilAresta = '';
+      if (userId.isNotEmpty && accessToken.isNotEmpty) {
+        final uriPerfil = Uri.parse(
+          '$base/rest/v1/perfis?user_id=eq.${Uri.encodeQueryComponent(userId)}&select=autor_nome_publico',
+        );
+        final reqPerfil = await client.getUrl(uriPerfil);
+        reqPerfil.headers.set('apikey', chaveAnonSupabase);
+        reqPerfil.headers.set('Authorization', 'Bearer $accessToken');
+        final resPerfil = await reqPerfil.close();
+        final corpoPerfil = await utf8.decoder.bind(resPerfil).join();
+        if (resPerfil.statusCode >= 200 && resPerfil.statusCode < 300) {
+          final listaPerfis = jsonDecode(corpoPerfil);
+          if (listaPerfis is List && listaPerfis.isNotEmpty) {
+            final primeiro = listaPerfis.first as Map<String, dynamic>;
+            nomePerfilAresta =
+                (primeiro['autor_nome_publico'] as String?)?.trim() ?? '';
+          }
+        }
+      }
+
+      var nomeEfetivo = '';
+      for (final candidato in <String>[
+        nomeFixalogMeta,
+        nomePerfilAresta,
+        nomePublicoMeta,
+        nomeInicial.trim(),
+        nomeMeta.trim(),
+      ]) {
+        if (candidato.isNotEmpty) {
+          nomeEfetivo = candidato;
+          break;
+        }
+      }
 
       return CredencialOidcBruta(
         userId: userId,
         email: email,
         provedor: provedor,
         nomeCompleto: nomeEfetivo,
+        clubeAssociacao: clubeFixalogMeta,
         jwtSupabase: accessToken,
         idTokenOidc: idToken,
       );
@@ -344,7 +382,8 @@ class AutenticacaoNuvemService {
   }
 
   static Future<String> _provedorAppCheckPadrao() async {
-    return 'app_check_token_fixalog_padrao';
+    final token = await ServicoAppCheck.instancia.obterToken();
+    return token ?? 'app_check_token_fixalog_padrao';
   }
 
   /// Valida que o `id_token` OIDC recebido contém o claim `nonce` correspondente
@@ -432,11 +471,69 @@ class AutenticacaoNuvemService {
     return entrarComProvedorOidc(provedor);
   }
 
+  /// Sincroniza o Nome Completo e Clube/Associação nos metadados do Supabase Auth (`PUT /auth/v1/user`)
+  /// e, quando [atualizarNomeNoAresta] for verdadeiro, atualiza também `public.perfis.autor_nome_publico`.
+  static Future<void> sincronizarPerfilNoSupabase({
+    required SessaoUsuarioNuvem sessao,
+    required String nomeCompleto,
+    required String clubeAssociacao,
+    required bool atualizarNomeNoAresta,
+    String? urlSupabase,
+    String chaveAnonSupabase = chaveAnonSupabasePadrao,
+  }) async {
+    final client = HttpClient();
+    try {
+      final base = urlSupabase ?? urlSupabaseAtiva;
+      final uriUser = Uri.parse('$base/auth/v1/user');
+      final reqUser = await client.putUrl(uriUser);
+      reqUser.headers.set('Content-Type', 'application/json');
+      reqUser.headers.set('apikey', chaveAnonSupabase);
+      reqUser.headers.set('Authorization', 'Bearer ${sessao.jwtSupabase}');
+      reqUser.add(
+        utf8.encode(
+          jsonEncode({
+            'data': {
+              'nome_completo_fixalog': nomeCompleto,
+              'clube_associacao_fixalog': clubeAssociacao,
+              if (atualizarNomeNoAresta) 'autor_nome_publico': nomeCompleto,
+            },
+          }),
+        ),
+      );
+      final resUser = await reqUser.close();
+      await resUser.drain<void>();
+
+      if (atualizarNomeNoAresta) {
+        final uriPerfil = Uri.parse(
+          '$base/rest/v1/perfis?user_id=eq.${Uri.encodeQueryComponent(sessao.userId)}',
+        );
+        final reqPerfil = await client.patchUrl(uriPerfil);
+        reqPerfil.headers.set('Content-Type', 'application/json');
+        reqPerfil.headers.set('apikey', chaveAnonSupabase);
+        reqPerfil.headers.set('Authorization', 'Bearer ${sessao.jwtSupabase}');
+        reqPerfil.add(
+          utf8.encode(
+            jsonEncode({
+              'autor_nome_publico': nomeCompleto,
+            }),
+          ),
+        );
+        final resPerfil = await reqPerfil.close();
+        await resPerfil.drain<void>();
+      }
+    } catch (_) {
+      // Sincronização em nuvem é best-effort para não bloquear operação offline-first.
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   /// Atualiza o Nome Completo e Clube/Associação da conta autenticada e
   /// re-emite o certificado X.509 local mantendo o mesmo par de chaves ECDSA.
   Future<SessaoUsuarioNuvem?> atualizarPerfilConta({
     required String nomeCompleto,
     required String clubeAssociacao,
+    bool atualizarNomeNoAresta = true,
   }) async {
     final nomeLimpo = nomeCompleto.trim();
     final clubeLimpo = clubeAssociacao.trim();
@@ -456,6 +553,15 @@ class AutenticacaoNuvemService {
     final sessaoAtual = await obterSessaoAtual();
     if (sessaoAtual == null) {
       return null;
+    }
+
+    if (_sincronizadorPerfilRemoto == null) {
+      await sincronizarPerfilNoSupabase(
+        sessao: sessaoAtual,
+        nomeCompleto: nomeLimpo,
+        clubeAssociacao: clubeLimpo,
+        atualizarNomeNoAresta: atualizarNomeNoAresta,
+      );
     }
 
     final atualizada = sessaoAtual.copiarCom(
@@ -478,7 +584,10 @@ class AutenticacaoNuvemService {
     try {
       final mapa = jsonDecode(bruto) as Map<String, dynamic>;
       return SessaoUsuarioNuvem.deMapa(mapa);
-    } catch (_) {
+    } catch (e) {
+      RegistroLogger.instancia.logAviso(
+        'Falha ao decodificar sessão OIDC persistida localmente: $e',
+      );
       return null;
     }
   }

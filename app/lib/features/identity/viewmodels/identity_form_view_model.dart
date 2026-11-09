@@ -15,6 +15,7 @@ class IdentityFormState {
   final SessaoUsuarioNuvem? sessaoNuvem;
   final String? nomeSugerido;
   final String? clubeSugerido;
+  final bool atualizarNomeNoAresta;
 
   IdentityFormState({
     this.isLoading = false,
@@ -23,6 +24,7 @@ class IdentityFormState {
     this.sessaoNuvem,
     this.nomeSugerido,
     this.clubeSugerido,
+    this.atualizarNomeNoAresta = true,
   });
 
   IdentityFormState copyWith({
@@ -32,6 +34,7 @@ class IdentityFormState {
     SessaoUsuarioNuvem? sessaoNuvem,
     String? nomeSugerido,
     String? clubeSugerido,
+    bool? atualizarNomeNoAresta,
   }) {
     return IdentityFormState(
       isLoading: isLoading ?? this.isLoading,
@@ -40,6 +43,8 @@ class IdentityFormState {
       sessaoNuvem: sessaoNuvem ?? this.sessaoNuvem,
       nomeSugerido: nomeSugerido ?? this.nomeSugerido,
       clubeSugerido: clubeSugerido ?? this.clubeSugerido,
+      atualizarNomeNoAresta:
+          atualizarNomeNoAresta ?? this.atualizarNomeNoAresta,
     );
   }
 }
@@ -57,6 +62,30 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
             autenticacaoService ??
             AutenticacaoNuvemService(cryptoService: _cryptoService),
         super(IdentityFormState());
+
+  /// Carrega uma sessão OIDC já existente quando a tela é aberta.
+  Future<void> carregarSessaoExistente() async {
+    final sessao = await _autenticacaoService.obterSessaoAtual();
+    if (sessao == null) return;
+    state = state.copyWith(
+      sessaoNuvem: sessao,
+      nomeSugerido: sessao.nomeCompleto,
+      clubeSugerido: sessao.clubeAssociacao,
+    );
+  }
+
+  /// Define se a atualização do Nome Completo deve também sincronizar `autor_nome_publico` no Aresta Climb.
+  void definirAtualizarNomeNoAresta(bool valor) {
+    state = state.copyWith(atualizarNomeNoAresta: valor);
+  }
+
+  /// Encerra a sessão OIDC atual e retorna o formulário para a Etapa 1 (escolha de conta Google/Apple).
+  Future<void> trocarConta() async {
+    await _autenticacaoService.encerrarSessao();
+    state = IdentityFormState(
+      atualizarNomeNoAresta: state.atualizarNomeNoAresta,
+    );
+  }
 
   /// Autentica com Google ou Apple vinculando o `nonce` OpenPubkey da chave
   /// pública ECDSA local (gerada ou restaurada do cofre do SO) ao `id_token` OIDC.
@@ -114,6 +143,7 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       await _autenticacaoService.atualizarPerfilConta(
         nomeCompleto: nomeLimpo,
         clubeAssociacao: clubeLimpo,
+        atualizarNomeNoAresta: state.atualizarNomeNoAresta,
       );
 
       final identity = IdentityRecord()
@@ -147,7 +177,13 @@ final identityFormViewModelProvider =
 
 final hasIdentityProvider = FutureProvider<bool>((ref) async {
   final repository = ref.watch(identityRepositoryProvider);
-  return await repository.hasIdentity();
+  final autenticacaoService = ref.watch(autenticacaoNuvemServiceProvider);
+  final possuiLocal = await repository.hasIdentity();
+  if (!possuiLocal) {
+    return false;
+  }
+  final sessaoOidc = await autenticacaoService.obterSessaoAtual();
+  return sessaoOidc != null;
 });
 
 final currentIdentityProvider = FutureProvider<IdentityRecord?>((ref) async {

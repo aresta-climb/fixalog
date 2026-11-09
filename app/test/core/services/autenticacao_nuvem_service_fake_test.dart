@@ -28,9 +28,11 @@ void main() {
       final sessaoAtualizada = await fake.atualizarPerfilConta(
         nomeCompleto: 'Renato Silva',
         clubeAssociacao: 'CEC',
+        atualizarNomeNoAresta: false,
       );
       expect(sessaoAtualizada?.nomeCompleto, equals('Renato Silva'));
       expect(sessaoAtualizada?.clubeAssociacao, equals('CEC'));
+      expect(fake.ultimoAtualizarNomeNoAresta, isFalse);
       expect(
         sessaoAtualizada?.fingerprintChavePublica,
         equals(sessao.fingerprintChavePublica),

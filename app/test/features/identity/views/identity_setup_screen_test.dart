@@ -10,17 +10,39 @@ import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../../core/services/autenticacao_nuvem_service_fake.dart';
 import '../../../fakes/crypto_service_fake.dart';
 
 void main() {
+  const canalPermissoes = MethodChannel(
+    'flutter.baseflow.com/permissions/methods',
+  );
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(canalPermissoes, (call) async {
+          if (call.method == 'requestPermissions') {
+            final permissoes = (call.arguments as List).cast<int>();
+            return <int, int>{for (final p in permissoes) p: 1};
+          }
+          return 1;
+        });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(canalPermissoes, null);
+  });
+
   Widget createWidgetUnderTest({
     BancoDadosLocal? banco,
     Locale? locale,
     CryptoService? cryptoService,
     AutenticacaoNuvemService? autenticacaoService,
+    Future<void> Function()? solicitadorPermissoes,
   }) {
     return ProviderScope(
       overrides: [
@@ -38,31 +60,39 @@ void main() {
             ? AppLocalizations.localizationsDelegates
             : null,
         supportedLocales: ResolvedorIdioma.localesSuportados,
-        home: const IdentitySetupScreen(),
+        home: IdentitySetupScreen(
+          solicitadorPermissoes: solicitadorPermissoes,
+        ),
       ),
     );
   }
 
   group('IdentitySetupScreen Widget Tests', () {
-    testWidgets('renderiza botões Google e Apple, campos de formulário e elementos visuais', (
+    testWidgets('Etapa 1 renderiza cabeçalho FIXA LOG e apenas botões clássicos Google e Apple', (
       tester,
     ) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
 
-      expect(find.text('FIX'), findsOneWidget);
+      expect(find.text('FIXA'), findsOneWidget);
       expect(find.text('LOG'), findsOneWidget);
       expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
       expect(find.byKey(const Key('botao_login_apple')), findsOneWidget);
-      expect(find.text('NOME COMPLETO'), findsOneWidget);
-      expect(find.text('GERAR CHAVES E ENTRAR'), findsOneWidget);
+      expect(find.text('Continuar com o Google'), findsOneWidget);
+      expect(find.text('Continuar com a Apple'), findsOneWidget);
+      expect(find.text('NOME COMPLETO'), findsNothing);
+      expect(find.text('GERAR CHAVES E ENTRAR'), findsNothing);
     });
 
-    testWidgets('exibe SnackBar quando nome está vazio ou quando falta autenticação OIDC Google/Apple', (
+    testWidgets('Etapa 2 exibe erro se nome for limpo, permite trocar de conta e alternar checkbox do Aresta Climb', (
       tester,
     ) async {
       final crypto = CryptoServiceFake();
-      final auth = AutenticacaoNuvemServiceFake(crypto: crypto);
+      final auth = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        nomeRetornadoOidc: 'Renato Aresta',
+        clubeRetornadoOidc: 'FEMERJ',
+      );
       await tester.pumpWidget(
         createWidgetUnderTest(
           cryptoService: crypto,
@@ -71,7 +101,27 @@ void main() {
       );
       await tester.pump();
 
-      final botao = find.byType(ElevatedButton);
+      // Autentica com Apple na Etapa 1 para avançar à Etapa 2
+      await tester.tap(find.byKey(const Key('botao_login_apple')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('badge_sessao_oidc')), findsOneWidget);
+      expect(find.byKey(const Key('card_seguranca_hardware')), findsOneWidget);
+      expect(find.byKey(const Key('card_permissoes_dispositivo')), findsOneWidget);
+      expect(find.text('ACESSO À CÂMERA'), findsOneWidget);
+      expect(find.text('LOCALIZAÇÃO (GPS)'), findsOneWidget);
+      expect(
+        find.textContaining('Ao clicar em gerar chaves, você concorda'),
+        findsNothing,
+      );
+
+      // Limpa o nome e tenta confirmar
+      final textFields = find.byType(TextFormField);
+      expect(textFields, findsNWidgets(2));
+      await tester.enterText(textFields.first, '');
+      await tester.pump();
+
+      final botao = find.byKey(const Key('botao_gerar_chaves_entrar'));
       await tester.ensureVisible(botao);
       await tester.tap(botao);
       await tester.pumpAndSettle();
@@ -82,27 +132,23 @@ void main() {
         findsOneWidget,
       );
 
-      final textFields = find.byType(TextFormField);
-      expect(textFields, findsNWidgets(2));
-
-      await tester.enterText(textFields.first, 'Renato Silva');
-      await tester.enterText(textFields.last, 'Clube Paulista');
+      // Alterna a checkbox do Aresta Climb
+      final checkbox = find.byKey(const Key('checkbox_atualizar_nome_aresta'));
+      await tester.ensureVisible(checkbox);
+      await tester.tap(checkbox);
       await tester.pump();
 
-      ScaffoldMessenger.of(tester.element(botao)).clearSnackBars();
+      // Troca de conta e retorna para a Etapa 1
+      final botaoTrocar = find.byKey(const Key('botao_trocar_conta_oidc'));
+      await tester.ensureVisible(botaoTrocar);
+      await tester.tap(botaoTrocar);
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(botao);
-      await tester.tap(botao);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Autentique-se com Google ou Apple antes de continuar.'),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
+      expect(find.byKey(const Key('badge_sessao_oidc')), findsNothing);
     });
 
-    testWidgets('autentica com Google ou Apple, pré-preenche Nome/Clube e navega para HomeScreen ao concluir', (
+    testWidgets('autentica com Google, pré-preenche Nome/Clube, solicita permissões e navega para HomeScreen ao concluir', (
       tester,
     ) async {
       late BancoDadosLocal banco;
@@ -115,6 +161,7 @@ void main() {
         });
       });
 
+      var permissoesSolicitadas = false;
       final crypto = CryptoServiceFake();
       final auth = AutenticacaoNuvemServiceFake(
         crypto: crypto,
@@ -128,6 +175,9 @@ void main() {
           banco: banco,
           cryptoService: crypto,
           autenticacaoService: auth,
+          solicitadorPermissoes: () async {
+            permissoesSolicitadas = true;
+          },
         ),
       );
       await tester.pump();
@@ -141,13 +191,7 @@ void main() {
       expect(find.text('Renato Ferreira'), findsOneWidget);
       expect(find.text('FEMERJ'), findsOneWidget);
 
-      final botaoApple = find.byKey(const Key('botao_login_apple'));
-      await tester.ensureVisible(botaoApple);
-      await tester.tap(botaoApple);
-      await tester.pumpAndSettle();
-      expect(auth.loginsRealizados, contains(ProvedorOidc.apple));
-
-      final botaoConfirmar = find.byType(ElevatedButton);
+      final botaoConfirmar = find.byKey(const Key('botao_gerar_chaves_entrar'));
       await tester.ensureVisible(botaoConfirmar);
       await tester.runAsync(() async {
         await tester.tap(botaoConfirmar);
@@ -155,17 +199,24 @@ void main() {
       });
       await tester.pumpAndSettle();
 
+      expect(permissoesSolicitadas, isTrue);
       expect(find.byType(HomeScreen), findsOneWidget);
     });
 
     testWidgets(
-      'renderiza textos localizados em Inglês, Árabe e Japonês sem overflow visual',
+      'renderiza textos localizados em Inglês, Árabe e Japonês sem overflow visual nas Etapas 1 e 2',
       (tester) async {
+        final crypto = CryptoServiceFake();
+        final auth = AutenticacaoNuvemServiceFake(crypto: crypto);
+        await auth.entrarComProvedorOidc(ProvedorOidc.google);
+
         late WidgetRef refCapturado;
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
               localeSistemaProvider.overrideWithValue(const Locale('en')),
+              cryptoServiceProvider.overrideWithValue(crypto),
+              autenticacaoNuvemServiceProvider.overrideWithValue(auth),
             ],
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,

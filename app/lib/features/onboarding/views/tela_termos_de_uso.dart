@@ -4,8 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/models/local/app_config_record.dart';
@@ -19,13 +17,11 @@ import '../../home/views/home_screen.dart';
 class TelaTermosDeUso extends ConsumerStatefulWidget {
   final AssetBundle? assetBundle;
   final VoidCallback? aoAceitar;
-  final bool solicitarPermissoesNativas;
 
   const TelaTermosDeUso({
     super.key,
     this.assetBundle,
     this.aoAceitar,
-    this.solicitarPermissoesNativas = true,
   });
 
   @override
@@ -137,25 +133,15 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
     );
   }
 
-  Future<void> _tratarLink(
+  void _tratarLink(
     String texto,
     String? link,
     String titulo,
     AppLocalizations l10n,
-  ) async {
-    if (link == null) return;
-
-    final linkNormalizado = link.toLowerCase().trim();
-    if (linkNormalizado == '#privacy-policy' ||
-        linkNormalizado.contains('privacidade') ||
-        linkNormalizado.contains('privacy')) {
+  ) {
+    final linkNormalizado = (link ?? '').toLowerCase().trim();
+    if (linkNormalizado == '#privacy-policy' || linkNormalizado.contains('privacidade') || linkNormalizado.contains('privacy')) {
       _abrirModalPoliticaPrivacidade(l10n);
-      return;
-    }
-
-    final uri = Uri.tryParse(link);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -163,10 +149,6 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
     setState(() => _estaCarregando = true);
 
     try {
-      if (widget.solicitarPermissoesNativas) {
-        await [Permission.camera, Permission.locationWhenInUse].request();
-      }
-
       final banco = ref.read(bancoDadosLocalProvider);
       if (banco != null) {
         var config = await banco.obterConfiguracao(1);

@@ -182,8 +182,11 @@ void main() {
 
       final certPem = await cryptoService.obterCertificadoX509Pem();
       final x509 = X509Utils.x509CertificateFromPem(certPem!);
-      expect(x509.subject['2.5.4.3'], equals('Renato Novo Nome'));
-      expect(x509.subject['2.5.4.11'], equals('AGUIA'));
+      expect(
+        x509.tbsCertificate?.subject['2.5.4.3'],
+        equals('Renato Novo Nome'),
+      );
+      expect(x509.tbsCertificate?.subject['2.5.4.11'], equals('AGUIA'));
     });
 
     test('obterTokenAppCheck, encerrarSessao, JSON corrompido e provider Riverpod funcionam corretamente', () async {
@@ -244,12 +247,42 @@ void main() {
 
       int statusResposta = 200;
       Map<String, dynamic> ultimoCorpoRecebido = {};
+      Map<String, dynamic> ultimoUserUpdate = {};
+      Map<String, dynamic>? ultimoPerfilPatch;
 
       server.listen((HttpRequest req) async {
+        final caminho = req.uri.path;
         final texto = await utf8.decoder.bind(req).join();
+        req.response.headers.contentType = ContentType.json;
+
+        if (caminho.endsWith('/rest/v1/perfis') && req.method == 'GET') {
+          req.response.statusCode = 200;
+          req.response.write(
+            jsonEncode([
+              {'autor_nome_publico': 'Renato Perfil Aresta'},
+            ]),
+          );
+          await req.response.close();
+          return;
+        }
+
+        if (caminho.endsWith('/auth/v1/user') && req.method == 'PUT') {
+          ultimoUserUpdate = jsonDecode(texto) as Map<String, dynamic>;
+          req.response.statusCode = 200;
+          req.response.write(jsonEncode({'id': 'uuid_supabase_999'}));
+          await req.response.close();
+          return;
+        }
+
+        if (caminho.endsWith('/rest/v1/perfis') && req.method == 'PATCH') {
+          ultimoPerfilPatch = jsonDecode(texto) as Map<String, dynamic>;
+          req.response.statusCode = 204;
+          await req.response.close();
+          return;
+        }
+
         ultimoCorpoRecebido = jsonDecode(texto) as Map<String, dynamic>;
         req.response.statusCode = statusResposta;
-        req.response.headers.contentType = ContentType.json;
         if (statusResposta == 200) {
           final usarNomeMeta = ultimoCorpoRecebido['provider'] == 'google';
           req.response.write(
@@ -259,7 +292,10 @@ void main() {
                 'id': 'uuid_supabase_999',
                 if (usarNomeMeta) 'email': 'renato.supabase@gmail.com',
                 'user_metadata': usarNomeMeta
-                    ? {'name': 'Renato via Metadata'}
+                    ? {
+                        'name': 'Renato via Metadata',
+                        'clube_associacao_fixalog': 'FEMERJ',
+                      }
                     : <String, dynamic>{},
               },
             }),
@@ -311,17 +347,44 @@ void main() {
       expect(sessaoGoogle.userId, equals('uuid_supabase_999'));
       expect(sessaoGoogle.jwtSupabase, equals('jwt_supabase_real_123'));
       expect(sessaoGoogle.email, equals('renato.supabase@gmail.com'));
-      expect(sessaoGoogle.nomeCompleto, equals('Renato via Metadata'));
+      expect(sessaoGoogle.nomeCompleto, equals('Renato Perfil Aresta'));
+      expect(sessaoGoogle.clubeAssociacao, equals('FEMERJ'));
       expect(ultimoCorpoRecebido['provider'], equals('google'));
       expect(
         ultimoCorpoRecebido['nonce'],
         equals(sessaoGoogle.fingerprintChavePublica),
       );
 
+      await service.atualizarPerfilConta(
+        nomeCompleto: 'Renato Civil Fixalog',
+        clubeAssociacao: 'CEC',
+        atualizarNomeNoAresta: false,
+      );
+      expect(
+        (ultimoUserUpdate['data'] as Map<String, dynamic>)['nome_completo_fixalog'],
+        equals('Renato Civil Fixalog'),
+      );
+      expect(
+        (ultimoUserUpdate['data'] as Map<String, dynamic>).containsKey('autor_nome_publico'),
+        isFalse,
+      );
+      expect(ultimoPerfilPatch, isNull);
+
+      await service.atualizarPerfilConta(
+        nomeCompleto: 'Renato Unificado',
+        clubeAssociacao: 'CEC',
+        atualizarNomeNoAresta: true,
+      );
+      expect(
+        (ultimoUserUpdate['data'] as Map<String, dynamic>)['autor_nome_publico'],
+        equals('Renato Unificado'),
+      );
+      expect(ultimoPerfilPatch?['autor_nome_publico'], equals('Renato Unificado'));
+
       final sessaoApple = await service.entrarComProvedorOidc(
         ProvedorOidc.apple,
       );
-      expect(sessaoApple.nomeCompleto, equals('Renato Apple Nativo'));
+      expect(sessaoApple.nomeCompleto, equals('Renato Perfil Aresta'));
       expect(
         sessaoApple.email,
         equals('fallback.apple@privaterelay.appleid.com'),

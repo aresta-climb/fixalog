@@ -4,6 +4,7 @@
 import 'package:basic_utils/basic_utils.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/features/identity/repositories/identity_repository.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,8 +74,12 @@ void main() {
       expect(viewModel.state.sessaoNuvem, isNotNull);
       expect(viewModel.state.nomeSugerido, equals('Renato Ferreira'));
       expect(viewModel.state.clubeSugerido, equals('FEMERJ'));
+      expect(viewModel.state.atualizarNomeNoAresta, isTrue);
       final fingerprintOriginal =
           viewModel.state.sessaoNuvem!.fingerprintChavePublica;
+
+      viewModel.definirAtualizarNomeNoAresta(false);
+      expect(viewModel.state.atualizarNomeNoAresta, isFalse);
 
       await viewModel.submitIdentity(
         'Renato Editado',
@@ -83,6 +88,7 @@ void main() {
       );
 
       expect(viewModel.state.isSuccess, isTrue);
+      expect(auth.ultimoAtualizarNomeNoAresta, isFalse);
       expect(viewModel.state.isLoading, isFalse);
       expect(viewModel.state.errorMessage, isNull);
       expect(await repo.hasIdentity(), isTrue);
@@ -96,8 +102,30 @@ void main() {
       final x509 = X509Utils.x509CertificateFromPem(
         (await crypto.obterCertificadoX509Pem())!,
       );
-      expect(x509.subject['2.5.4.3'], equals('Renato Editado'));
-      expect(x509.subject['2.5.4.11'], equals('CEC'));
+      expect(x509.tbsCertificate?.subject['2.5.4.3'], equals('Renato Editado'));
+      expect(x509.tbsCertificate?.subject['2.5.4.11'], equals('CEC'));
+
+      await viewModel.trocarConta();
+      expect(viewModel.state.sessaoNuvem, isNull);
+      expect(await auth.obterSessaoAtual(), isNull);
+    });
+
+    test('carregarSessaoExistente restaura sessão OIDC e identidade local prévia quando disponíveis', () async {
+      final repo = SqliteIdentityRepository(banco);
+      final crypto = CryptoServiceFake();
+      final auth = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        nomeRetornadoOidc: 'Nome OIDC',
+        clubeRetornadoOidc: 'Clube OIDC',
+      );
+      await auth.entrarComProvedorOidc(ProvedorOidc.google);
+
+      final viewModel = IdentityFormViewModel(repo, crypto, auth);
+      await viewModel.carregarSessaoExistente();
+
+      expect(viewModel.state.sessaoNuvem, isNotNull);
+      expect(viewModel.state.nomeSugerido, equals('Nome OIDC'));
+      expect(viewModel.state.clubeSugerido, equals('Clube OIDC'));
     });
 
     test('submitIdentity recupera sessão OIDC já persistida no cofre quando exigirAutenticacaoOidc=true', () async {
@@ -139,19 +167,40 @@ void main() {
     });
 
     test('identityFormViewModelProvider, hasIdentityProvider e currentIdentityProvider operam com BancoDadosLocal', () async {
+      final crypto = CryptoServiceFake();
+      final auth = AutenticacaoNuvemServiceFake(crypto: crypto);
       final container = ProviderContainer(
         overrides: [
           bancoDadosLocalProvider.overrideWithValue(banco),
+          cryptoServiceProvider.overrideWithValue(crypto),
+          autenticacaoNuvemServiceProvider.overrideWithValue(auth),
         ],
       );
       addTearDown(container.dispose);
 
+      expect(
+        IdentityFormViewModel(SqliteIdentityRepository(banco), crypto),
+        isA<IdentityFormViewModel>(),
+      );
       expect(
         container.read(identityFormViewModelProvider),
         isA<IdentityFormState>(),
       );
       expect(await container.read(hasIdentityProvider.future), isFalse);
       expect(await container.read(currentIdentityProvider.future), isNull);
+
+      final repo = container.read(identityRepositoryProvider);
+      await container
+          .read(identityFormViewModelProvider.notifier)
+          .submitIdentity('Escalador Local', 'Clube');
+      expect(await repo.hasIdentity(), isTrue);
+      container.invalidate(hasIdentityProvider);
+      // Sem sessão OIDC autenticada, hasIdentityProvider retorna false para exigir login
+      expect(await container.read(hasIdentityProvider.future), isFalse);
+
+      await auth.entrarComProvedorOidc(ProvedorOidc.google);
+      container.invalidate(hasIdentityProvider);
+      expect(await container.read(hasIdentityProvider.future), isTrue);
     });
   });
 }

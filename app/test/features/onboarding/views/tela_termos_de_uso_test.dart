@@ -58,7 +58,6 @@ void main() {
     AssetBundle? bundle,
     VoidCallback? aoAceitar,
     List<Override> overrides = const [],
-    bool solicitarPermissoes = false,
   }) {
     return ProviderScope(
       overrides: [
@@ -70,7 +69,6 @@ void main() {
         home: TelaTermosDeUso(
           assetBundle: bundle ?? assetsTeste,
           aoAceitar: aoAceitar,
-          solicitarPermissoesNativas: solicitarPermissoes,
         ),
       ),
     );

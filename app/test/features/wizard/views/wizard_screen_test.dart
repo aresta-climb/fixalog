@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
+import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/seletor_documento_service.dart';
@@ -1250,6 +1251,21 @@ blocos:
       // Avança diretamente para o card de conclusão sem abrir modal de assinatura
       expect(find.text('ASSINATURA DIGITAL'), findsNothing);
       expect(find.text('PROTOCOLO CONCLUÍDO'), findsOneWidget);
+      expect(find.text('GERAR RELATÓRIO'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SummaryConclusionCard),
+          matching: find.byIcon(Icons.description_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(SummaryConclusionCard),
+          matching: find.byIcon(Icons.picture_as_pdf),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('Campo TEXT_AREA suporta linhas em branco com Enter sem fechar teclado e aplica estilo Markdown in-place preservando o texto escrito', (tester) async {
@@ -1528,6 +1544,138 @@ blocos:
           expect(find.text(caso.labelVia), findsOneWidget);
           expect(find.text(caso.btnSeguinte), findsOneWidget);
         }
+      },
+    );
+
+    testWidgets(
+      'Abrir relatório antigo preenchido, sair e iniciar novo relatório mantém campos de texto e número vazios sem herdar sessão anterior',
+      (tester) async {
+        const protocoloYaml = '''
+id: "manutencao_teste"
+nome: "Manutenção Teste"
+versao: "1.0.0"
+blocos:
+  - id: "b1"
+    titulo: "Identificação"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "via_nome"
+            campo_simples:
+              label: "Nome da Via"
+              tipo: "TEXT"
+              obrigatorio: true
+          - id: "via_extensao"
+            campo_simples:
+              label: "Extensão (m)"
+              tipo: "NUMBER"
+              obrigatorio: false
+          - id: "via_obs"
+            campo_simples:
+              label: "Observações"
+              tipo: "TEXT"
+              ui_hint: "TEXT_AREA"
+              obrigatorio: false
+''';
+
+        final tempDir = Directory.systemTemp.createTempSync('wizard_reset_test_');
+        addTearDown(() {
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        });
+
+        final container = ProviderContainer(
+          overrides: [
+            sessionBundleManagerProvider.overrideWithValue(
+              SessionBundleManager(baseDirectoryGetter: () async => tempDir),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // 1. Simula carregamento de um relatório antigo no Histórico (loadSession / loadProtocol + respostas preenchidas)
+        final controller = container.read(wizardControllerProvider.notifier);
+        final parsed = ProtocolParser.fromYaml(protocoloYaml);
+        controller.loadProtocol(parsed, rawYaml: protocoloYaml);
+        controller.answerConteudoString('via_nome', 'Via Antiga do Histórico');
+        controller.answerConteudoString('via_extensao', '120');
+        controller.answerConteudoString('via_obs', 'Observação antiga');
+        final sessaoAntigaId = await controller.saveSession();
+        await controller.loadSession(sessaoAntigaId);
+
+        // Abre o relatório antigo (isEditing: true) e depois sai (Navigator.pop)
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              home: Builder(
+                builder: (ctx) => Scaffold(
+                  body: Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(ctx).push(
+                            MaterialPageRoute(
+                              builder: (_) => const WizardScreen(
+                                initialYaml: protocoloYaml,
+                                isEditing: true,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('ABRIR ANTIGO'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(ctx).push(
+                            MaterialPageRoute(
+                              builder: (_) => const WizardScreen(
+                                initialYaml: protocoloYaml,
+                                isEditing: false,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('NOVO RELATORIO'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Abre o relatório antigo
+        await tester.tap(find.text('ABRIR ANTIGO'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Via Antiga do Histórico'), findsOneWidget);
+        expect(find.text('120'), findsOneWidget);
+        expect(find.text('Observação antiga'), findsOneWidget);
+
+        // Sai do relatório antigo de volta para a tela inicial
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
+
+        // 2. Inicia um NOVO relatório (isEditing: false)
+        await tester.tap(find.text('NOVO RELATORIO'));
+        await tester.pumpAndSettle();
+
+        // Nenhum dado do relatório antigo deve estar pré-preenchido nos campos
+        expect(find.text('Via Antiga do Histórico'), findsNothing);
+        expect(find.text('120'), findsNothing);
+        expect(find.text('Observação antiga'), findsNothing);
+        expect(
+          container.read(wizardControllerProvider).sessionId,
+          isNot(equals(sessaoAntigaId)),
+        );
+        expect(
+          container.read(wizardControllerProvider).answers['via_nome'],
+          isNull,
+        );
       },
     );
   });

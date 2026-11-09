@@ -71,18 +71,26 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<GlobalKey> _cardKeys = [];
   final GlobalKey _summaryKey = GlobalKey();
+  late bool _protocoloInicializado;
 
   @override
   void initState() {
     super.initState();
+    _protocoloInicializado = widget.isEditing;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!widget.isEditing && mounted) {
+        _cardKeys.clear();
         final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
-        if (locale.languageCode == 'pt') {
+        if (locale.languageCode == 'pt' &&
+            ProtocolParser.obterTraducoesLocais('visual_inspection', 'pt') !=
+                null) {
           final protocol = ProtocolParser.fromYaml(widget.initialYaml);
           ref
               .read(wizardControllerProvider.notifier)
               .loadProtocol(protocol, rawYaml: widget.initialYaml);
+          setState(() {
+            _protocoloInicializado = true;
+          });
         } else {
           _carregarProtocoloLocalizado(locale.languageCode);
         }
@@ -100,6 +108,9 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     ref
         .read(wizardControllerProvider.notifier)
         .loadProtocol(protocol, rawYaml: widget.initialYaml);
+    setState(() {
+      _protocoloInicializado = true;
+    });
   }
 
   @override
@@ -168,7 +179,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(wizardControllerProvider);
 
-    if (state.protocol == null) {
+    if (!_protocoloInicializado || state.protocol == null) {
       return const Scaffold(
         backgroundColor: Color(0xFF060908),
         body: Center(
@@ -253,7 +264,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                       const Spacer(),
                       if (state.queue.isNotEmpty)
                         Text(
-                          '${state.currentIndex + 1}/${state.queue.length}',
+                          '${(state.currentIndex + 1).clamp(1, state.queue.length)}/${state.queue.length}',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.35),
                             fontSize: 12,
@@ -266,7 +277,8 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 // Barra de progresso
                 if (state.queue.isNotEmpty)
                   LinearProgressIndicator(
-                    value: (state.currentIndex + 1) / state.queue.length,
+                    value: (state.currentIndex + 1).clamp(1, state.queue.length) /
+                        state.queue.length,
                     backgroundColor: Colors.white.withValues(alpha: 0.05),
                     valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B00)),
                     minHeight: 2,
@@ -1744,17 +1756,26 @@ class _CampoSimplesContent extends ConsumerWidget {
     String? answer,
   ) {
     final l10n = ResolvedorIdioma.obterTraducoesContexto(context, ref);
+    final sessionId = ref.watch(
+      wizardControllerProvider.select((s) => s.sessionId),
+    );
+    final fullKey = listItemId != null
+        ? '${conteudoId}__$listItemId'
+        : conteudoId;
+    final inputKey = ValueKey('input_${sessionId}_$fullKey');
     switch (campo.tipo) {
       case StepCampoSimples_TipoCampo.TEXT:
       case StepCampoSimples_TipoCampo.DATE:
         if (campo.uiHint == StepCampoSimples_UiHint.TEXT_AREA) {
           return _CampoTextoMarkdownArea(
+            key: inputKey,
             initialValue: answer,
             hintText: l10n.wizardHintTextoArea,
             onChanged: (v) => _saveString(ref, v),
           );
         }
         return TextFormField(
+          key: inputKey,
           initialValue: answer,
           keyboardType: TextInputType.text,
           onChanged: (v) => _saveString(ref, v),
@@ -1766,6 +1787,7 @@ class _CampoSimplesContent extends ConsumerWidget {
 
       case StepCampoSimples_TipoCampo.NUMBER:
         return TextFormField(
+          key: inputKey,
           initialValue: answer,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (v) => _saveString(ref, v),
@@ -2767,7 +2789,7 @@ class SummaryConclusionCard extends ConsumerWidget {
                 }
               }
             },
-            icon: const Icon(Icons.picture_as_pdf),
+            icon: const Icon(Icons.description_outlined),
             label: Text(
               l10n.wizardBotaoGerarRelatorio,
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -2796,6 +2818,7 @@ class _CampoTextoMarkdownArea extends StatefulWidget {
   final ValueChanged<String> onChanged;
 
   const _CampoTextoMarkdownArea({
+    super.key,
     required this.initialValue,
     this.hintText,
     required this.onChanged,

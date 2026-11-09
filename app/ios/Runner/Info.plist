@@ -78,6 +78,33 @@
 		<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>Precisamos da sua biometria para autorizar a assinatura digital do documento.</string>
+		<key>GIDClientID</key>
+		<string>1025411452942-eimt7ppo50n2ctur5r8ag4trk1mlo999.apps.googleusercontent.com</string>
+		<key>GIDServerClientID</key>
+		<string>1025411452942-l2dbk6vrt52di1ql7lm4u65i0ndvodes.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.arestaclimb.fixalog.google</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.1025411452942-eimt7ppo50n2ctur5r8ag4trk1mlo999</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.arestaclimb.fixalog</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>fixalog</string>
+				</array>
+			</dict>
+		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>

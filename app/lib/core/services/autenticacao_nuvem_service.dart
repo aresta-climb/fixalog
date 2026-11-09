@@ -2,7 +2,9 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'crypto_service.dart';
@@ -116,6 +118,41 @@ class SessaoUsuarioNuvem {
 /// emissão de tokens de integridade de dispositivo (Firebase App Check).
 class AutenticacaoNuvemService {
   static const String _chaveSessaoJson = 'fixalog_sessao_nuvem_json';
+
+  /// URL padrão do projeto Supabase compartilhado (`aresta`).
+  static const String urlSupabasePadrao = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://yzkhiaoqtxvvcyyuwmqg.supabase.co',
+  );
+
+  /// Chave anônima pública padrão do projeto Supabase (`aresta`).
+  static const String chaveAnonSupabasePadrao = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'sb_publishable_dHPpa5I1hOmKQ9RiNcaXWA_TP5edNam',
+  );
+
+  /// Web Client ID do Google Cloud Console para emissão de `id_token` via Credential Manager.
+  static const String idClienteWebGooglePadrao = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue:
+        '1025411452942-l2dbk6vrt52di1ql7lm4u65i0ndvodes.apps.googleusercontent.com',
+  );
+
+  /// iOS Client ID do Google Cloud Console para fluxo OAuth nativo no iOS.
+  static const String idClienteIosGooglePadrao = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+    defaultValue:
+        '1025411452942-eimt7ppo50n2ctur5r8ag4trk1mlo999.apps.googleusercontent.com',
+  );
+
+  /// URL ativa do Supabase GoTrue (permite apontar para servidor local em testes de integração).
+  static String urlSupabaseAtiva = urlSupabasePadrao;
+
+  /// Canal nativo (iOS `ASAuthorizationAppleIDProvider` / Android `CredentialManager`) para login OIDC.
+  static const MethodChannel canalAutenticacaoNativa = MethodChannel(
+    'com.arestaclimb.fixalog/autenticacao_nativa',
+  );
+
   static const FlutterSecureStorage _armazenamentoPadrao = FlutterSecureStorage(
     iOptions: IOSOptions(
       synchronizable: true,
@@ -191,10 +228,99 @@ class AutenticacaoNuvemService {
     return '$header.$payload.assinatura_oidc_${provedor.valor}';
   }
 
+  /// Realiza a troca de um `id_token` OIDC (Google ou Apple) por uma sessão JWT do Supabase GoTrue
+  /// (`POST /auth/v1/token?grant_type=id_token`) enviando o `rawNonce` para verificação criptográfica.
+  static Future<CredencialOidcBruta> trocarIdTokenNoSupabase({
+    required ProvedorOidc provedor,
+    required String idToken,
+    required String rawNonce,
+    String nomeInicial = '',
+    String emailInicial = '',
+    String? urlSupabase,
+    String chaveAnonSupabase = chaveAnonSupabasePadrao,
+  }) async {
+    final client = HttpClient();
+    try {
+      final base = urlSupabase ?? urlSupabaseAtiva;
+      final uri = Uri.parse('$base/auth/v1/token?grant_type=id_token');
+      final req = await client.postUrl(uri);
+      req.headers.set('Content-Type', 'application/json');
+      req.headers.set('apikey', chaveAnonSupabase);
+      req.add(
+        utf8.encode(
+          jsonEncode({
+            'provider': provedor.valor,
+            'id_token': idToken,
+            'nonce': rawNonce,
+          }),
+        ),
+      );
+      final res = await req.close();
+      final corpo = await utf8.decoder.bind(res).join();
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw HttpException(
+          'Falha ao autenticar no Supabase (${res.statusCode}): $corpo',
+          uri: uri,
+        );
+      }
+      final dados = jsonDecode(corpo) as Map<String, dynamic>;
+      final accessToken = (dados['access_token'] as String?) ?? '';
+      final usuario =
+          (dados['user'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+      final metadados =
+          (usuario['user_metadata'] as Map<String, dynamic>?) ??
+          const <String, dynamic>{};
+      final userId = (usuario['id'] as String?) ?? '';
+      final email = (usuario['email'] as String?) ?? emailInicial;
+      final nomeMeta = (metadados['full_name'] as String?) ??
+          (metadados['name'] as String?) ??
+          '';
+      final nomeEfetivo =
+          nomeInicial.trim().isNotEmpty ? nomeInicial.trim() : nomeMeta;
+
+      return CredencialOidcBruta(
+        userId: userId,
+        email: email,
+        provedor: provedor,
+        nomeCompleto: nomeEfetivo,
+        jwtSupabase: accessToken,
+        idTokenOidc: idToken,
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   static Future<CredencialOidcBruta> _autenticadorOidcPadrao(
     ProvedorOidc provedor,
     String rawNonce,
   ) async {
+    try {
+      final metodo = provedor == ProvedorOidc.apple
+          ? 'solicitarIdTokenApple'
+          : 'solicitarIdTokenGoogle';
+      final respostaNativa = await canalAutenticacaoNativa
+          .invokeMapMethod<String, dynamic>(metodo, <String, dynamic>{
+            'rawNonce': rawNonce,
+            'webClientId': idClienteWebGooglePadrao,
+            'iosClientId': idClienteIosGooglePadrao,
+          });
+      if (respostaNativa != null) {
+        final idTokenNativo = (respostaNativa['idToken'] as String?) ?? '';
+        final nomeNativo = (respostaNativa['nomeCompleto'] as String?) ?? '';
+        final emailNativo = (respostaNativa['email'] as String?) ?? '';
+        return await trocarIdTokenNoSupabase(
+          provedor: provedor,
+          idToken: idTokenNativo,
+          rawNonce: rawNonce,
+          nomeInicial: nomeNativo,
+          emailInicial: emailNativo,
+        );
+      }
+    } on MissingPluginException {
+      // Em ambientes de teste ou desktop sem handler nativo registrado, utiliza o fallback local.
+    }
+
     final email = provedor == ProvedorOidc.apple
         ? 'escalador@privaterelay.appleid.com'
         : 'escalador@gmail.com';

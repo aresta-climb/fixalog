@@ -2,15 +2,18 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = null;
 
   late CryptoService cryptoService;
   late FlutterSecureStorage secureStorage;
@@ -210,6 +213,125 @@ void main() {
       expect(
         container.read(autenticacaoNuvemServiceProvider),
         isA<AutenticacaoNuvemService>(),
+      );
+      expect(AutenticacaoNuvemService(), isA<AutenticacaoNuvemService>());
+      expect(ProvedorOidc.deString('desconhecido'), equals(ProvedorOidc.google));
+      const sessaoBase = SessaoUsuarioNuvem(
+        userId: 'u',
+        email: 'e',
+        provedor: ProvedorOidc.google,
+        nomeCompleto: 'N',
+        clubeAssociacao: 'C',
+        jwtSupabase: 'j',
+        atestadoOidcJwt: 'a',
+        fingerprintChavePublica: 'f',
+      );
+      expect(sessaoBase.copiarCom().nomeCompleto, equals('N'));
+    });
+
+    test('canalAutenticacaoNativa e trocarIdTokenNoSupabase realizam handshake HTTP com Supabase GoTrue', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async {
+        AutenticacaoNuvemService.urlSupabaseAtiva =
+            AutenticacaoNuvemService.urlSupabasePadrao;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              AutenticacaoNuvemService.canalAutenticacaoNativa,
+              null,
+            );
+        await server.close(force: true);
+      });
+
+      int statusResposta = 200;
+      Map<String, dynamic> ultimoCorpoRecebido = {};
+
+      server.listen((HttpRequest req) async {
+        final texto = await utf8.decoder.bind(req).join();
+        ultimoCorpoRecebido = jsonDecode(texto) as Map<String, dynamic>;
+        req.response.statusCode = statusResposta;
+        req.response.headers.contentType = ContentType.json;
+        if (statusResposta == 200) {
+          final usarNomeMeta = ultimoCorpoRecebido['provider'] == 'google';
+          req.response.write(
+            jsonEncode({
+              'access_token': 'jwt_supabase_real_123',
+              'user': {
+                'id': 'uuid_supabase_999',
+                if (usarNomeMeta) 'email': 'renato.supabase@gmail.com',
+                'user_metadata': usarNomeMeta
+                    ? {'name': 'Renato via Metadata'}
+                    : <String, dynamic>{},
+              },
+            }),
+          );
+        } else {
+          req.response.write(jsonEncode({'error': 'invalid_grant'}));
+        }
+        await req.response.close();
+      });
+
+      AutenticacaoNuvemService.urlSupabaseAtiva =
+          'http://127.0.0.1:${server.port}';
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            AutenticacaoNuvemService.canalAutenticacaoNativa,
+            (MethodCall call) async {
+              final args = Map<String, dynamic>.from(call.arguments as Map);
+              final rawNonce = args['rawNonce'] as String;
+              final provedor = call.method == 'solicitarIdTokenApple'
+                  ? ProvedorOidc.apple
+                  : ProvedorOidc.google;
+              final idToken =
+                  AutenticacaoNuvemService.construirIdTokenOidcComNonce(
+                    provedor: provedor,
+                    sub: 'sub_nativo',
+                    email: 'nativo@aresta.com',
+                    nomeCompleto: 'Renato Nativo',
+                    rawNonce: rawNonce,
+                  );
+              return <String, dynamic>{
+                'idToken': idToken,
+                'nomeCompleto': provedor == ProvedorOidc.apple
+                    ? 'Renato Apple Nativo'
+                    : '',
+                'email': 'fallback.apple@privaterelay.appleid.com',
+              };
+            },
+          );
+
+      final service = AutenticacaoNuvemService(
+        cryptoService: cryptoService,
+        secureStorage: secureStorage,
+      );
+
+      final sessaoGoogle = await service.entrarComProvedorOidc(
+        ProvedorOidc.google,
+      );
+      expect(sessaoGoogle.userId, equals('uuid_supabase_999'));
+      expect(sessaoGoogle.jwtSupabase, equals('jwt_supabase_real_123'));
+      expect(sessaoGoogle.email, equals('renato.supabase@gmail.com'));
+      expect(sessaoGoogle.nomeCompleto, equals('Renato via Metadata'));
+      expect(ultimoCorpoRecebido['provider'], equals('google'));
+      expect(
+        ultimoCorpoRecebido['nonce'],
+        equals(sessaoGoogle.fingerprintChavePublica),
+      );
+
+      final sessaoApple = await service.entrarComProvedorOidc(
+        ProvedorOidc.apple,
+      );
+      expect(sessaoApple.nomeCompleto, equals('Renato Apple Nativo'));
+      expect(
+        sessaoApple.email,
+        equals('fallback.apple@privaterelay.appleid.com'),
+      );
+      expect(ultimoCorpoRecebido['provider'], equals('apple'));
+
+      statusResposta = 401;
+      await expectLater(
+        service.entrarComProvedorOidc(ProvedorOidc.google),
+        throwsA(isA<HttpException>()),
       );
     });
   });

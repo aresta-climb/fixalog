@@ -80,15 +80,16 @@ class GenerationProgressDialog extends ConsumerWidget {
                     (state.outputPath?.endsWith('.epub') == true
                         ? state.outputPath
                         : null);
-                final pdf = state.pdfPath ??
-                    (state.outputPath?.endsWith('.pdf') == true
-                        ? state.outputPath
-                        : null);
+                final tituloRelatorio =
+                    (state.title != null && state.title!.trim().isNotEmpty)
+                        ? state.title!.trim()
+                        : 'Relatório Técnico';
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => VisualizadorRelatorioScreen(
                       caminhoEpub: epub,
-                      caminhoPdf: pdf,
+                      idSessao: state.sessionId,
+                      titulo: tituloRelatorio,
                     ),
                   ),
                 );

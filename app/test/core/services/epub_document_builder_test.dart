@@ -189,6 +189,20 @@ protocolo:
       construtor = EpubDocumentBuilder();
     });
 
+    test('gerarQrCodeSvg gera marcação SVG vetorial válida com dimensões escaláveis', () {
+      final svgPadrao = EpubDocumentBuilder.gerarQrCodeSvg('https://fixalog.app/v/123');
+      expect(() => XmlDocument.parse(svgPadrao), returnsNormally);
+      expect(svgPadrao, startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
+      expect(svgPadrao, contains('<rect width="100%" height="100%" fill="#ffffff"/>'));
+      expect(svgPadrao, contains('fill="#000000"'));
+
+      final svgGrande = EpubDocumentBuilder.gerarQrCodeSvg(
+        'https://fixalog.app/v/123',
+        moduloTamanho: 8,
+      );
+      expect(svgGrande, contains('width="8" height="8"'));
+    });
+
     test('gerarCss deve retornar folha de estilos com regras de grade, cards, tela e impressão', () {
       final css = construtor.gerarCss();
 

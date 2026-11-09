@@ -15,14 +15,15 @@ import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
-import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
-import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
+import '../../../core/services/autenticacao_nuvem_service_fake.dart';
+import '../../../core/services/sincronizador_nuvem_service_fake.dart';
 
 const String kYamlProtocoloManut = '''
 id: "manutencao_ferragens"
@@ -184,23 +185,6 @@ class _FakeMediaCompressorService extends MediaCompressorService {
   }
 }
 
-class _FakePdfDraftService extends PdfDraftService {
-  int chamadas = 0;
-
-  @override
-  Future<File> drawDraft(
-    Registro registro,
-    String outputPath,
-    String Function(String uuid) mediaPathResolver,
-  ) async {
-    chamadas++;
-    final file = File(outputPath);
-    await file.create(recursive: true);
-    await file.writeAsString('draft');
-    return file;
-  }
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -209,12 +193,10 @@ void main() {
   late SessionBundleManager sessionManager;
   late _FakeGenerationRecoveryService recoveryService;
   late _FakeMediaCompressorService mediaService;
-  late _FakePdfDraftService draftService;
   late CryptoService cryptoService;
   late EpubDocumentBuilder epubBuilder;
   late EpubPackagerService epubPackager;
   late XmlDsigSigner xmlSigner;
-  late PdfPrintSummaryService pdfSummaryService;
   late GenerationNotifier notifier;
 
   setUp(() async {
@@ -226,17 +208,12 @@ void main() {
     );
     recoveryService = _FakeGenerationRecoveryService(tempDir);
     mediaService = _FakeMediaCompressorService();
-    draftService = _FakePdfDraftService();
     cryptoService = CryptoService();
-    epubBuilder = EpubDocumentBuilder();
+    epubBuilder = const EpubDocumentBuilder();
     epubPackager = EpubPackagerService();
     xmlSigner = XmlDsigSigner();
-    pdfSummaryService = PdfPrintSummaryService(
-      documentBuilder: epubBuilder,
-    );
 
     notifier = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryService,
       sessionManager,
@@ -244,7 +221,6 @@ void main() {
       epubBuilder,
       epubPackager,
       xmlSigner,
-      pdfSummaryService,
       cryptoService,
     );
   });
@@ -259,6 +235,24 @@ void main() {
   });
 
   test('Deve processar manifest e gerar relatório canônico em EPUB 3 assinado sem chamada síncrona de PDF', () async {
+    final clienteHttpFake = ClienteHttpFixalogNuvemFake();
+    final sincronizadorNuvem = SincronizadorNuvemService(
+      banco: banco,
+      autenticacaoService: AutenticacaoNuvemServiceFake(crypto: cryptoService),
+      clienteHttp: clienteHttpFake,
+    );
+    final notifierComSincronizador = GenerationNotifier(
+      mediaService,
+      recoveryService,
+      sessionManager,
+      banco,
+      epubBuilder,
+      epubPackager,
+      xmlSigner,
+      cryptoService,
+      sincronizadorNuvem,
+    );
+
     final registro = Registro()
       ..idProtocolo = 'manutencao_ferragens'
       ..yamlConteudo = kYamlProtocoloManut
@@ -269,15 +263,16 @@ void main() {
     );
 
     final outPath = '${tempDir.path}/output.epub';
-    await notifier.startGeneration('Teste', outPath, sessionId: '123');
+    await notifierComSincronizador.startGeneration('Teste', outPath, sessionId: '123');
 
-    expect(notifier.state.isComplete, isTrue);
-    expect(notifier.state.hasError, isFalse);
-    expect(notifier.state.progress, 1.0);
-    expect(notifier.state.epubPath, isNotNull);
-    expect(File(notifier.state.epubPath!).existsSync(), isTrue);
-    expect(notifier.state.pdfPath, isNull);
-    expect(draftService.chamadas, equals(0));
+    expect(notifierComSincronizador.state.isComplete, isTrue);
+    expect(notifierComSincronizador.state.hasError, isFalse);
+    expect(notifierComSincronizador.state.progress, 1.0);
+    expect(notifierComSincronizador.state.epubPath, isNotNull);
+    expect(File(notifierComSincronizador.state.epubPath!).existsSync(), isTrue);
+    expect(notifierComSincronizador.state.pdfPath, isNull);
+    expect(notifierComSincronizador.state.sessionId, equals('123'));
+    expect(notifierComSincronizador.state.title, equals('Via Teste'));
   });
 
   test('Deve gravar um SubmissionRecord no banco local SQLite extraindo tituloExibicao genericamente pelo protocolo YAML, padronizando epubPath e invalidando PDF antigo', () async {
@@ -337,7 +332,6 @@ void main() {
       },
     );
     notifier = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryService,
       sessionManager,
@@ -345,7 +339,6 @@ void main() {
       epubBuilder,
       epubPackager,
       xmlSigner,
-      pdfSummaryService,
       cryptoService,
     );
 
@@ -399,7 +392,6 @@ void main() {
       },
     );
     notifier = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryService,
       sessionManager,
@@ -407,7 +399,6 @@ void main() {
       epubBuilder,
       epubPackager,
       xmlSigner,
-      pdfSummaryService,
       cryptoService,
     );
 
@@ -681,7 +672,6 @@ void main() {
       falharAoIniciar: true,
     );
     final notifierFalha = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryComFalha,
       sessionManager,
@@ -689,7 +679,6 @@ void main() {
       epubBuilder,
       epubPackager,
       xmlSigner,
-      pdfSummaryService,
       cryptoService,
     );
 
@@ -715,6 +704,8 @@ void main() {
       outputPath: '/saida.pdf',
       epubPath: '/saida.epub',
       pdfPath: '/saida.pdf',
+      sessionId: 'sessao_99',
+      title: 'Título Teste',
     );
 
     expect(atualizado.progress, 0.5);
@@ -725,6 +716,8 @@ void main() {
     expect(atualizado.outputPath, '/saida.pdf');
     expect(atualizado.epubPath, '/saida.epub');
     expect(atualizado.pdfPath, '/saida.pdf');
+    expect(atualizado.sessionId, 'sessao_99');
+    expect(atualizado.title, 'Título Teste');
   });
 
   test('startGeneration sem yamlConteudo recusa geração e registra FormatException no estado', () async {
@@ -736,13 +729,11 @@ void main() {
 
   test('GenerationNotifier pode ser instanciado com construtor padrão sem parâmetros opcionais', () {
     final n = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryService,
       sessionManager,
     );
     expect(n, isNotNull);
-    expect(n.pdfSummaryService, isNotNull);
   });
 
   test('Providers do generation_provider provêm instâncias válidas', () {
@@ -755,7 +746,6 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    expect(container.read(draftServiceProvider), isNotNull);
     expect(container.read(mediaCompressorProvider), isNotNull);
     expect(container.read(generationRecoveryProvider), isNotNull);
     expect(container.read(epubDocumentBuilderProvider), isNotNull);
@@ -787,7 +777,6 @@ void main() {
       },
     );
     notifier = GenerationNotifier(
-      draftService,
       mediaService,
       recoveryService,
       sessionManager,
@@ -795,7 +784,6 @@ void main() {
       epubBuilder,
       epubPackager,
       xmlSigner,
-      pdfSummaryService,
       cryptoService,
     );
 

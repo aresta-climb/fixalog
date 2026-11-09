@@ -20,10 +20,25 @@ import 'sincronizador_nuvem_service_fake.dart';
 Uint8List _criarZipEpubTeste({
   List<String> idsMateriaisAninhados = const [],
   List<int>? binarypbBytes,
+  String? xhtmlCustomizado,
+  int bytesExtrasPadding = 0,
 }) {
   final archive = Archive();
-  final xhtml = utf8.encode('<html><body>Teste</body></html>');
+  final xhtml = utf8.encode(
+    xhtmlCustomizado ??
+        '<html><head><title>Manutenção de Ferragens</title></head>'
+            '<body><h1>Manutenção de Ferragens</h1><h2>Via Paredão Sul</h2>'
+            '<p>Mantenedor: Renato Escalador (FEMERJ)</p>'
+            '<img src="midias/f1.webp"/><video src="midias/v1.mp4"></video>'
+            '</body></html>',
+  );
   archive.addFile(ArchiveFile('OEBPS/relatorio.xhtml', xhtml.length, xhtml));
+  if (bytesExtrasPadding > 0) {
+    final padding = Uint8List(bytesExtrasPadding);
+    archive.addFile(
+      ArchiveFile('OEBPS/midias/padding.bin', padding.length, padding),
+    );
+  }
   if (binarypbBytes != null) {
     archive.addFile(
       ArchiveFile(
@@ -64,6 +79,7 @@ void main() {
       banco: banco,
       autenticacaoService: auth,
       clienteHttp: clienteHttp,
+      intervaloPollingModeracao: const Duration(milliseconds: 5),
     );
   });
 
@@ -74,14 +90,37 @@ void main() {
     }
   });
 
-  group('SincronizadorNuvemService — Fila de Upload, Versionamento e Restauração', () {
-    test('obterUrlCompartilhamentoPublico retorna URL canônica https://fixalog.app/v/<id>', () {
+  group('SincronizadorNuvemService — Fila de Upload Retomável, Versionamento e Restauração', () {
+    test('obterUrlCompartilhamentoPublico, calcularSha256Hex e construirResumoCompartilhamento geram metadados ricos', () {
       expect(
         SincronizadorNuvemService.obterUrlCompartilhamentoPublico('sessao_123'),
         equals('https://fixalog.app/v/sessao_123'),
       );
       final metaPadrao = MetadadosLaudoRemoto.deJson({});
       expect(metaPadrao.idSessao, isEmpty);
+
+      final hash = SincronizadorNuvemService.calcularSha256Hex(
+        Uint8List.fromList(utf8.encode('fixalog')),
+      );
+      expect(hash.length, equals(64));
+
+      final epubBytes = _criarZipEpubTeste();
+      final resumo = SincronizadorNuvemService.construirResumoCompartilhamento(
+        idSessao: 'sessao_123',
+        titulo: 'Via Paredão Sul',
+        epubBytes: epubBytes,
+      );
+      expect(resumo, contains('Manutenção de Ferragens'));
+      expect(resumo, contains('Via Paredão Sul'));
+      expect(resumo, contains('https://fixalog.app/v/sessao_123'));
+
+      final resumoFallback =
+          SincronizadorNuvemService.construirResumoCompartilhamento(
+            idSessao: 'sessao_fallback',
+            titulo: 'Relatório Técnico',
+            epubBytes: Uint8List.fromList([1, 2, 3]),
+          );
+      expect(resumoFallback, contains('https://fixalog.app/v/sessao_fallback'));
     });
 
     test('Envia materiais referenciados antes do laudo de manutenção e marca enviadoNuvem=true no SQLite', () async {
@@ -131,9 +170,152 @@ void main() {
       );
     });
 
-    test('sincronizarPendentes processa fila ordenada e cria nova versão quando laudo é re-editado', () async {
+    test('Upload retomável em blocos pula chunks já recebidos e ignora upload se sha256 já foi enviado', () async {
+      final bytesGrandes = _criarZipEpubTeste(bytesExtrasPadding: 1500);
+      final sha256Hex = SincronizadorNuvemService.calcularSha256Hex(
+        bytesGrandes,
+      );
+      final epubFile = File(p.join(tempDir.path, 'retomavel.epub'))
+        ..writeAsBytesSync(bytesGrandes);
+
+      // Configura tamanho de bloco pequeno (128 bytes) para exercitar múltiplos chunks
+      final syncBlocos = SincronizadorNuvemService(
+        banco: banco,
+        autenticacaoService: auth,
+        clienteHttp: clienteHttp,
+        tamanhoBlocoBytes: 128,
+        intervaloPollingModeracao: const Duration(milliseconds: 5),
+      );
+
+      // Pré-popula o chunk 0 no servidor para simular retomada a partir do chunk 1
+      await clienteHttp.enviarChunkEpub(
+        idSessao: 's_retomavel',
+        sha256: sha256Hex,
+        index: 0,
+        total: (bytesGrandes.length / 128).ceil(),
+        chunkBytes: bytesGrandes.sublist(0, 128),
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      clienteHttp.indicesChunksEnviados.clear();
+
+      final rec = SubmissionRecord()
+        ..idSessao = 's_retomavel'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Via Retomável'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..status = SubmissionStatus.gerado
+        ..epubPath = epubFile.path
+        ..enviadoNuvem = false;
+      await banco.salvarSubmissao(rec);
+
+      final eventosProgresso = <ProgressoPublicacaoLaudo>[];
+      final sub = syncBlocos
+          .observarProgresso('s_retomavel')
+          .listen(eventosProgresso.add);
+      addTearDown(sub.cancel);
+
+      // Dispara 2 chamadas concorrentes para validar deduplicação single-flight
+      final resultados = await Future.wait([
+        syncBlocos.enviarSubmissao(rec),
+        syncBlocos.enviarSubmissao(rec),
+      ]);
+      expect(resultados, equals([true, true]));
+      // Chunk 0 não deve ter sido reenviado!
+      expect(clienteHttp.indicesChunksEnviados, isNot(contains(0)));
+      expect(clienteHttp.indicesChunksEnviados, contains(1));
+      expect(syncBlocos.obterProgressoAtual('s_retomavel')?.fracaoBlocos, 1.0);
+      expect(eventosProgresso, isNotEmpty);
+
+      // Se tentar enviar novamente o mesmo sha256 já finalizado, pula envio de chunks
+      clienteHttp.indicesChunksEnviados.clear();
+      rec.enviadoNuvem = false;
+      await banco.salvarSubmissao(rec);
+      expect(await syncBlocos.enviarSubmissao(rec), isTrue);
+      expect(clienteHttp.indicesChunksEnviados, isEmpty);
+    });
+
+    test('publicarEAguardarLiberacao bloqueia enquanto status_moderacao == em_analise e libera quando ativo', () async {
+      final bytes = _criarZipEpubTeste();
+      final epubFile = File(p.join(tempDir.path, 'mod.epub'))
+        ..writeAsBytesSync(bytes);
+      final rec = SubmissionRecord()
+        ..idSessao = 's_mod'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Via Moderada'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..status = SubmissionStatus.gerado
+        ..epubPath = epubFile.path
+        ..enviadoNuvem = false;
+      await banco.salvarSubmissao(rec);
+
+      // Simula que o servidor mantém em_analise nas 2 primeiras consultas pós-upload e depois aprova
+      clienteHttp.consultasEmAnaliseAntesDeAtivar['s_mod'] = 2;
+
+      final etapasObservadas = <EtapaPublicacaoLaudo>[];
+      final resultado = await sincronizador.publicarEAguardarLiberacao(
+        idSessao: 's_mod',
+        epubPath: epubFile.path,
+        aoProgredir: (p) => etapasObservadas.add(p.etapa),
+      );
+
+      expect(resultado.etapa, equals(EtapaPublicacaoLaudo.concluidoAtivo));
+      expect(
+        etapasObservadas,
+        contains(EtapaPublicacaoLaudo.aguardandoVerificacaoServidor),
+      );
+      expect(etapasObservadas.last, equals(EtapaPublicacaoLaudo.concluidoAtivo));
+
+      // Quando dispositivo está sem internet, retorna EtapaPublicacaoLaudo.semInternet
+      clienteHttp.deveLancarErroRede = true;
+      final resOffline = await sincronizador.publicarEAguardarLiberacao(
+        idSessao: 's_mod',
+        epubPath: epubFile.path,
+      );
+      expect(resOffline.etapa, equals(EtapaPublicacaoLaudo.semInternet));
+
+      // Quando servidor rejeita o laudo na moderação, retorna rejeitadoOuFalha
+      clienteHttp.deveLancarErroRede = false;
+      clienteHttp.statusModeracaoForcadoPorSessao['s_mod'] = 'rejeitado';
+      final resRejeitado = await sincronizador.publicarEAguardarLiberacao(
+        idSessao: 's_mod',
+      );
+      expect(resRejeitado.etapa, equals(EtapaPublicacaoLaudo.rejeitadoOuFalha));
+
+      // Quando estoura maxTentativasPollingModeracao ainda em_analise e sem sessão prévia
+      await auth.encerrarSessao();
+      clienteHttp.statusModeracaoForcadoPorSessao.remove('s_mod');
+      clienteHttp.consultasEmAnaliseAntesDeAtivar['s_mod'] = 10;
+      final syncCurto = SincronizadorNuvemService(
+        banco: banco,
+        autenticacaoService: auth,
+        clienteHttp: clienteHttp,
+        intervaloPollingModeracao: const Duration(milliseconds: 1),
+        maxTentativasPollingModeracao: 1,
+      );
+      final resTimeout = await syncCurto.publicarEAguardarLiberacao(
+        idSessao: 's_mod',
+      );
+      expect(resTimeout.etapa, equals(EtapaPublicacaoLaudo.rejeitadoOuFalha));
+
+      // E quando falha durante o envio inicial dentro de publicarEAguardarLiberacao
+      final recNaoEnviado = SubmissionRecord()
+        ..idSessao = 's_mod_falha_envio'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Via Falha'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..status = SubmissionStatus.gerado
+        ..epubPath = '';
+      await banco.salvarSubmissao(recNaoEnviado);
+      final resFalhaEnvio = await syncCurto.publicarEAguardarLiberacao(
+        idSessao: 's_mod_falha_envio',
+      );
+      expect(resFalhaEnvio.etapa, equals(EtapaPublicacaoLaudo.semInternet));
+    });
+
+    test('sincronizarPendentes processa fila ordenada e cria nova versão quando laudo é re-editado com novo sha256', () async {
       final epub1 = File(p.join(tempDir.path, 's_v1.epub'))
-        ..writeAsBytesSync(_criarZipEpubTeste());
+        ..writeAsBytesSync(_criarZipEpubTeste(xhtmlCustomizado: '<html>v1</html>'));
 
       final rec = SubmissionRecord()
         ..idSessao = 's_versionado'
@@ -178,8 +360,11 @@ void main() {
         equals(1),
       );
 
-      // Remove o pendente com falha e simula re-edição de s_versionado
+      // Remove o pendente com falha e simula re-edição de s_versionado com novo conteúdo/sha256
       await banco.deletarSubmissaoPorIdSessao('s_falha_sem_arquivo');
+      epub1.writeAsBytesSync(
+        _criarZipEpubTeste(xhtmlCustomizado: '<html>v2 editado</html>'),
+      );
       final salvo = (await banco.obterSubmissaoPorIdSessao('s_versionado'))!;
       salvo.enviadoNuvem = false;
       await banco.salvarSubmissao(salvo);
@@ -255,6 +440,40 @@ void main() {
       addTearDown(server.close);
 
       server.listen((HttpRequest req) async {
+        if (req.method == 'GET' &&
+            req.uri.path == '/api/v1/laudos/srv_1/status') {
+          req.response.statusCode = 200;
+          req.response.write(
+            jsonEncode({
+              'id_sessao': 'srv_1',
+              'sha256': req.uri.queryParameters['sha256'],
+              'ja_enviado': false,
+              'versao': null,
+              'status_moderacao': null,
+              'chunks_recebidos': [0],
+            }),
+          );
+          await req.response.close();
+          return;
+        }
+        if (req.method == 'PUT' &&
+            req.uri.path == '/api/v1/laudos/srv_1/chunk') {
+          await req.drain<void>();
+          req.response.statusCode = 201;
+          req.response.write(
+            jsonEncode({
+              'id_sessao': 'srv_1',
+              'sha256': req.uri.queryParameters['sha256'],
+              'finalizado': true,
+              'ja_enviado': true,
+              'versao': 1,
+              'status_moderacao': 'ativo',
+              'chunks_recebidos': [],
+            }),
+          );
+          await req.response.close();
+          return;
+        }
         if (req.method == 'PUT' && req.uri.path.startsWith('/api/v1/laudos/')) {
           await req.drain<void>();
           req.response.statusCode = 201;
@@ -293,6 +512,27 @@ void main() {
       final clienteReal = ClienteHttpFixalogNuvemPadrao(
         urlBase: 'http://127.0.0.1:${server.port}',
       );
+      final statusSrv = await clienteReal.consultarStatusLaudo(
+        idSessao: 'srv_1',
+        sha256: 'hash1',
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(statusSrv.jaEnviado, isFalse);
+      expect(statusSrv.chunksRecebidos, equals([0]));
+
+      final resChunkSrv = await clienteReal.enviarChunkEpub(
+        idSessao: 'srv_1',
+        sha256: 'hash1',
+        index: 1,
+        total: 2,
+        chunkBytes: Uint8List.fromList([4, 5, 6]),
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(resChunkSrv.finalizado, isTrue);
+      expect(resChunkSrv.versao, equals(1));
+
       expect(
         await clienteReal.enviarVersaoEpub(
           idSessao: 'srv_1',

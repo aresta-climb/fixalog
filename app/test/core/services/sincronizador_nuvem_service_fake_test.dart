@@ -8,7 +8,7 @@ import 'sincronizador_nuvem_service_fake.dart';
 
 void main() {
   group('ClienteHttpFixalogNuvemFake', () {
-    test('Armazena versões enviadas em memória, lista laudos remotos e simula falhas de rede', () async {
+    test('Armazena versões enviadas em memória, suporta upload retomável em chunks, consulta status e simula falhas de rede', () async {
       final fake = ClienteHttpFixalogNuvemFake();
       final status = await fake.enviarVersaoEpub(
         idSessao: 's1',
@@ -20,6 +20,58 @@ void main() {
       expect(fake.ordemIdsEnviados, equals(['s1']));
       expect(fake.versoesRecebidasPorSessao['s1']?.length, equals(1));
       expect(await fake.baixarEpubPublico(idSessao: 's1'), isNotNull);
+
+      // Testa consultarStatusLaudo e enviarChunkEpub
+      final statusInicial = await fake.consultarStatusLaudo(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(statusInicial.jaEnviado, isFalse);
+      expect(statusInicial.chunksRecebidos, isEmpty);
+
+      final resChunk0 = await fake.enviarChunkEpub(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        index: 0,
+        total: 2,
+        chunkBytes: Uint8List.fromList([10, 20]),
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(resChunk0.finalizado, isFalse);
+      expect(resChunk0.chunksRecebidos, equals([0]));
+
+      final statusParcial = await fake.consultarStatusLaudo(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(statusParcial.jaEnviado, isFalse);
+      expect(statusParcial.chunksRecebidos, equals([0]));
+
+      final resChunk1 = await fake.enviarChunkEpub(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        index: 1,
+        total: 2,
+        chunkBytes: Uint8List.fromList([30, 40]),
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(resChunk1.finalizado, isTrue);
+      expect(resChunk1.versao, equals(1));
+
+      final statusFinal = await fake.consultarStatusLaudo(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(statusFinal.jaEnviado, isTrue);
+      expect(statusFinal.estaAtivo, isTrue);
 
       fake.laudosRemotosConta.add(
         MetadadosLaudoRemoto(
@@ -42,6 +94,27 @@ void main() {
         fake.enviarVersaoEpub(
           idSessao: 's1',
           epubBytes: Uint8List(0),
+          jwtSupabase: 'jwt',
+          tokenAppCheck: 'appcheck',
+        ),
+        throwsException,
+      );
+      await expectLater(
+        fake.consultarStatusLaudo(
+          idSessao: 's1',
+          sha256: 'h',
+          jwtSupabase: 'jwt',
+          tokenAppCheck: 'appcheck',
+        ),
+        throwsException,
+      );
+      await expectLater(
+        fake.enviarChunkEpub(
+          idSessao: 's1',
+          sha256: 'h',
+          index: 0,
+          total: 1,
+          chunkBytes: Uint8List(0),
           jwtSupabase: 'jwt',
           tokenAppCheck: 'appcheck',
         ),

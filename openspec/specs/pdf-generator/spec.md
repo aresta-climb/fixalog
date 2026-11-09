@@ -7,11 +7,11 @@ Exportação de resumo impresso A4 do relatório de manutenção (@media print) 
 ## Requirements
 
 ### Requirement: O sistema DEVE gerar um Rascunho Visual
-O módulo gerador de PDF DEVE gerar o documento PDF Resumido A4 sob demanda no momento em que o usuário solicita o compartilhamento da versão impressa ou a abertura via histórico, construindo o arquivo PDF nativamente em Dart sem depender de WebView ou conversão HTML/Base64 e reutilizando diretamente as imagens JPEG de 2MP (`<uuid>_thumb.jpg` e `<uuid>_poster.jpg`) pré-processadas da sessão.
+O sistema DEVE (MUST) delegar a exportação e impressão da versão resumida A4 em PDF integralmente para a folha de estilos `@media print` do documento XHTML contido no pacote `.epub` e servida na página web pública (`https://fixalog.app/v/:id`), sem manter geradores locais duplicados de arquivos PDF no aplicativo móvel.
 
 #### Scenario: Geração do PDF Resumido para protocolo
-- **WHEN** o usuário solicita o compartilhamento da versão resumida em PDF de uma vistoria
-- **THEN** o sistema constrói o arquivo PDF A4 sob demanda lendo diretamente os arquivos JPEG de 2MP pré-processados (sem re-processar as imagens originais nem codificá-las em Base64) e abre a folha de compartilhamento
+- **WHEN** o usuário aciona a opção discreta de exportar/imprimir PDF na visualização web do relatório (`https://fixalog.app/v/:id` ou `/v/:id/pdf`)
+- **THEN** o navegador formata o documento em layout A4 de impressão (`@media print`) exibindo o cabeçalho institucional com QR Code canônico, substituindo vídeos por seus *poster frames* com QR Codes individuais e ocultando a barra de navegação web
 
 ### Requirement: O PDF DEVE exibir cabeçalho de versão resumida e QR Code de rastreabilidade
 O documento PDF gerado DEVE conter no topo da primeira página uma faixa/cabeçalho informando explicitamente que se trata de uma versão impressa/resumida, acompanhada de link textual clicável e QR Code apontando para a página canônica da vistoria na Web.
@@ -28,22 +28,22 @@ Nas seções onde houver vídeos de inspeção associados a proteções, o PDF D
 - **THEN** o PDF renderiza a foto de capa e um mini QR Code com a legenda para assistir à gravação online
 
 ### Requirement: O sistema DEVE manter cache do PDF Resumido gerado sob demanda
-Após a primeira geração sob demanda do PDF resumido, o sistema DEVE salvar o arquivo no disco local e associar seu caminho ao registro da sessão (`SubmissionRecord.pdfPath`) para que compartilhamentos ou aberturas subsequentes ocorram instantaneamente sem re-renderização. Sempre que o relatório EPUB da sessão for gerado ou re-gerado (ou quando a sessão for editada), o sistema DEVE invalidar `SubmissionRecord.pdfPath` e excluir do disco eventual arquivo PDF antigo para garantir que a próxima exportação reflita o relatório atualizado.
+O aplicativo móvel NÃO DEVE (MUST NOT) gerar ou armazenar arquivos `.pdf` derivados de relatórios localmente no dispositivo, mantendo exclusivamente o pacote `.epub` assinado (`SubmissionRecord.epubPath`) e o manifesto estruturado (`SubmissionRecord.protobufPath`) no armazenamento local.
 
 #### Scenario: Compartilhamento subsequente do PDF já gerado
-- **WHEN** o usuário solicita compartilhar o PDF Resumido de um laudo cujo PDF já foi gerado previamente para a versão atual do EPUB
-- **THEN** o sistema reutiliza o arquivo em disco diretamente sem disparar nova conversão pelo motor de impressão
+- **WHEN** um relatório é gerado e assinado no aplicativo móvel
+- **THEN** o sistema persiste apenas o pacote `.epub` assinado e disponibiliza a exportação para PDF através do link web público no navegador
 
 #### Scenario: Invalidação do cache de PDF ao re-gerar o relatório EPUB
-- **WHEN** um relatório que já possuía um PDF resumido em cache é re-gerado na esteira de geração
-- **THEN** o sistema remove o arquivo PDF antigo do disco, limpa `SubmissionRecord.pdfPath` no banco SQLite e gera um novo PDF atualizado na próxima solicitação de compartilhamento de PDF
+- **WHEN** um relatório existente é re-editado e re-gerado no aplicativo
+- **THEN** o sistema atualiza o pacote `.epub` assinado e garante que `pdfPath` permaneça vazio no registro local
 
 ### Requirement: Concatenação dos Relatórios de Materiais no PDF Resumido da Manutenção
-Ao gerar o documento PDF Resumido de uma manutenção que utiliza materiais cadastrados, o sistema DEVE anexar ao final do mesmo arquivo PDF, logo após o relatório da manutenção, as seções completas correspondentes aos relatórios de cada material utilizado (incluindo seus dados técnicos, notas fiscais, testes de qualidade, detalhes de fabricação e QR Codes de vídeos).
+Ao renderizar na web (`https://fixalog.app/v/:id`) uma manutenção que utiliza materiais cadastrados em `OEBPS/materiais/<uuid>/OEBPS/relatorio.xhtml`, o sistema DEVE (MUST) incluir ao final do documento as seções completas correspondentes aos relatórios de cada material utilizado para que a exportação/impressão em PDF pelo navegador (`@media print`) produza um documento único contendo a manutenção seguida das fichas completas dos materiais vinculados.
 
 #### Scenario: Exportação de PDF único contendo manutenção e materiais anexos
-- **WHEN** o usuário solicita a geração ou compartilhamento do PDF Resumido de uma manutenção com materiais vinculados
-- **THEN** o sistema produz um único arquivo PDF contendo nas primeiras páginas o relatório da manutenção e nas páginas seguintes as fichas completas de todos os materiais utilizados
+- **WHEN** o usuário aciona a impressão/exportação para PDF no navegador em um relatório de manutenção com materiais vinculados
+- **THEN** a versão impressa inclui nas primeiras páginas o relatório da manutenção e nas páginas seguintes as fichas completas de todos os materiais utilizados extraídas do próprio `.epub`
 
 ### Requirement: Renderização Integral das Páginas de Documentos PDF Anexados no PDF Resumido
 Ao gerar o PDF Resumido de um registro que contenha documentos PDF anexados (`ArquivoDocumento`), o gerador de PDF DEVE incorporar sequencialmente todas as páginas pré-processadas (`<uuid>_p1_thumb.jpg` até `<uuid>_pN_thumb.jpg`, com fallback para as imagens de página disponíveis) do documento anexado na seção correspondente do relatório impresso.

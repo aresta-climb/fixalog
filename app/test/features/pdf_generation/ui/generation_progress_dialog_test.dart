@@ -8,6 +8,7 @@ import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/ui/generation_progress_dialog.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 class _FakeGenerationNotifier extends StateNotifier<GenerationState>
     implements GenerationNotifier {
@@ -47,7 +48,7 @@ void main() {
     });
 
     testWidgets(
-      'exibe estado de sucesso e botão VISUALIZAR RELATÓRIO (sem ABRIR PDF)',
+      'exibe estado de sucesso e botão VISUALIZAR RELATÓRIO propagando idSessao e titulo para VisualizadorRelatorioScreen',
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -59,6 +60,8 @@ void main() {
                     status: 'Selo Fixalog aplicado com sucesso!',
                     isComplete: true,
                     outputPath: '/path/to/laudo.epub',
+                    sessionId: 'sessao_123',
+                    title: 'Via Dedo de Deus',
                   ),
                 ),
               ),
@@ -74,10 +77,21 @@ void main() {
         expect(find.text('FECHAR'), findsOneWidget);
         expect(find.text('VISUALIZAR RELATÓRIO'), findsOneWidget);
         expect(find.text('ABRIR PDF'), findsNothing);
+
+        await tester.tap(find.text('VISUALIZAR RELATÓRIO'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        final visualizador = tester.widget<VisualizadorRelatorioScreen>(
+          find.byType(VisualizadorRelatorioScreen),
+        );
+        expect(visualizador.idSessao, equals('sessao_123'));
+        expect(visualizador.titulo, equals('Via Dedo de Deus'));
+        expect(visualizador.caminhoEpub, equals('/path/to/laudo.epub'));
       },
     );
 
-    testWidgets('exibe estado de erro', (tester) async {
+    testWidgets('exibe estado de erro e fecha ao tocar em FECHAR', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -101,6 +115,8 @@ void main() {
       expect(find.text('Erro ao gerar assinatura'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
       expect(find.text('FECHAR'), findsOneWidget);
+      await tester.tap(find.text('FECHAR'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets(
@@ -187,6 +203,58 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.text('閉じる'), findsOneWidget);
+
+        // Exercita títulos em inglês para estados em andamento e com erro
+        await tester.pumpWidget(
+          ProviderScope(
+            key: UniqueKey(),
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+              generationProvider.overrideWith(
+                (ref) => _FakeGenerationNotifier(
+                  GenerationState(
+                    progress: 0.4,
+                    status: 'Working...',
+                    isComplete: false,
+                  ),
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: const Scaffold(body: GenerationProgressDialog()),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            key: UniqueKey(),
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+              generationProvider.overrideWith(
+                (ref) => _FakeGenerationNotifier(
+                  GenerationState(
+                    progress: 0.4,
+                    status: 'Error',
+                    hasError: true,
+                    errorMessage: 'Failed',
+                  ),
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: const Scaffold(body: GenerationProgressDialog()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.error), findsOneWidget);
       },
     );
   });

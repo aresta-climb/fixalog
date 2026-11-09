@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/local/submission_record.dart';
@@ -45,6 +47,102 @@ class MetadadosLaudoRemoto {
   }
 }
 
+/// Status remoto de uma versão ou upload retomável retornado por `GET /api/v1/laudos/:id/status`.
+class StatusLaudoRemoto {
+  final String idSessao;
+  final String? sha256;
+  final bool jaEnviado;
+  final int? versao;
+  final String? statusModeracao;
+  final List<int> chunksRecebidos;
+
+  const StatusLaudoRemoto({
+    required this.idSessao,
+    required this.sha256,
+    required this.jaEnviado,
+    required this.versao,
+    required this.statusModeracao,
+    required this.chunksRecebidos,
+  });
+
+  bool get estaAtivo => statusModeracao == 'ativo';
+
+  factory StatusLaudoRemoto.deJson(Map<String, dynamic> json) {
+    final chunks = (json['chunks_recebidos'] as List<dynamic>?) ?? const [];
+    return StatusLaudoRemoto(
+      idSessao: (json['id_sessao'] as String?) ?? '',
+      sha256: json['sha256'] as String?,
+      jaEnviado: (json['ja_enviado'] as bool?) ?? false,
+      versao: (json['versao'] as num?)?.toInt(),
+      statusModeracao: json['status_moderacao'] as String?,
+      chunksRecebidos: chunks.whereType<num>().map((e) => e.toInt()).toList(),
+    );
+  }
+}
+
+/// Resposta do envio de um bloco (`PUT /api/v1/laudos/:id/chunk`).
+class RespostaChunkLaudoRemoto {
+  final int statusHttp;
+  final bool finalizado;
+  final bool jaEnviado;
+  final int? versao;
+  final String? statusModeracao;
+  final List<int> chunksRecebidos;
+
+  const RespostaChunkLaudoRemoto({
+    required this.statusHttp,
+    required this.finalizado,
+    required this.jaEnviado,
+    required this.versao,
+    required this.statusModeracao,
+    required this.chunksRecebidos,
+  });
+
+  factory RespostaChunkLaudoRemoto.deJson(
+    int statusHttp,
+    Map<String, dynamic> json,
+  ) {
+    final chunks = (json['chunks_recebidos'] as List<dynamic>?) ?? const [];
+    return RespostaChunkLaudoRemoto(
+      statusHttp: statusHttp,
+      finalizado: (json['finalizado'] as bool?) ?? false,
+      jaEnviado: (json['ja_enviado'] as bool?) ?? false,
+      versao: (json['versao'] as num?)?.toInt(),
+      statusModeracao: json['status_moderacao'] as String?,
+      chunksRecebidos: chunks.whereType<num>().map((e) => e.toInt()).toList(),
+    );
+  }
+}
+
+/// Etapas observáveis do fluxo de publicação e liberação do link público de um laudo.
+enum EtapaPublicacaoLaudo {
+  enviandoBlocos,
+  aguardandoVerificacaoServidor,
+  concluidoAtivo,
+  semInternet,
+  rejeitadoOuFalha,
+}
+
+/// Estado de progresso observável da publicação de um laudo na nuvem.
+class ProgressoPublicacaoLaudo {
+  final String idSessao;
+  final EtapaPublicacaoLaudo etapa;
+  final int blocosEnviados;
+  final int totalBlocos;
+  final String? mensagemErro;
+
+  const ProgressoPublicacaoLaudo({
+    required this.idSessao,
+    required this.etapa,
+    required this.blocosEnviados,
+    required this.totalBlocos,
+    this.mensagemErro,
+  });
+
+  double get fracaoBlocos =>
+      totalBlocos <= 0 ? 0.0 : (blocosEnviados / totalBlocos).clamp(0.0, 1.0);
+}
+
 /// Resultado de uma execução da fila de sincronização de laudos com a nuvem.
 class ResultadoSincronizacaoNuvem {
   final int enviados;
@@ -63,6 +161,23 @@ abstract class ClienteHttpFixalogNuvem {
   Future<int> enviarVersaoEpub({
     required String idSessao,
     required Uint8List epubBytes,
+    required String jwtSupabase,
+    required String tokenAppCheck,
+  });
+
+  Future<StatusLaudoRemoto> consultarStatusLaudo({
+    required String idSessao,
+    String? sha256,
+    required String jwtSupabase,
+    required String tokenAppCheck,
+  });
+
+  Future<RespostaChunkLaudoRemoto> enviarChunkEpub({
+    required String idSessao,
+    required String sha256,
+    required int index,
+    required int total,
+    required Uint8List chunkBytes,
     required String jwtSupabase,
     required String tokenAppCheck,
   });
@@ -105,6 +220,63 @@ class ClienteHttpFixalogNuvemPadrao implements ClienteHttpFixalogNuvem {
       final res = await req.close();
       await res.drain<void>();
       return res.statusCode;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  @override
+  Future<StatusLaudoRemoto> consultarStatusLaudo({
+    required String idSessao,
+    String? sha256,
+    required String jwtSupabase,
+    required String tokenAppCheck,
+  }) async {
+    final client = _criadorHttpClient();
+    try {
+      final query = (sha256 != null && sha256.isNotEmpty)
+          ? '?sha256=${Uri.encodeQueryComponent(sha256)}'
+          : '';
+      final uri = Uri.parse(
+        '$urlBase/api/v1/laudos/${Uri.encodeComponent(idSessao)}/status$query',
+      );
+      final req = await client.getUrl(uri);
+      req.headers.set('Authorization', 'Bearer $jwtSupabase');
+      req.headers.set('X-Firebase-AppCheck', tokenAppCheck);
+      final res = await req.close();
+      final texto = await utf8.decoder.bind(res).join();
+      final mapa = jsonDecode(texto) as Map<String, dynamic>;
+      return StatusLaudoRemoto.deJson(mapa);
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  @override
+  Future<RespostaChunkLaudoRemoto> enviarChunkEpub({
+    required String idSessao,
+    required String sha256,
+    required int index,
+    required int total,
+    required Uint8List chunkBytes,
+    required String jwtSupabase,
+    required String tokenAppCheck,
+  }) async {
+    final client = _criadorHttpClient();
+    try {
+      final uri = Uri.parse(
+        '$urlBase/api/v1/laudos/${Uri.encodeComponent(idSessao)}/chunk'
+        '?sha256=${Uri.encodeQueryComponent(sha256)}&index=$index&total=$total',
+      );
+      final req = await client.putUrl(uri);
+      req.headers.set('Content-Type', 'application/octet-stream');
+      req.headers.set('Authorization', 'Bearer $jwtSupabase');
+      req.headers.set('X-Firebase-AppCheck', tokenAppCheck);
+      req.add(chunkBytes);
+      final res = await req.close();
+      final texto = await utf8.decoder.bind(res).join();
+      final mapa = jsonDecode(texto) as Map<String, dynamic>;
+      return RespostaChunkLaudoRemoto.deJson(res.statusCode, mapa);
     } finally {
       client.close(force: true);
     }
@@ -161,27 +333,137 @@ class ClienteHttpFixalogNuvemPadrao implements ClienteHttpFixalogNuvem {
   }
 }
 
-/// Serviço offline-first de sincronização em segundo plano e restauração de pacotes
-/// periciais `.epub` 3 com o Cloudflare Worker `fixalog.app`.
+/// Serviço offline-first de sincronização retomável em blocos (`512 KB`),
+/// verificação de moderação e restauração de pacotes periciais `.epub` 3 com `fixalog.app`.
 class SincronizadorNuvemService {
+  /// Tamanho padrão de cada bloco de upload retomável (`512 KB` = `524.288 bytes`).
+  static const int tamanhoPadraoBlocoBytes = 512 * 1024;
+
   final BancoDadosLocal? _banco;
   final AutenticacaoNuvemService _autenticacaoService;
   final ClienteHttpFixalogNuvem _clienteHttp;
   final RegistroLogger _logger;
+  final int _tamanhoBlocoBytes;
+  final Duration _intervaloPollingModeracao;
+  final int _maxTentativasPollingModeracao;
+
+  final Map<String, Future<bool>> _uploadsEmAndamento = {};
+  final Map<String, ProgressoPublicacaoLaudo> _progressoPorSessao = {};
+  final StreamController<ProgressoPublicacaoLaudo> _controladorProgresso =
+      StreamController<ProgressoPublicacaoLaudo>.broadcast(sync: true);
 
   SincronizadorNuvemService({
     required BancoDadosLocal? banco,
     required AutenticacaoNuvemService autenticacaoService,
     ClienteHttpFixalogNuvem? clienteHttp,
     RegistroLogger? logger,
+    int tamanhoBlocoBytes = tamanhoPadraoBlocoBytes,
+    Duration intervaloPollingModeracao = const Duration(seconds: 2),
+    int maxTentativasPollingModeracao = 30,
   })  : _banco = banco,
         _autenticacaoService = autenticacaoService,
         _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao(),
-        _logger = logger ?? RegistroLogger.instancia;
+        _logger = logger ?? RegistroLogger.instancia,
+        _tamanhoBlocoBytes = tamanhoBlocoBytes,
+        _intervaloPollingModeracao = intervaloPollingModeracao,
+        _maxTentativasPollingModeracao = maxTentativasPollingModeracao;
 
   /// Constrói a URL canônica pública de compartilhamento web de uma sessão.
   static String obterUrlCompartilhamentoPublico(String idSessao) {
     return 'https://fixalog.app/v/${Uri.encodeComponent(idSessao.trim())}';
+  }
+
+  /// Calcula o hash criptográfico SHA-256 hexadecimal de um pacote `.epub`.
+  static String calcularSha256Hex(Uint8List bytes) {
+    return sha256.convert(bytes).toString();
+  }
+
+  /// Constrói o texto descritivo rico para compartilhamento do link público no WhatsApp/mensageiros.
+  static String construirResumoCompartilhamento({
+    required String idSessao,
+    String? titulo,
+    Uint8List? epubBytes,
+  }) {
+    final url = obterUrlCompartilhamentoPublico(idSessao);
+    String nomeProtocolo = '';
+    String tituloEspecifico = (titulo ?? '').trim();
+    String autorLinha = '';
+
+    if (epubBytes != null && epubBytes.isNotEmpty) {
+      try {
+        final archive = ZipDecoder().decodeBytes(epubBytes);
+        for (final file in archive.files) {
+          if (file.name == 'OEBPS/relatorio.xhtml' && file.isFile) {
+            final xhtml = utf8.decode(
+              file.content as List<int>,
+              allowMalformed: true,
+            );
+            final h1 = RegExp(
+              r'<h1[^>]*>([\s\S]*?)<\/h1>',
+              caseSensitive: false,
+            ).firstMatch(xhtml);
+            final h2 = RegExp(
+              r'<h2[^>]*>([\s\S]*?)<\/h2>',
+              caseSensitive: false,
+            ).firstMatch(xhtml);
+            final mant = RegExp(
+              r'Mantenedor[^:<]*:\s*([^<\n]+)',
+              caseSensitive: false,
+            ).firstMatch(xhtml);
+
+            if (h1 != null) {
+              nomeProtocolo = h1
+                  .group(1)!
+                  .replaceAll(RegExp(r'<[^>]+>'), '')
+                  .trim();
+            }
+            if (h2 != null) {
+              final extraido = h2
+                  .group(1)!
+                  .replaceAll(RegExp(r'<[^>]+>'), '')
+                  .trim();
+              if (extraido.isNotEmpty) {
+                tituloEspecifico = extraido;
+              }
+            }
+            if (mant != null) {
+              autorLinha = mant.group(1)!.trim();
+            }
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    final cabecalho =
+        (nomeProtocolo.isNotEmpty &&
+            tituloEspecifico.isNotEmpty &&
+            nomeProtocolo.toLowerCase() != tituloEspecifico.toLowerCase())
+        ? '$nomeProtocolo — $tituloEspecifico'
+        : (tituloEspecifico.isNotEmpty ? tituloEspecifico : 'Laudo Técnico Fixalog');
+
+    final linhas = <String>[
+      '📋 *$cabecalho*',
+      if (autorLinha.isNotEmpty) '👤 Mantenedor: $autorLinha',
+      '🔒 Laudo pericial assinado digitalmente (ECDSA P-256)',
+      '🔗 $url',
+    ];
+    return linhas.join('\n');
+  }
+
+  /// Retorna o último estado de progresso registrado para [idSessao], se houver.
+  ProgressoPublicacaoLaudo? obterProgressoAtual(String idSessao) {
+    return _progressoPorSessao[idSessao];
+  }
+
+  /// Observa atualizações em tempo real do progresso de publicação de [idSessao].
+  Stream<ProgressoPublicacaoLaudo> observarProgresso(String idSessao) {
+    return _controladorProgresso.stream.where((p) => p.idSessao == idSessao);
+  }
+
+  void _emitirProgresso(ProgressoPublicacaoLaudo progresso) {
+    _progressoPorSessao[progresso.idSessao] = progresso;
+    _controladorProgresso.add(progresso);
   }
 
   /// Extrai os IDs de materiais aninhados (`OEBPS/materiais/<uuid>/`) de dentro de um `.epub`.
@@ -256,11 +538,24 @@ class SincronizadorNuvemService {
     );
   }
 
-  /// Envia uma submissão específica para a nuvem (enviando antes quaisquer materiais
-  /// referenciados ainda não sincronizados) e marca `enviadoNuvem = true` no SQLite.
-  Future<bool> enviarSubmissao(SubmissionRecord record) async {
+  /// Envia uma submissão específica para a nuvem usando protocolo retomável em blocos de `512 KB`
+  /// (enviando antes quaisquer materiais referenciados ainda não sincronizados) e deduplicando
+  /// chamadas concorrentes (*single-flight*) para o mesmo `idSessao`.
+  Future<bool> enviarSubmissao(SubmissionRecord record) {
+    final emAndamento = _uploadsEmAndamento[record.idSessao];
+    if (emAndamento != null) {
+      return emAndamento;
+    }
+    final futuro = _executarEnvioSubmissao(record);
+    _uploadsEmAndamento[record.idSessao] = futuro;
+    return futuro.whenComplete(() {
+      _uploadsEmAndamento.remove(record.idSessao);
+    });
+  }
+
+  Future<bool> _executarEnvioSubmissao(SubmissionRecord record) async {
     final banco = _banco;
-    if (banco == null || !record.isGerado) {
+    if (!record.isGerado) {
       return false;
     }
 
@@ -283,7 +578,7 @@ class SincronizadorNuvemService {
     final epubBytes = arquivoEpub.readAsBytesSync();
 
     // Se for manutenção, garante que materiais referenciados locais sejam enviados antes
-    if (record.isManutencao) {
+    if (record.isManutencao && banco != null) {
       final idsMateriais = extrairIdsMateriaisAninhadosDoEpub(epubBytes);
       for (final idMat in idsMateriais) {
         final regMat = await banco.obterSubmissaoPorIdSessao(idMat);
@@ -295,26 +590,223 @@ class SincronizadorNuvemService {
 
     try {
       final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
-      final status = await _clienteHttp.enviarVersaoEpub(
+      final hashSha256 = calcularSha256Hex(epubBytes);
+      final totalBlocos = (epubBytes.length / _tamanhoBlocoBytes).ceil().clamp(
+        1,
+        1000000,
+      );
+
+      final statusRemoto = await _clienteHttp.consultarStatusLaudo(
         idSessao: record.idSessao,
-        epubBytes: epubBytes,
+        sha256: hashSha256,
         jwtSupabase: sessao.jwtSupabase,
         tokenAppCheck: tokenAppCheck,
       );
 
-      if (status == 200 || status == 201) {
+      if (statusRemoto.jaEnviado) {
         record.enviadoNuvem = true;
-        await banco.salvarSubmissao(record);
+        if (banco != null) {
+          await banco.salvarSubmissao(record);
+        }
+        _emitirProgresso(
+          ProgressoPublicacaoLaudo(
+            idSessao: record.idSessao,
+            etapa: statusRemoto.estaAtivo
+                ? EtapaPublicacaoLaudo.concluidoAtivo
+                : EtapaPublicacaoLaudo.aguardandoVerificacaoServidor,
+            blocosEnviados: totalBlocos,
+            totalBlocos: totalBlocos,
+          ),
+        );
         return true;
       }
-      return false;
+
+      final recebidos = statusRemoto.chunksRecebidos.toSet();
+      int concluidos = recebidos.length.clamp(0, totalBlocos);
+      _emitirProgresso(
+        ProgressoPublicacaoLaudo(
+          idSessao: record.idSessao,
+          etapa: EtapaPublicacaoLaudo.enviandoBlocos,
+          blocosEnviados: concluidos,
+          totalBlocos: totalBlocos,
+        ),
+      );
+
+      String? ultimoStatusModeracao;
+      for (int i = 0; i < totalBlocos; i++) {
+        if (recebidos.contains(i)) {
+          continue;
+        }
+        final inicio = i * _tamanhoBlocoBytes;
+        final fim = (inicio + _tamanhoBlocoBytes < epubBytes.length)
+            ? inicio + _tamanhoBlocoBytes
+            : epubBytes.length;
+        final fatia = Uint8List.sublistView(epubBytes, inicio, fim);
+
+        final resChunk = await _clienteHttp.enviarChunkEpub(
+          idSessao: record.idSessao,
+          sha256: hashSha256,
+          index: i,
+          total: totalBlocos,
+          chunkBytes: fatia,
+          jwtSupabase: sessao.jwtSupabase,
+          tokenAppCheck: tokenAppCheck,
+        );
+
+        ultimoStatusModeracao = resChunk.statusModeracao;
+        concluidos++;
+        _emitirProgresso(
+          ProgressoPublicacaoLaudo(
+            idSessao: record.idSessao,
+            etapa: (concluidos >= totalBlocos)
+                ? (ultimoStatusModeracao == 'ativo'
+                      ? EtapaPublicacaoLaudo.concluidoAtivo
+                      : EtapaPublicacaoLaudo.aguardandoVerificacaoServidor)
+                : EtapaPublicacaoLaudo.enviandoBlocos,
+            blocosEnviados: concluidos,
+            totalBlocos: totalBlocos,
+          ),
+        );
+      }
+
+      record.enviadoNuvem = true;
+      if (banco != null) {
+        await banco.salvarSubmissao(record);
+      }
+      return true;
     } catch (e, stackTrace) {
       _logger.logFalhaSyncOuDownload(
         'Falha ao enviar pacote EPUB (${record.idSessao}) para a nuvem',
         error: e,
         stackTrace: stackTrace,
       );
+      _emitirProgresso(
+        ProgressoPublicacaoLaudo(
+          idSessao: record.idSessao,
+          etapa: EtapaPublicacaoLaudo.semInternet,
+          blocosEnviados: 0,
+          totalBlocos: 1,
+          mensagemErro: e.toString(),
+        ),
+      );
       return false;
+    }
+  }
+
+  /// Garante que o laudo [idSessao] seja enviado para a nuvem (retomando se necessário) e
+  /// aguarda até que o servidor confirme `status_moderacao == 'ativo'` antes de liberar o link.
+  Future<ProgressoPublicacaoLaudo> publicarEAguardarLiberacao({
+    required String idSessao,
+    String? epubPath,
+    void Function(ProgressoPublicacaoLaudo progresso)? aoProgredir,
+  }) async {
+    StreamSubscription<ProgressoPublicacaoLaudo>? inscricao;
+    if (aoProgredir != null) {
+      inscricao = observarProgresso(idSessao).listen(aoProgredir);
+    }
+
+    try {
+      var sessao = await _autenticacaoService.obterSessaoAtual();
+      sessao ??= await _autenticacaoService.entrarComProvedorOidc(
+        ProvedorOidc.google,
+      );
+
+      final banco = _banco;
+      final registroBanco = banco?.obterSubmissaoPorIdSessaoSync(idSessao);
+      final caminhoEfetivo = (epubPath != null && epubPath.isNotEmpty)
+          ? epubPath
+          : (registroBanco?.epubPath ?? '');
+      final registro =
+          registroBanco ??
+          (caminhoEfetivo.isNotEmpty
+              ? (SubmissionRecord()
+                  ..idSessao = idSessao
+                  ..status = SubmissionStatus.gerado
+                  ..tipoRegistro = SubmissionTipoRegistro.manutencao
+                  ..epubPath = caminhoEfetivo)
+              : null);
+
+      final hashSha256 =
+          (caminhoEfetivo.isNotEmpty && File(caminhoEfetivo).existsSync())
+          ? calcularSha256Hex(File(caminhoEfetivo).readAsBytesSync())
+          : null;
+
+      for (int tentativa = 0;
+          tentativa < _maxTentativasPollingModeracao;
+          tentativa++) {
+        final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
+        final status = await _clienteHttp.consultarStatusLaudo(
+          idSessao: idSessao,
+          sha256: hashSha256,
+          jwtSupabase: sessao.jwtSupabase,
+          tokenAppCheck: tokenAppCheck,
+        );
+
+        if (!status.jaEnviado && registro != null) {
+          registro.enviadoNuvem = false;
+          if (!await enviarSubmissao(registro)) {
+            throw StateError('Falha no envio dos blocos do laudo.');
+          }
+          continue;
+        }
+
+        if (status.estaAtivo) {
+          final concluido = ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.concluidoAtivo,
+            blocosEnviados: 1,
+            totalBlocos: 1,
+          );
+          _emitirProgresso(concluido);
+          return concluido;
+        }
+
+        if (status.statusModeracao == 'rejeitado') {
+          final rejeitado = ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.rejeitadoOuFalha,
+            blocosEnviados: 1,
+            totalBlocos: 1,
+            mensagemErro:
+                'O laudo não pôde ser publicado pela verificação de segurança.',
+          );
+          _emitirProgresso(rejeitado);
+          return rejeitado;
+        }
+
+        _emitirProgresso(
+          ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.aguardandoVerificacaoServidor,
+            blocosEnviados: 1,
+            totalBlocos: 1,
+          ),
+        );
+        await Future<void>.delayed(_intervaloPollingModeracao);
+      }
+
+      final tempoEsgotado = ProgressoPublicacaoLaudo(
+        idSessao: idSessao,
+        etapa: EtapaPublicacaoLaudo.rejeitadoOuFalha,
+        blocosEnviados: 1,
+        totalBlocos: 1,
+        mensagemErro:
+            'A verificação do laudo no servidor ainda está em processamento. Tente compartilhar novamente em instantes.',
+      );
+      _emitirProgresso(tempoEsgotado);
+      return tempoEsgotado;
+    } catch (e) {
+      final semRede = ProgressoPublicacaoLaudo(
+        idSessao: idSessao,
+        etapa: EtapaPublicacaoLaudo.semInternet,
+        blocosEnviados: 0,
+        totalBlocos: 1,
+        mensagemErro: e.toString(),
+      );
+      _emitirProgresso(semRede);
+      return semRede;
+    } finally {
+      unawaited(inscricao?.cancel());
     }
   }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -14,10 +15,9 @@ import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
 import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
-import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
-import 'package:fixalog/features/pdf_generation/services/pdf_draft_service.dart';
+import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
@@ -32,6 +32,8 @@ class GenerationState {
   final String? outputPath;
   final String? epubPath;
   final String? pdfPath;
+  final String? sessionId;
+  final String? title;
 
   GenerationState({
     this.progress = 0.0,
@@ -42,6 +44,8 @@ class GenerationState {
     this.outputPath,
     this.epubPath,
     this.pdfPath,
+    this.sessionId,
+    this.title,
   });
 
   GenerationState copyWith({
@@ -53,6 +57,8 @@ class GenerationState {
     String? outputPath,
     String? epubPath,
     String? pdfPath,
+    String? sessionId,
+    String? title,
   }) {
     return GenerationState(
       progress: progress ?? this.progress,
@@ -63,6 +69,8 @@ class GenerationState {
       outputPath: outputPath ?? this.outputPath,
       epubPath: epubPath ?? this.epubPath,
       pdfPath: pdfPath ?? this.pdfPath,
+      sessionId: sessionId ?? this.sessionId,
+      title: title ?? this.title,
     );
   }
 }
@@ -74,12 +82,8 @@ class GenerationState {
 /// - Incorporação de materiais assinados do catálogo local em `OEBPS/materiais/<uuid>/`.
 /// - Assinatura digital no padrão W3C XML-DSig (ECDSA secp256r1 com SHA-256 e certificado X.509).
 /// - Empacotamento de container canônico EPUB 3 em ZIP/OCF com Protobuf embutido.
-/// - Emissão de PDF Resumido de Protocolo com QR Codes.
-/// - Persistência do registro de submissão no banco de dados local (SQLite).
+/// - Persistência do registro de submissão no banco de dados local (SQLite) e disparo de upload em background.
 class GenerationNotifier extends StateNotifier<GenerationState> {
-  // Mantido no construtor para compatibilidade de assinatura nos provedores
-  // ignore: unused_field
-  final PdfDraftService? _draftService;
   final MediaCompressorService _mediaService;
   final GenerationRecoveryService _recoveryService;
   final SessionBundleManager _sessionManager;
@@ -87,13 +91,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   final EpubDocumentBuilder _epubBuilder;
   final EpubPackagerService _epubPackager;
   final XmlDsigSigner _xmlSigner;
-  final PdfPrintSummaryService _pdfSummaryService;
   final CryptoService _cryptoService;
-
-  PdfPrintSummaryService get pdfSummaryService => _pdfSummaryService;
+  final SincronizadorNuvemService? _sincronizadorNuvem;
 
   GenerationNotifier(
-    this._draftService,
     this._mediaService,
     this._recoveryService,
     this._sessionManager, [
@@ -101,12 +102,11 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
     EpubDocumentBuilder? epubBuilder,
     EpubPackagerService? epubPackager,
     XmlDsigSigner? xmlSigner,
-    PdfPrintSummaryService? pdfSummaryService,
     CryptoService? cryptoService,
-  ])  : _epubBuilder = epubBuilder ?? EpubDocumentBuilder(),
+    this._sincronizadorNuvem,
+  ])  : _epubBuilder = epubBuilder ?? const EpubDocumentBuilder(),
         _epubPackager = epubPackager ?? EpubPackagerService(),
         _xmlSigner = xmlSigner ?? XmlDsigSigner(),
-        _pdfSummaryService = pdfSummaryService ?? PdfPrintSummaryService(),
         _cryptoService = cryptoService ?? CryptoService(),
         super(GenerationState());
 
@@ -137,10 +137,13 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
   }) async {
     try {
       await _recoveryService.markAsProcessing(true);
-      state =
-          GenerationState(progress: 0.1, status: 'Lendo dados da sessão...');
-
       final sid = sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
+      state = GenerationState(
+        progress: 0.1,
+        status: 'Lendo dados da sessão...',
+        sessionId: sid,
+        title: title,
+      );
 
       Registro registro;
       if (sessionId != null) {
@@ -221,7 +224,8 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           arquivosMidias['midias/${uuid}_poster.jpg'] = bytes;
           posterFrames[uuid] = 'midias/${uuid}_poster.jpg';
         }
-        final qrSvg = PdfPrintSummaryService.gerarQrCodeSvg('$urlCanonica#video-$uuid');
+        final qrSvg =
+            EpubDocumentBuilder.gerarQrCodeSvg('$urlCanonica#video-$uuid');
         qrCodesVideos[uuid] =
             'data:image/svg+xml;utf8,${Uri.encodeComponent(qrSvg)}';
 
@@ -375,7 +379,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       );
 
       final estiloCss = _epubBuilder.gerarCss(codigoIdioma: codigoIdioma);
-      final qrPrincipalSvg = PdfPrintSummaryService.gerarQrCodeSvg(urlCanonica);
+      final qrPrincipalSvg = EpubDocumentBuilder.gerarQrCodeSvg(urlCanonica);
       final qrPrincipalDataUri =
           'data:image/svg+xml;utf8,${Uri.encodeComponent(qrPrincipalSvg)}';
 
@@ -485,6 +489,11 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         arquivoPdfSessao.deleteSync();
       }
 
+      String tituloExibicaoFinal = _extrairTituloExibicaoDoRegistro(
+        registro,
+        fallback: title,
+      );
+
       final banco = _banco;
       if (banco != null) {
         SubmissionRecord? existingRecord;
@@ -503,7 +512,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         final ehMaterial = registro.idProtocolo == 'material_registration' ||
             registro.idProtocolo == 'cadastro_material' ||
             (existingRecord?.isMaterial ?? false);
-        final tituloExtraido = _extrairTituloExibicaoDoRegistro(
+        tituloExibicaoFinal = _extrairTituloExibicaoDoRegistro(
           registro,
           fallback: (existingRecord?.tituloExibicao.isNotEmpty ?? false)
               ? existingRecord!.tituloExibicao
@@ -534,7 +543,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           ..tipoRegistro = ehMaterial
               ? SubmissionTipoRegistro.material
               : SubmissionTipoRegistro.manutencao
-          ..tituloExibicao = tituloExtraido;
+          ..tituloExibicao = tituloExibicaoFinal;
 
         await banco.salvarSubmissao(record);
       }
@@ -546,8 +555,16 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         outputPath: epubFile.path,
         epubPath: epubFile.path,
         pdfPath: null,
+        sessionId: sid,
+        title: tituloExibicaoFinal,
       );
       await _recoveryService.markAsProcessing(false);
+
+      // Dispara upload em background imediatamente após selar o laudo sem bloquear a UI
+      final sincronizador = _sincronizadorNuvem;
+      if (sincronizador != null) {
+        unawaited(sincronizador.sincronizarPendentes());
+      }
     } catch (e) {
       state = state.copyWith(hasError: true, errorMessage: e.toString());
       await _recoveryService.markAsProcessing(false);
@@ -556,10 +573,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 }
 
 // Providers
-final draftServiceProvider = Provider((ref) => PdfDraftService());
 final generationRecoveryProvider =
     Provider((ref) => GenerationRecoveryService());
-final epubDocumentBuilderProvider = Provider((ref) => EpubDocumentBuilder());
+final epubDocumentBuilderProvider =
+    Provider((ref) => const EpubDocumentBuilder());
 final epubPackagerServiceProvider = Provider((ref) => EpubPackagerService());
 final xmlDsigSignerProvider = Provider((ref) => XmlDsigSigner());
 
@@ -571,8 +588,12 @@ final generationProvider =
     banco = ref.watch(bancoDadosLocalProvider);
   } catch (_) {}
 
+  SincronizadorNuvemService? sincronizador;
+  try {
+    sincronizador = ref.read(sincronizadorNuvemServiceProvider);
+  } catch (_) {}
+
   return GenerationNotifier(
-    ref.read(draftServiceProvider),
     ref.read(mediaCompressorProvider),
     ref.read(generationRecoveryProvider),
     sessionManager,
@@ -580,7 +601,7 @@ final generationProvider =
     ref.read(epubDocumentBuilderProvider),
     ref.read(epubPackagerServiceProvider),
     ref.read(xmlDsigSignerProvider),
-    ref.read(pdfPrintSummaryServiceProvider),
     ref.read(cryptoServiceProvider),
+    sincronizador,
   );
 });

@@ -89,6 +89,9 @@ void main() {
       await tester.tap(find.text('Novo Protocolo'));
       await tester.pumpAndSettle();
 
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
       expect(find.text('NOVO REGISTRO DE MANUTENÇÃO'), findsOneWidget);
     });
 

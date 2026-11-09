@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
+import '../../../core/services/agendador_sincronizacao_background.dart';
 import '../../settings/views/tela_configuracoes.dart';
 import 'new_protocol_screen.dart';
 import 'history_screen.dart';
@@ -15,14 +17,38 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
+  AgendadorSincronizacaoBackground? _agendadorBackground;
 
   static const _pages = <Widget>[
     NewProtocolScreen(),
     HistoryScreen(),
     TelaConfiguracoes(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _agendadorBackground = ref.read(agendadorSincronizacaoBackgroundProvider);
+    unawaited(_agendadorBackground!.iniciarMonitoramento());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_agendadorBackground?.aoRetomarAplicativo());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _agendadorBackground?.cancelarTimer();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

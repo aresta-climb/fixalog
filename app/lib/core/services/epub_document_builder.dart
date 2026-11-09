@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:ui';
+import 'package:qr/qr.dart';
 
 import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
@@ -20,6 +21,35 @@ class EpubDocumentBuilder {
     ConstrutorArvoreRelatorio construtorArvore =
         const ConstrutorArvoreRelatorio(),
   }) : _construtorArvore = construtorArvore;
+
+  /// Gera a marcação SVG vetorial para um QR Code contendo o [texto] informado.
+  static String gerarQrCodeSvg(String texto, {int moduloTamanho = 4}) {
+    final qr = QrCode.fromData(
+      data: texto,
+      errorCorrectLevel: QrErrorCorrectLevel.M,
+    );
+    final qrImage = QrImage(qr);
+    final count = qrImage.moduleCount;
+    final totalSize = count * moduloTamanho;
+
+    final buffer = StringBuffer();
+    buffer.write(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $totalSize $totalSize" width="$totalSize" height="$totalSize">',
+    );
+    buffer.write('<rect width="100%" height="100%" fill="#ffffff"/>');
+
+    for (int x = 0; x < count; x++) {
+      for (int y = 0; y < count; y++) {
+        if (qrImage.isDark(y, x)) {
+          buffer.write(
+            '<rect x="${x * moduloTamanho}" y="${y * moduloTamanho}" width="$moduloTamanho" height="$moduloTamanho" fill="#000000"/>',
+          );
+        }
+      }
+    }
+    buffer.write('</svg>');
+    return buffer.toString();
+  }
 
   /// Extrai todas as [ReferenciaMidia] presentes em uma [Resposta],
   /// seja como mídia única (`resp.hasMidia()`) ou dentro de `resp.lista`.

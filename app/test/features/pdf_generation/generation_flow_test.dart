@@ -6,9 +6,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:basic_utils/basic_utils.dart';
-import 'package:pdf/pdf.dart';
-import 'package:printing/src/interface.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:archive/archive.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
@@ -17,7 +14,6 @@ import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
-import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
@@ -41,19 +37,6 @@ blocos:
               label: "Vídeo 1"
               tipo: "VIDEO"
 ''';
-
-class FakePrintingPlatform extends Fake
-    with MockPlatformInterfaceMixin
-    implements PrintingPlatform {
-  @override
-  Future<Uint8List> convertHtml(
-    String html,
-    String? baseUrl,
-    PdfPageFormat format,
-  ) async {
-    return Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34]); // %PDF-1.4
-  }
-}
 
 class FakeMediaCompressorService extends MediaCompressorService {
   final Directory dir;
@@ -91,19 +74,16 @@ class FakeMediaCompressorService extends MediaCompressorService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('Fluxo Completo de Geração de Relatório EPUB 3 e PDF Resumido (Dart Puro)', () {
+  group('Fluxo Completo de Geração de Relatório EPUB 3 (Dart Puro)', () {
     late Directory tempDir;
     late SessionBundleManager sessionManager;
     late GenerationRecoveryService recoveryService;
     late CryptoService cryptoService;
     late GenerationNotifier notifier;
-    late PdfPrintSummaryService pdfSummaryService;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       tempDir = await Directory.systemTemp.createTemp('generation_flow_test_');
-
-      PrintingPlatform.instance = FakePrintingPlatform();
 
       sessionManager = SessionBundleManager(
         baseDirectoryGetter: () async => tempDir,
@@ -125,18 +105,15 @@ void main() {
       });
 
       cryptoService = CryptoService();
-      pdfSummaryService = PdfPrintSummaryService();
 
       notifier = GenerationNotifier(
-        null,
         FakeMediaCompressorService(tempDir),
         recoveryService,
         sessionManager,
         null,
-        EpubDocumentBuilder(),
+        const EpubDocumentBuilder(),
         EpubPackagerService(),
         XmlDsigSigner(),
-        pdfSummaryService,
         cryptoService,
       );
     });
@@ -147,7 +124,7 @@ void main() {
       }
     });
 
-    test('Geração ponta a ponta do relatório EPUB 3 e PDF', () async {
+    test('Geração ponta a ponta do relatório EPUB 3 assinado', () async {
       final sid = 'sessao_fluxo_123';
       final registro = Registro()
         ..idProtocolo = 'PROT-2026-99'
@@ -163,11 +140,11 @@ void main() {
         binarypb: Uint8List.fromList(registro.writeToBuffer()),
       );
 
-      final outputPathPdf = '${tempDir.path}/relatorio_final.pdf';
+      final outputPathEpub = '${tempDir.path}/relatorio_final.epub';
 
       await notifier.startGeneration(
         'Relatório de Integração',
-        outputPathPdf,
+        outputPathEpub,
         sessionId: sid,
       );
 
@@ -175,24 +152,13 @@ void main() {
       expect(state.hasError, isFalse, reason: state.errorMessage);
       expect(state.isComplete, isTrue);
       expect(state.progress, equals(1.0));
-
-      // Validar que o fluxo desacoplado conclui com o EPUB 3 mantendo o PDF sob demanda
       expect(state.epubPath, isNotNull);
       expect(state.pdfPath, isNull);
+      expect(state.sessionId, equals(sid));
 
       final epubFile = File(state.epubPath!);
       expect(await epubFile.exists(), isTrue);
       expect(await epubFile.length(), greaterThan(0));
-
-      // Validar geração do PDF Resumido sob demanda
-      final pdfFile = await pdfSummaryService.exportarPdfResumido(
-        caminhoSaida: outputPathPdf,
-        registro: registro,
-        idSessao: sid,
-        urlCanonica: 'https://arestaclimb.com/relatorios/$sid',
-      );
-      expect(await pdfFile.exists(), isTrue);
-      expect(await pdfFile.length(), greaterThan(0));
 
       // Validar integridade interna do container EPUB 3
       final epubBytes = await epubFile.readAsBytes();

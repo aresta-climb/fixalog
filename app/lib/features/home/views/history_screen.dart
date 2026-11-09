@@ -86,13 +86,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           await banco.salvarSubmissao(record);
         }
       }
-      final caminhoPdf = record.pdfPath.isNotEmpty ? record.pdfPath : null;
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => VisualizadorRelatorioScreen(
               caminhoEpub: caminhoEpub,
-              caminhoPdf: caminhoPdf,
               idSessao: record.idSessao,
               titulo: _obterTituloRegistro(record, padrao: 'Relatório Técnico'),
             ),

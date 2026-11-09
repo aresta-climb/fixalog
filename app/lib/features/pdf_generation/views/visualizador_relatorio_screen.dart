@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -10,14 +12,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
-import 'package:fixalog/core/models/local/submission_record.dart';
-import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
-import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
-import 'package:fixalog/core/services/epub_document_builder.dart';
-import 'package:fixalog/core/services/pdf_print_summary_service.dart';
-import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
@@ -25,7 +21,8 @@ import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 ///
 /// Consome os arquivos descompactados do container EPUB 3 em cache local,
 /// permitindo a reprodução de mídias (fotos e vídeos) via WebView,
-/// além de oferecer opções de compartilhamento do arquivo `.epub` canônico e do `.pdf` resumido gerado sob demanda.
+/// além de oferecer compartilhamento seguro do link público web (após upload retomável
+/// em blocos e verificação de moderação no servidor) e exportação do arquivo `.epub` assinado.
 class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
   final String? caminhoEpub;
   final String? caminhoPdf;
@@ -33,20 +30,19 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
   final String? idSessao;
   final String titulo;
   final EpubExtratorService? extratorService;
-  final PdfPrintSummaryService? pdfSummaryService;
   final SessionBundleManager? sessionManager;
   final BancoDadosLocal? bancoDados;
-  final Future<void> Function(List<String> paths, {String? text, String? subject})?
-      compartilharArquivosProxy;
-  final Future<void> Function(String path)? abrirArquivoProxy;
+  final SincronizadorNuvemService? sincronizadorNuvem;
+  final Future<void> Function(
+    List<String> paths, {
+    String? text,
+    String? subject,
+  }) compartilharArquivosProxy;
+  final Future<void> Function(String path) abrirArquivoProxy;
   final void Function(Future<bool> Function(String url) tratarUrl)?
       aoRegistrarTratadorUrl;
-  final Widget Function(BuildContext context, String caminhoXhtml)? webViewBuilder;
-  final Future<String> Function({
-    required String? caminhoEpub,
-    required String? caminhoXhtml,
-    required String? idSessao,
-  })? geradorPdfSobDemandaProxy;
+  final Widget Function(BuildContext context, String caminhoXhtml)
+      webViewBuilder;
 
   const VisualizadorRelatorioScreen({
     super.key,
@@ -56,15 +52,51 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
     this.idSessao,
     this.titulo = 'Relatório Técnico',
     this.extratorService,
-    this.pdfSummaryService,
     this.sessionManager,
     this.bancoDados,
-    this.compartilharArquivosProxy,
-    this.abrirArquivoProxy,
+    this.sincronizadorNuvem,
+    Future<void> Function(List<String> paths, {String? text, String? subject})?
+        compartilharArquivosProxy,
+    Future<void> Function(String path)? abrirArquivoProxy,
     this.aoRegistrarTratadorUrl,
-    this.webViewBuilder,
-    this.geradorPdfSobDemandaProxy,
-  });
+    Widget Function(BuildContext context, String caminhoXhtml)? webViewBuilder,
+  })  : compartilharArquivosProxy =
+            compartilharArquivosProxy ?? compartilharPadrao,
+        abrirArquivoProxy = abrirArquivoProxy ?? abrirArquivoPadrao,
+        webViewBuilder = webViewBuilder ?? construirWebViewPadrao;
+
+  /// Executor estático padrão para `SharePlus` (substituível em testes para evitar chamadas nativas do SO).
+  static Future<Object?> Function(ShareParams) executorSharePlus =
+      SharePlus.instance.share;
+
+  /// Executor estático padrão para `OpenFilex` (substituível em testes para evitar chamadas nativas do SO).
+  static Future<Object?> Function(String) executorOpenFilex = OpenFilex.open;
+
+  /// Implementação padrão de compartilhamento via `SharePlus`.
+  static Future<void> compartilharPadrao(
+    List<String> paths, {
+    String? text,
+    String? subject,
+  }) async {
+    await executorSharePlus(
+      ShareParams(
+        files: paths.isEmpty ? null : paths.map(XFile.new).toList(),
+        text: text,
+        subject: subject,
+      ),
+    );
+  }
+
+  /// Implementação padrão de abertura externa via `OpenFilex`.
+  static Future<void> abrirArquivoPadrao(String path) async {
+    await executorOpenFilex(path);
+  }
+
+  /// Construtor padrão de `WebViewWidget` carregando o arquivo XHTML local.
+  static Widget construirWebViewPadrao(
+    BuildContext context,
+    String caminhoXhtml,
+  ) => WebViewWidget(controller: WebViewController()..setJavaScriptMode(JavaScriptMode.unrestricted)..loadFile(caminhoXhtml));
 
   @override
   ConsumerState<VisualizadorRelatorioScreen> createState() =>
@@ -74,39 +106,22 @@ class VisualizadorRelatorioScreen extends ConsumerStatefulWidget {
 class _VisualizadorRelatorioScreenState
     extends ConsumerState<VisualizadorRelatorioScreen> {
   bool _carregando = true;
-  bool _gerandoPdf = false;
   String? _mensagemErro;
   String? _caminhoXhtmlFinal;
-  String? _caminhoPdfFinal;
-  WebViewController? _webViewController;
-
-  BancoDadosLocal? _banco;
+  ProgressoPublicacaoLaudo? _progressoUpload;
+  Widget? _webViewConstruido;
 
   @override
   void initState() {
     super.initState();
-    _caminhoPdfFinal = widget.caminhoPdf;
     _carregarRelatorio();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.bancoDados != null) {
-      _banco = widget.bancoDados;
-    } else {
-      try {
-        _banco = ref.read(bancoDadosLocalProvider);
-      } catch (_) {
-        _banco = null;
-      }
-    }
   }
 
   Future<void> _carregarRelatorio() async {
     setState(() {
       _carregando = true;
       _mensagemErro = null;
+      _webViewConstruido = null;
     });
 
     try {
@@ -122,12 +137,6 @@ class _VisualizadorRelatorioScreenState
         throw ArgumentError(
           'Nenhum caminho de arquivo EPUB ou XHTML informado para visualização.',
         );
-      }
-
-      if (widget.webViewBuilder == null && _caminhoXhtmlFinal != null) {
-        _webViewController = WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..loadFile(_caminhoXhtmlFinal!);
       }
 
       widget.aoRegistrarTratadorUrl?.call(_tratarCliqueUrlRelatorio);
@@ -147,58 +156,28 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
+  String _obterIdSessaoEfetivo() {
+    if (widget.idSessao != null && widget.idSessao!.trim().isNotEmpty) {
+      return widget.idSessao!.trim();
+    }
+    return p.basenameWithoutExtension(
+      widget.caminhoEpub ?? _caminhoXhtmlFinal ?? 'relatorio',
+    );
+  }
+
   Future<void> _compartilharEpub() async {
     if (widget.caminhoEpub == null) return;
     try {
-      if (widget.compartilharArquivosProxy != null) {
-        await widget.compartilharArquivosProxy!(
-          [widget.caminhoEpub!],
-          subject: 'Relatório Técnico Fixalog (EPUB 3)',
-        );
-      } else {
-        await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(widget.caminhoEpub!)],
-            subject: 'Relatório Técnico Fixalog (EPUB 3)',
-          ),
-        );
-      }
+      await widget.compartilharArquivosProxy(
+        [widget.caminhoEpub!],
+        subject: 'Relatório Técnico Fixalog (EPUB 3)',
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao compartilhar EPUB: $e')),
         );
-      }
-    }
-  }
-
-  Future<String?> _gerarPdfSobDemanda() async {
-    if (!mounted) return null;
-
-    setState(() {
-      _gerandoPdf = true;
-    });
-
-    try {
-      final String novoPdf;
-      if (widget.geradorPdfSobDemandaProxy != null) {
-        novoPdf = await widget.geradorPdfSobDemandaProxy!(
-          caminhoEpub: widget.caminhoEpub,
-          caminhoXhtml: _caminhoXhtmlFinal ?? widget.caminhoXhtml,
-          idSessao: widget.idSessao,
-        );
-      } else {
-        novoPdf = await _executarGeracaoPdfPadrao();
-      }
-
-      _caminhoPdfFinal = novoPdf;
-      return novoPdf;
-    } finally {
-      if (mounted) {
-        setState(() {
-          _gerandoPdf = false;
-        });
       }
     }
   }
@@ -218,373 +197,16 @@ class _VisualizadorRelatorioScreenState
       );
     }
 
-    if (widget.abrirArquivoProxy != null) {
-      await widget.abrirArquivoProxy!(caminhoAlvo);
-    } else {
-      await OpenFilex.open(caminhoAlvo);
-    }
+    await widget.abrirArquivoProxy(caminhoAlvo);
     return true;
   }
 
-  void _coletarUuidsMidia(
-    Registro reg,
-    Set<String> fotosUuids,
-    Set<String> videosUuids,
-    Map<String, ArquivoDocumento> documentosPorUuid,
-  ) {
-    for (final resp in reg.respostas.values) {
-      for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
-        if (midia.hasImagem()) {
-          fotosUuids.add(midia.imagem.uuid);
-        } else if (midia.hasVideo()) {
-          videosUuids.add(midia.video.uuid);
-        } else if (midia.hasDocumento()) {
-          documentosPorUuid[midia.documento.uuid] = midia.documento;
-        }
-      }
-    }
-    for (final grupo in reg.listas) {
-      for (final resp in grupo.respostasItem.values) {
-        for (final midia in EpubDocumentBuilder.extrairMidiasDeResposta(resp)) {
-          if (midia.hasImagem()) {
-            fotosUuids.add(midia.imagem.uuid);
-          } else if (midia.hasVideo()) {
-            videosUuids.add(midia.video.uuid);
-          } else if (midia.hasDocumento()) {
-            documentosPorUuid[midia.documento.uuid] = midia.documento;
-          }
-        }
-      }
-    }
-  }
-
-  Future<({Map<String, String> caminhosMidias, Map<String, String> caminhosPosters})>
-      _resolverCaminhosMidiasPreProcessadas({
-    required Registro registro,
-    required String idSessaoAlvo,
-    required SessionBundleManager sessionManager,
-    Directory? oebpsDirAlvo,
-  }) async {
-    final Set<String> fotosUuids = {};
-    final Set<String> videosUuids = {};
-    final Map<String, ArquivoDocumento> documentosPorUuid = {};
-    _coletarUuidsMidia(
-      registro,
-      fotosUuids,
-      videosUuids,
-      documentosPorUuid,
-    );
-
-    final Map<String, String> caminhosMidias = {};
-    final Map<String, String> caminhosPosters = {};
-
-    Future<String?> localizarCaminhoImagemPorChave(String chaveMidia) async {
-      final thumbJpgPath = await sessionManager.getMediaFilePath(
-        sessionId: idSessaoAlvo,
-        mediaUuid: '${chaveMidia}_thumb',
-        extension: '.jpg',
-      );
-      if (File(thumbJpgPath).existsSync()) {
-        return thumbJpgPath;
-      }
-
-      final mainWebpPath = await sessionManager.getMediaFilePath(
-        sessionId: idSessaoAlvo,
-        mediaUuid: chaveMidia,
-        extension: '.webp',
-      );
-      if (File(mainWebpPath).existsSync()) {
-        return mainWebpPath;
-      }
-
-      if (oebpsDirAlvo != null) {
-        final imgEpub =
-            File(p.join(oebpsDirAlvo.path, 'midias', '$chaveMidia.webp'));
-        if (imgEpub.existsSync()) {
-          return imgEpub.path;
-        }
-      }
-      return null;
-    }
-
-    for (final uuid in fotosUuids) {
-      final caminho = await localizarCaminhoImagemPorChave(uuid);
-      if (caminho != null) {
-        caminhosMidias[uuid] = caminho;
-      }
-    }
-
-    for (final doc in documentosPorUuid.values) {
-      final limitePaginas =
-          doc.quantidadePaginas > 0 ? doc.quantidadePaginas : 999;
-      for (var i = 1; i <= limitePaginas; i++) {
-        final chavePagina = '${doc.uuid}_p$i';
-        final caminho = await localizarCaminhoImagemPorChave(chavePagina);
-        if (caminho != null) {
-          caminhosMidias[chavePagina] = caminho;
-        } else if (doc.quantidadePaginas == 0) {
-          break;
-        }
-      }
-    }
-
-    for (final uuid in videosUuids) {
-      final posterJpgPath = await sessionManager.getMediaFilePath(
-        sessionId: idSessaoAlvo,
-        mediaUuid: '${uuid}_poster',
-        extension: '.jpg',
-      );
-      if (File(posterJpgPath).existsSync()) {
-        caminhosPosters[uuid] = posterJpgPath;
-      } else if (oebpsDirAlvo != null) {
-        final posterEpubJpg =
-            File(p.join(oebpsDirAlvo.path, 'midias', '${uuid}_poster.jpg'));
-        if (posterEpubJpg.existsSync()) {
-          caminhosPosters[uuid] = posterEpubJpg.path;
-        }
-      }
-    }
-
-    return (caminhosMidias: caminhosMidias, caminhosPosters: caminhosPosters);
-  }
-
-  Future<String> _executarGeracaoPdfPadrao() async {
-    final sessionManager = widget.sessionManager ?? SessionBundleManager();
-    final banco = _banco;
-
-    String? sid = widget.idSessao;
-    SubmissionRecord? record;
-
-    if (banco != null) {
-      if (sid != null && sid.isNotEmpty) {
-        try {
-          record = await banco.obterSubmissaoPorIdSessao(sid);
-        } catch (_) {}
-      }
-      if (record == null && widget.caminhoEpub != null) {
-        try {
-          record = await banco.obterSubmissaoPorEpubPath(widget.caminhoEpub!) ??
-              await banco.obterSubmissaoPorProtobufPath(widget.caminhoEpub!);
-          if (record != null && (sid == null || sid.isEmpty)) {
-            sid = record.idSessao;
-          }
-        } catch (_) {}
-      }
-    }
-
-    if (sid == null || sid.isEmpty) {
-      if (widget.caminhoEpub != null) {
-        sid = p.basenameWithoutExtension(widget.caminhoEpub!);
-      } else {
-        sid = DateTime.now().millisecondsSinceEpoch.toString();
-      }
-    }
-
-    Directory? oebpsDir;
-    Registro? registro;
-    if (_caminhoXhtmlFinal != null) {
-      oebpsDir = File(_caminhoXhtmlFinal!).parent;
-      final yamlFile = File(p.join(oebpsDir.path, 'dados', 'registro.yaml'));
-      final pbFile = File(p.join(oebpsDir.path, 'dados', 'registro.binarypb'));
-      if (yamlFile.existsSync()) {
-        try {
-          registro = SerializadorYamlRegistro.deYaml(
-            yamlFile.readAsStringSync(),
-          );
-        } catch (_) {}
-      } else if (pbFile.existsSync()) {
-        try {
-          final bytes = pbFile.readAsBytesSync();
-          registro = Registro.fromBuffer(bytes);
-        } catch (_) {}
-      }
-    }
-
-    if (registro == null) {
-      try {
-        registro = await sessionManager.lerRegistroSessao(sessionId: sid);
-      } catch (_) {}
-    }
-
-    registro ??= (Registro()..idProtocolo = widget.titulo);
-
-    final midiasPrincipais = await _resolverCaminhosMidiasPreProcessadas(
-      registro: registro,
-      idSessaoAlvo: sid,
-      sessionManager: sessionManager,
-      oebpsDirAlvo: oebpsDir,
-    );
-
-    // Coletar materiais embutidos em OEBPS/materiais/<uuid>/ ou referenciados no Registro
-    final Set<String> uuidsMateriais = {
-      ...EpubDocumentBuilder.extrairUuidsMateriaisReferenciados(registro),
-    };
-    if (oebpsDir != null) {
-      final dirMateriais = Directory(p.join(oebpsDir.path, 'materiais'));
-      if (dirMateriais.existsSync()) {
-        for (final entidade in dirMateriais.listSync()) {
-          if (entidade is Directory) {
-            uuidsMateriais.add(p.basename(entidade.path));
-          }
-        }
-      }
-    }
-
-    final List<RelatorioMaterialAnexo> materiaisAnexos = [];
-    for (final uuidMat in uuidsMateriais) {
-      if (uuidMat == sid) continue;
-
-      Directory? oebpsMatDir;
-      Registro? regMat;
-
-      if (oebpsDir != null) {
-        final candidatoOebpsMat =
-            Directory(p.join(oebpsDir.path, 'materiais', uuidMat, 'OEBPS'));
-        final yamlMatFile = File(
-          p.join(candidatoOebpsMat.path, 'dados', 'registro.yaml'),
-        );
-        final pbMatFile = File(
-          p.join(candidatoOebpsMat.path, 'dados', 'registro.binarypb'),
-        );
-        if (yamlMatFile.existsSync()) {
-          oebpsMatDir = candidatoOebpsMat;
-          try {
-            regMat = SerializadorYamlRegistro.deYaml(
-              yamlMatFile.readAsStringSync(),
-            );
-          } catch (_) {}
-        } else if (pbMatFile.existsSync()) {
-          oebpsMatDir = candidatoOebpsMat;
-          try {
-            regMat = Registro.fromBuffer(pbMatFile.readAsBytesSync());
-          } catch (_) {}
-        }
-      }
-
-      if (regMat == null) {
-        try {
-          regMat = await sessionManager.lerRegistroSessao(sessionId: uuidMat);
-        } catch (_) {}
-      }
-
-      if (regMat != null) {
-        final midiasMat = await _resolverCaminhosMidiasPreProcessadas(
-          registro: regMat,
-          idSessaoAlvo: uuidMat,
-          sessionManager: sessionManager,
-          oebpsDirAlvo: oebpsMatDir,
-        );
-        materiaisAnexos.add(
-          RelatorioMaterialAnexo(
-            idSessao: uuidMat,
-            registro: regMat,
-            urlCanonica: 'https://fixalog.app/v/$uuidMat',
-            mapeamentoMidias: midiasMat.caminhosMidias,
-            posterFrames: midiasMat.caminhosPosters,
-          ),
-        );
-      }
-    }
-
-    final pdfService = widget.pdfSummaryService ?? PdfPrintSummaryService();
-    final caminhoPdfSaida =
-        await sessionManager.getReportFilePath(sessionId: sid);
-    final urlCanonica = 'https://fixalog.app/v/$sid';
-
-    String? idiomaPreferido;
-    if (banco != null) {
-      try {
-        final config = await banco.obterConfiguracao();
-        idiomaPreferido = config?.idiomaPreferido;
-      } catch (_) {}
-    }
-    final codigoIdioma =
-        (idiomaPreferido != null && idiomaPreferido.trim().isNotEmpty)
-            ? idiomaPreferido.trim()
-            : (mounted
-                ? ResolvedorIdioma.obterLocaleEfetivo(context, ref).languageCode
-                : 'pt');
-    await ProtocolParser.garantirTraducoesCarregadas(
-      codigoIdioma.split(RegExp(r'[-_]')).first,
-    );
-
-    final pdfFile = await pdfService.exportarPdfResumido(
-      caminhoSaida: caminhoPdfSaida,
-      registro: registro,
-      idSessao: sid,
-      urlCanonica: urlCanonica,
-      mapeamentoMidias: midiasPrincipais.caminhosMidias,
-      posterFrames: midiasPrincipais.caminhosPosters,
-      materiaisAnexos: materiaisAnexos,
-      codigoIdioma: codigoIdioma,
-    );
-
-    if (banco != null) {
-      record ??= await banco.obterSubmissaoPorIdSessao(sid);
-      if (record != null) {
-        record.pdfPath = pdfFile.path;
-        await banco.salvarSubmissao(record);
-      }
-    }
-
-    return pdfFile.path;
-  }
-
-  Future<void> _compartilharPdf() async {
-    String? caminhoPdf = _caminhoPdfFinal ?? widget.caminhoPdf;
-
-    if (caminhoPdf == null || caminhoPdf.isEmpty) {
-      try {
-        caminhoPdf = await _gerarPdfSobDemanda();
-        if (caminhoPdf == null) return;
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao gerar PDF resumido: $e')),
-          );
-        }
-        return;
-      }
-    }
-
-    try {
-      if (widget.compartilharArquivosProxy != null) {
-        await widget.compartilharArquivosProxy!(
-          [caminhoPdf],
-          subject: 'Relatório Técnico Resumido Fixalog (PDF)',
-        );
-      } else {
-        await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(caminhoPdf)],
-            subject: 'Relatório Técnico Resumido Fixalog (PDF)',
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao compartilhar PDF: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _abrirExternamente() async {
-    final alvo = widget.caminhoEpub ??
-        _caminhoPdfFinal ??
-        widget.caminhoPdf ??
-        _caminhoXhtmlFinal;
+    final alvo = widget.caminhoEpub ?? _caminhoXhtmlFinal;
     if (alvo == null) return;
 
     try {
-      if (widget.abrirArquivoProxy != null) {
-        await widget.abrirArquivoProxy!(alvo);
-      } else {
-        await OpenFilex.open(alvo);
-      }
+      await widget.abrirArquivoProxy(alvo);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -595,134 +217,66 @@ class _VisualizadorRelatorioScreenState
     }
   }
 
-  Future<void> _mostrarModalCompartilhamento(
-    BuildContext context, {
-    required bool ehPt,
-    required AppLocalizations l10n,
-  }) async {
-    final opcao = await showModalBottomSheet<String>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (modalContext) {
-        return SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: Text(
-                    ehPt
-                        ? 'Compartilhar Relatório'
-                        : l10n.visualizadorBotaoCompartilhar,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Divider(),
-                ListTile(
-                  key: const Key('opcao_compartilhar_epub'),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFE8F5E9),
-                    child: Icon(Icons.menu_book, color: Colors.green),
-                  ),
-                  title: Text(
-                    ehPt
-                        ? 'Relatório Completo (EPUB)'
-                        : l10n.visualizadorAbaEpub,
-                  ),
-                  subtitle: const Text(
-                    'Com vídeos em alta definição, fotos e dados canônicos assinados',
-                  ),
-                  enabled: widget.caminhoEpub != null,
-                  onTap: widget.caminhoEpub != null
-                      ? () => Navigator.of(modalContext).pop('epub')
-                      : null,
-                ),
-                ListTile(
-                  key: const Key('opcao_compartilhar_pdf'),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFFFF3E0),
-                    child: Icon(Icons.picture_as_pdf, color: Color(0xFFFF6B00)),
-                  ),
-                  title: Text(
-                    ehPt
-                        ? 'Versão Resumida (PDF)'
-                        : l10n.visualizadorAbaPdf,
-                  ),
-                  subtitle: const Text(
-                    'Para impressão rápida e protocolo com QR Codes',
-                  ),
-                  enabled: true,
-                  onTap: () => Navigator.of(modalContext).pop('pdf'),
-                ),
-                ListTile(
-                  key: const Key('opcao_compartilhar_link_web'),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFE3F2FD),
-                    child: Icon(Icons.link, color: Colors.blue),
-                  ),
-                  title: Text(
-                    ehPt
-                        ? 'Link Público Web (fixalog.app)'
-                        : 'Public Web Link (fixalog.app)',
-                  ),
-                  subtitle: const Text(
-                    'Visualização instantânea no navegador com verificação criptográfica',
-                  ),
-                  enabled: true,
-                  onTap: () => Navigator.of(modalContext).pop('link_web'),
-                ),
-              ],
-            ),
-          ),
-        );
+  Future<void> _compartilharLinkPublicoComVerificacao() async {
+    final idSessao = _obterIdSessaoEfetivo();
+    final SincronizadorNuvemService sincronizador =
+        widget.sincronizadorNuvem ?? ref.read(sincronizadorNuvemServiceProvider);
+
+    setState(() {
+      _progressoUpload =
+          sincronizador.obterProgressoAtual(idSessao) ??
+          ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.enviandoBlocos,
+            blocosEnviados: 0,
+            totalBlocos: 1,
+          );
+    });
+
+    final resultado = await sincronizador.publicarEAguardarLiberacao(
+      idSessao: idSessao,
+      epubPath: widget.caminhoEpub,
+      aoProgredir: (p) {
+        if (mounted) {
+          setState(() {
+            _progressoUpload =
+                p.etapa == EtapaPublicacaoLaudo.concluidoAtivo ? null : p;
+          });
+        }
       },
     );
 
-    if (opcao == 'epub') {
-      await _compartilharEpub();
-    } else if (opcao == 'pdf') {
-      await _compartilharPdf();
-    } else if (opcao == 'link_web') {
-      await _compartilharLinkWeb();
-    }
-  }
+    if (!mounted) return;
 
-  Future<void> _compartilharLinkWeb() async {
-    final id = (widget.idSessao != null && widget.idSessao!.trim().isNotEmpty)
-        ? widget.idSessao!.trim()
-        : p.basename(
-            p.dirname(widget.caminhoEpub ?? _caminhoXhtmlFinal ?? 'relatorio'),
-          );
-    final urlPublica = SincronizadorNuvemService.obterUrlCompartilhamentoPublico(
-      id,
-    );
+    if (resultado.etapa != EtapaPublicacaoLaudo.concluidoAtivo) {
+      setState(() {
+        _progressoUpload = resultado;
+      });
+      return;
+    }
+
+    setState(() {
+      _progressoUpload = null;
+    });
+
+    Uint8List? epubBytes;
+    if (widget.caminhoEpub != null && File(widget.caminhoEpub!).existsSync()) {
+      epubBytes = File(widget.caminhoEpub!).readAsBytesSync();
+    }
+
+    final textoCompartilhamento =
+        SincronizadorNuvemService.construirResumoCompartilhamento(
+          idSessao: idSessao,
+          titulo: widget.titulo,
+          epubBytes: epubBytes,
+        );
+
     try {
-      if (widget.compartilharArquivosProxy != null) {
-        await widget.compartilharArquivosProxy!(
-          const [],
-          text: urlPublica,
-          subject: widget.titulo,
-        );
-      } else {
-        await SharePlus.instance.share(
-          ShareParams(
-            text: urlPublica,
-            subject: widget.titulo,
-          ),
-        );
-      }
+      await widget.compartilharArquivosProxy(
+        const [],
+        text: textoCompartilhamento,
+        subject: widget.titulo,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -747,9 +301,15 @@ class _VisualizadorRelatorioScreenState
             key: const Key('btn_appbar_compartilhar'),
             icon: const Icon(Icons.share),
             tooltip: ehPt ? 'Compartilhar' : l10n.visualizadorBotaoCompartilhar,
-            onPressed: () =>
-                _mostrarModalCompartilhamento(context, ehPt: ehPt, l10n: l10n),
+            onPressed: _compartilharLinkPublicoComVerificacao,
           ),
+          if (widget.caminhoEpub != null)
+            IconButton(
+              key: const Key('btn_appbar_exportar_epub'),
+              icon: const Icon(Icons.menu_book_outlined),
+              tooltip: ehPt ? 'Exportar arquivo EPUB' : l10n.visualizadorAbaEpub,
+              onPressed: _compartilharEpub,
+            ),
           IconButton(
             key: const Key('btn_appbar_abrir_externo'),
             icon: const Icon(Icons.open_in_new),
@@ -763,28 +323,112 @@ class _VisualizadorRelatorioScreenState
       body: Stack(
         children: [
           _buildBody(),
-          if (_gerandoPdf) ...[
-            const ModalBarrier(
-              color: Colors.black54,
-              dismissible: false,
-            ),
-            const Center(
-              child: AlertDialog(
-                content: Row(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(width: 20),
-                    Expanded(
-                      child: Text('Gerando PDF resumido...'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          if (_progressoUpload != null)
+            _buildModalProgressoUpload(_progressoUpload!),
         ],
       ),
       bottomNavigationBar: _buildBottomBar(ehPt: ehPt, l10n: l10n),
+    );
+  }
+
+  Widget _buildModalProgressoUpload(ProgressoPublicacaoLaudo progresso) {
+    final bool ehSemInternet =
+        progresso.etapa == EtapaPublicacaoLaudo.semInternet;
+    final bool ehFalha =
+        progresso.etapa == EtapaPublicacaoLaudo.rejeitadoOuFalha;
+    final bool etapa1Concluida =
+        progresso.etapa == EtapaPublicacaoLaudo.aguardandoVerificacaoServidor ||
+        progresso.etapa == EtapaPublicacaoLaudo.concluidoAtivo;
+
+    return Stack(
+      children: [
+        const ModalBarrier(color: Colors.black54, dismissible: false),
+        Center(
+          child: AlertDialog(
+            key: const Key('modal_progresso_upload_laudo'),
+            title: Text(
+              ehSemInternet
+                  ? 'Sem conexão com a internet'
+                  : (ehFalha
+                        ? 'Verificação pendente'
+                        : 'Publicando laudo no Fixalog'),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (ehSemInternet)
+                  const Text(
+                    'É necessária conexão com a internet para publicar o laudo na nuvem e gerar o link de compartilhamento. O envio continuará automaticamente em segundo plano assim que houver sinal.',
+                  )
+                else if (ehFalha)
+                  Text(
+                    progresso.mensagemErro ??
+                        'Não foi possível concluir a verificação do laudo no servidor.',
+                  )
+                else ...[
+                  Row(
+                    children: [
+                      Icon(
+                        etapa1Concluida
+                            ? Icons.check_circle
+                            : Icons.cloud_upload_outlined,
+                        color: etapa1Concluida
+                            ? Colors.green
+                            : const Color(0xFFFF6B00),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '1. Enviando blocos do laudo (${progresso.blocosEnviados}/${progresso.totalBlocos})',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: etapa1Concluida ? 1.0 : progresso.fracaoBlocos,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (etapa1Concluida)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      else
+                        const Icon(
+                          Icons.verified_user_outlined,
+                          color: Colors.grey,
+                        ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          '2. Verificando integridade e mídias no servidor',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              if (ehSemInternet || ehFalha)
+                TextButton(
+                  key: const Key('btn_fechar_modal_upload'),
+                  onPressed: () {
+                    setState(() {
+                      _progressoUpload = null;
+                    });
+                  },
+                  child: const Text('FECHAR'),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -828,18 +472,13 @@ class _VisualizadorRelatorioScreenState
       );
     }
 
-    if (widget.webViewBuilder != null) {
-      return widget.webViewBuilder!(context, _caminhoXhtmlFinal!);
-    }
-
-    if (_webViewController != null) {
-      return WebViewWidget(controller: _webViewController!);
-    }
-
-    return const Center(child: Text('Nenhum visualizador disponível.'));
+    return _webViewConstruido ??= widget.webViewBuilder(
+      context,
+      _caminhoXhtmlFinal!,
+    );
   }
 
-  Widget? _buildBottomBar({
+  Widget _buildBottomBar({
     required bool ehPt,
     required AppLocalizations l10n,
   }) {
@@ -872,11 +511,7 @@ class _VisualizadorRelatorioScreenState
                     letterSpacing: 0.5,
                   ),
                 ),
-                onPressed: () => _mostrarModalCompartilhamento(
-                  context,
-                  ehPt: ehPt,
-                  l10n: l10n,
-                ),
+                onPressed: _compartilharLinkPublicoComVerificacao,
               ),
             ),
             const SizedBox(width: 8),

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
@@ -76,6 +78,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     SubmissionRecord record,
     Future<void> Function() loadAndEdit,
   ) async {
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoHistorico(
+        acao: 'abrir_relatorio',
+        idProtocolo: record.idProtocolo,
+        status: record.status,
+      ),
+    );
     final caminhoEpub = _localizarCaminhoEpub(record);
     final banco = ref.read(bancoDadosLocalProvider);
 
@@ -333,6 +342,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   "${record.dataInclusao.day.toString().padLeft(2, '0')}/${record.dataInclusao.month.toString().padLeft(2, '0')}/${record.dataInclusao.year}";
 
                               Future<void> loadAndEdit() async {
+                                unawaited(
+                                  ServicoTelemetria.instancia.registrarAcaoHistorico(
+                                    acao: 'editar_rascunho',
+                                    idProtocolo: record.idProtocolo,
+                                    status: record.status,
+                                  ),
+                                );
                                 try {
                                   final controller = ref.read(
                                     wizardControllerProvider.notifier,
@@ -369,6 +385,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
                               Future<void> duplicateAndEdit() async {
                                 if (!context.mounted) return;
+                                unawaited(
+                                  ServicoTelemetria.instancia.registrarAcaoHistorico(
+                                    acao: 'duplicar_submissao',
+                                    idProtocolo: record.idProtocolo,
+                                    status: record.status,
+                                  ),
+                                );
                                 showDialog<void>(
                                   context: context,
                                   barrierDismissible: false,
@@ -539,6 +562,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                     await ref
                                         .read(historyRepositoryProvider)
                                         .deleteRecord(record);
+                                    unawaited(
+                                      ServicoTelemetria.instancia.registrarAcaoHistorico(
+                                        acao: 'excluir_submissao',
+                                        idProtocolo: record.idProtocolo,
+                                        status: record.status,
+                                      ),
+                                    );
                                   }
                                 },
                               );
@@ -608,6 +638,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     _mostrarMateriais = false;
                     _limit = 10;
                   });
+                  unawaited(
+                    ServicoTelemetria.instancia.registrarAcaoHistorico(
+                      acao: 'alternar_filtro',
+                      status: 'manutencoes',
+                    ),
+                  );
                 }
               },
               child: Container(
@@ -642,6 +678,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     _mostrarMateriais = true;
                     _limit = 10;
                   });
+                  unawaited(
+                    ServicoTelemetria.instancia.registrarAcaoHistorico(
+                      acao: 'alternar_filtro',
+                      status: 'materiais',
+                    ),
+                  );
                 }
               },
               child: Container(

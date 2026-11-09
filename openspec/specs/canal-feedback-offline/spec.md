@@ -26,3 +26,10 @@ O sistema DEVE (MUST) verificar a existência de feedbacks pendentes na tabela `
 #### Scenario: Recuperação de sinal de rede e despacho
 - **WHEN** o despacho da fila de feedback é acionado com conectividade ativa
 - **THEN** o `ServicoFilaFeedback` transmite os relatos pendentes via multipart HTTP POST autenticado, atualiza o status no SQLite para enviado e limpa o arquivo de captura de tela local
+
+### Requirement: Anexo Automático de Breadcrumbs nos Metadados do Feedback
+O `ServicoFilaFeedback` DEVE (MUST) incluir automaticamente a lista cronológica de eventos recentes obtida de `GravadorBreadcrumbs.instancia.obterBreadcrumbs()` no campo `breadcrumbs` do `metadadosJson` de cada `FeedbackRecord` enfileirado.
+
+#### Scenario: Enfileiramento de feedback após navegação pelo aplicativo
+- **WHEN** o auditor realiza ações no aplicativo e envia um relato através do `ServicoFilaFeedback.enfileirarEDespacharFeedback`
+- **THEN** o `metadadosJson` salvo no `FeedbackRecord` contém a chave `breadcrumbs` com a lista das últimas ações registradas no `GravadorBreadcrumbs`

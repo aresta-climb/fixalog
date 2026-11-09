@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../../core/models/local/identity_record.dart';
 import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../../core/services/banco_dados_local.dart';
 import '../../../core/services/servico_configuracao_remota.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../../feedback/views/botao_feedback.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
 import '../../identity/views/identity_setup_screen.dart';
@@ -257,6 +259,12 @@ class TelaConfiguracoes extends ConsumerWidget {
                     ref
                         .read(idiomaAtivoProvider.notifier)
                         .selecionarIdioma(novoCodigo);
+                    unawaited(
+                      ServicoTelemetria.instancia.registrarAcaoConfiguracoes(
+                        'alterar_idioma',
+                        detalhe: novoCodigo,
+                      ),
+                    );
                   }
                 },
                 items: ResolvedorIdioma.idiomasSuportados.map((opcao) {
@@ -392,6 +400,11 @@ class TelaConfiguracoes extends ConsumerWidget {
             child: OutlinedButton.icon(
               key: const Key('botao_gerenciar_identidade_config'),
               onPressed: () {
+                unawaited(
+                  ServicoTelemetria.instancia.registrarAcaoConfiguracoes(
+                    'editar_identidade',
+                  ),
+                );
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const IdentitySetupScreen(),
@@ -492,6 +505,11 @@ class TelaConfiguracoes extends ConsumerWidget {
             child: OutlinedButton.icon(
               key: const Key('botao_consultar_termos_config'),
               onPressed: () {
+                unawaited(
+                  ServicoTelemetria.instancia.registrarAcaoConfiguracoes(
+                    'abrir_termos',
+                  ),
+                );
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (routeContext) => TelaTermosDeUso(
@@ -567,6 +585,12 @@ class TelaConfiguracoes extends ConsumerWidget {
             child: OutlinedButton.icon(
               key: const Key('botao_whatsapp_comunidade_config'),
               onPressed: () {
+                unawaited(
+                  ServicoTelemetria.instancia.registrarAberturaLinkExterno(
+                    configRemota.urlComunidadeWhatsapp,
+                    origem: 'configuracoes_whatsapp',
+                  ),
+                );
                 abrirUrl(Uri.parse(configRemota.urlComunidadeWhatsapp));
               },
               style: OutlinedButton.styleFrom(
@@ -590,6 +614,12 @@ class TelaConfiguracoes extends ConsumerWidget {
             child: OutlinedButton.icon(
               key: const Key('botao_portal_web_config'),
               onPressed: () {
+                unawaited(
+                  ServicoTelemetria.instancia.registrarAberturaLinkExterno(
+                    configRemota.urlPortalAresta,
+                    origem: 'configuracoes_portal_web',
+                  ),
+                );
                 abrirUrl(Uri.parse(configRemota.urlPortalAresta));
               },
               style: OutlinedButton.styleFrom(

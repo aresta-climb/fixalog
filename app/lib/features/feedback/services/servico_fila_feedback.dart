@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -16,8 +17,10 @@ import '../../../core/models/local/feedback_record.dart';
 import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../../core/services/banco_dados_local.dart';
 import '../../../core/services/classificador_dispositivo.dart';
+import '../../../core/services/gravador_breadcrumbs.dart';
 import '../../../core/services/registro_logger.dart';
 import '../../../core/services/servico_configuracao_remota.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../utils/compressor_imagem_feedback.dart';
 
 /// Serviço offline-first responsável por comprimir, persistir localmente no `BancoDadosLocal` (SQLite)
@@ -105,6 +108,7 @@ class ServicoFilaFeedback {
       'submittedAt': agoraUtc.toIso8601String(),
       'tier_dispositivo': ClassificadorDispositivo.instancia.tierDispositivo,
       'ram_gb': ClassificadorDispositivo.instancia.ramGb,
+      'breadcrumbs': GravadorBreadcrumbs.instancia.obterBreadcrumbs(),
       if (identidade != null && identidade.nome.isNotEmpty)
         'autor_nome': identidade.nome,
       if (identidade != null && identidade.clubeAssociacao.isNotEmpty)
@@ -130,6 +134,13 @@ class ServicoFilaFeedback {
 
     _logger.logInfo(
       '💬 [ServicoFilaFeedback] Feedback ($idFeedback) enfileirado localmente.',
+    );
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoFeedback(
+        'enfileirar_feedback',
+        categoria: categoria,
+        idFeedback: idFeedback,
+      ),
     );
 
     if (despacharImediatamente) {

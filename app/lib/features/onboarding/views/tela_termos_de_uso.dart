@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -9,6 +10,7 @@ import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/models/local/app_config_record.dart';
 import '../../../core/constantes/versao_legal.g.dart';
 import '../../../core/services/banco_dados_local.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../../identity/views/identity_setup_screen.dart';
 import '../../identity/viewmodels/identity_form_view_model.dart';
 import '../../home/views/home_screen.dart';
@@ -157,6 +159,9 @@ class _TelaTermosDeUsoState extends ConsumerState<TelaTermosDeUso> {
         config.dataHoraAceiteTermos = DateTime.now();
         await banco.salvarConfiguracao(config);
       }
+      unawaited(
+        ServicoTelemetria.instancia.registrarAceiteTermosUso('$kVersaoLegal'),
+      );
 
       if (!mounted) return;
 

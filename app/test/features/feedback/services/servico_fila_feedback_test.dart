@@ -13,6 +13,8 @@ import 'package:fixalog/core/models/local/identity_record.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
+import 'package:fixalog/core/services/gravador_breadcrumbs.dart';
+import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/features/feedback/services/servico_fila_feedback.dart';
 import 'package:fixalog/features/feedback/utils/compressor_imagem_feedback.dart';
 
@@ -110,6 +112,9 @@ void main() {
           urlEdgeFunction: 'https://edge.fixalog.test/functions/v1/app-feedback',
         );
 
+        GravadorBreadcrumbs.resetarParaTestes();
+        await ServicoTelemetria.instancia.registrarNavegacaoAba('configuracoes');
+
         final registro = await servico.enfileirarEDespacharFeedback(
           mensagem: 'Inconsistência no Bloco 3',
           capturaTela: Uint8List.fromList([1, 2, 3, 4]),
@@ -127,6 +132,14 @@ void main() {
         expect(
           metadadosRecebidos?['id_protocolo'],
           equals('manutencao_ferragens'),
+        );
+        final breadcrumbsAnexados =
+            metadadosRecebidos?['breadcrumbs'] as List<dynamic>?;
+        expect(breadcrumbsAnexados, isNotNull);
+        expect(breadcrumbsAnexados, isNotEmpty);
+        expect(
+          (breadcrumbsAnexados!.first as Map<String, dynamic>)['evento'],
+          equals('navegar_aba'),
         );
 
         // Após confirmação HTTP 200, a fila pendente no SQLite deve estar vazia e o arquivo de imagem removido

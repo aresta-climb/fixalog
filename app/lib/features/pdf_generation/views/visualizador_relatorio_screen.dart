@@ -15,6 +15,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
 /// Tela para visualização no aplicativo do relatório técnico de manutenção gerado em EPUB 3 (XHTML responsivo).
@@ -167,6 +168,12 @@ class _VisualizadorRelatorioScreenState
 
   Future<void> _compartilharEpub() async {
     if (widget.caminhoEpub == null) return;
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoVisualizadorRelatorio(
+        acao: 'exportar_epub',
+        idSessao: _obterIdSessaoEfetivo(),
+      ),
+    );
     try {
       await widget.compartilharArquivosProxy(
         [widget.caminhoEpub!],
@@ -204,6 +211,12 @@ class _VisualizadorRelatorioScreenState
   Future<void> _abrirExternamente() async {
     final alvo = widget.caminhoEpub ?? _caminhoXhtmlFinal;
     if (alvo == null) return;
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoVisualizadorRelatorio(
+        acao: 'abrir_externo',
+        idSessao: _obterIdSessaoEfetivo(),
+      ),
+    );
 
     try {
       await widget.abrirArquivoProxy(alvo);
@@ -219,6 +232,12 @@ class _VisualizadorRelatorioScreenState
 
   Future<void> _compartilharLinkPublicoComVerificacao() async {
     final idSessao = _obterIdSessaoEfetivo();
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoVisualizadorRelatorio(
+        acao: 'compartilhar_link_web',
+        idSessao: idSessao,
+      ),
+    );
     final SincronizadorNuvemService sincronizador =
         widget.sincronizadorNuvem ?? ref.read(sincronizadorNuvemServiceProvider);
 

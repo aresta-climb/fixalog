@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/gravador_breadcrumbs.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
@@ -78,6 +79,7 @@ void main() {
     });
 
     testWidgets('Voltar para aba Novo Protocolo após navegar', (tester) async {
+      GravadorBreadcrumbs.resetarParaTestes();
       await tester.pumpWidget(_buildTestApp());
       await tester.pump();
 
@@ -93,6 +95,14 @@ void main() {
       await tester.pump();
 
       expect(find.text('NOVO REGISTRO DE MANUTENÇÃO'), findsOneWidget);
+      final breadcrumbs = GravadorBreadcrumbs.instancia.obterBreadcrumbs();
+      expect(
+        breadcrumbs.map((b) => b['parametros']),
+        containsAll([
+          {'aba': 'historico'},
+          {'aba': 'novo_protocolo'},
+        ]),
+      );
     });
 
     testWidgets(

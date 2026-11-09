@@ -13,6 +13,7 @@ import '../models/local/submission_record.dart';
 import 'autenticacao_nuvem_service.dart';
 import 'banco_dados_local.dart';
 import 'registro_logger.dart';
+import 'servico_telemetria.dart';
 
 /// Metadados resumidos de um laudo remoto retornado por `GET /api/v1/laudos`.
 class MetadadosLaudoRemoto {
@@ -530,6 +531,13 @@ class SincronizadorNuvemService {
         falhas++;
       }
     }
+
+    unawaited(
+      ServicoTelemetria.instancia.registrarSincronizacaoNuvem(
+        enviados: enviados,
+        falhas: falhas,
+      ),
+    );
 
     return ResultadoSincronizacaoNuvem(
       enviados: enviados,

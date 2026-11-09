@@ -15,6 +15,7 @@ import 'package:fixnum/fixnum.dart';
 import '../../../core/services/session_bundle_manager.dart';
 import '../../../core/services/protocol_parser.dart';
 import '../../../core/services/migrador_protocolo_registro.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../../media/services/media_compressor_service.dart';
 import '../../../core/models/local/submission_record.dart';
 import '../../../core/services/banco_dados_local.dart';
@@ -282,6 +283,13 @@ class WizardStateController extends Notifier<WizardState> {
       answers: initialAnswers,
       possuiAlteracoesPendentes: true,
     );
+    unawaited(
+      ServicoTelemetria.instancia.registrarInicioProtocolo(
+        protocol.id,
+        idioma: 'pt',
+        modo: 'novo',
+      ),
+    );
     _scheduleAutoSave(immediate: true);
   }
 
@@ -392,6 +400,13 @@ class WizardStateController extends Notifier<WizardState> {
       sessionManager: sessionManager,
       sessionId: sessionId,
       answers: allAnswers,
+    );
+    unawaited(
+      ServicoTelemetria.instancia.registrarInicioProtocolo(
+        protocol.id,
+        idioma: 'pt',
+        modo: 'edicao',
+      ),
     );
   }
 
@@ -563,6 +578,14 @@ class WizardStateController extends Notifier<WizardState> {
 
     if (state.currentIndex < state.queue.length) {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
+      unawaited(
+        ServicoTelemetria.instancia.registrarEtapaWizard(
+          acao: 'avancar_etapa',
+          idProtocolo: state.protocol?.id ?? '',
+          stepId: flowStep.step.id,
+          indice: state.currentIndex,
+        ),
+      );
       return true;
     }
     return false;
@@ -571,6 +594,14 @@ class WizardStateController extends Notifier<WizardState> {
   void previousStep() {
     if (state.currentIndex > 0) {
       state = state.copyWith(currentIndex: state.currentIndex - 1);
+      unawaited(
+        ServicoTelemetria.instancia.registrarEtapaWizard(
+          acao: 'voltar_etapa',
+          idProtocolo: state.protocol?.id ?? '',
+          stepId: state.currentFlowStep?.step.id ?? '',
+          indice: state.currentIndex,
+        ),
+      );
     }
   }
 
@@ -802,6 +833,13 @@ class WizardStateController extends Notifier<WizardState> {
         possuiAlteracoesPendentes: true,
       );
       await saveSession(status: SubmissionStatus.emProgresso);
+      unawaited(
+        ServicoTelemetria.instancia.registrarAcaoMidiaWizard(
+          acao: 'anexar_midia',
+          tipoMidia: tipo.name.toLowerCase(),
+          campoId: conteudoId,
+        ),
+      );
     } finally {
       if (state.processandoMidiasPorCampo.containsKey(key)) {
         _definirProcessandoMidia(key, 0);
@@ -935,6 +973,13 @@ class WizardStateController extends Notifier<WizardState> {
       }
 
       await saveSession(status: SubmissionStatus.emProgresso);
+      unawaited(
+        ServicoTelemetria.instancia.registrarAcaoMidiaWizard(
+          acao: 'anexar_midia_lote',
+          tipoMidia: arquivos.first.tipo.name.toLowerCase(),
+          campoId: conteudoId,
+        ),
+      );
     } finally {
       if (state.processandoMidiasPorCampo.containsKey(key)) {
         _definirProcessandoMidia(key, 0);
@@ -942,7 +987,7 @@ class WizardStateController extends Notifier<WizardState> {
     }
   }
 
-  /// Salva um documento PDF original no SessionBundle (`<uuid>_original.pdf`),
+  /// Anexa um documento PDF (bytes) ao campo de mídia: salva o PDF original,
   /// rasteriza suas páginas em WebP (`<uuid>_p1.webp` .. `<uuid>_pN.webp`),
   /// calcula os hashes SHA-256 e armazena como [ReferenciaMidia] com [ArquivoDocumento].
   Future<void> saveDocumentAnswerBytes(
@@ -1003,6 +1048,13 @@ class WizardStateController extends Notifier<WizardState> {
         possuiAlteracoesPendentes: true,
       );
       await saveSession(status: SubmissionStatus.emProgresso);
+      unawaited(
+        ServicoTelemetria.instancia.registrarAcaoMidiaWizard(
+          acao: 'anexar_documento_pdf',
+          tipoMidia: 'documento_pdf',
+          campoId: conteudoId,
+        ),
+      );
     } finally {
       if (state.processandoMidiasPorCampo.containsKey(key)) {
         _definirProcessandoMidia(key, 0);
@@ -1032,6 +1084,13 @@ class WizardStateController extends Notifier<WizardState> {
     }
     state = state.copyWith(answers: updated, possuiAlteracoesPendentes: true);
     await saveSession(status: SubmissionStatus.emProgresso);
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoMidiaWizard(
+        acao: 'remover_midia',
+        tipoMidia: 'midia',
+        campoId: conteudoId,
+      ),
+    );
   }
 
   // ── SelecaoRamo — fluxo principal ────────────────────────────────────────────
@@ -1086,6 +1145,13 @@ class WizardStateController extends Notifier<WizardState> {
       possuiAlteracoesPendentes: true,
     );
     _scheduleAutoSave(immediate: true);
+    unawaited(
+      ServicoTelemetria.instancia.registrarEscolhaRamoWizard(
+        idProtocolo: state.protocol?.id ?? '',
+        conteudoId: conteudoId,
+        opcao: ramoId,
+      ),
+    );
     // Não avança — o card pode ter outros conteudos a preencher
   }
 
@@ -1125,6 +1191,13 @@ class WizardStateController extends Notifier<WizardState> {
       possuiAlteracoesPendentes: true,
     );
     _scheduleAutoSave(immediate: true);
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoListaWizard(
+        acao: 'adicionar_item',
+        conteudoId: listConteudoId,
+        tipoId: tipo.id,
+      ),
+    );
   }
 
   /// Valida os conteúdos do item e, se completo, o colapsa.
@@ -1154,6 +1227,12 @@ class WizardStateController extends Notifier<WizardState> {
     final updatedExpanded = Map<String, String?>.from(state.expandedListItems)
       ..[listConteudoId] = itemId;
     state = state.copyWith(expandedListItems: updatedExpanded);
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoListaWizard(
+        acao: 'expandir_item',
+        conteudoId: listConteudoId,
+      ),
+    );
   }
 
   /// Remove um item da lista (e eventuais sub-listas aninhadas associadas ao item).
@@ -1178,6 +1257,12 @@ class WizardStateController extends Notifier<WizardState> {
       possuiAlteracoesPendentes: true,
     );
     _scheduleAutoSave(immediate: true);
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoListaWizard(
+        acao: 'remover_item',
+        conteudoId: listConteudoId,
+      ),
+    );
   }
 
   // ── RefMateriais ──────────────────────────────────────────────────────────────

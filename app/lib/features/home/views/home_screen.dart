@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/services/agendador_sincronizacao_background.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../../settings/views/tela_configuracoes.dart';
 import 'new_protocol_screen.dart';
 import 'history_screen.dart';
@@ -64,7 +65,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         labelNovo: ehPt ? 'Novo Protocolo' : l10n.homeAbaNovo,
         labelHistorico: ehPt ? 'Histórico' : l10n.homeAbaHistorico,
         labelConfig: ehPt ? 'Configurações' : l10n.homeAbaConfig,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          const nomesAbas = <String>[
+            'novo_protocolo',
+            'historico',
+            'configuracoes',
+          ];
+          unawaited(
+            ServicoTelemetria.instancia.registrarNavegacaoAba(nomesAbas[index]),
+          );
+        },
       ),
     );
   }

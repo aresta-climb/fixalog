@@ -17,6 +17,7 @@ import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
@@ -135,6 +136,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
     String outputPath, {
     String? sessionId,
   }) async {
+    final cronometro = Stopwatch()..start();
     try {
       await _recoveryService.markAsProcessing(true);
       final sid = sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -557,6 +559,16 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         pdfPath: null,
         sessionId: sid,
         title: tituloExibicaoFinal,
+      );
+      cronometro.stop();
+      unawaited(
+        ServicoTelemetria.instancia.registrarGeracaoLaudoEpub(
+          idProtocolo: registro.idProtocolo.isNotEmpty
+              ? registro.idProtocolo
+              : title,
+          duracaoMs: cronometro.elapsedMilliseconds,
+          assinado: signaturesXml.isNotEmpty,
+        ),
       );
       await _recoveryService.markAsProcessing(false);
 

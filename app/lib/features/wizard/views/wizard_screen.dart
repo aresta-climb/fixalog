@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Step;
@@ -13,6 +14,7 @@ import '../../../core/models/proto/protos/wizard.pb.dart';
 import '../../../core/models/proto/protos/registro.pb.dart';
 import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
+import '../../../core/services/servico_telemetria.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/services/session_bundle_manager.dart';
@@ -1870,6 +1872,13 @@ class _CampoSimplesContent extends ConsumerWidget {
               desiredAccuracy: LocationAccuracy.high,
             );
             _saveString(ref, '${position.latitude}, ${position.longitude}');
+            unawaited(
+              ServicoTelemetria.instancia.registrarAcaoMidiaWizard(
+                acao: 'capturar_gps',
+                tipoMidia: 'gps',
+                campoId: conteudoId,
+              ),
+            );
           },
           child: _actionTile(
             icon: has ? Icons.location_on : Icons.gps_fixed,

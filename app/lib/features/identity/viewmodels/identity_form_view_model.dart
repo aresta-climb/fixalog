@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/local/identity_record.dart';
 import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../../core/services/crypto_service.dart';
 import '../../../core/services/providers.dart';
+import '../../../core/services/servico_telemetria.dart';
 import '../repositories/identity_repository.dart';
 
 class IdentityFormState {
@@ -82,6 +84,9 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
   /// Encerra a sessão OIDC atual e retorna o formulário para a Etapa 1 (escolha de conta Google/Apple).
   Future<void> trocarConta() async {
     await _autenticacaoService.encerrarSessao();
+    unawaited(
+      ServicoTelemetria.instancia.registrarAcaoConfiguracoes('logout_oidc'),
+    );
     state = IdentityFormState(
       atualizarNomeNoAresta: state.atualizarNomeNoAresta,
     );
@@ -93,6 +98,12 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final sessao = await _autenticacaoService.entrarComProvedorOidc(provedor);
+      unawaited(
+        ServicoTelemetria.instancia.registrarAcaoConfiguracoes(
+          'login_oidc',
+          detalhe: provedor.valor,
+        ),
+      );
       state = state.copyWith(
         isLoading: false,
         errorMessage: null,
@@ -152,6 +163,11 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
         ..dataRegistro = DateTime.now();
 
       await _repository.saveIdentity(identity);
+      unawaited(
+        ServicoTelemetria.instancia.registrarSalvarIdentidade(
+          possuiClube: clubeLimpo.isNotEmpty,
+        ),
+      );
 
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {

@@ -176,12 +176,16 @@ class RegistroLogger {
       if (resultado is Future<void>) {
         unawaited(
           resultado.catchError((Object e) {
-            _impressorConsole('⚠️ [RegistroLogger] $contextoFalha: $e');
+            if (!e.toString().contains('no-app')) {
+              _impressorConsole('⚠️ [RegistroLogger] $contextoFalha: $e');
+            }
           }),
         );
       }
     } catch (e) {
-      _impressorConsole('⚠️ [RegistroLogger] $contextoFalha: $e');
+      if (!e.toString().contains('no-app')) {
+        _impressorConsole('⚠️ [RegistroLogger] $contextoFalha: $e');
+      }
     }
   }
 

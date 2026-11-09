@@ -1058,6 +1058,120 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Documento PDF ({paginas} pág.)'**
   String laudoRotuloDocumentoPdf(int paginas);
+
+  /// No description provided for @feedbackTituloSheet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre o que é o seu relato?'**
+  String get feedbackTituloSheet;
+
+  /// No description provided for @feedbackCategoriaProtocolo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Protocolo'**
+  String get feedbackCategoriaProtocolo;
+
+  /// No description provided for @feedbackCategoriaAplicativo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicativo'**
+  String get feedbackCategoriaAplicativo;
+
+  /// No description provided for @feedbackHintDescricao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descreva o problema, dúvida ou sugestão...'**
+  String get feedbackHintDescricao;
+
+  /// No description provided for @feedbackAvisoOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo offline e enviado automaticamente quando houver sinal.'**
+  String get feedbackAvisoOffline;
+
+  /// No description provided for @feedbackBotaoEnviar.
+  ///
+  /// In pt, this message translates to:
+  /// **'ENVIAR RELATO'**
+  String get feedbackBotaoEnviar;
+
+  /// No description provided for @feedbackSucessoEnvio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Relato registrado! Será enviado assim que houver conexão.'**
+  String get feedbackSucessoEnvio;
+
+  /// No description provided for @configBotaoFeedback.
+  ///
+  /// In pt, this message translates to:
+  /// **'REPORTAR PROBLEMA OU SUGESTÃO'**
+  String get configBotaoFeedback;
+
+  /// No description provided for @configSecaoGovernancaTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'GOVERNANÇA E TERMOS LEGAIS'**
+  String get configSecaoGovernancaTitulo;
+
+  /// No description provided for @configTermosVersaoAceita.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão aceita: v{versao}'**
+  String configTermosVersaoAceita(int versao);
+
+  /// No description provided for @configTermosDataAceite.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consentimento em: {dataHora}'**
+  String configTermosDataAceite(String dataHora);
+
+  /// No description provided for @configTermosPendente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aceite pendente'**
+  String get configTermosPendente;
+
+  /// No description provided for @configBotaoConsultarTermos.
+  ///
+  /// In pt, this message translates to:
+  /// **'CONSULTAR TERMOS E PRIVACIDADE'**
+  String get configBotaoConsultarTermos;
+
+  /// No description provided for @configSecaoComunidadeTitulo.
+  ///
+  /// In pt, this message translates to:
+  /// **'SUPORTE, FEEDBACK E COMUNIDADE'**
+  String get configSecaoComunidadeTitulo;
+
+  /// No description provided for @configBotaoWhatsapp.
+  ///
+  /// In pt, this message translates to:
+  /// **'COMUNIDADE ARESTA NO WHATSAPP'**
+  String get configBotaoWhatsapp;
+
+  /// No description provided for @configBotaoPortalWeb.
+  ///
+  /// In pt, this message translates to:
+  /// **'PORTAL OFICIAL ARESTA CLIMB'**
+  String get configBotaoPortalWeb;
+
+  /// No description provided for @configRotuloContaOidc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta OIDC'**
+  String get configRotuloContaOidc;
+
+  /// No description provided for @configContaOidcNaoVinculada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não vinculada (modo local)'**
+  String get configContaOidcNaoVinculada;
+
+  /// No description provided for @configRotuloFingerprintChave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave ECDSA P-256'**
+  String get configRotuloFingerprintChave;
 }
 
 class _AppLocalizationsDelegate

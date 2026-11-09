@@ -248,5 +248,38 @@
         "type": "int"
       }
     }
-  }
+  },
+  "feedbackTituloSheet": "What is your feedback about?",
+  "feedbackCategoriaProtocolo": "Protocol",
+  "feedbackCategoriaAplicativo": "App",
+  "feedbackHintDescricao": "Describe the issue, question, or suggestion...",
+  "feedbackAvisoOffline": "Saved offline and sent automatically when online.",
+  "feedbackBotaoEnviar": "SEND FEEDBACK",
+  "feedbackSucessoEnvio": "Feedback recorded! It will be sent as soon as connected.",
+  "configBotaoFeedback": "REPORT ISSUE OR SUGGESTION",
+  "configSecaoGovernancaTitulo": "GOVERNANCE AND LEGAL TERMS",
+  "configTermosVersaoAceita": "Accepted version: v{versao}",
+  "@configTermosVersaoAceita": {
+    "placeholders": {
+      "versao": {
+        "type": "int"
+      }
+    }
+  },
+  "configTermosDataAceite": "Consented at: {dataHora}",
+  "@configTermosDataAceite": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "configTermosPendente": "Acceptance pending",
+  "configBotaoConsultarTermos": "VIEW TERMS & PRIVACY POLICY",
+  "configSecaoComunidadeTitulo": "SUPPORT, FEEDBACK & COMMUNITY",
+  "configBotaoWhatsapp": "ARESTA COMMUNITY ON WHATSAPP",
+  "configBotaoPortalWeb": "OFFICIAL ARESTA CLIMB PORTAL",
+  "configRotuloContaOidc": "OIDC Account",
+  "configContaOidcNaoVinculada": "Not linked (local mode)",
+  "configRotuloFingerprintChave": "ECDSA P-256 Key"
 }

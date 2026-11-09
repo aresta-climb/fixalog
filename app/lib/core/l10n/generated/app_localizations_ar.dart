@@ -541,4 +541,67 @@ class AppLocalizationsAr extends AppLocalizations {
   String laudoRotuloDocumentoPdf(int paginas) {
     return 'مستند PDF ($paginas ص)';
   }
+
+  @override
+  String get feedbackTituloSheet => 'ما هو موضوع ملاحظتك؟';
+
+  @override
+  String get feedbackCategoriaProtocolo => 'البروتوكول';
+
+  @override
+  String get feedbackCategoriaAplicativo => 'التطبيق';
+
+  @override
+  String get feedbackHintDescricao => 'صف المشكلة أو السؤال أو الاقتراح...';
+
+  @override
+  String get feedbackAvisoOffline =>
+      'يُحفظ دون اتصال ويُرسل تلقائياً عند توفر الشبكة.';
+
+  @override
+  String get feedbackBotaoEnviar => 'إرسال الملاحظة';
+
+  @override
+  String get feedbackSucessoEnvio =>
+      'تم تسجيل الملاحظة! سيتم إرسالها فور توفر الاتصال.';
+
+  @override
+  String get configBotaoFeedback => 'الإبلاغ عن مشكلة أو اقتراح';
+
+  @override
+  String get configSecaoGovernancaTitulo => 'الحوكمة والشروط القانونية';
+
+  @override
+  String configTermosVersaoAceita(int versao) {
+    return 'الإصدار المقبول: v$versao';
+  }
+
+  @override
+  String configTermosDataAceite(String dataHora) {
+    return 'تاريخ الموافقة: $dataHora';
+  }
+
+  @override
+  String get configTermosPendente => 'الموافقة قيد الانتظار';
+
+  @override
+  String get configBotaoConsultarTermos => 'عرض الشروط وسياسة الخصوصية';
+
+  @override
+  String get configSecaoComunidadeTitulo => 'الدعم والملاحظات والمجتمع';
+
+  @override
+  String get configBotaoWhatsapp => 'مجتمع أريستا على واتساب';
+
+  @override
+  String get configBotaoPortalWeb => 'البوابة الرسمية لأريستا كلايمب';
+
+  @override
+  String get configRotuloContaOidc => 'حساب OIDC';
+
+  @override
+  String get configContaOidcNaoVinculada => 'غير مرتبط (الوضع المحلي)';
+
+  @override
+  String get configRotuloFingerprintChave => 'مفتاح ECDSA P-256';
 }

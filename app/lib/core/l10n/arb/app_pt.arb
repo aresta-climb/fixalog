@@ -248,5 +248,38 @@
         "type": "int"
       }
     }
-  }
+  },
+  "feedbackTituloSheet": "Sobre o que é o seu relato?",
+  "feedbackCategoriaProtocolo": "Protocolo",
+  "feedbackCategoriaAplicativo": "Aplicativo",
+  "feedbackHintDescricao": "Descreva o problema, dúvida ou sugestão...",
+  "feedbackAvisoOffline": "Salvo offline e enviado automaticamente quando houver sinal.",
+  "feedbackBotaoEnviar": "ENVIAR RELATO",
+  "feedbackSucessoEnvio": "Relato registrado! Será enviado assim que houver conexão.",
+  "configBotaoFeedback": "REPORTAR PROBLEMA OU SUGESTÃO",
+  "configSecaoGovernancaTitulo": "GOVERNANÇA E TERMOS LEGAIS",
+  "configTermosVersaoAceita": "Versão aceita: v{versao}",
+  "@configTermosVersaoAceita": {
+    "placeholders": {
+      "versao": {
+        "type": "int"
+      }
+    }
+  },
+  "configTermosDataAceite": "Consentimento em: {dataHora}",
+  "@configTermosDataAceite": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "configTermosPendente": "Aceite pendente",
+  "configBotaoConsultarTermos": "CONSULTAR TERMOS E PRIVACIDADE",
+  "configSecaoComunidadeTitulo": "SUPORTE, FEEDBACK E COMUNIDADE",
+  "configBotaoWhatsapp": "COMUNIDADE ARESTA NO WHATSAPP",
+  "configBotaoPortalWeb": "PORTAL OFICIAL ARESTA CLIMB",
+  "configRotuloContaOidc": "Conta OIDC",
+  "configContaOidcNaoVinculada": "Não vinculada (modo local)",
+  "configRotuloFingerprintChave": "Chave ECDSA P-256"
 }

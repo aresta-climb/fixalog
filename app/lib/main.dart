@@ -4,12 +4,14 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:feedback/feedback.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'firebase_options.dart';
+import 'features/feedback/views/construtor_feedback_usuario.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
@@ -138,8 +140,19 @@ class FixalogApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final localeAtivo = ref.watch(idiomaAtivoProvider);
 
-    return MaterialApp(
-      title: 'Fixalog',
+    return BetterFeedback(
+      feedbackBuilder: construtorFeedbackUsuario,
+      localeOverride: localeAtivo,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      theme: FeedbackThemeData(
+        background: const Color(0xFF060908),
+        feedbackSheetColor: const Color(0xFF121416),
+        activeFeedbackModeColor: const Color(0xFFFF6B00),
+        bottomSheetDescriptionStyle: const TextStyle(color: Colors.white),
+        dragHandleColor: Colors.white54,
+      ),
+      child: MaterialApp(
+        title: 'Fixalog',
       themeMode: ThemeMode.dark,
       locale: localeAtivo,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -202,6 +215,7 @@ class FixalogApp extends ConsumerWidget {
         ),
       ),
       home: _StartupRouter(),
+      ),
     );
   }
 }

@@ -518,4 +518,65 @@ class AppLocalizationsJa extends AppLocalizations {
   String laudoRotuloDocumentoPdf(int paginas) {
     return 'PDFドキュメント ($paginas ページ)';
   }
+
+  @override
+  String get feedbackTituloSheet => 'フィードバックの内容を選択してください';
+
+  @override
+  String get feedbackCategoriaProtocolo => 'プロトコル';
+
+  @override
+  String get feedbackCategoriaAplicativo => 'アプリ';
+
+  @override
+  String get feedbackHintDescricao => '問題点、質問、または提案を入力してください...';
+
+  @override
+  String get feedbackAvisoOffline => 'オフラインで保存され、電波回復時に自動送信されます。';
+
+  @override
+  String get feedbackBotaoEnviar => 'フィードバックを送信';
+
+  @override
+  String get feedbackSucessoEnvio => 'フィードバックを記録しました。接続時に送信されます。';
+
+  @override
+  String get configBotaoFeedback => '問題の報告・改善の提案';
+
+  @override
+  String get configSecaoGovernancaTitulo => 'ガバナンスと利用規約';
+
+  @override
+  String configTermosVersaoAceita(int versao) {
+    return '同意済みバージョン: v$versao';
+  }
+
+  @override
+  String configTermosDataAceite(String dataHora) {
+    return '同意日時: $dataHora';
+  }
+
+  @override
+  String get configTermosPendente => '未同意';
+
+  @override
+  String get configBotaoConsultarTermos => '利用規約とプライバシーポリシーを表示';
+
+  @override
+  String get configSecaoComunidadeTitulo => 'サポート・フィードバック・コミュニティ';
+
+  @override
+  String get configBotaoWhatsapp => 'WHATSAPP の ARESTA コミュニティ';
+
+  @override
+  String get configBotaoPortalWeb => 'ARESTA CLIMB 公式ポータル';
+
+  @override
+  String get configRotuloContaOidc => 'OIDC アカウント';
+
+  @override
+  String get configContaOidcNaoVinculada => '未連携 (ローカルモード)';
+
+  @override
+  String get configRotuloFingerprintChave => 'ECDSA P-256 鍵';
 }

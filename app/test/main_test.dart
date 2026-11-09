@@ -3,6 +3,7 @@
 
 import 'dart:ui';
 
+import 'package:feedback/feedback.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,7 @@ void main() {
 
       final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
       expect(materialApp.title, 'Fixalog');
+      expect(find.byType(BetterFeedback), findsOneWidget);
       expect(materialApp.themeMode, ThemeMode.dark);
       expect(materialApp.darkTheme?.colorScheme.primary, const Color(0xFFFF6B00));
       expect(

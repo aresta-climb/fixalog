@@ -142,6 +142,12 @@ void main() {
         expect(find.text('App-Sprache'), findsOneWidget);
         expect(find.text('NEU'), findsOneWidget);
         expect(find.text('VERLAUF'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const Key('botao_gerenciar_identidade_config')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
       },
     );
   });

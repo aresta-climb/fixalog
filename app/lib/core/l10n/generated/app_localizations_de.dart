@@ -549,4 +549,70 @@ class AppLocalizationsDe extends AppLocalizations {
   String laudoRotuloDocumentoPdf(int paginas) {
     return 'PDF-Dokument ($paginas S.)';
   }
+
+  @override
+  String get feedbackTituloSheet => 'Worum geht es in Ihrer Rückmeldung?';
+
+  @override
+  String get feedbackCategoriaProtocolo => 'Protokoll';
+
+  @override
+  String get feedbackCategoriaAplicativo => 'App';
+
+  @override
+  String get feedbackHintDescricao =>
+      'Beschreiben Sie das Problem, die Frage oder den Vorschlag...';
+
+  @override
+  String get feedbackAvisoOffline =>
+      'Offline gespeichert und automatisch gesendet, sobald Empfang besteht.';
+
+  @override
+  String get feedbackBotaoEnviar => 'RÜCKMELDUNG SENDEN';
+
+  @override
+  String get feedbackSucessoEnvio =>
+      'Rückmeldung gespeichert! Wird bei Verbindung automatisch gesendet.';
+
+  @override
+  String get configBotaoFeedback => 'PROBLEM ODER VORSCHLAG MELDEN';
+
+  @override
+  String get configSecaoGovernancaTitulo =>
+      'GOVERNANCE UND RECHTLICHE BEDINGUNGEN';
+
+  @override
+  String configTermosVersaoAceita(int versao) {
+    return 'Akzeptierte Version: v$versao';
+  }
+
+  @override
+  String configTermosDataAceite(String dataHora) {
+    return 'Zustimmung am: $dataHora';
+  }
+
+  @override
+  String get configTermosPendente => 'Zustimmung ausstehend';
+
+  @override
+  String get configBotaoConsultarTermos =>
+      'NUTZUNGSBEDINGUNGEN & DATENSCHUTZ ANSEHEN';
+
+  @override
+  String get configSecaoComunidadeTitulo => 'SUPPORT, FEEDBACK & COMMUNITY';
+
+  @override
+  String get configBotaoWhatsapp => 'ARESTA-COMMUNITY AUF WHATSAPP';
+
+  @override
+  String get configBotaoPortalWeb => 'OFFIZIELLES ARESTA CLIMB PORTAL';
+
+  @override
+  String get configRotuloContaOidc => 'OIDC-Konto';
+
+  @override
+  String get configContaOidcNaoVinculada => 'Nicht verknüpft (lokaler Modus)';
+
+  @override
+  String get configRotuloFingerprintChave => 'ECDSA P-256 Schlüssel';
 }

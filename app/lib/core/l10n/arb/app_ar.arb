@@ -248,5 +248,38 @@
         "type": "int"
       }
     }
-  }
+  },
+  "feedbackTituloSheet": "ما هو موضوع ملاحظتك؟",
+  "feedbackCategoriaProtocolo": "البروتوكول",
+  "feedbackCategoriaAplicativo": "التطبيق",
+  "feedbackHintDescricao": "صف المشكلة أو السؤال أو الاقتراح...",
+  "feedbackAvisoOffline": "يُحفظ دون اتصال ويُرسل تلقائياً عند توفر الشبكة.",
+  "feedbackBotaoEnviar": "إرسال الملاحظة",
+  "feedbackSucessoEnvio": "تم تسجيل الملاحظة! سيتم إرسالها فور توفر الاتصال.",
+  "configBotaoFeedback": "الإبلاغ عن مشكلة أو اقتراح",
+  "configSecaoGovernancaTitulo": "الحوكمة والشروط القانونية",
+  "configTermosVersaoAceita": "الإصدار المقبول: v{versao}",
+  "@configTermosVersaoAceita": {
+    "placeholders": {
+      "versao": {
+        "type": "int"
+      }
+    }
+  },
+  "configTermosDataAceite": "تاريخ الموافقة: {dataHora}",
+  "@configTermosDataAceite": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "configTermosPendente": "الموافقة قيد الانتظار",
+  "configBotaoConsultarTermos": "عرض الشروط وسياسة الخصوصية",
+  "configSecaoComunidadeTitulo": "الدعم والملاحظات والمجتمع",
+  "configBotaoWhatsapp": "مجتمع أريستا على واتساب",
+  "configBotaoPortalWeb": "البوابة الرسمية لأريستا كلايمب",
+  "configRotuloContaOidc": "حساب OIDC",
+  "configContaOidcNaoVinculada": "غير مرتبط (الوضع المحلي)",
+  "configRotuloFingerprintChave": "مفتاح ECDSA P-256"
 }

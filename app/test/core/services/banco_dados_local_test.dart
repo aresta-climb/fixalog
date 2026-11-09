@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/core/models/local/feedback_record.dart';
 import 'package:fixalog/core/models/local/identity_record.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
@@ -333,6 +334,148 @@ void main() {
       config.idiomaPreferido = 'de';
       await bancoMigrado.salvarConfiguracao(config);
       expect((await bancoMigrado.obterConfiguracao())?.idiomaPreferido, equals('de'));
+
+      // Verifica que a tabela fila_feedback também foi criada durante a migração
+      final fb = FeedbackRecord(
+        idFeedback: 'fb-migrado-1',
+        mensagem: 'Relato pós-migração',
+        dataCriacao: DateTime.utc(2026, 11, 9, 10, 0),
+      );
+      final idFb = await bancoMigrado.inserirFeedback(fb);
+      expect(idFb, greaterThan(0));
+      final pendentes = await bancoMigrado.listarFeedbacksPendentes();
+      expect(pendentes, hasLength(1));
+      expect(pendentes.single.idFeedback, equals('fb-migrado-1'));
+
+      await bancoMigrado.marcarFeedbackEnviado(idFb);
+      expect(await bancoMigrado.listarFeedbacksPendentes(), isEmpty);
     });
+
+    test(
+      'inserirFeedback, listarFeedbacksPendentes e marcarFeedbackEnviado gerenciam a fila offline em ordem cronológica',
+      () async {
+        final banco = await BancoDadosLocal.abrirEmMemoria();
+        addTearDown(() async => await banco.fechar());
+
+        final fb1 = FeedbackRecord(
+          idFeedback: 'fb-01',
+          mensagem: 'Primeiro relato offline',
+          categoria: 'protocolo',
+          caminhoImagem: '/tmp/fb-01.webp',
+          metadadosJson: '{"tela":"wizard"}',
+          dataCriacao: DateTime.utc(2026, 11, 9, 8, 0),
+        );
+        final fb2 = FeedbackRecord(
+          idFeedback: 'fb-02',
+          mensagem: 'Segundo relato offline',
+          categoria: 'aplicativo',
+          caminhoImagem: '/tmp/fb-02.webp',
+          metadadosJson: '{"tela":"home"}',
+          dataCriacao: DateTime.utc(2026, 11, 9, 9, 0),
+        );
+
+        final id1 = await banco.inserirFeedback(fb1);
+        final id2 = await banco.inserirFeedback(fb2);
+        expect(id1, greaterThan(0));
+        expect(id2, greaterThan(id1));
+
+        final pendentesAntes = await banco.listarFeedbacksPendentes();
+        expect(pendentesAntes.map((e) => e.idFeedback).toList(), [
+          'fb-01',
+          'fb-02',
+        ]);
+
+        await banco.marcarFeedbackEnviado(id1);
+
+        final pendentesDepois = await banco.listarFeedbacksPendentes();
+        expect(pendentesDepois, hasLength(1));
+        expect(pendentesDepois.single.idFeedback, equals('fb-02'));
+      },
+    );
+
+    test(
+      'sincronizarSessoesDoDisco reconcilia registros já existentes preenchendo epubPath quando relatorio.epub existe e rebaixando para EM_PROGRESSO quando o EPUB não existe',
+      () async {
+        sqfliteFfiInit();
+        final tempDir = await Directory.systemTemp.createTemp(
+          'banco_reconcilia_',
+        );
+        addTearDown(() async {
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        });
+
+        final banco = await BancoDadosLocal.abrirEmMemoria();
+        addTearDown(() async => await banco.fechar());
+
+        // Caso A: Registro GERADO no SQLite com epubPath vazio, mas sessoes/<id>/relatorio.epub existe em disco
+        final dirComEpub = Directory(
+          p.join(tempDir.path, 'sessoes', 'sess-com-epub'),
+        )..createSync(recursive: true);
+        final arquivoEpubExistente = File(
+          p.join(dirComEpub.path, 'relatorio.epub'),
+        )..writeAsStringSync('epub-content');
+        final arquivoYaml1 = File(p.join(dirComEpub.path, 'registro.yaml'))
+          ..writeAsStringSync('id_sessao: sess-com-epub\n');
+
+        await banco.salvarSubmissao(
+          SubmissionRecord()
+            ..idSessao = 'sess-com-epub'
+            ..idProtocolo = 'manutencao_ferragens'
+            ..nomeProtocolo = 'Manutenção'
+            ..tituloExibicao = 'Via Com EPUB no Disco'
+            ..epubPath = ''
+            ..protobufPath = arquivoYaml1.path
+            ..status = SubmissionStatus.gerado,
+        );
+
+        // Caso B: Registro GERADO no SQLite sem nenhum arquivo .epub em disco e com PDF órfão
+        final dirSemEpub = Directory(
+          p.join(tempDir.path, 'sessoes', 'sess-sem-epub'),
+        )..createSync(recursive: true);
+        final arquivoYaml2 = File(p.join(dirSemEpub.path, 'registro.yaml'))
+          ..writeAsStringSync('id_sessao: sess-sem-epub\n');
+        final arquivoPdfOrfao = File(
+          p.join(dirSemEpub.path, 'fixalog_sess-sem-epub.pdf'),
+        )..writeAsStringSync('%PDF-orfao');
+
+        await banco.salvarSubmissao(
+          SubmissionRecord()
+            ..idSessao = 'sess-sem-epub'
+            ..idProtocolo = 'manutencao_ferragens'
+            ..nomeProtocolo = 'Manutenção'
+            ..tituloExibicao = 'Via Sem EPUB no Disco'
+            ..epubPath = p.join(dirSemEpub.path, 'inexistente.epub')
+            ..pdfPath = arquivoPdfOrfao.path
+            ..protobufPath = arquivoYaml2.path
+            ..status = SubmissionStatus.gerado,
+        );
+
+        await banco.sincronizarSessoesDoDisco(tempDir);
+
+        final reconciliadoComEpub = await banco.obterSubmissaoPorIdSessao(
+          'sess-com-epub',
+        );
+        expect(reconciliadoComEpub, isNotNull);
+        expect(reconciliadoComEpub!.status, equals(SubmissionStatus.gerado));
+        expect(
+          reconciliadoComEpub.epubPath,
+          equals(arquivoEpubExistente.path),
+        );
+
+        final reconciliadoSemEpub = await banco.obterSubmissaoPorIdSessao(
+          'sess-sem-epub',
+        );
+        expect(reconciliadoSemEpub, isNotNull);
+        expect(
+          reconciliadoSemEpub!.status,
+          equals(SubmissionStatus.emProgresso),
+        );
+        expect(reconciliadoSemEpub.epubPath, isEmpty);
+        expect(reconciliadoSemEpub.pdfPath, isEmpty);
+        expect(arquivoPdfOrfao.existsSync(), isFalse);
+      },
+    );
   });
 }

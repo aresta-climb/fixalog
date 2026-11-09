@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yaml/yaml.dart';
 import '../models/local/app_config_record.dart';
+import '../models/local/feedback_record.dart';
 import '../models/local/identity_record.dart';
 import '../models/local/submission_record.dart';
 import '../models/proto/protos/registro.pb.dart';
@@ -30,6 +31,12 @@ class BancoDadosLocal {
 
   /// Nome da tabela de submissões (manutenções e materiais).
   static const String tabelaSubmissoes = 'submissoes';
+
+  /// Nome da tabela de fila offline de feedbacks in-app.
+  static const String tabelaFilaFeedback = 'fila_feedback';
+
+  /// Versão atual do esquema SQLite local.
+  static const int versaoSchema = 4;
 
   /// DDL de criação da tabela `configuracao_app`.
   static const String sqlCriarTabelaConfiguracaoApp = '''
@@ -68,6 +75,20 @@ class BancoDadosLocal {
       protobuf_path TEXT NOT NULL,
       enviado_nuvem INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL
+    )
+  ''';
+
+  /// DDL de criação da tabela `fila_feedback`.
+  static const String sqlCriarTabelaFilaFeedback = '''
+    CREATE TABLE IF NOT EXISTS fila_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id_feedback TEXT NOT NULL UNIQUE,
+      mensagem TEXT NOT NULL,
+      categoria TEXT NOT NULL DEFAULT 'aplicativo',
+      caminho_imagem TEXT NOT NULL DEFAULT '',
+      metadados_json TEXT NOT NULL DEFAULT '{}',
+      data_criacao TEXT NOT NULL,
+      enviado INTEGER NOT NULL DEFAULT 0
     )
   ''';
 
@@ -138,6 +159,22 @@ class BancoDadosLocal {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ''';
 
+  /// Statement parametrizado para inserir ou atualizar um item na `fila_feedback`.
+  static const String sqlInserirFeedback = '''
+    INSERT OR REPLACE INTO fila_feedback (
+      id, id_feedback, mensagem, categoria, caminho_imagem,
+      metadados_json, data_criacao, enviado
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  ''';
+
+  /// Query para listar feedbacks pendentes (`enviado = 0`) por ordem de criação crescente.
+  static const String sqlListarFeedbacksPendentes =
+      'SELECT * FROM fila_feedback WHERE enviado = 0 ORDER BY data_criacao ASC, id ASC';
+
+  /// Statement parametrizado para marcar um feedback como enviado (`enviado = 1`).
+  static const String sqlMarcarFeedbackEnviado =
+      'UPDATE fila_feedback SET enviado = 1 WHERE id = ?';
+
   final Database _db;
   final Map<int, AppConfigRecord> _configCache = {};
   final List<IdentityRecord> _identidadesCache = [];
@@ -162,7 +199,7 @@ class BancoDadosLocal {
     final db = await dbFactory.openDatabase(
       caminhoBanco,
       options: OpenDatabaseOptions(
-        version: 3,
+        version: versaoSchema,
         onCreate: _criarTabelas,
         onUpgrade: _atualizarEsquema,
         singleInstance: false,
@@ -181,7 +218,7 @@ class BancoDadosLocal {
     final db = await databaseFactoryFfiNoIsolate.openDatabase(
       inMemoryDatabasePath,
       options: OpenDatabaseOptions(
-        version: 3,
+        version: versaoSchema,
         onCreate: _criarTabelas,
         onUpgrade: _atualizarEsquema,
         singleInstance: false,
@@ -196,6 +233,7 @@ class BancoDadosLocal {
     await db.execute(sqlCriarTabelaConfiguracaoApp);
     await db.execute(sqlCriarTabelaIdentidade);
     await db.execute(sqlCriarTabelaSubmissoes);
+    await db.execute(sqlCriarTabelaFilaFeedback);
   }
 
   static Future<void> _atualizarEsquema(
@@ -216,6 +254,9 @@ class BancoDadosLocal {
         "UPDATE submissoes SET epub_path = protobuf_path WHERE protobuf_path LIKE '%.epub'",
       );
     }
+    if (oldVersion < 4) {
+      await db.execute(sqlCriarTabelaFilaFeedback);
+    }
   }
 
   Future<void> _carregarCachesIniciais() async {
@@ -234,7 +275,8 @@ class BancoDadosLocal {
     await listarSubmissoes();
   }
 
-  /// Remove arquivos residuais do Isar (`default.isar` e `default.isar.lock`)
+  /// Remove arquivos residuais do Isar (`default.isar` e `default.isar.lock`),
+  /// reconcilia registros existentes com a presença real do `.epub` em disco
   /// e reconstrói na tabela `submissoes` qualquer sessão presente em `<diretorioBase>/sessoes/`
   /// que ainda não esteja indexada no SQLite.
   Future<void> sincronizarSessoesDoDisco(Directory diretorioBase) async {
@@ -251,11 +293,18 @@ class BancoDadosLocal {
     final entidades = dirSessoes.listSync().whereType<Directory>().toList();
     for (final dirSessao in entidades) {
       final idSessao = p.basename(dirSessao.path);
-      if (_submissoesPorSessao.containsKey(idSessao)) continue;
-
       final arquivoYaml = File(p.join(dirSessao.path, 'registro.yaml'));
       final arquivoPb = File(p.join(dirSessao.path, 'registro.binarypb'));
       final arquivoEpub = File(p.join(dirSessao.path, 'relatorio.epub'));
+      final existente = _submissoesPorSessao[idSessao];
+      if (existente != null) {
+        await _reconciliarSubmissaoExistente(
+          existente,
+          arquivoEpubSessao: arquivoEpub,
+        );
+        continue;
+      }
+
       if (!arquivoYaml.existsSync() &&
           !arquivoPb.existsSync() &&
           !arquivoEpub.existsSync()) {
@@ -344,6 +393,40 @@ class BancoDadosLocal {
         ..status =
             possuiEpub ? SubmissionStatus.gerado : SubmissionStatus.emProgresso;
 
+      await salvarSubmissao(record);
+    }
+  }
+
+  Future<void> _reconciliarSubmissaoExistente(
+    SubmissionRecord record, {
+    required File arquivoEpubSessao,
+  }) async {
+    String? caminhoEpub;
+    if (record.epubPath.isNotEmpty && File(record.epubPath).existsSync()) {
+      caminhoEpub = record.epubPath;
+    } else if (arquivoEpubSessao.existsSync()) {
+      caminhoEpub = arquivoEpubSessao.path;
+    }
+
+    if (caminhoEpub != null) {
+      if (record.epubPath != caminhoEpub) {
+        record.epubPath = caminhoEpub;
+        await salvarSubmissao(record);
+      }
+      return;
+    }
+
+    if (record.isGerado) {
+      if (record.pdfPath.isNotEmpty) {
+        final arqPdf = File(record.pdfPath);
+        if (arqPdf.existsSync()) {
+          arqPdf.deleteSync();
+        }
+      }
+      record
+        ..status = SubmissionStatus.emProgresso
+        ..epubPath = ''
+        ..pdfPath = '';
       await salvarSubmissao(record);
     }
   }
@@ -558,6 +641,36 @@ class BancoDadosLocal {
   Stream<List<SubmissionRecord>> observarSubmissoes() async* {
     yield await listarSubmissoes();
     yield* _historicoController.stream;
+  }
+
+  // ── Fila Offline de Feedback (FeedbackRecord) ─────────────────────────────
+
+  /// Insere ou atualiza um [FeedbackRecord] na tabela `fila_feedback` do SQLite.
+  Future<int> inserirFeedback(FeedbackRecord record) async {
+    final mapa = record.toMap();
+    final idGerado = await _db.rawInsert(sqlInserirFeedback, [
+      mapa['id'],
+      mapa['id_feedback'],
+      mapa['mensagem'],
+      mapa['categoria'],
+      mapa['caminho_imagem'],
+      mapa['metadados_json'],
+      mapa['data_criacao'],
+      mapa['enviado'],
+    ]);
+    record.id = idGerado;
+    return idGerado;
+  }
+
+  /// Lista todos os feedbacks pendentes de envio (`enviado = 0`) por ordem cronológica.
+  Future<List<FeedbackRecord>> listarFeedbacksPendentes() async {
+    final linhas = await _db.rawQuery(sqlListarFeedbacksPendentes);
+    return linhas.map(FeedbackRecord.fromMap).toList();
+  }
+
+  /// Marca um feedback identificado pelo [id] primário como enviado (`enviado = 1`).
+  Future<void> marcarFeedbackEnviado(int id) async {
+    await _db.rawUpdate(sqlMarcarFeedbackEnviado, [id]);
   }
 
   /// Fecha o stream reativo e a instância do banco de dados SQLite.

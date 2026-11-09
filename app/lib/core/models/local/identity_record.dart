@@ -5,9 +5,9 @@
 class IdentityRecord {
   int id = 0;
 
-  late String nome;
-  late String clubeAssociacao;
-  late DateTime dataRegistro;
+  String nome = '';
+  String clubeAssociacao = '';
+  DateTime dataRegistro = DateTime.fromMillisecondsSinceEpoch(0);
 
   IdentityRecord();
 

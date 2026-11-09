@@ -248,5 +248,38 @@
         "type": "int"
       }
     }
-  }
+  },
+  "feedbackTituloSheet": "フィードバックの内容を選択してください",
+  "feedbackCategoriaProtocolo": "プロトコル",
+  "feedbackCategoriaAplicativo": "アプリ",
+  "feedbackHintDescricao": "問題点、質問、または提案を入力してください...",
+  "feedbackAvisoOffline": "オフラインで保存され、電波回復時に自動送信されます。",
+  "feedbackBotaoEnviar": "フィードバックを送信",
+  "feedbackSucessoEnvio": "フィードバックを記録しました。接続時に送信されます。",
+  "configBotaoFeedback": "問題の報告・改善の提案",
+  "configSecaoGovernancaTitulo": "ガバナンスと利用規約",
+  "configTermosVersaoAceita": "同意済みバージョン: v{versao}",
+  "@configTermosVersaoAceita": {
+    "placeholders": {
+      "versao": {
+        "type": "int"
+      }
+    }
+  },
+  "configTermosDataAceite": "同意日時: {dataHora}",
+  "@configTermosDataAceite": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "configTermosPendente": "未同意",
+  "configBotaoConsultarTermos": "利用規約とプライバシーポリシーを表示",
+  "configSecaoComunidadeTitulo": "サポート・フィードバック・コミュニティ",
+  "configBotaoWhatsapp": "WHATSAPP の ARESTA コミュニティ",
+  "configBotaoPortalWeb": "ARESTA CLIMB 公式ポータル",
+  "configRotuloContaOidc": "OIDC アカウント",
+  "configContaOidcNaoVinculada": "未連携 (ローカルモード)",
+  "configRotuloFingerprintChave": "ECDSA P-256 鍵"
 }

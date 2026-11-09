@@ -542,4 +542,68 @@ class AppLocalizationsPt extends AppLocalizations {
   String laudoRotuloDocumentoPdf(int paginas) {
     return 'Documento PDF ($paginas pág.)';
   }
+
+  @override
+  String get feedbackTituloSheet => 'Sobre o que é o seu relato?';
+
+  @override
+  String get feedbackCategoriaProtocolo => 'Protocolo';
+
+  @override
+  String get feedbackCategoriaAplicativo => 'Aplicativo';
+
+  @override
+  String get feedbackHintDescricao =>
+      'Descreva o problema, dúvida ou sugestão...';
+
+  @override
+  String get feedbackAvisoOffline =>
+      'Salvo offline e enviado automaticamente quando houver sinal.';
+
+  @override
+  String get feedbackBotaoEnviar => 'ENVIAR RELATO';
+
+  @override
+  String get feedbackSucessoEnvio =>
+      'Relato registrado! Será enviado assim que houver conexão.';
+
+  @override
+  String get configBotaoFeedback => 'REPORTAR PROBLEMA OU SUGESTÃO';
+
+  @override
+  String get configSecaoGovernancaTitulo => 'GOVERNANÇA E TERMOS LEGAIS';
+
+  @override
+  String configTermosVersaoAceita(int versao) {
+    return 'Versão aceita: v$versao';
+  }
+
+  @override
+  String configTermosDataAceite(String dataHora) {
+    return 'Consentimento em: $dataHora';
+  }
+
+  @override
+  String get configTermosPendente => 'Aceite pendente';
+
+  @override
+  String get configBotaoConsultarTermos => 'CONSULTAR TERMOS E PRIVACIDADE';
+
+  @override
+  String get configSecaoComunidadeTitulo => 'SUPORTE, FEEDBACK E COMUNIDADE';
+
+  @override
+  String get configBotaoWhatsapp => 'COMUNIDADE ARESTA NO WHATSAPP';
+
+  @override
+  String get configBotaoPortalWeb => 'PORTAL OFICIAL ARESTA CLIMB';
+
+  @override
+  String get configRotuloContaOidc => 'Conta OIDC';
+
+  @override
+  String get configContaOidcNaoVinculada => 'Não vinculada (modo local)';
+
+  @override
+  String get configRotuloFingerprintChave => 'Chave ECDSA P-256';
 }

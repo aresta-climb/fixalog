@@ -248,5 +248,38 @@
         "type": "int"
       }
     }
-  }
+  },
+  "feedbackTituloSheet": "Worum geht es in Ihrer Rückmeldung?",
+  "feedbackCategoriaProtocolo": "Protokoll",
+  "feedbackCategoriaAplicativo": "App",
+  "feedbackHintDescricao": "Beschreiben Sie das Problem, die Frage oder den Vorschlag...",
+  "feedbackAvisoOffline": "Offline gespeichert und automatisch gesendet, sobald Empfang besteht.",
+  "feedbackBotaoEnviar": "RÜCKMELDUNG SENDEN",
+  "feedbackSucessoEnvio": "Rückmeldung gespeichert! Wird bei Verbindung automatisch gesendet.",
+  "configBotaoFeedback": "PROBLEM ODER VORSCHLAG MELDEN",
+  "configSecaoGovernancaTitulo": "GOVERNANCE UND RECHTLICHE BEDINGUNGEN",
+  "configTermosVersaoAceita": "Akzeptierte Version: v{versao}",
+  "@configTermosVersaoAceita": {
+    "placeholders": {
+      "versao": {
+        "type": "int"
+      }
+    }
+  },
+  "configTermosDataAceite": "Zustimmung am: {dataHora}",
+  "@configTermosDataAceite": {
+    "placeholders": {
+      "dataHora": {
+        "type": "String"
+      }
+    }
+  },
+  "configTermosPendente": "Zustimmung ausstehend",
+  "configBotaoConsultarTermos": "NUTZUNGSBEDINGUNGEN & DATENSCHUTZ ANSEHEN",
+  "configSecaoComunidadeTitulo": "SUPPORT, FEEDBACK & COMMUNITY",
+  "configBotaoWhatsapp": "ARESTA-COMMUNITY AUF WHATSAPP",
+  "configBotaoPortalWeb": "OFFIZIELLES ARESTA CLIMB PORTAL",
+  "configRotuloContaOidc": "OIDC-Konto",
+  "configContaOidcNaoVinculada": "Nicht verknüpft (lokaler Modus)",
+  "configRotuloFingerprintChave": "ECDSA P-256 Schlüssel"
 }

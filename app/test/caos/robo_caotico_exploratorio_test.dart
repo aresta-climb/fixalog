@@ -19,9 +19,11 @@ const int kDuracaoCampanhaCaosSegundos = int.fromEnvironment(
 );
 
 /// Define se o Sentry deve permanecer liberado e receber as falhas e receitas geradas.
+///
+/// Habilitado por padrão (`true`) nas campanhas exploratórias usando o `kSentryDsn` já configurado no app.
 const bool kReportarSentryCaos = bool.fromEnvironment(
   'REPORTAR_SENTRY_CAOS',
-  defaultValue: false,
+  defaultValue: true,
 );
 
 /// Semente inicial opcional (`--dart-define=SEED_INICIAL_CAOS=...`).

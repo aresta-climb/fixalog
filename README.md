@@ -87,6 +87,23 @@ cd app
 flutter analyze
 ```
 
+### 🤖 Robô Caótico (Testes Exploratórios, Shrinking `ddmin` e Regressão)
+O Fixalog possui um motor de testes exploratórios determinísticos ([`app/test/caos/`](app/test/caos/README.md)) que exercita autonomamente o aplicativo completo (`FixalogApp`) com datasets `normal` e `toxico`, detectando crashes não tratados, erros de layout (`FlutterError`) e erros capturados em blocos `try/catch` (`RegistroLogger.logError`), reduzindo automaticamente os passos via *Delta Debugging* (`ddmin`), salvando receitas `.json` em `app/test/caos/caminhos_regressao/` e reportando em tempo real ao Sentry (com `kSentryDsn` e `REPORTAR_SENTRY_CAOS=true` já habilitados por padrão):
+
+```bash
+cd app
+
+# Rodar uma campanha exploratória no terminal (ex: 60 segundos, com Sentry ativo por padrão)
+flutter test test/caos/robo_caotico_exploratorio_test.dart --dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS=60
+
+# Assistir o Robô Caótico agindo ao vivo no emulador ou celular conectado (padrão: 60s)
+flutter test integration_test/robo_caotico_dispositivo_test.dart --dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS=60
+
+# Reexecutar todas as receitas permanentes de regressão (< 1s)
+flutter test test/caos/regressao_caminhos_test.dart
+```
+Consulte o guia completo em [`app/test/caos/README.md`](app/test/caos/README.md).
+
 ---
 
 ## 📂 Estrutura do Repositório

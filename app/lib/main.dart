@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'features/home/views/home_screen.dart';
 import 'features/identity/views/identity_setup_screen.dart';
 import 'features/identity/viewmodels/identity_form_view_model.dart';
@@ -12,6 +17,92 @@ import 'core/constantes/versao_legal.g.dart';
 import 'core/l10n/generated/app_localizations.dart';
 import 'core/l10n/resolvedor_idioma.dart';
 import 'core/services/banco_dados_local.dart';
+import 'core/services/classificador_dispositivo.dart';
+import 'core/services/registro_logger.dart';
+import 'core/services/servico_app_check.dart';
+import 'core/services/servico_configuracao_remota.dart';
+import 'core/services/servico_telemetria.dart';
+
+/// DSN do projeto `fixalog` no Sentry (pode ser sobrescrito via `--dart-define=SENTRY_DSN=...`).
+const String kSentryDsn = String.fromEnvironment('SENTRY_DSN');
+
+/// Inicializa de forma resiliente e não-bloqueante a gestão adaptativa de memória,
+/// os serviços do Firebase (Core, App Check, Telemetria e Configuração Remota),
+/// os tratadores globais de erro e o Sentry, executando [appRunner] ao final.
+Future<void> inicializarObservabilidade({
+  required FutureOr<void> Function() appRunner,
+  String sentryDsn = kSentryDsn,
+  Future<void> Function()? inicializadorFirebaseCore,
+  ServicoAppCheck? servicoAppCheck,
+  ServicoTelemetria? servicoTelemetria,
+  ServicoConfiguracaoRemota? servicoConfiguracaoRemota,
+  RegistroLogger? logger,
+  Future<void> Function(
+    void Function(SentryFlutterOptions) configuradorOpcoes,
+    FutureOr<void> Function() runner,
+  )? inicializadorSentry,
+}) async {
+  ClassificadorDispositivo.configurarGestaoMemoria();
+
+  final log = logger ?? RegistroLogger.instancia;
+  final appCheck = servicoAppCheck ?? ServicoAppCheck.instancia;
+  final telemetria = servicoTelemetria ?? ServicoTelemetria.instancia;
+  final configRemota =
+      servicoConfiguracaoRemota ?? ServicoConfiguracaoRemota.instancia;
+
+  try {
+    if (inicializadorFirebaseCore != null) {
+      await inicializadorFirebaseCore();
+    } else if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+  } catch (e) {
+    log.logAviso(
+      '🔥 [Inicializacao] Firebase Core indisponível no boot (operando 100% offline): $e',
+    );
+  }
+
+  await Future.wait([
+    appCheck.ativar(),
+    telemetria.inicializar(),
+  ]);
+
+  unawaited(configRemota.inicializar());
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    log.logCrash(
+      'Erro não tratado do Flutter Framework: ${details.exceptionAsString()}',
+      error: details.exception,
+      stackTrace: details.stack ?? StackTrace.current,
+    );
+  };
+
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    log.logCrash(
+      'Erro assíncrono não tratado na plataforma',
+      error: error,
+      stackTrace: stack,
+    );
+    return true;
+  };
+
+  void configurarOpcoesSentry(SentryFlutterOptions options) {
+    options.dsn = sentryDsn;
+    options.sendDefaultPii = false;
+    options.maxBreadcrumbs = 100;
+  }
+
+  if (sentryDsn.trim().isNotEmpty) {
+    final initSentry = inicializadorSentry ??
+        (configurador, runner) => SentryFlutter.init(
+              configurador,
+              appRunner: runner,
+            );
+    await initSentry(configurarOpcoesSentry, appRunner);
+  } else {
+    await appRunner();
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,13 +110,17 @@ void main() async {
   final dir = await getApplicationDocumentsDirectory();
   final banco = await BancoDadosLocal.abrirEmArquivo(dir.path);
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        bancoDadosLocalProvider.overrideWithValue(banco),
-      ],
-      child: const FixalogApp(),
-    ),
+  await inicializarObservabilidade(
+    appRunner: () {
+      runApp(
+        ProviderScope(
+          overrides: [
+            bancoDadosLocalProvider.overrideWithValue(banco),
+          ],
+          child: const FixalogApp(),
+        ),
+      );
+    },
   );
 }
 

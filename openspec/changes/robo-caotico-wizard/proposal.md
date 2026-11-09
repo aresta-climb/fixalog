@@ -1,38 +1,41 @@
-# Proposta: Motor de Testes do Robô Caótico para o Wizard de Catalogação
+# Proposta: Motor de Testes do Robô Caótico para o Wizard de Catalogação e Multi-Protocolos
 
 ## Why
 
-O fluxo de preenchimento de protocolos periciais de inspeção técnica (`WizardScreen`) no Fixalog é complexo e dinâmico, envolvendo árvores condicionais em YAML/Protobuf, listas aninhadas (`StepListaAcoes`), catálogo de materiais (`StepRefMateriais`), validações de campos obrigatórios, fotos, vídeos, documentos PDF e metadados de GPS. Testes unitários convencionais costumam seguir caminhos felizes (*happy paths*) previsíveis e deixam de detectar combinações caóticas de ações rápidas, rotações de tela e preenchimentos parciais que ocorrem com frequência no manuseio de smartphones em falésias.
+O fluxo de preenchimento de protocolos periciais de inspeção técnica (`WizardScreen` e `NewProtocolScreen`) no Fixalog evoluiu significativamente e tornou-se altamente dinâmico, envolvendo 5 protocolos YAML traduzidos em 7 idiomas (`bolt_maintenance`, `route_opening`, `visual_inspection`, `material_registration`, `incident_report`), árvores condicionais (`StepSelecaoRamo`), listas aninhadas repetíveis (`StepListaAcoes`), vínculo cruzado com o catálogo de materiais no SQLite (`StepRefMateriais`), anexos de fotos, vídeos com corte de 60s, documentos PDF, duplicação de relatórios a partir do histórico e auto-save reativo em YAML/Protobuf. Testes unitários convencionais seguem caminhos previsíveis e deixam de detectar combinações caóticas de toques rápidos, alternância de ramos condicionais, mudanças de idioma (incluindo RTL em árabe) e preenchimentos parciais que ocorrem no manuseio em falésias.
 
-Inspirado no motor de caos do `aresta_app`, a introdução do **Robô Caótico** (*Monkey / Fuzzing Testing*) autônomo sobre o `WizardScreen` permite exercitar o aplicativo com milhares de interações aleatórias guiadas por semente determinística (`seed`). O algoritmo de *Delta Debugging* (`ddmin`) reduz automaticamente qualquer falha encontrada à sua sequência mínima de passos, gravando uma receita JSON em `test/caos/caminhos_regressao/` que passa a ser executada em menos de 1 segundo nos testes diários e na esteira de CI, garantindo imunidade permanente a regressões.
+Inspirado no motor de caos do `aresta_app`, a introdução do **Robô Caótico** (*Monkey / Fuzzing Testing*) autônomo sobre o `WizardScreen` permite exercitar o aplicativo com milhares de interações aleatórias guiadas por semente determinística (`seed`), utilizando banco SQLite real em memória (`BancoDadosLocal.abrirEmMemoria()`) e Fakes determinísticos de hardware. O algoritmo de *Delta Debugging* (`ddmin`) reduz automaticamente qualquer falha encontrada à sua sequência mínima de passos, gravando uma receita JSON em `app/test/caos/caminhos_regressao/` que passa a ser executada em menos de 1 segundo nos testes diários e na esteira de CI, garantindo imunidade permanente a regressões.
 
 ## What Changes
 
-- **Motor de Testes Caóticos (`test/caos/motor_robo_caotico.dart`)**:
-  - Orquestrador sobre `WidgetTester` capaz de identificar botões, campos de texto, seletores de opções e áreas de scroll visíveis no `WizardScreen`.
-  - Sorteio determinístico de ações com controle de cadência de renderização (`pump` de 50 a 350 ms).
-- **Algoritmo de Delta Debugging (`test/caos/encolhedor_caminho_crash.dart`)**:
-  - Algoritmo de busca binária que recebe uma longa sequência de passos caóticos que resultou em crash e a encolhe para o menor conjunto reprodutível de interações.
-- **Modelos de Receita e Seletores Semânticos (`test/caos/receita_crash_robo.dart`)**:
-  - Serialização JSON com metadados da falha, semente original, passos mínimos e seletores resilientes por chave ou texto.
-- **Suíte de Regressão Permanente (`test/caos/regressao_caminhos_test.dart`)**:
-  - Teste automatizado que varre a pasta `test/caos/caminhos_regressao/*.json` e reexecuta todas as receitas registradas no `flutter test` de CI em tempo inferior a 1 segundo.
-- **Integração com Relatório de Sentry (`receita_robo_caotico`)**:
-  - Em campanhas de teste automatizadas, caso o robô encontre uma exceção, o JSON da receita mínima é anexado ao contexto do evento do Sentry para diagnóstico instantâneo.
+- **Motor de Testes Caóticos (`app/test/caos/motor_robo_caotico.dart`)**:
+  - Orquestrador sobre `WidgetTester` capaz de descobrir botões, campos de texto, seletores de opções, ramos condicionais (`StepSelecaoRamo`), listas de ações (`StepListaAcoes`), seletores de materiais (`StepRefMateriais`), anexos de mídia/documento e áreas de scroll visíveis no `WizardScreen`.
+  - Inicialização isolada e 100% determinística com `BancoDadosLocal.abrirEmMemoria()` e as bibliotecas de Fakes de fronteira (`ServicoGaleriaDispositivoFake`, `VideoTranscoderServiceFake`, `CryptoServiceFake`, `SincronizadorNuvemServiceFake`, `AutenticacaoNuvemServiceFake`, `RegistroLoggerFake`).
+  - Sorteio determinístico de ações com controle de cadência de renderização (`pump` de 50 a 350 ms) e suporte aos 7 idiomas suportados (incluindo verificação de overflow visual em `ar` e `ja`).
+- **Gerador de Datasets e Cenários Tóxicos (`app/test/caos/fabrica_dataset_caos.dart`)**:
+  - Geração determinística de strings extremas (textos longos, caracteres especiais, emojis, scripts RTL/CJK, números limites) e pré-população opcional de materiais registrados no SQLite em memória.
+- **Algoritmo de Delta Debugging (`app/test/caos/encolhedor_caminho_crash.dart`)**:
+  - Algoritmo de busca binária (`ddmin`) que recebe uma longa sequência de passos caóticos que resultou em falha (exceção não tratada, erro de renderização/overflow ou falha de asserção) e a encolhe para o menor subconjunto reprodutível de interações.
+- **Modelos de Receita e Seletores Semânticos (`app/test/caos/receita_crash_robo.dart`)**:
+  - Serialização JSON com metadados da falha, semente original, protocolo/idioma alvo, passos mínimos e seletores resilientes por chave (`Key`), tipo de widget ou texto.
+- **Suíte de Regressão Permanente (`app/test/caos/regressao_caminhos_test.dart`)**:
+  - Teste automatizado que varre a pasta `app/test/caos/caminhos_regressao/*.json` e reexecuta todas as receitas registradas no `flutter test` de CI em tempo inferior a 1 segundo por receita.
+- **Integração com `RegistroLogger` e Sentry (`receita_robo_caotico`)**:
+  - Em campanhas de teste exploratórias (`robo_caotico_exploratorio_test.dart`), caso o robô encontre uma exceção, o JSON da receita mínima encolhida é anexado ao contexto do `RegistroLogger.instance.logCrash` para diagnóstico imediato.
 
 ## Capabilities
 
 ### New Capabilities
-- `testes-caoticos-exploratorios`: Motor de testes de estresse exploratório autônomo sobre o wizard de catalogação com redução delta debugging e geração de receitas de regressão.
+- `testes-caoticos-exploratorios`: Motor de testes de estresse exploratório autônomo sobre os fluxos multi-protocolo do wizard de catalogação com redução delta debugging (`ddmin`) e geração de receitas de regressão.
 
 ### Modified Capabilities
-*(Nenhuma especificação existente teve seus requisitos de comportamento do app alterados)*
+*(Nenhuma especificação canônica existente em `openspec/specs/` teve seus requisitos de comportamento do app alterados)*
 
 ## Impact
 
 - **Ambiente de Testes (`app/test/caos/`)**:
-  - Criação da pasta de testes caóticos com motor, encolhedor, gerador de datasets tóxicos e suíte de regressão.
+  - Criação da biblioteca de testes caóticos (`receita_crash_robo.dart`, `encolhedor_caminho_crash.dart`, `fabrica_dataset_caos.dart`, `motor_robo_caotico.dart`), seus respectivos testes unitários espelhados (`*_test.dart`) e as suítes `regressao_caminhos_test.dart` e `robo_caotico_exploratorio_test.dart`.
 - **Código de Produção**:
-  - Não altera comportamento público de produção, exceto por garantir que o `WizardScreen` e seus controladores tratem estados nulos e toques rápidos com resiliência.
+  - Não altera contratos públicos de produção; eventuais fragilidades descobertas no `WizardScreen` durante a validação inicial serão corrigidas com suas respectivas receitas salvas em `caminhos_regressao/`.
 - **CI/CD**:
-  - Execução contínua das receitas de regressão no GitHub Actions a cada PR.
+  - Execução contínua e automática das receitas de regressão (`regressao_caminhos_test.dart`) em toda execução do `flutter test`.

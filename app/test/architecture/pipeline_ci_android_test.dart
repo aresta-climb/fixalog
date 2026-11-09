@@ -86,5 +86,25 @@ void main() {
         reason: 'O pipeline não deve referenciar a pasta rust/target.',
       );
     });
+
+    test('deve compilar com ofuscação, separação de símbolos (--split-debug-info=build/symbols) e upload via sentry_dart_plugin', () {
+      expect(
+        workflowContent.contains('--obfuscate'),
+        isTrue,
+        reason: 'A compilação de release deve incluir a flag --obfuscate.',
+      );
+      expect(
+        workflowContent.contains('--split-debug-info=build/symbols'),
+        isTrue,
+        reason:
+            'A compilação de release deve separar os símbolos de debug em build/symbols.',
+      );
+      expect(
+        workflowContent.contains('sentry_dart_plugin'),
+        isTrue,
+        reason:
+            'O workflow deve executar sentry_dart_plugin para upload de símbolos ao Sentry.',
+      );
+    });
   });
 }

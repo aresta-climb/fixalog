@@ -70,7 +70,14 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           STORE_FILE: upload-keystore.jks
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+
+      - name: Upload de Símbolos para o Sentry
+        if: env.SENTRY_AUTH_TOKEN != ''
+        working-directory: ./app
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: dart run sentry_dart_plugin
 
       - name: Upload para Google Play Console (Faixa Interna)
         uses: r0adkll/upload-google-play@v1.1.3

@@ -2,27 +2,27 @@
 
 ## Purpose
 
-Permite que os auditores e escaladores capturem telas com anotações gráficas e enviem relatos mesmo sem conexão à internet através de fila persistente local.
+Permite que os auditores e escaladores capturem telas com anotações gráficas e enviem relatos mesmo sem conexão à internet através de fila persistente local no `BancoDadosLocal` (SQLite).
 
 ## ADDED Requirements
 
 ### Requirement: Captura e Anotação Visual de Feedback
-O sistema DEVE (MUST) permitir ao usuário acionar a ferramenta de feedback sobre qualquer tela do aplicativo, desenhando anotações vetoriais sobre a captura de tela e anexando descrição textual.
+O sistema DEVE (MUST) permitir ao usuário acionar a ferramenta de feedback sobre a tela do aplicativo, desenhando anotações vetoriais sobre a captura de tela e anexando descrição textual no idioma ativo da interface.
 
 #### Scenario: Acionamento e anotação sobre a tela
-- **WHEN** o usuário seleciona a opção de enviar relato ou feedback
-- **THEN** o sistema congela a tela atual e exibe ferramentas de desenho e caixa de texto para o relato
+- **WHEN** o usuário seleciona a opção de enviar relato ou feedback (`BotaoFeedback`)
+- **THEN** o sistema congela a tela atual e exibe ferramentas de desenho e formulário textual para o relato
 
-### Requirement: Compressão e Enfileiramento Offline
-O sistema DEVE (MUST) comprimir a captura de tela resultante e armazenar o feedback em banco local SQLite (`FeedbackRecord`) com status pendente caso o dispositivo não possua conexão à internet ativa.
+### Requirement: Compressão e Enfileiramento Offline no SQLite
+O sistema DEVE (MUST) comprimir a captura de tela resultante e armazenar o feedback na tabela `fila_feedback` do `BancoDadosLocal` (`FeedbackRecord`) com status pendente antes de tentar o despacho pela rede, garantindo persistência mesmo se o dispositivo estiver sem conexão à internet.
 
 #### Scenario: Envio de relato em ambiente offline
-- **WHEN** o usuário confirma o envio do feedback sem sinal de rede
-- **THEN** o sistema salva o registro localmente no SQLite com status pendente e exibe confirmação de que o relato será transmitido assim que a conexão for restabelecida
+- **WHEN** o usuário confirma o envio do feedback sem sinal de rede na montanha
+- **THEN** o sistema salva o `FeedbackRecord` localmente na tabela `fila_feedback` do SQLite com status pendente, registra a tentativa como aviso transitório no `RegistroLogger` e exibe confirmação de que o relato será transmitido quando houver conexão
 
-### Requirement: Despacho em Segundo Plano Pós-Reconexão
-O sistema DEVE (MUST) verificar periodicamente ou ao detectar retorno de conectividade a existência de feedbacks pendentes na fila local, transmitindo-os ao endpoint do ecossistema e atualizando o status para enviado.
+### Requirement: Despacho em Segundo Plano Pós-Reconexão com App Check
+O sistema DEVE (MUST) verificar a existência de feedbacks pendentes na tabela `fila_feedback` do `BancoDadosLocal` e transmiti-los ao endpoint de nuvem com o cabeçalho `X-Firebase-AppCheck`, marcando o registro como enviado e removendo o arquivo temporário de imagem após confirmação HTTP 2xx.
 
-#### Scenario: Recuperação de sinal de rede
-- **WHEN** a conectividade à internet é restabelecida
-- **THEN** o serviço de fila transmite os relatos pendentes em segundo plano sem travar a interface do usuário
+#### Scenario: Recuperação de sinal de rede e despacho
+- **WHEN** o despacho da fila de feedback é acionado com conectividade ativa
+- **THEN** o `ServicoFilaFeedback` transmite os relatos pendentes via multipart HTTP POST autenticado, atualiza o status no SQLite para enviado e limpa o arquivo de captura de tela local

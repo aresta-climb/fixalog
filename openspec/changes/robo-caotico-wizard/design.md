@@ -2,35 +2,40 @@
 
 ## Context
 
-O assistente de catalogação pericial do FixLog (`WizardScreen`) gerencia estados complexos com validação contínua de formulários. O ecossistema Aresta possui um motor comprovado de testes caóticos com shrinking determinístico. Veja a motivação em `proposal.md`.
+O assistente de catalogação pericial do Fixalog (`WizardScreen`) gerencia estados complexos com validação contínua de formulários em 5 protocolos YAML e 7 idiomas, persistência reativa no `BancoDadosLocal` (SQLite), seleção de catálogo de materiais (`StepRefMateriais`), anexos multimídia e geração de pacotes EPUB 3 assinados. O ecossistema Aresta possui um motor comprovado de testes caóticos com *shrinking* determinístico (`ddmin`). Veja a motivação completa em `proposal.md`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Implementar um motor de macaco caótico (*Monkey Testing*) em Dart puro sobre a API do `WidgetTester`.
-- Garantir capacidade de encolhimento automático de passos via busca binária (*ddmin*).
+- Implementar um motor de macaco caótico (*Monkey Testing*) em Dart puro sobre a API do `WidgetTester`, exercitando os 5 protocolos YAML e os 7 idiomas suportados.
+- Utilizar exclusivamente instâncias reais do `BancoDadosLocal.abrirEmMemoria()` (SQLite `:memory:`) e os Fakes determinísticos de `app/test/fakes/` e `app/test/core/services/*_fake.dart` (Princípio V do `AGENTS.md`).
+- Garantir capacidade de encolhimento automático de passos via busca binária (*Delta Debugging* / `ddmin`).
 - Integrar com o pipeline de CI rodando todas as receitas de regressão existentes em tempo recorde (< 1s por receita).
-- Anexar a receita do robô caótico ao Sentry em caso de falhas durante campanhas noturnas.
+- Anexar a receita encolhida do robô caótico ao `RegistroLogger` (`receita_robo_caotico`) em caso de falhas durante campanhas exploratórias.
 
 **Non-Goals:**
-- Substituir testes unitários e de widget orientados a comportamento (o robô caótico complementa, não substitui).
-- Executar campanhas aleatórias longas em todo commit local (o teste diário roda apenas as receitas de regressão consolidadas).
+- Substituir testes unitários e de widget orientados a comportamento (o robô caótico complementa a suíte espelhada 1:1, descobrindo estados de borda imprevisíveis).
+- Executar campanhas aleatórias longas de minutos em todo commit local (o `flutter test` padrão roda instantaneamente as receitas de regressão consolidadas e os testes unitários do motor; campanhas longas são ativadas por `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS`).
 
 ## Decisions
 
-### 1. Foco Inicial no `WizardScreen` e `NewProtocolScreen` com Banco SQLite `In-Memory`
-- **Decisão**: Configurar o `motor_robo_caotico.dart` para inicializar a árvore de widgets a partir do formulário de protocolo técnico com banco SQLite em memória (`BancoDadosLocal.abrirEmMemoria()`) e os fakes de fronteira de hardware em `app/test/fakes/` (`ServicoGaleriaDispositivoFake`, etc.).
-- **Por que**: É a área de maior densidade lógica e com mais entradas do usuário, onde o retorno sobre o investimento de testes de fuzzing é mais alto, exercitando inclusive o auto-save reativo no SQLite `:memory:` sem I/O bloqueante.
+### 1. Ambiente Determinístico com `BancoDadosLocal.abrirEmMemoria()` e Fakes Reais
+- **Decisão**: Configurar o `MotorRoboCaotico` para inicializar a árvore de widgets com `ProviderScope` injetando `BancoDadosLocal.abrirEmMemoria()`, `ServicoGaleriaDispositivoFake`, `VideoTranscoderServiceFake`, `CryptoServiceFake`, `SincronizadorNuvemServiceFake`, `AutenticacaoNuvemServiceFake` e `RegistroLoggerFake`.
+- **Por que**: Permite que o robô clique livremente em botões de câmera, galeria, corte de vídeo, seleção de materiais (`StepRefMateriais`) e finalização de protocolo sem travar em diálogos nativos do sistema operacional e sem usar `mocktail`/`mockito`.
 
-### 2. Algoritmo Delta Debugging (`ddmin`)
-- **Decisão**: Implementar a classe `EncolhedorCaminhoCrash` que particiona a lista de passos em pedaços e remove subconjuntos até que nenhum passo adicional possa ser removido sem que o teste volte a passar.
-- **Por que**: Sequências caóticas de 100 passos são impossíveis de analisar visualmente por um desenvolvedor humano; a versão encolhida de 3 ou 4 passos isola a causa raiz imediatamente.
+### 2. Cobertura Multi-Protocolo e Multilíngue (7 Idiomas + Detox de Textos)
+- **Decisão**: A `FabricaDatasetCaos` sorteia (a partir da `seed`) tanto o protocolo YAML (`bolt_maintenance`, `route_opening`, `visual_inspection`, `material_registration`, `incident_report`) quanto o `Locale` (`pt`, `en`, `es`, `fr`, `de`, `ar`, `ja`) e popula campos de texto com entradas extremas (strings vazias, textos gigantes, emojis, caracteres RTL/CJK e caracteres especiais YAML/XML).
+- **Por que**: Garante que a combinação de layouts (como RTL em árabe ou textos longos em alemão) com árvores dinâmicas do `WizardScreen` nunca provoque `RenderFlex overflow` ou corrupção na serialização `registro.yaml` / EPUB 3.
 
-### 3. Execução Silenciosa por Padrão no CI Diário
-- **Decisão**: O arquivo `robo_caotico_exploratorio_test.dart` lê a variável `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS`. Se for 0 (padrão), o teste é ignorado instantaneamente. Já o `regressao_caminhos_test.dart` roda sempre.
-- **Por que**: Impede lentidão no desenvolvimento diário e permite rodar campanhas exploratórias longas (ex: 5 minutos) apenas em cron jobs noturnos ou antes de releases.
+### 3. Algoritmo Delta Debugging (`ddmin`) em `EncolhedorCaminhoCrash`
+- **Decisão**: Implementar a classe `EncolhedorCaminhoCrash` que particiona a lista de passos (`List<PassoRobo>`) em blocos e testa subconjuntos através de um callback assíncrono de reprodução até encontrar o ponto fixo 1-minimal onde a remoção de qualquer passo individual faz a falha desaparecer.
+- **Por que**: Sequências caóticas de 80 ou 100 passos são difíceis de diagnosticar manualmente; a receita reduzida para 3 a 5 passos isola a causa raiz imediatamente e executa em milissegundos no CI.
+
+### 4. Execução Rápida por Padrão no `flutter test` e Campanhas Sob Demanda
+- **Decisão**: O arquivo `robo_caotico_exploratorio_test.dart` lê `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS` (padrão `0`, executando apenas 1 rodada curta de fumaça determinística para manter cobertura e velocidade, ou `N` segundos em campanhas de fuzzing). Já o `regressao_caminhos_test.dart` reexecuta todas as receitas `.json` de `app/test/caos/caminhos_regressao/` em toda execução da suíte.
+- **Por que**: Preserva a rapidez da suíte de testes no desenvolvimento diário enquanto garante proteção contínua contra regressões.
 
 ## Risks / Trade-offs
 
-- [Testes de renderização lentos] → O robô utiliza passos curtos com `pump(Duration(milliseconds: 50))` em vez de aguardar animações longas a cada clique, reduzindo o tempo de execução.
-- [Dependência de texto mutável em botões] → O modelo `SeletorAlvoRobo` combina chaves semânticas (`Key`), tipo do widget e texto para evitar que pequenas mudanças de rótulo quebrem receitas gravadas.
+- [Testes de renderização lentos em animações] → O robô utiliza passos curtos com `tester.pump(Duration(milliseconds: 50))` em vez de `pumpAndSettle` infinito quando há indicadores de progresso indeterminados.
+- [Fragilidade de seletores em mudanças de tradução] → O modelo `SeletorAlvoRobo` prioriza chaves semânticas (`Key`) e tipo/índice do widget antes de recorrer ao rótulo textual.

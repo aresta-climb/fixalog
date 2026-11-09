@@ -26,3 +26,14 @@ A suíte de testes DEVE (MUST) carregar automaticamente todas as receitas de fal
 #### Scenario: Prevenção de regressão em build de CI
 - **WHEN** o comando `flutter test` é acionado
 - **THEN** todas as receitas previamente salvas em `caminhos_regressao` são reexecutadas contra o código atual, garantindo que nenhum bug anteriormente descoberto pelo robô volte a ocorrer
+
+### Requirement: Campanha Exploratória Controlada por Flag no Workflow de Release
+O workflow `.github/workflows/release_new_app_version.yml` DEVE (MUST) expor um input booleano `executar_robo_caotico` com valor padrão `true` no `workflow_dispatch`, executando sempre a suíte padrão (`flutter test`) em um step dedicado e condicionando o step da campanha exploratória de 5 minutos (`robo_caotico_exploratorio_test.dart` com `DURACAO_CAMPANHA_CAOS_SEGUNDOS=300`) ao valor de `inputs.executar_robo_caotico`.
+
+#### Scenario: Execução padrão no lançamento de versão
+- **WHEN** o workflow `release_new_app_version.yml` é disparado mantendo `executar_robo_caotico: true`
+- **THEN** o job `prepare_release` executa o step de testes unitários/regressão e, em seguida, executa o step de 5 minutos do Robô Caótico antes de criar a tag da versão
+
+#### Scenario: Pulo opcional da campanha de 5 minutos em release emergencial
+- **WHEN** o workflow `release_new_app_version.yml` é disparado com `executar_robo_caotico: false`
+- **THEN** o job `prepare_release` executa normalmente `flutter analyze` e `flutter test` (incluindo `regressao_caminhos_test.dart`), mas pula o step da campanha exploratória de 5 minutos do Robô Caótico

@@ -31,9 +31,9 @@ O assistente de catalogação pericial do Fixalog (`WizardScreen`) gerencia esta
 - **Decisão**: Implementar a classe `EncolhedorCaminhoCrash` que particiona a lista de passos (`List<PassoRobo>`) em blocos e testa subconjuntos através de um callback assíncrono de reprodução até encontrar o ponto fixo 1-minimal onde a remoção de qualquer passo individual faz a falha desaparecer.
 - **Por que**: Sequências caóticas de 80 ou 100 passos são difíceis de diagnosticar manualmente; a receita reduzida para 3 a 5 passos isola a causa raiz imediatamente e executa em milissegundos no CI.
 
-### 4. Execução Rápida por Padrão no `flutter test` e Campanhas Sob Demanda
-- **Decisão**: O arquivo `robo_caotico_exploratorio_test.dart` lê `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS` (padrão `0`, executando apenas 1 rodada curta de fumaça determinística para manter cobertura e velocidade, ou `N` segundos em campanhas de fuzzing). Já o `regressao_caminhos_test.dart` reexecuta todas as receitas `.json` de `app/test/caos/caminhos_regressao/` em toda execução da suíte.
-- **Por que**: Preserva a rapidez da suíte de testes no desenvolvimento diário enquanto garante proteção contínua contra regressões.
+### 4. Execução Rápida por Padrão no `flutter test` e Campanhas Sob Demanda no CI
+- **Decisão**: O arquivo `robo_caotico_exploratorio_test.dart` lê `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS` (padrão `0`, fazendo skip automático no `flutter test` do dia a dia, ou `N` segundos em campanhas de fuzzing). Já o `regressao_caminhos_test.dart` reexecuta todas as receitas `.json` de `app/test/caos/caminhos_regressao/` em toda execução da suíte. No workflow `.github/workflows/release_new_app_version.yml`, o `workflow_dispatch` expõe o input booleano `executar_robo_caotico` (`default: true`) e divide a validação em dois steps distintos: (1) `Executar Suíte de Testes (TDD & Regressão)` (`flutter test`, sempre executado) e (2) `Executar Campanha do Robô Caótico (5 min)` condicionado a `if: ${{ inputs.executar_robo_caotico }}` (invocando `flutter test test/caos/robo_caotico_exploratorio_test.dart --dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS=300 --dart-define=REPORTAR_SENTRY_CAOS=true --timeout=10m`), com upload de artefatos JSON caso falhe.
+- **Por que**: Preserva a rapidez da suíte de testes no desenvolvimento diário, garante proteção contínua contra regressões e permite pular explicitamente apenas a campanha exploratória de 5 minutos em releases emergenciais sem abrir mão dos testes unitários e de regressão.
 
 ## Risks / Trade-offs
 

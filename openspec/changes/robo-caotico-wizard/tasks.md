@@ -21,7 +21,8 @@
 - [ ] 4.1 Criar a pasta `app/test/caos/caminhos_regressao/` com uma receita canônica de validação inicial e implementar `app/test/caos/regressao_caminhos_test.dart` para carregar e reexecutar automaticamente todas as receitas `.json`
 - [ ] 4.2 Implementar a suíte exploratória `app/test/caos/robo_caotico_exploratorio_test.dart` com suporte a `--dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS`, encolhimento automático via `EncolhedorCaminhoCrash`, gravação da receita mínima em `caminhos_regressao/` e envio do contexto `receita_robo_caotico` ao `RegistroLogger`
 
-## 5. Auditoria de Qualidade e Conformidade Arquitetural
+## 5. Integração no Workflow de Release e Auditoria de Qualidade
 
-- [ ] 5.1 Executar a suíte de testes do módulo caótico (`flutter test test/caos/`) e os testes arquiteturais (`flutter test test/architecture/`) validando espelhamento 1:1 e cabeçalhos SPDX (`license_headers_test.dart`)
-- [ ] 5.2 Executar análise estática de código (`flutter analyze`) garantindo zero warnings
+- [ ] 5.1 Atualizar `.github/workflows/release_new_app_version.yml` adicionando o input `executar_robo_caotico` (`type: boolean`, `default: true`, `required: true`) e os steps separados de `flutter analyze`, `Executar Suíte de Testes (TDD & Regressão)` (`flutter test`), `Executar Campanha do Robô Caótico (5 min)` (`if: ${{ inputs.executar_robo_caotico }}`) e upload de artefatos de receitas (`app/test/caos/caminhos_regressao/*.json`) em caso de falha, com teste arquitetural correspondente em `app/test/architecture/`
+- [ ] 5.2 Executar a suíte de testes do módulo caótico (`flutter test test/caos/`) e os testes arquiteturais (`flutter test test/architecture/`) validando espelhamento 1:1 e cabeçalhos SPDX (`license_headers_test.dart`)
+- [ ] 5.3 Executar análise estática de código (`flutter analyze`) garantindo zero warnings

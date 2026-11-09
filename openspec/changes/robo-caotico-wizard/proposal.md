@@ -22,6 +22,9 @@ Inspirado no motor de caos do `aresta_app`, a introdução do **Robô Caótico**
   - Teste automatizado que varre a pasta `app/test/caos/caminhos_regressao/*.json` e reexecuta todas as receitas registradas no `flutter test` de CI em tempo inferior a 1 segundo por receita.
 - **Integração com `RegistroLogger` e Sentry (`receita_robo_caotico`)**:
   - Em campanhas de teste exploratórias (`robo_caotico_exploratorio_test.dart`), caso o robô encontre uma exceção, o JSON da receita mínima encolhida é anexado ao contexto do `RegistroLogger.instance.logCrash` para diagnóstico imediato.
+- **Integração no Workflow de Release (`.github/workflows/release_new_app_version.yml`)**:
+  - Adição do input booleano opcional `executar_robo_caotico` (`default: true`, `required: true`) no `workflow_dispatch`.
+  - Separação explícita no job `prepare_release` entre a etapa sempre obrigatória (`flutter analyze` e `flutter test` para TDD + receitas de regressão) e a etapa `Executar Campanha do Robô Caótico (5 min)` condicionada a `if: ${{ inputs.executar_robo_caotico }}` (executando `flutter test test/caos/robo_caotico_exploratorio_test.dart --dart-define=DURACAO_CAMPANHA_CAOS_SEGUNDOS=300 --dart-define=REPORTAR_SENTRY_CAOS=true --timeout=10m`), seguida do upload de artefatos de receitas em caso de falha.
 
 ## Capabilities
 
@@ -39,3 +42,4 @@ Inspirado no motor de caos do `aresta_app`, a introdução do **Robô Caótico**
   - Não altera contratos públicos de produção; eventuais fragilidades descobertas no `WizardScreen` durante a validação inicial serão corrigidas com suas respectivas receitas salvas em `caminhos_regressao/`.
 - **CI/CD**:
   - Execução contínua e automática das receitas de regressão (`regressao_caminhos_test.dart`) em toda execução do `flutter test`.
+  - Atualização do `.github/workflows/release_new_app_version.yml` para validar `flutter analyze`, `flutter test` e rodar a campanha de 5 minutos do Robô Caótico controlada pela flag `executar_robo_caotico` (`default: true`).

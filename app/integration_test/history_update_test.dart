@@ -8,8 +8,7 @@ import 'package:fixalog/core/models/local/identity_record.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/local/app_config_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
-import 'package:fixalog/core/services/pdf_viewer_service.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -36,24 +35,11 @@ void main() {
         ..dataRegistro = DateTime.now(),
     );
 
-    // Variável para registrar se o PDF foi aberto
-    bool pdfAberto = false;
-    String? caminhoPdfAberto;
-
-    final mockPdfViewerService = PdfViewerService(
-      openProxy: (path) async {
-        pdfAberto = true;
-        caminhoPdfAberto = path;
-        return OpenResult(type: ResultType.done, message: 'Mock aberto');
-      },
-    );
-
     // 2. Inicia o app
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           bancoDadosLocalProvider.overrideWithValue(banco),
-          pdfViewerServiceProvider.overrideWithValue(mockPdfViewerService),
         ],
         child: const FixalogApp(),
       ),
@@ -72,6 +58,8 @@ void main() {
     // 3. Simula a geração de um relatório persistindo no SQLite diretamente
     final fakePdf = File('${testDir.path}/pdf.pdf');
     await fakePdf.writeAsString('fake pdf');
+    final fakeEpub = File('${testDir.path}/relatorio.epub');
+    await fakeEpub.writeAsString('fake epub');
 
     final novoRegistro = SubmissionRecord()
       ..idSessao = 'sessao-123'
@@ -79,8 +67,9 @@ void main() {
       ..nomeProtocolo = 'Fenda do Teste'
       ..dataInclusao = DateTime(2025, 1, 1)
       ..hashAssinatura = 'abc123hash'
+      ..epubPath = fakeEpub.path
       ..pdfPath = fakePdf.path
-      ..protobufPath = '${testDir.path}/laudo.epub';
+      ..protobufPath = '${testDir.path}/registro.yaml';
 
     await banco.salvarSubmissao(novoRegistro);
 
@@ -94,12 +83,12 @@ void main() {
     expect(find.text('1'), findsWidgets); // 1 Log Total
     expect(find.text('Fenda do Teste'), findsWidgets); // Via mais ativa
 
-    // 5. Clica no item de histórico e verifica se o PDF foi aberto
+    // 5. Clica no item de histórico e verifica se o VisualizadorRelatorioScreen foi aberto
     await tester.tap(find.text('Fenda do Teste').first);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
 
-    expect(pdfAberto, isTrue);
-    expect(caminhoPdfAberto, fakePdf.path);
+    expect(find.byType(VisualizadorRelatorioScreen), findsOneWidget);
 
     // Limpa
     await banco.fechar();

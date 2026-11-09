@@ -11,15 +11,13 @@ import 'package:fixalog/features/home/views/history_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
-import 'package:fixalog/core/services/pdf_viewer_service.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
-Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? customPdfViewer}) {
+Widget _buildScreen({List<SubmissionRecord>? customLogs}) {
   return ProviderScope(
     overrides: [
       historyProvider.overrideWith((ref) {
@@ -32,8 +30,6 @@ Widget _buildScreen({List<SubmissionRecord>? customLogs, PdfViewerService? custo
         });
         return Stream.value(logs);
       }),
-      if (customPdfViewer != null)
-        pdfViewerServiceProvider.overrideWithValue(customPdfViewer),
     ],
     child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
   );
@@ -98,42 +94,170 @@ void main() {
       expect(find.text('GERADO'), findsOneWidget);
     });
 
-    testWidgets('Toque no item GERADO abre o visualizador de PDF', (tester) async {
-      bool pdfAberto = false;
-      String? caminhoAberto;
+    testWidgets(
+      'Toque no item GERADO com epubPath vazio mas relatorio.epub na pasta da sessão abre VisualizadorRelatorioScreen e atualiza epubPath no banco',
+      (tester) async {
+        late Directory tempDir;
+        late BancoDadosLocal banco;
+        late File arquivoEpub;
+        late SubmissionRecord record;
 
-      final tempDir = Directory.systemTemp.createTempSync('hist_test_');
-      final fakePdf = File('${tempDir.path}/relatorio_final.pdf')..writeAsStringSync('fake pdf content');
+        await tester.runAsync(() async {
+          tempDir = await Directory.systemTemp.createTemp('hist_sessao_epub_');
+          banco = await BancoDadosLocal.abrirEmMemoria();
+          final sessionManager = SessionBundleManager(
+            baseDirectoryGetter: () async => tempDir,
+          );
+          arquivoEpub = File(
+            await sessionManager.getEpubFilePath(sessionId: 's_relatorio_epub'),
+          )..writeAsStringSync('epub valido');
+          final arquivoYaml = await sessionManager.salvarRegistroSessao(
+            sessionId: 's_relatorio_epub',
+            registro: Registro(idSessao: 's_relatorio_epub'),
+          );
+          final arquivoPdf = File(
+            await sessionManager.getReportFilePath(sessionId: 's_relatorio_epub'),
+          )..writeAsStringSync('pdf valido');
 
-      final mockPdfViewer = PdfViewerService(
-        fileExistsProxy: (_) async => true,
-        openProxy: (path) async {
-          pdfAberto = true;
-          caminhoAberto = path;
-          return OpenResult(type: ResultType.done, message: 'OK');
-        },
-      );
+          record = SubmissionRecord()
+            ..idSessao = 's_relatorio_epub'
+            ..nomeProtocolo = 'Via com relatorio.epub na pasta'
+            ..dataInclusao = DateTime(2026, 5, 10)
+            ..status = SubmissionStatus.gerado
+            ..epubPath = ''
+            ..protobufPath = arquivoYaml.path
+            ..pdfPath = arquivoPdf.path;
 
-      final logs = [
-        SubmissionRecord()
-          ..idSessao = 's_pdf'
-          ..nomeProtocolo = 'Via com PDF'
-          ..dataInclusao = DateTime(2025, 5, 10)
-          ..status = SubmissionStatus.gerado
-          ..pdfPath = fakePdf.path,
-      ];
+          await banco.salvarSubmissao(record);
+        });
 
-      await tester.pumpWidget(_buildScreen(customLogs: logs, customPdfViewer: mockPdfViewer));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              historyProvider.overrideWith((ref) => Stream.value([record])),
+            ],
+            child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Via com PDF'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Via com relatorio.epub na pasta'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
 
-      expect(pdfAberto, isTrue);
-      expect(caminhoAberto, equals(fakePdf.path));
+        expect(find.byType(VisualizadorRelatorioScreen), findsOneWidget);
+        final atualizado = banco
+            .listarSubmissoesSync()
+            .singleWhere((r) => r.idSessao == 's_relatorio_epub');
+        expect(atualizado.epubPath, equals(arquivoEpub.path));
 
-      tempDir.deleteSync(recursive: true);
-    });
+        await tester.runAsync(() async {
+          await banco.fechar();
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        });
+      },
+    );
+
+    testWidgets(
+      'Toque no item GERADO cujo EPUB não existe em disco rebaixa status para EM_PROGRESSO, remove PDF órfão e abre WizardScreen para edição',
+      (tester) async {
+        late Directory tempDir;
+        late BancoDadosLocal banco;
+        late SessionBundleManager sessionManager;
+        late File pdfOrfao;
+        late SubmissionRecord record;
+
+        const yamlTeste = '''
+protocolo:
+  id: manutencao_ferragens
+  nome: "Manutenção de Proteções Fixas"
+  versao: "1.0.0"
+  blocos:
+    - id: via
+      titulo: "Identificação da Via"
+      steps:
+        - id: s1
+          conteudos:
+            - id: route_name
+              campo_simples:
+                label: "Nome da via"
+                tipo: TEXT
+                obrigatorio: true
+''';
+
+        await tester.runAsync(() async {
+          tempDir = await Directory.systemTemp.createTemp('hist_sem_epub_');
+          banco = await BancoDadosLocal.abrirEmMemoria();
+          sessionManager = SessionBundleManager(
+            baseDirectoryGetter: () async => tempDir,
+          );
+
+          final regPb = Registro(
+            idSessao: 's_sem_epub',
+            idProtocolo: 'manutencao_ferragens',
+            versaoProtocolo: '1.0.0',
+            yamlConteudo: yamlTeste,
+            respostas: [
+              MapEntry('route_name', Resposta(texto: 'Via Sem EPUB')),
+            ],
+          );
+          final arqYaml = await sessionManager.salvarRegistroSessao(
+            sessionId: 's_sem_epub',
+            registro: regPb,
+          );
+          final dirSessao = await sessionManager.getSessionDirectory('s_sem_epub');
+          pdfOrfao = File('${dirSessao.path}/fixalog_s_sem_epub.pdf')
+            ..writeAsStringSync('pdf orfao');
+
+          record = SubmissionRecord()
+            ..idSessao = 's_sem_epub'
+            ..idProtocolo = 'manutencao_ferragens'
+            ..nomeProtocolo = 'Manutenção de Proteções Fixas'
+            ..tituloExibicao = 'Via Sem EPUB'
+            ..dataInclusao = DateTime(2026, 5, 10)
+            ..status = SubmissionStatus.gerado
+            ..epubPath = '${dirSessao.path}/relatorio.epub'
+            ..protobufPath = arqYaml.path
+            ..pdfPath = pdfOrfao.path;
+
+          await banco.salvarSubmissao(record);
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              sessionBundleManagerProvider.overrideWithValue(sessionManager),
+              historyProvider.overrideWith((ref) => Stream.value([record])),
+            ],
+            child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Via Sem EPUB'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(WizardScreen), findsOneWidget);
+        expect(pdfOrfao.existsSync(), isFalse);
+        final atualizado = banco
+            .listarSubmissoesSync()
+            .singleWhere((r) => r.idSessao == 's_sem_epub');
+        expect(atualizado.status, equals(SubmissionStatus.emProgresso));
+        expect(atualizado.epubPath, isEmpty);
+        expect(atualizado.pdfPath, isEmpty);
+
+        await tester.runAsync(() async {
+          await banco.fechar();
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        });
+      },
+    );
 
     testWidgets('Exibe apenas 10 itens inicialmente e pagina para 15', (tester) async {
       await tester.pumpWidget(_buildScreen());
@@ -490,7 +614,7 @@ protocolo:
     });
 
     testWidgets(
-      'Renderiza títulos, abas e tags localizados em Inglês, Árabe e Japonês sem overflow visual',
+      'Renderiza títulos, abas, menus e diálogo de exclusão localizados em Inglês, Árabe e Japonês sem overflow visual',
       (tester) async {
         final logs = [
           SubmissionRecord()
@@ -499,6 +623,11 @@ protocolo:
             ..dataInclusao = DateTime(2026, 5, 10)
             ..status = SubmissionStatus.gerado
             ..pdfPath = '/docs/a.pdf',
+          SubmissionRecord()
+            ..idSessao = 's2'
+            ..nomeProtocolo = 'Draft B'
+            ..dataInclusao = DateTime(2026, 5, 9)
+            ..status = SubmissionStatus.emProgresso,
         ];
 
         late WidgetRef refCapturado;
@@ -527,6 +656,22 @@ protocolo:
         expect(tester.takeException(), isNull);
         expect(find.text('AUDIT HISTORY'), findsOneWidget);
         expect(find.text('COMPLETED'), findsOneWidget);
+        expect(find.text('IN PROGRESS'), findsOneWidget);
+
+        // Abre menu do item GERADO em inglês e cancela exclusão
+        final botoesMenu = find.byIcon(Icons.more_vert);
+        await tester.tap(botoesMenu.at(0));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('DELETE'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(TextButton, 'CANCEL'));
+        await tester.pumpAndSettle();
+
+        // Abre menu do item EM PROGRESSO em inglês
+        await tester.tap(botoesMenu.at(1));
+        await tester.pumpAndSettle();
+        await tester.tapAt(const Offset(10, 10));
+        await tester.pumpAndSettle();
 
         await refCapturado
             .read(idiomaAtivoProvider.notifier)
@@ -541,6 +686,118 @@ protocolo:
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.text('監査履歴'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Exibe estado vazio em PT e EN ao alternar entre Manutenções e Materiais e estado de erro do provider',
+      (tester) async {
+        late WidgetRef refCapturado;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              localeSistemaProvider.overrideWithValue(const Locale('pt')),
+              historyProvider.overrideWith((ref) => Stream.value(const [])),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) {
+                    refCapturado = ref;
+                    return const HistoryScreen();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Nenhum relatório preenchido.'), findsOneWidget);
+        await tester.tap(find.text('MATERIAIS'));
+        await tester.pumpAndSettle();
+        expect(find.text('Nenhum material cadastrado.'), findsOneWidget);
+
+        await tester.tap(find.text('MANUTENÇÕES'));
+        await tester.pumpAndSettle();
+        expect(find.text('Nenhum relatório preenchido.'), findsOneWidget);
+
+        await refCapturado
+            .read(idiomaAtivoProvider.notifier)
+            .selecionarIdioma('en');
+        await tester.pumpAndSettle();
+        expect(find.text('No reports found'), findsOneWidget);
+        await tester.tap(find.text('MATERIALS (0)'));
+        await tester.pumpAndSettle();
+        expect(find.text('No materials registered'), findsOneWidget);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            key: UniqueKey(),
+            overrides: [
+              historyProvider.overrideWith(
+                (ref) => Stream.error(Exception('Falha de leitura')),
+              ),
+            ],
+            child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Falha de leitura'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Exibe SnackBar de erro ao tocar em item EM PROGRESSO ou tentar duplicar sessão ausente em disco',
+      (tester) async {
+        final tempDir = Directory.systemTemp.createTempSync('hist_err_');
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final logs = [
+          SubmissionRecord()
+            ..idSessao = 'sessao_inexistente'
+            ..nomeProtocolo = ''
+            ..tituloExibicao = ''
+            ..dataInclusao = DateTime(2026, 11, 8)
+            ..status = SubmissionStatus.emProgresso,
+        ];
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              sessionBundleManagerProvider.overrideWithValue(sessionManager),
+              historyProvider.overrideWith((ref) => Stream.value(logs)),
+            ],
+            child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Título fallback padrão 'Protocolo' quando tituloExibicao e nomeProtocolo são vazios
+        expect(find.text('Protocolo'), findsOneWidget);
+        await tester.tap(find.text('Protocolo'));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Erro ao carregar sessão:'), findsOneWidget);
+
+        ScaffoldMessenger.of(
+          tester.element(find.byType(HistoryScreen)),
+        ).clearSnackBars();
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Criar cópia'));
+        await tester.pump();
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Erro ao criar cópia:'), findsOneWidget);
+
+        tempDir.deleteSync(recursive: true);
       },
     );
 

@@ -5,11 +5,12 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
-import 'package:fixalog/core/services/pdf_viewer_service.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
@@ -27,19 +28,32 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   bool _mostrarMateriais = false;
 
   String? _localizarCaminhoEpub(SubmissionRecord record) {
-    if (record.epubPath.isNotEmpty) {
-      return record.epubPath;
+    final candidatosEmDisco = <String>[
+      if (record.epubPath.isNotEmpty) record.epubPath,
+      if (record.protobufPath.endsWith('.epub')) record.protobufPath,
+      if (record.protobufPath.isNotEmpty)
+        p.join(p.dirname(record.protobufPath), 'relatorio.epub'),
+      if (record.pdfPath.isNotEmpty) ...[
+        p.join(p.dirname(record.pdfPath), 'relatorio.epub'),
+        if (record.pdfPath.endsWith('.pdf'))
+          record.pdfPath.replaceAll(RegExp(r'\.pdf$'), '.epub'),
+      ],
+    ];
+    for (final candidato in candidatosEmDisco) {
+      if (File(candidato).existsSync()) {
+        return candidato;
+      }
     }
-    if (record.protobufPath.endsWith('.epub')) {
-      return record.protobufPath;
-    }
-    if (record.pdfPath.endsWith('.epub')) {
-      return record.pdfPath;
-    }
-    if (record.pdfPath.endsWith('.pdf')) {
-      final irmao = record.pdfPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
-      if (File(irmao).existsSync()) {
-        return irmao;
+    final sessaoExisteEmDisco =
+        (record.protobufPath.isNotEmpty &&
+            File(record.protobufPath).existsSync()) ||
+        (record.pdfPath.isNotEmpty && File(record.pdfPath).existsSync());
+    if (!sessaoExisteEmDisco) {
+      if (record.epubPath.isNotEmpty) {
+        return record.epubPath;
+      }
+      if (record.protobufPath.endsWith('.epub')) {
+        return record.protobufPath;
       }
     }
     return null;
@@ -58,11 +72,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return padrao;
   }
 
-  Future<void> _abrirRelatorio(SubmissionRecord record) async {
+  Future<void> _abrirRelatorio(
+    SubmissionRecord record,
+    Future<void> Function() loadAndEdit,
+  ) async {
     final caminhoEpub = _localizarCaminhoEpub(record);
-    final caminhoPdf = record.pdfPath.isNotEmpty ? record.pdfPath : null;
+    final banco = ref.read(bancoDadosLocalProvider);
 
     if (caminhoEpub != null) {
+      if (record.epubPath != caminhoEpub) {
+        record.epubPath = caminhoEpub;
+        if (banco != null) {
+          await banco.salvarSubmissao(record);
+        }
+      }
+      final caminhoPdf = record.pdfPath.isNotEmpty ? record.pdfPath : null;
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -78,17 +102,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       return;
     }
 
-    if (caminhoPdf != null) {
-      try {
-        await ref.read(pdfViewerServiceProvider).openPdf(caminhoPdf);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao abrir relatório: $e')),
-          );
-        }
+    if (record.pdfPath.isNotEmpty) {
+      final arquivoPdf = File(record.pdfPath);
+      if (arquivoPdf.existsSync()) {
+        arquivoPdf.deleteSync();
       }
     }
+    record
+      ..status = SubmissionStatus.emProgresso
+      ..epubPath = ''
+      ..pdfPath = '';
+    if (banco != null) {
+      await banco.salvarSubmissao(record);
+    }
+    await loadAndEdit();
   }
 
   @override
@@ -458,7 +485,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 l10n: l10n,
                                 onTap: () async {
                                   if (!isEmProgresso) {
-                                    await _abrirRelatorio(record);
+                                    await _abrirRelatorio(record, loadAndEdit);
                                   } else {
                                     await loadAndEdit();
                                   }
@@ -466,7 +493,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 onEdit: loadAndEdit,
                                 onDuplicate: duplicateAndEdit,
                                 onViewRelatorio: () async {
-                                  await _abrirRelatorio(record);
+                                  await _abrirRelatorio(record, loadAndEdit);
                                 },
                                 onDelete: () async {
                                   final confirm = await showDialog<bool>(

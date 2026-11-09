@@ -152,6 +152,12 @@ class SessionBundleManager {
     return p.join(dir.path, 'fixalog_$sessionId.pdf');
   }
 
+  /// Retorna o caminho canônico do pacote EPUB 3 pericial dentro do diretório da sessão (`relatorio.epub`).
+  Future<String> getEpubFilePath({required String sessionId}) async {
+    final dir = await getSessionDirectory(sessionId);
+    return p.join(dir.path, 'relatorio.epub');
+  }
+
   /// Copia todos os arquivos de mídia (originais `_original.*` e pré-processados
   /// `.webp`, `_thumb.jpg`, `.mp4`, `_poster.jpg`) do diretório de [idSessaoOrigem]
   /// para [idSessaoDestino], ignorando manifestos (`registro.yaml`, `registro.binarypb`, `registro.json`),

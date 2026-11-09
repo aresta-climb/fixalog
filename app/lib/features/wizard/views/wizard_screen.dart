@@ -15,7 +15,7 @@ import '../../../core/utils/protocol_icons.dart';
 import '../../../core/services/protocol_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:path_provider/path_provider.dart';
+import '../../../core/services/session_bundle_manager.dart';
 
 import 'package:path/path.dart' as p;
 import '../../media/services/seletor_documento_service.dart';
@@ -2765,9 +2765,9 @@ class SummaryConclusionCard extends ConsumerWidget {
                 }
 
                 // 3. Iniciar geração
-                final appDir = await getApplicationDocumentsDirectory();
-                final timestamp = DateTime.now().millisecondsSinceEpoch;
-                final outputPath = p.join(appDir.path, 'fixalog_report_$timestamp.pdf');
+                final outputPath = await ref
+                    .read(sessionBundleManagerProvider)
+                    .getEpubFilePath(sessionId: sessionId);
 
                 final protocol = ref.read(wizardControllerProvider).protocol;
 

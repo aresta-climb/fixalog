@@ -64,6 +64,7 @@ class BancoDadosLocal {
       data_ultima_selecao TEXT,
       hash_assinatura TEXT NOT NULL,
       pdf_path TEXT NOT NULL,
+      epub_path TEXT NOT NULL DEFAULT '',
       protobuf_path TEXT NOT NULL,
       enviado_nuvem INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL
@@ -102,6 +103,10 @@ class BancoDadosLocal {
   static const String sqlObterSubmissaoPorProtobufPath =
       'SELECT * FROM submissoes WHERE protobuf_path = ? LIMIT 1';
 
+  /// Query parametrizada para buscar submissão pelo `epub_path`.
+  static const String sqlObterSubmissaoPorEpubPath =
+      'SELECT * FROM submissoes WHERE epub_path = ? LIMIT 1';
+
   /// Statement parametrizado para remover submissão pelo ID primário.
   static const String sqlDeletarSubmissaoPorId =
       'DELETE FROM submissoes WHERE id = ?';
@@ -129,8 +134,8 @@ class BancoDadosLocal {
     INSERT OR REPLACE INTO submissoes (
       id, id_sessao, id_protocolo, nome_protocolo, titulo_exibicao,
       tipo_registro, data_inclusao, data_ultima_selecao, hash_assinatura,
-      pdf_path, protobuf_path, enviado_nuvem, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      pdf_path, epub_path, protobuf_path, enviado_nuvem, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ''';
 
   final Database _db;
@@ -157,7 +162,7 @@ class BancoDadosLocal {
     final db = await dbFactory.openDatabase(
       caminhoBanco,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3,
         onCreate: _criarTabelas,
         onUpgrade: _atualizarEsquema,
         singleInstance: false,
@@ -176,7 +181,7 @@ class BancoDadosLocal {
     final db = await databaseFactoryFfiNoIsolate.openDatabase(
       inMemoryDatabasePath,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3,
         onCreate: _criarTabelas,
         onUpgrade: _atualizarEsquema,
         singleInstance: false,
@@ -201,6 +206,14 @@ class BancoDadosLocal {
     if (oldVersion < 2) {
       await db.execute(
         'ALTER TABLE configuracao_app ADD COLUMN idioma_preferido TEXT',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        "ALTER TABLE submissoes ADD COLUMN epub_path TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "UPDATE submissoes SET epub_path = protobuf_path WHERE protobuf_path LIKE '%.epub'",
       );
     }
   }
@@ -325,9 +338,9 @@ class BancoDadosLocal {
             : SubmissionTipoRegistro.manutencao
         ..dataInclusao = dataInclusao
         ..pdfPath = arquivoPdf.existsSync() ? arquivoPdf.path : ''
-        ..protobufPath = possuiEpub
-            ? arquivoEpub.path
-            : (arquivoPb.existsSync() ? arquivoPb.path : arquivoYaml.path)
+        ..epubPath = possuiEpub ? arquivoEpub.path : ''
+        ..protobufPath =
+            arquivoPb.existsSync() ? arquivoPb.path : arquivoYaml.path
         ..status =
             possuiEpub ? SubmissionStatus.gerado : SubmissionStatus.emProgresso;
 
@@ -458,6 +471,20 @@ class BancoDadosLocal {
     return record;
   }
 
+  /// Consulta uma submissão pelo [epubPath] diretamente no SQLite.
+  Future<SubmissionRecord?> obterSubmissaoPorEpubPath(
+    String epubPath,
+  ) async {
+    final linhas = await _db.rawQuery(
+      sqlObterSubmissaoPorEpubPath,
+      [epubPath],
+    );
+    if (linhas.isEmpty) return null;
+    final record = SubmissionRecord.fromMap(linhas.first);
+    _submissoesPorSessao[record.idSessao] = record;
+    return record;
+  }
+
   List<Object?> _argumentosSubmissao(SubmissionRecord record) {
     final mapa = record.toMap();
     return [
@@ -471,6 +498,7 @@ class BancoDadosLocal {
       mapa['data_ultima_selecao'],
       mapa['hash_assinatura'],
       mapa['pdf_path'],
+      mapa['epub_path'],
       mapa['protobuf_path'],
       mapa['enviado_nuvem'],
       mapa['status'],

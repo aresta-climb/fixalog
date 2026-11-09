@@ -13,6 +13,8 @@ import '../l10n/resolvedor_idioma.dart';
 import '../models/proto/protos/registro.pb.dart';
 import 'construtor_arvore_relatorio.dart';
 import 'epub_document_builder.dart';
+import 'epub_packager_service.dart';
+import 'protocol_parser.dart';
 
 /// Representa os dados de um material vinculado a uma manutenção para inclusão sequencial ao final do PDF Resumido.
 class RelatorioMaterialAnexo {
@@ -21,6 +23,7 @@ class RelatorioMaterialAnexo {
   final String urlCanonica;
   final Map<String, String> mapeamentoMidias;
   final Map<String, String> posterFrames;
+  final Map<String, dynamic>? traducoesProtocolo;
 
   const RelatorioMaterialAnexo({
     required this.idSessao,
@@ -28,6 +31,7 @@ class RelatorioMaterialAnexo {
     required this.urlCanonica,
     this.mapeamentoMidias = const {},
     this.posterFrames = const {},
+    this.traducoesProtocolo,
   });
 }
 
@@ -53,8 +57,8 @@ class PdfPrintSummaryService {
   /// Carrega uma fonte TTF local da família Google Noto Sans a partir de `assets/fonts/[nomeArquivo]`.
   static pw.Font carregarFonteNotoSans(String nomeArquivo) {
     return _cacheFontesPdf.putIfAbsent(nomeArquivo, () {
-      final bytes = File('assets/fonts/$nomeArquivo').readAsBytesSync();
-      return pw.Font.ttf(bytes.buffer.asByteData());
+      final bytes = EpubPackagerService.obterBytesFonteNotoSans(nomeArquivo);
+      return pw.Font.ttf(ByteData.sublistView(bytes));
     });
   }
 
@@ -191,6 +195,7 @@ class PdfPrintSummaryService {
           qrCodesVideos: qrVideosMat,
           qrCodeCanonica: qrMatDataUri,
           codigoIdioma: codigoIdioma,
+          traducoesProtocolo: mat.traducoesProtocolo,
         );
         final corpoMat = _extrairCorpoHtml(xhtmlMat);
 
@@ -991,6 +996,15 @@ class PdfPrintSummaryService {
     String? codigoIdioma,
     Map<String, dynamic>? traducoesProtocolo,
   }) async {
+    final codigoNorm =
+        codigoIdioma?.split(RegExp(r'[-_]')).first.toLowerCase();
+    final idiomaTraducao =
+        (codigoNorm != null && codigoNorm.isNotEmpty) ? codigoNorm : 'pt';
+    await ProtocolParser.garantirTraducoesCarregadas(idiomaTraducao);
+    if (codigoNorm != null && codigoNorm.isNotEmpty) {
+      await EpubPackagerService().carregarFontesNotoSansParaIdioma(codigoNorm);
+    }
+
     final pdf = pw.Document(compress: false);
     final titulosMateriais = _resolverTitulosMateriais(materiaisAnexos);
     final secaoPrincipal = _construirSecaoRegistro(
@@ -1000,7 +1014,7 @@ class PdfPrintSummaryService {
       mapeamentoMidias: mapeamentoMidias,
       posterFrames: posterFrames,
       titulosMateriais: titulosMateriais,
-      codigoIdioma: codigoIdioma,
+      codigoIdioma: codigoIdioma ?? idiomaTraducao,
       traducoesProtocolo: traducoesProtocolo,
     );
 
@@ -1016,13 +1030,12 @@ class PdfPrintSummaryService {
           posterFrames: mat.posterFrames,
           titulosMateriais: const {},
           tituloAnexo: tituloMat,
-          codigoIdioma: codigoIdioma,
+          codigoIdioma: codigoIdioma ?? idiomaTraducao,
+          traducoesProtocolo: mat.traducoesProtocolo,
         ),
       );
     }
 
-    final codigoNorm =
-        codigoIdioma?.split(RegExp(r'[-_]')).first.toLowerCase();
     final tema =
         codigoNorm != null ? construirTemaParaIdioma(codigoNorm) : null;
     final direcao =

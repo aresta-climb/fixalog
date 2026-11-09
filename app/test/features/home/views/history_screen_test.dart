@@ -155,14 +155,15 @@ void main() {
       expect(carregarMaisFinder, findsNothing);
     });
 
-    testWidgets('Toque no item com relatório EPUB abre VisualizadorRelatorioScreen', (tester) async {
+    testWidgets('Toque no item com relatório EPUB (via epubPath mesmo com protobufPath apontando para registro.yaml e pdfPath preenchido) abre VisualizadorRelatorioScreen', (tester) async {
       final logs = [
         SubmissionRecord()
           ..idSessao = 's_epub'
           ..nomeProtocolo = 'Via com EPUB'
           ..dataInclusao = DateTime(2025, 5, 10)
           ..status = SubmissionStatus.gerado
-          ..protobufPath = '/path/to/laudo.epub'
+          ..epubPath = '/path/to/sessoes/s_epub/relatorio.epub'
+          ..protobufPath = '/path/to/sessoes/s_epub/registro.yaml'
           ..pdfPath = '/path/to/laudo.pdf',
       ];
 

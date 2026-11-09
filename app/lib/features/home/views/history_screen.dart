@@ -27,6 +27,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   bool _mostrarMateriais = false;
 
   String? _localizarCaminhoEpub(SubmissionRecord record) {
+    if (record.epubPath.isNotEmpty) {
+      return record.epubPath;
+    }
     if (record.protobufPath.endsWith('.epub')) {
       return record.protobufPath;
     }

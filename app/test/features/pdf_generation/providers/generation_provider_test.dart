@@ -280,7 +280,7 @@ void main() {
     expect(draftService.chamadas, equals(0));
   });
 
-  test('Deve gravar um SubmissionRecord no banco local SQLite extraindo tituloExibicao genericamente pelo protocolo YAML', () async {
+  test('Deve gravar um SubmissionRecord no banco local SQLite extraindo tituloExibicao genericamente pelo protocolo YAML, padronizando epubPath e invalidando PDF antigo', () async {
     final registro = Registro()
       ..idProtocolo = 'manutencao_ferragens'
       ..yamlConteudo = kYamlProtocoloManut
@@ -288,6 +288,23 @@ void main() {
     await sessionManager.saveManifest(
       sessionId: '123',
       binarypb: Uint8List.fromList(registro.writeToBuffer()),
+    );
+
+    // Simula um registro anterior com PDF antigo em cache que deve ser invalidado e excluído na re-geração
+    final pdfAntigo = File('${tempDir.path}/pdf_antigo_cache.pdf')
+      ..writeAsBytesSync([1, 2, 3]);
+    final pdfSessaoAntigo = File(
+      await sessionManager.getReportFilePath(sessionId: '123'),
+    )..writeAsBytesSync([4, 5, 6]);
+    await banco.salvarSubmissao(
+      SubmissionRecord()
+        ..idSessao = '123'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Teste Protocolo'
+        ..status = SubmissionStatus.gerado
+        ..pdfPath = pdfAntigo.path
+        ..protobufPath = '${tempDir.path}/sessoes/123/registro.yaml'
+        ..enviadoNuvem = true,
     );
 
     final outPath = '${tempDir.path}/output_final.pdf';
@@ -299,8 +316,13 @@ void main() {
     expect(savedRecord.tituloExibicao, 'Inspeção Estrutural Setor Norte');
     expect(savedRecord.pdfPath, '');
     expect(savedRecord.idSessao, '123');
-    expect(savedRecord.protobufPath, endsWith('.epub'));
+    expect(savedRecord.epubPath, endsWith('sessoes${Platform.pathSeparator}123${Platform.pathSeparator}relatorio.epub'));
+    expect(savedRecord.protobufPath, endsWith('registro.yaml'));
+    expect(savedRecord.enviadoNuvem, isFalse);
     expect(savedRecord.status, SubmissionStatus.gerado);
+    expect(notifier.state.pdfPath, isNull);
+    expect(pdfAntigo.existsSync(), isFalse);
+    expect(pdfSessaoAntigo.existsSync(), isFalse);
   });
 
   test('Deve processar fotos e vídeos referenciados no Registro empacotando poster em .jpg', () async {

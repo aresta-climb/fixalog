@@ -40,7 +40,10 @@ class SubmissionRecord {
   /// Caminho do arquivo PDF resumido salvo em disco.
   String pdfPath = '';
 
-  /// Caminho do arquivo Protobuf (binarypb) ou EPUB salvo em disco.
+  /// Caminho do arquivo EPUB 3 pericial salvo em disco (`sessoes/<id_sessao>/relatorio.epub`).
+  String epubPath = '';
+
+  /// Caminho do manifesto da sessão (`registro.binarypb` ou `registro.yaml`) salvo em disco.
   String protobufPath = '';
 
   bool enviadoNuvem = false;
@@ -78,6 +81,7 @@ class SubmissionRecord {
       'data_ultima_selecao': dataUltimaSelecao?.toIso8601String(),
       'hash_assinatura': hashAssinatura,
       'pdf_path': pdfPath,
+      'epub_path': epubPath,
       'protobuf_path': protobufPath,
       'enviado_nuvem': enviadoNuvem ? 1 : 0,
       'status': status,
@@ -101,6 +105,7 @@ class SubmissionRecord {
           : null
       ..hashAssinatura = (map['hash_assinatura'] as String?) ?? ''
       ..pdfPath = (map['pdf_path'] as String?) ?? ''
+      ..epubPath = (map['epub_path'] as String?) ?? ''
       ..protobufPath = (map['protobuf_path'] as String?) ?? ''
       ..enviadoNuvem = ((map['enviado_nuvem'] as int?) ?? 0) != 0
       ..status = (map['status'] as String?) ?? SubmissionStatus.emProgresso;

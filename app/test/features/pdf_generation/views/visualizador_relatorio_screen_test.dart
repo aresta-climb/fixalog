@@ -11,9 +11,12 @@ import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
+import 'package:fixalog/core/models/local/app_config_record.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
 
 const String kYamlManutencaoVis = '''
@@ -87,6 +90,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
   Map<String, String>? ultimoMapeamentoMidias;
   Map<String, String>? ultimoPosterFrames;
   List<RelatorioMaterialAnexo>? ultimosMateriaisAnexos;
+  String? ultimoCodigoIdioma;
   int chamadas = 0;
   final Duration? delay;
 
@@ -114,6 +118,7 @@ class FakePdfPrintSummaryService extends Fake implements PdfPrintSummaryService 
     ultimoMapeamentoMidias = mapeamentoMidias;
     ultimoPosterFrames = posterFrames;
     ultimosMateriaisAnexos = materiaisAnexos;
+    ultimoCodigoIdioma = codigoIdioma;
     final file = File(caminhoSaida);
     file.createSync(recursive: true);
     file.writeAsStringSync('pdf content');
@@ -1044,6 +1049,101 @@ void main() {
           fakePdfService.ultimosMateriaisAnexos?.first.registro.respostas['mat_nome']?.texto,
           equals('Material da Sessão'),
         );
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    },
+  );
+
+  testWidgets(
+    'Geração padrão sob demanda localiza submissão via obterSubmissaoPorEpubPath, repassa codigoIdioma ativo e persiste pdfPath no banco',
+    (tester) async {
+      final tempDir = Directory.systemTemp.createTempSync('vis_relatorio_epub_path_i18n_');
+      try {
+        final banco = await BancoDadosLocal.abrirEmMemoria();
+        addTearDown(banco.fechar);
+        await banco.salvarConfiguracao(
+          AppConfigRecord()..idiomaPreferido = 'en',
+        );
+
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final fakePdfService = FakePdfPrintSummaryService();
+        const sessionId = 'sessao-por-epub-path';
+        final caminhoEpub = await sessionManager.getEpubFilePath(
+          sessionId: sessionId,
+        );
+        final caminhoProto =
+            '${tempDir.path}/sessoes/$sessionId/registro.binarypb';
+
+        await banco.salvarSubmissao(
+          SubmissionRecord()
+            ..idSessao = sessionId
+            ..idProtocolo = 'manutencao_ferragens'
+            ..nomeProtocolo = 'Manutenção'
+            ..tituloExibicao = 'Via Inglesa'
+            ..status = SubmissionStatus.gerado
+            ..protobufPath = caminhoProto
+            ..epubPath = caminhoEpub
+            ..pdfPath = ''
+            ..dataInclusao = DateTime(2026, 5, 20),
+        );
+
+        final xhtmlFile = File(
+          '${tempDir.path}/relatorios_cache/$sessionId/OEBPS/relatorio.xhtml',
+        );
+        xhtmlFile.parent.createSync(recursive: true);
+        xhtmlFile.writeAsStringSync('<html><body>Manutenção</body></html>');
+
+        final registroManut = Registro()
+          ..idProtocolo = 'manutencao_ferragens'
+          ..yamlConteudo = kYamlManutencaoVis
+          ..respostas['via_nome'] = (Resposta()..texto = 'Via Inglesa');
+        await sessionManager.salvarRegistroSessao(
+          sessionId: sessionId,
+          registro: registroManut,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              localeSistemaProvider.overrideWithValue(const Locale('en')),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: ResolvedorIdioma.localesSuportados,
+              home: VisualizadorRelatorioScreen(
+                caminhoEpub: caminhoEpub,
+                caminhoPdf: null,
+                caminhoXhtml: xhtmlFile.path,
+                idSessao: null,
+                pdfSummaryService: fakePdfService,
+                sessionManager: sessionManager,
+                compartilharArquivosProxy: (paths, {text, subject}) async {},
+                webViewBuilder: (context, path) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('btn_compartilhar')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('opcao_compartilhar_pdf')));
+        await tester.pumpAndSettle();
+
+        expect(fakePdfService.chamadas, equals(1));
+        expect(fakePdfService.ultimoCodigoIdioma, equals('en'));
+
+        final salvo = await banco.obterSubmissaoPorIdSessao(sessionId);
+        expect(salvo, isNotNull);
+        expect(salvo!.pdfPath, isNotEmpty);
+        expect(salvo.pdfPath, endsWith('.pdf'));
       } finally {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);

@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import '../models/local/submission_record.dart';
 import 'autenticacao_nuvem_service.dart';
 import 'banco_dados_local.dart';
+import 'registro_logger.dart';
 
 /// Metadados resumidos de um laudo remoto retornado por `GET /api/v1/laudos`.
 class MetadadosLaudoRemoto {
@@ -166,14 +167,17 @@ class SincronizadorNuvemService {
   final BancoDadosLocal? _banco;
   final AutenticacaoNuvemService _autenticacaoService;
   final ClienteHttpFixalogNuvem _clienteHttp;
+  final RegistroLogger _logger;
 
   SincronizadorNuvemService({
     required BancoDadosLocal? banco,
     required AutenticacaoNuvemService autenticacaoService,
     ClienteHttpFixalogNuvem? clienteHttp,
+    RegistroLogger? logger,
   })  : _banco = banco,
         _autenticacaoService = autenticacaoService,
-        _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao();
+        _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao(),
+        _logger = logger ?? RegistroLogger.instancia;
 
   /// Constrói a URL canônica pública de compartilhamento web de uma sessão.
   static String obterUrlCompartilhamentoPublico(String idSessao) {
@@ -265,7 +269,9 @@ class SincronizadorNuvemService {
       return false;
     }
 
-    final caminhoEpub = record.protobufPath;
+    final caminhoEpub = record.epubPath.isNotEmpty
+        ? record.epubPath
+        : record.protobufPath;
     if (caminhoEpub.isEmpty) {
       return false;
     }
@@ -302,7 +308,12 @@ class SincronizadorNuvemService {
         return true;
       }
       return false;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      _logger.logFalhaSyncOuDownload(
+        'Falha ao enviar pacote EPUB (${record.idSessao}) para a nuvem',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -375,7 +386,8 @@ class SincronizadorNuvemService {
           ..tituloExibicao = remoto.titulo
           ..tipoRegistro = remoto.categoria
           ..dataInclusao = remoto.atualizadoEm
-          ..protobufPath = arquivoEpub.path
+          ..epubPath = arquivoEpub.path
+          ..protobufPath = p.join(dirSessao.path, 'registro.binarypb')
           ..enviadoNuvem = true
           ..status = SubmissionStatus.gerado;
 
@@ -384,7 +396,12 @@ class SincronizadorNuvemService {
       }
 
       return restaurados;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      _logger.logFalhaSyncOuDownload(
+        'Falha ao restaurar relatórios da conta na nuvem',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return 0;
     }
   }

@@ -75,7 +75,8 @@ void main() {
         ..nomeProtocolo = 'Manutenção'
         ..tituloExibicao = 'Via Sul Atualizada'
         ..dataInclusao = DateTime(2026, 11, 1)
-        ..protobufPath = '/tmp/sess-1/relatorio.epub'
+        ..epubPath = '/tmp/sess-1/relatorio.epub'
+        ..protobufPath = '/tmp/sess-1/registro.binarypb'
         ..status = SubmissionStatus.gerado;
       await banco.salvarSubmissao(s1Atualizado);
 
@@ -84,7 +85,16 @@ void main() {
         equals('Via Sul Atualizada'),
       );
       expect(
-        (await banco.obterSubmissaoPorProtobufPath('/tmp/sess-1/relatorio.epub'))
+        (await banco.obterSubmissaoPorEpubPath('/tmp/sess-1/relatorio.epub'))
+            ?.idSessao,
+        equals('sess-1'),
+      );
+      expect(
+        await banco.obterSubmissaoPorEpubPath('/inexistente'),
+        isNull,
+      );
+      expect(
+        (await banco.obterSubmissaoPorProtobufPath('/tmp/sess-1/registro.binarypb'))
             ?.idSessao,
         equals('sess-1'),
       );
@@ -218,6 +228,8 @@ void main() {
       expect(sub2, isNotNull);
       expect(sub2!.status, equals(SubmissionStatus.gerado));
       expect(sub2.isMaterial, isTrue);
+      expect(sub2.epubPath, endsWith('relatorio.epub'));
+      expect(sub2.protobufPath, endsWith('registro.yaml'));
       expect(sub2.pdfPath, endsWith('fixalog_sessao-material-epub.pdf'));
 
       await banco1.salvarConfiguracao(
@@ -258,10 +270,44 @@ void main() {
               )
             ''');
             await db.execute(BancoDadosLocal.sqlCriarTabelaIdentidade);
-            await db.execute(BancoDadosLocal.sqlCriarTabelaSubmissoes);
+            await db.execute('''
+              CREATE TABLE submissoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_sessao TEXT NOT NULL UNIQUE,
+                id_protocolo TEXT NOT NULL,
+                nome_protocolo TEXT NOT NULL,
+                titulo_exibicao TEXT NOT NULL,
+                tipo_registro TEXT NOT NULL,
+                data_inclusao TEXT NOT NULL,
+                data_ultima_selecao TEXT,
+                hash_assinatura TEXT NOT NULL,
+                pdf_path TEXT NOT NULL,
+                protobuf_path TEXT NOT NULL,
+                enviado_nuvem INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL
+              )
+            ''');
             await db.rawInsert(
               'INSERT INTO configuracao_app (id, versao_termos_aceita, data_hora_aceite_termos) VALUES (1, 7, ?)',
               ['2026-11-01T10:00:00.000'],
+            );
+            await db.rawInsert(
+              '''INSERT INTO submissoes (
+                id_sessao, id_protocolo, nome_protocolo, titulo_exibicao,
+                tipo_registro, data_inclusao, hash_assinatura, pdf_path,
+                protobuf_path, enviado_nuvem, status
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'GERADO')''',
+              [
+                'sess-legada',
+                'manutencao',
+                'Manutenção',
+                'Via Legada',
+                'MANUTENCAO',
+                '2026-11-01T10:00:00.000',
+                'h1',
+                '',
+                '/legado/relatorio.epub',
+              ],
             );
           },
           singleInstance: false,
@@ -279,6 +325,10 @@ void main() {
       expect(config, isNotNull);
       expect(config!.versaoTermosAceita, equals(7));
       expect(config.idiomaPreferido, isNull);
+
+      final subLegada = await bancoMigrado.obterSubmissaoPorIdSessao('sess-legada');
+      expect(subLegada, isNotNull);
+      expect(subLegada!.epubPath, equals('/legado/relatorio.epub'));
 
       config.idiomaPreferido = 'de';
       await bancoMigrado.salvarConfiguracao(config);

@@ -51,6 +51,7 @@ void main() {
         ..dataInclusao = DateTime.now()
         ..hashAssinatura = 'hash123'
         ..pdfPath = '/path/to/pdf.pdf'
+        ..epubPath = '/path/to/relatorio.epub'
         ..protobufPath = '/path/to/registro.binarypb'
         ..status = SubmissionStatus.gerado
         ..enviadoNuvem = true;
@@ -61,6 +62,8 @@ void main() {
 
       expect(retrieved, isNotNull);
       expect(retrieved!.status, equals(SubmissionStatus.gerado));
+      expect(retrieved.epubPath, equals('/path/to/relatorio.epub'));
+      expect(retrieved.protobufPath, equals('/path/to/registro.binarypb'));
       expect(retrieved.isGerado, isTrue);
       expect(retrieved.isEmProgresso, isFalse);
       expect(retrieved.enviadoNuvem, isTrue);

@@ -1739,12 +1739,12 @@ protocolo:
       expect(regCopia1.pdfPath, isEmpty);
 
       // 2a cópia (duplicando a partir da própria 1a cópia!) -> "Kit Parabolt Inox (Cópia 2)"
-      final idCopia2 = await notifier.duplicarSessao(idCopia1);
+      await notifier.duplicarSessao(idCopia1);
       final state2 = container.read(wizardControllerProvider);
       expect(state2.answers['mat_name']?.texto, equals('Kit Parabolt Inox (Cópia 2)'));
 
       // 3a cópia (duplicando a partir do original novamente) -> "Kit Parabolt Inox (Cópia 3)"
-      final idCopia3 = await notifier.duplicarSessao(idOriginal);
+      await notifier.duplicarSessao(idOriginal);
       final state3 = container.read(wizardControllerProvider);
       expect(state3.answers['mat_name']?.texto, equals('Kit Parabolt Inox (Cópia 3)'));
     });
@@ -1845,6 +1845,63 @@ protocolo:
         notifier.loadSession(idSessaoFutura),
         throwsA(isA<ExcecaoVersaoProtocoloNaoSuportada>()),
       );
+    });
+
+    test('flushAutoSave ignora sessão sem alterações pendentes e saveSession preserva epubPath e exclui PDF em cache ao voltar para EM_PROGRESSO', () async {
+      final sessionManager = SessionBundleManager(baseDirectoryGetter: () async => tempDir);
+      final container = ProviderContainer(
+        overrides: [
+          bancoDadosLocalProvider.overrideWithValue(banco),
+          sessionBundleManagerProvider.overrideWithValue(sessionManager),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(wizardControllerProvider.notifier);
+      notifier.loadProtocol(
+        makeProtocol([
+          makeStep('s1', [campoConteudo(id: 'route_name')]),
+        ]),
+        rawYaml: 'id: test_proto\nversao: 1\nnome: Test\nblocos: []\n',
+      );
+      notifier.answerConteudoString('route_name', 'Via Original');
+      final sid = await notifier.saveSession();
+
+      // Simula que o relatório foi gerado com epubPath e pdfPath em cache
+      final dirSessao = await sessionManager.getSessionDirectory(sid);
+      final pdfCache = File('${dirSessao.path}/fixalog_$sid.pdf')
+        ..writeAsBytesSync([1, 2, 3]);
+      final epubGerado = File('${dirSessao.path}/relatorio.epub')
+        ..writeAsBytesSync([4, 5, 6]);
+
+      final recGerado = (await banco.obterSubmissaoPorIdSessao(sid))!;
+      recGerado
+        ..status = SubmissionStatus.gerado
+        ..epubPath = epubGerado.path
+        ..pdfPath = pdfCache.path
+        ..protobufPath = epubGerado.path;
+      await banco.salvarSubmissao(recGerado);
+
+      // Marca como salvo (sem alterações pendentes) e chama flushAutoSave -> NÃO deve alterar o registro no banco
+      notifier.marcarComoSalvo();
+      await notifier.flushAutoSave();
+
+      final aposFlushSemAlteracao = (await banco.obterSubmissaoPorIdSessao(sid))!;
+      expect(aposFlushSemAlteracao.status, equals(SubmissionStatus.gerado));
+      expect(aposFlushSemAlteracao.pdfPath, equals(pdfCache.path));
+      expect(aposFlushSemAlteracao.protobufPath, equals(epubGerado.path));
+      expect(pdfCache.existsSync(), isTrue);
+
+      // Agora edita um campo -> possuiAlteracoesPendentes passa a true -> flushAutoSave salva como EM_PROGRESSO, preserva epubPath e exclui o PDF antigo
+      notifier.answerConteudoString('route_name', 'Via Editada');
+      await notifier.flushAutoSave();
+
+      final aposEdicao = (await banco.obterSubmissaoPorIdSessao(sid))!;
+      expect(aposEdicao.status, equals(SubmissionStatus.emProgresso));
+      expect(aposEdicao.epubPath, equals(epubGerado.path));
+      expect(aposEdicao.protobufPath, endsWith('registro.yaml'));
+      expect(aposEdicao.pdfPath, isEmpty);
+      expect(pdfCache.existsSync(), isFalse);
     });
   });
 }

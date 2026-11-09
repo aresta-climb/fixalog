@@ -177,7 +177,9 @@ class WizardStateController extends Notifier<WizardState> {
 
   Future<void> flushAutoSave() async {
     _autoSaveTimer?.cancel();
-    if (state.protocol != null && state.sessionId.isNotEmpty) {
+    if (state.protocol != null &&
+        state.sessionId.isNotEmpty &&
+        state.possuiAlteracoesPendentes) {
       try {
         await saveSession();
       } catch (_) {}
@@ -1536,6 +1538,15 @@ class WizardStateController extends Notifier<WizardState> {
             : protocol.nome;
       }
 
+      if (targetStatus == SubmissionStatus.emProgresso &&
+          existingRecord != null &&
+          existingRecord.pdfPath.isNotEmpty) {
+        final arquivoPdfAntigo = File(existingRecord.pdfPath);
+        if (arquivoPdfAntigo.existsSync()) {
+          arquivoPdfAntigo.deleteSync();
+        }
+      }
+
       record
         ..idSessao = sessionId
         ..idProtocolo = protocol.id
@@ -1546,6 +1557,7 @@ class WizardStateController extends Notifier<WizardState> {
         ..dataUltimaSelecao = existingRecord?.dataUltimaSelecao
         ..hashAssinatura = existingRecord?.hashAssinatura ?? ''
         ..pdfPath = (targetStatus == SubmissionStatus.emProgresso ? '' : (existingRecord?.pdfPath ?? ''))
+        ..epubPath = existingRecord?.epubPath ?? ''
         ..protobufPath = p.join(sessionDir.path, 'registro.yaml')
         ..status = targetStatus;
 

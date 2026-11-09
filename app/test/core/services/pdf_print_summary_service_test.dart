@@ -675,5 +675,54 @@ void main() {
         }
       }
     });
+
+    test('aplica traducoesProtocolo do RelatorioMaterialAnexo e traduz protocolos oficiais mesmo sem codigoIdioma explicito', () async {
+      final yamlManut = File('assets/protocols/manutencao.yaml').readAsStringSync();
+      final yamlMat = File('assets/protocols/cadastro_material.yaml').readAsStringSync();
+
+      final regManut = Registro(
+        idSessao: 'sessao-manut-default-pt',
+        idProtocolo: 'maintenance',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlManut,
+      )..respostas['route_name'] = Resposta(texto: 'Via Leste');
+
+      final regMat = Registro(
+        idSessao: 'mat-anexo-custom-trad',
+        idProtocolo: 'material_registration',
+        versaoProtocolo: '2',
+        yamlConteudo: yamlMat,
+      )..respostas['mat_name'] = Resposta(texto: 'Parabolt Custom');
+
+      final anexoComTraducao = RelatorioMaterialAnexo(
+        idSessao: 'mat-anexo-custom-trad',
+        registro: regMat,
+        urlCanonica: 'https://fixalog.app/v/mat-anexo-custom-trad',
+        traducoesProtocolo: {
+          'conteudos': {
+            'mat_name': {
+              'label': 'Rótulo Customizado do Anexo',
+            },
+          },
+        },
+      );
+
+      final html = service.gerarHtmlParaImpressao(
+        registro: regManut,
+        idSessao: 'sessao-manut-default-pt',
+        urlCanonica: 'https://fixalog.app/v/sessao-manut-default-pt',
+        materiaisAnexos: [anexoComTraducao],
+      );
+      expect(html, contains('Rótulo Customizado do Anexo'));
+
+      final pdfBytes = await service.gerarPdfResumidoBytes(
+        registro: regManut,
+        idSessao: 'sessao-manut-default-pt',
+        urlCanonica: 'https://fixalog.app/v/sessao-manut-default-pt',
+        materiaisAnexos: [anexoComTraducao],
+      );
+      final pdfStr = latin1.decode(pdfBytes, allowInvalid: true);
+      expect(pdfStr, contains('Customizado'));
+    });
   });
 }

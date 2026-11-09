@@ -9,12 +9,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
+import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/seletor_documento_service.dart';
 import 'package:fixalog/features/media/services/servico_galeria_dispositivo.dart';
 import 'package:fixalog/features/media/services/video_transcoder_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
+import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/wizard.pb.dart';
@@ -1675,6 +1680,120 @@ blocos:
         expect(
           container.read(wizardControllerProvider).answers['via_nome'],
           isNull,
+        );
+      },
+    );
+
+    testWidgets(
+      'SummaryConclusionCard dispara startGeneration usando getEpubFilePath(sessionId) em sessoes/<id>/relatorio.epub',
+      (tester) async {
+        const yamlCurto = '''
+id: "proto_curto"
+nome: "Protocolo Curto"
+versao: "1.0.0"
+blocos:
+  - id: "b1"
+    titulo: "Bloco 1"
+    steps:
+      - id: "s1"
+        conteudos:
+          - id: "via_nome"
+            campo_simples:
+              label: "Nome da Via"
+              tipo: "TEXT"
+              obrigatorio: false
+''';
+        SharedPreferences.setMockInitialValues({});
+        FlutterSecureStorage.setMockInitialValues({});
+        final tempDir = Directory.systemTemp.createTempSync('wizard_epub_path_test_');
+        addTearDown(() {
+          if (tempDir.existsSync()) {
+            tempDir.deleteSync(recursive: true);
+          }
+        });
+
+        final sessionManager = SessionBundleManager(
+          baseDirectoryGetter: () async => tempDir,
+        );
+        final recoveryService = GenerationRecoveryService(
+          tempDirGetter: () async => tempDir,
+        );
+        final banco = await BancoDadosLocal.abrirEmMemoria();
+        addTearDown(banco.fechar);
+
+        final container = ProviderContainer(
+          overrides: [
+            bancoDadosLocalProvider.overrideWithValue(banco),
+            sessionBundleManagerProvider.overrideWithValue(sessionManager),
+            generationRecoveryProvider.overrideWithValue(recoveryService),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        String? sessionIdRetornado;
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              home: Builder(
+                builder: (ctx) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () async {
+                      sessionIdRetornado = await Navigator.of(ctx).push<String>(
+                        MaterialPageRoute(
+                          builder: (_) => const WizardScreen(
+                            initialYaml: yamlCurto,
+                            retornarAoConcluir: true,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('ABRIR'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('ABRIR'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('CONCLUIR'));
+        await tester.pumpAndSettle();
+
+        final btnGerar = find.text('GERAR RELATÓRIO');
+        expect(btnGerar, findsOneWidget);
+        await tester.ensureVisible(btnGerar);
+        await tester.pumpAndSettle();
+
+        final buttonWidget = tester.widget<ButtonStyleButton>(
+          find.ancestor(
+            of: btnGerar,
+            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+          ),
+        );
+        await tester.runAsync(() async {
+          buttonWidget.onPressed?.call();
+          for (var i = 0;
+              i < 100 &&
+                  !container.read(generationProvider).isComplete &&
+                  container.read(generationProvider).errorMessage == null;
+              i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+          }
+        });
+        await tester.pumpAndSettle();
+
+        expect(container.read(generationProvider).errorMessage, isNull);
+        expect(sessionIdRetornado, isNotNull);
+        final esperado = await sessionManager.getEpubFilePath(
+          sessionId: sessionIdRetornado!,
+        );
+        expect(
+          container.read(generationProvider).outputPath,
+          equals(esperado),
         );
       },
     );

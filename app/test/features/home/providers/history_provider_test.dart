@@ -87,6 +87,7 @@ void main() {
 
     final relatorioPdf = File('${tempDir.path}/report.pdf')..writeAsStringSync('pdf bytes');
     final relatorioEpub = File('${tempDir.path}/report.epub')..writeAsStringSync('epub bytes');
+    final manifestoYaml = File('${tempDir.path}/registro.yaml')..writeAsStringSync('idSessao: sessao_99');
     await sessionManager.saveManifest(
       sessionId: 'sessao_99',
       binarypb: File(relatorioPdf.path).readAsBytesSync(),
@@ -95,7 +96,8 @@ void main() {
     final record = SubmissionRecord()
       ..idSessao = 'sessao_99'
       ..pdfPath = relatorioPdf.path
-      ..protobufPath = relatorioEpub.path;
+      ..epubPath = relatorioEpub.path
+      ..protobufPath = manifestoYaml.path;
 
     await banco.salvarSubmissao(record);
 
@@ -105,6 +107,7 @@ void main() {
     expect(restante, isNull);
     expect(relatorioPdf.existsSync(), isFalse);
     expect(relatorioEpub.existsSync(), isFalse);
+    expect(manifestoYaml.existsSync(), isFalse);
 
     // Exclusão quando id == 0 (usa idSessao)
     final recordSemId = SubmissionRecord()..idSessao = 'sessao_sem_id';

@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import '../../fakes/crypto_service_fake.dart';
+import '../../fakes/registro_logger_fake.dart';
 import 'autenticacao_nuvem_service_fake.dart';
 import 'sincronizador_nuvem_service_fake.dart';
 
@@ -79,6 +80,8 @@ void main() {
         SincronizadorNuvemService.obterUrlCompartilhamentoPublico('sessao_123'),
         equals('https://fixalog.app/v/sessao_123'),
       );
+      final metaPadrao = MetadadosLaudoRemoto.deJson({});
+      expect(metaPadrao.idSessao, isEmpty);
     });
 
     test('Envia materiais referenciados antes do laudo de manutenção e marca enviadoNuvem=true no SQLite', () async {
@@ -96,7 +99,8 @@ void main() {
           ..nomeProtocolo = 'Via Principal'
           ..tipoRegistro = SubmissionTipoRegistro.manutencao
           ..status = SubmissionStatus.gerado
-          ..protobufPath = epubManut.path
+          ..epubPath = epubManut.path
+          ..protobufPath = '/tmp/manut_1/registro.binarypb'
           ..enviadoNuvem = false,
       );
       await banco.salvarSubmissao(
@@ -106,7 +110,8 @@ void main() {
           ..nomeProtocolo = 'Chumbador Inox 316L'
           ..tipoRegistro = SubmissionTipoRegistro.material
           ..status = SubmissionStatus.gerado
-          ..protobufPath = epubMat.path
+          ..epubPath = epubMat.path
+          ..protobufPath = '/tmp/mat_1/registro.binarypb'
           ..enviadoNuvem = false,
       );
 
@@ -134,19 +139,47 @@ void main() {
         ..idSessao = 's_versionado'
         ..idProtocolo = 'manutencao_ferragens'
         ..nomeProtocolo = 'Via v1'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..dataInclusao = DateTime.utc(2026, 11, 8, 12)
         ..status = SubmissionStatus.gerado
         ..protobufPath = epub1.path
         ..enviadoNuvem = false;
       await banco.salvarSubmissao(rec);
 
+      final recMat = SubmissionRecord()
+        ..idSessao = 's_mat_pendente'
+        ..idProtocolo = 'material_registration'
+        ..nomeProtocolo = 'Material Pendente'
+        ..tipoRegistro = SubmissionTipoRegistro.material
+        ..dataInclusao = DateTime.utc(2026, 11, 8, 13)
+        ..status = SubmissionStatus.gerado
+        ..epubPath = epub1.path
+        ..enviadoNuvem = false;
+      await banco.salvarSubmissao(recMat);
+
+      final recFalha = SubmissionRecord()
+        ..idSessao = 's_falha_sem_arquivo'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Sem Arquivo'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..dataInclusao = DateTime.utc(2026, 11, 8, 14)
+        ..status = SubmissionStatus.gerado
+        ..epubPath = ''
+        ..protobufPath = ''
+        ..enviadoNuvem = false;
+      await banco.salvarSubmissao(recFalha);
+
       final res1 = await sincronizador.sincronizarPendentes();
-      expect(res1.enviados, equals(1));
+      expect(res1.enviados, equals(2));
+      expect(res1.falhas, equals(1));
+      expect(res1.idsEnviados, equals(['s_mat_pendente', 's_versionado']));
       expect(
         clienteHttp.versoesRecebidasPorSessao['s_versionado']?.length,
         equals(1),
       );
 
-      // Simula re-edição e re-geração local (enviadoNuvem volta para false)
+      // Remove o pendente com falha e simula re-edição de s_versionado
+      await banco.deletarSubmissaoPorIdSessao('s_falha_sem_arquivo');
       final salvo = (await banco.obterSubmissaoPorIdSessao('s_versionado'))!;
       salvo.enviadoNuvem = false;
       await banco.salvarSubmissao(salvo);
@@ -182,6 +215,8 @@ void main() {
       expect(restaurado, isNotNull);
       expect(restaurado!.enviadoNuvem, isTrue);
       expect(restaurado.tituloExibicao, equals('Parabolt Restaurado'));
+      expect(restaurado.epubPath, endsWith('relatorio.epub'));
+      expect(restaurado.protobufPath, endsWith('registro.binarypb'));
       expect(
         File(
           p.join(tempDir.path, 'sessoes', 'remoto_1', 'registro.binarypb'),
@@ -284,6 +319,35 @@ void main() {
       expect(
         container.read(sincronizadorNuvemServiceProvider),
         isA<SincronizadorNuvemService>(),
+      );
+
+      // Valida registro de falha de rede em enviarSubmissao e restaurarRelatoriosDaConta
+      await auth.entrarComProvedorOidc(ProvedorOidc.google);
+      final loggerFake = RegistroLoggerFake();
+      clienteHttp.deveLancarErroRede = true;
+      final syncComLogger = SincronizadorNuvemService(
+        banco: banco,
+        autenticacaoService: auth,
+        clienteHttp: clienteHttp,
+        logger: loggerFake,
+      );
+      final epubFalha = File(p.join(tempDir.path, 'falha_rede.epub'))
+        ..writeAsBytesSync(_criarZipEpubTeste());
+      final recRede = SubmissionRecord()
+        ..idSessao = 's_erro_rede'
+        ..idProtocolo = 'manutencao_ferragens'
+        ..nomeProtocolo = 'Via Offline'
+        ..tipoRegistro = SubmissionTipoRegistro.manutencao
+        ..status = SubmissionStatus.gerado
+        ..epubPath = epubFalha.path;
+      expect(await syncComLogger.enviarSubmissao(recRede), isFalse);
+      expect(
+        await syncComLogger.restaurarRelatoriosDaConta(diretorioBase: tempDir),
+        equals(0),
+      );
+      expect(
+        loggerFake.avisosRegistrados.length + loggerFake.errosRegistrados.length,
+        equals(2),
       );
     });
   });

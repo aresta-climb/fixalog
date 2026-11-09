@@ -111,9 +111,10 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         super(GenerationState());
 
   String? _localizarCaminhoEpubDeRegistro(SubmissionRecord record) {
-    if (record.protobufPath.endsWith('.epub') &&
-        File(record.protobufPath).existsSync()) {
-      return record.protobufPath;
+    final candidato =
+        record.epubPath.isNotEmpty ? record.epubPath : record.protobufPath;
+    if (candidato.endsWith('.epub') && File(candidato).existsSync()) {
+      return candidato;
     }
     return null;
   }
@@ -280,7 +281,9 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
 
       final epubPath = outputPath.endsWith('.epub')
           ? outputPath
-          : outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub');
+          : (sessionId != null
+              ? await _sessionManager.getEpubFilePath(sessionId: sessionId)
+              : outputPath.replaceAll(RegExp(r'\.pdf$'), '.epub'));
 
       // 3b. Resolver materiais do catálogo referenciados na manutenção (com fallback para EPUB anterior)
       final uuidsMateriais =
@@ -344,7 +347,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
             materiaisAninhados.containsKey(uuidMat)) {
           final regMat = SerializadorYamlRegistro.lerDeMapaArquivos(
             materiaisAninhados[uuidMat]!,
-          )!;
+          );
           titulosMateriais[uuidMat] = _extrairTituloExibicaoDoRegistro(
             regMat,
             fallback: uuidMat,
@@ -473,8 +476,15 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       await epubFile.create(recursive: true);
       await epubFile.writeAsBytes(epubBytes);
 
-      // 7. Gravação no banco local SQLite
-      String? pdfExistente;
+      // 7. Gravação no banco local SQLite e invalidação do cache de PDF anterior
+      final caminhoPdfPadraoSessao = await _sessionManager.getReportFilePath(
+        sessionId: sid,
+      );
+      final arquivoPdfSessao = File(caminhoPdfPadraoSessao);
+      if (arquivoPdfSessao.existsSync()) {
+        arquivoPdfSessao.deleteSync();
+      }
+
       final banco = _banco;
       if (banco != null) {
         SubmissionRecord? existingRecord;
@@ -482,7 +492,14 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           existingRecord = await banco.obterSubmissaoPorIdSessao(sid);
         } catch (_) {}
 
-        pdfExistente = existingRecord?.pdfPath;
+        final pdfExistente = existingRecord?.pdfPath;
+        if (pdfExistente != null && pdfExistente.isNotEmpty) {
+          final arqPdfAntigo = File(pdfExistente);
+          if (arqPdfAntigo.existsSync()) {
+            arqPdfAntigo.deleteSync();
+          }
+        }
+
         final ehMaterial = registro.idProtocolo == 'material_registration' ||
             registro.idProtocolo == 'cadastro_material' ||
             (existingRecord?.isMaterial ?? false);
@@ -493,18 +510,26 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
               : title,
         );
 
+        final sessionDir = await _sessionManager.getSessionDirectory(sid);
+        final caminhoManifesto = existingRecord != null &&
+                existingRecord.protobufPath.isNotEmpty &&
+                !existingRecord.protobufPath.endsWith('.epub')
+            ? existingRecord.protobufPath
+            : '${sessionDir.path}${Platform.pathSeparator}registro.yaml';
+
         final record = existingRecord ?? SubmissionRecord()
           ..idSessao = sid
           ..idProtocolo = registro.idProtocolo.isNotEmpty
               ? registro.idProtocolo
               : sid
           ..nomeProtocolo = title
-          ..dataInclusao = DateTime.now()
-          ..enviadoNuvem = false;
+          ..dataInclusao = DateTime.now();
 
         record
-          ..pdfPath = pdfExistente ?? ''
-          ..protobufPath = epubFile.path
+          ..pdfPath = ''
+          ..epubPath = epubFile.path
+          ..protobufPath = caminhoManifesto
+          ..enviadoNuvem = false
           ..status = SubmissionStatus.gerado
           ..tipoRegistro = ehMaterial
               ? SubmissionTipoRegistro.material
@@ -520,7 +545,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
         isComplete: true,
         outputPath: epubFile.path,
         epubPath: epubFile.path,
-        pdfPath: pdfExistente,
+        pdfPath: null,
       );
       await _recoveryService.markAsProcessing(false);
     } catch (e) {
@@ -540,7 +565,7 @@ final xmlDsigSignerProvider = Provider((ref) => XmlDsigSigner());
 
 final generationProvider =
     StateNotifierProvider<GenerationNotifier, GenerationState>((ref) {
-  final sessionManager = SessionBundleManager();
+  final sessionManager = ref.watch(sessionBundleManagerProvider);
   BancoDadosLocal? banco;
   try {
     banco = ref.watch(bancoDadosLocalProvider);

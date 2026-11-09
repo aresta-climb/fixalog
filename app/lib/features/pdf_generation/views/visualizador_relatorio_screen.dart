@@ -17,6 +17,7 @@ import 'package:fixalog/core/services/serializador_yaml_registro.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/pdf_print_summary_service.dart';
+import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
@@ -362,7 +363,8 @@ class _VisualizadorRelatorioScreenState
       }
       if (record == null && widget.caminhoEpub != null) {
         try {
-          record = await banco.obterSubmissaoPorProtobufPath(widget.caminhoEpub!);
+          record = await banco.obterSubmissaoPorEpubPath(widget.caminhoEpub!) ??
+              await banco.obterSubmissaoPorProtobufPath(widget.caminhoEpub!);
           if (record != null && (sid == null || sid.isEmpty)) {
             sid = record.idSessao;
           }
@@ -489,6 +491,23 @@ class _VisualizadorRelatorioScreenState
         await sessionManager.getReportFilePath(sessionId: sid);
     final urlCanonica = 'https://fixalog.app/v/$sid';
 
+    String? idiomaPreferido;
+    if (banco != null) {
+      try {
+        final config = await banco.obterConfiguracao();
+        idiomaPreferido = config?.idiomaPreferido;
+      } catch (_) {}
+    }
+    final codigoIdioma =
+        (idiomaPreferido != null && idiomaPreferido.trim().isNotEmpty)
+            ? idiomaPreferido.trim()
+            : (mounted
+                ? ResolvedorIdioma.obterLocaleEfetivo(context, ref).languageCode
+                : 'pt');
+    await ProtocolParser.garantirTraducoesCarregadas(
+      codigoIdioma.split(RegExp(r'[-_]')).first,
+    );
+
     final pdfFile = await pdfService.exportarPdfResumido(
       caminhoSaida: caminhoPdfSaida,
       registro: registro,
@@ -497,6 +516,7 @@ class _VisualizadorRelatorioScreenState
       mapeamentoMidias: midiasPrincipais.caminhosMidias,
       posterFrames: midiasPrincipais.caminhosPosters,
       materiaisAnexos: materiaisAnexos,
+      codigoIdioma: codigoIdioma,
     );
 
     if (banco != null) {

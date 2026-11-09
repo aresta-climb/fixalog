@@ -162,13 +162,16 @@ void main() {
       expect(dir.existsSync(), isFalse);
     });
 
-    test('getReportFilePath should return correct format fixalog_<uuid>.pdf', () async {
+    test('getReportFilePath e getEpubFilePath retornam caminhos padronizados dentro da sessao', () async {
       const sessionId = 'b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h';
 
       final reportPath = await manager.getReportFilePath(sessionId: sessionId);
+      final epubPath = await manager.getEpubFilePath(sessionId: sessionId);
 
       expect(reportPath, contains('sessoes'));
       expect(reportPath, endsWith('fixalog_b4b1a2-c3d4-4e5f-a6b7-8c9d0e1f2g3h.pdf'));
+      expect(epubPath, contains('sessoes'));
+      expect(epubPath, endsWith('relatorio.epub'));
     });
 
     test('copiarArquivosMidiaSessao copia midias originais e pre-processadas ignorando registro.yaml, registro.binarypb, temporarios e relatorios finais', () async {

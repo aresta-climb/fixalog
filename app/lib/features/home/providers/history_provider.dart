@@ -52,6 +52,7 @@ class HistoryRepository {
           '${record.pdfPath.substring(0, record.pdfPath.length - 4)}.epub';
       _excluirArquivoSeExistir(caminhoEpubIrmao);
     }
+    _excluirArquivoSeExistir(record.epubPath);
     _excluirArquivoSeExistir(record.protobufPath);
 
     if (record.id > 0) {

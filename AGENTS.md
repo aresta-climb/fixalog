@@ -1,6 +1,6 @@
 # Princípios de Engenharia Fixalog (`fixalog`)
 
-Para garantir que o nosso código, seja ele escrito por humanos ou por agentes autônomos de IA (como Google Antigravity e OPSX), se mantenha coeso, testável, sustentável e simples, adotamos oito princípios basilares e inegociáveis.
+Para garantir que o nosso código, seja ele escrito por humanos ou por agentes autônomos de IA (como Google Antigravity e OPSX), se mantenha coeso, testável, sustentável e simples, adotamos nove princípios basilares e inegociáveis.
 
 Estes princípios devem guiar toda e qualquer nova implementação, revisão ou refatoração no repositório.
 
@@ -51,6 +51,11 @@ A existência de código ou testes legados no repositório que ainda não sigam 
 O Fixalog é uma ferramenta de auditoria técnica e emissão de laudos periciais em ambientes remotos de montanha:
 - **100% Offline-First**: Todas as funcionalidades de coleta, catalogação, compressão de mídia e geração de relatórios devem operar integralmente sem conexão à internet, com persistência local confiável.
 - **Verificabilidade e Cadeia de Custódia**: A geração de pacotes periciais (EPUB 3 com assinatura digital XML-DSig X.509, sumários executivos em PDF e metadados Protobuf/GPS) deve preservar estritamente a integridade criptográfica e o determinismo dos artefatos gerados.
+
+## IX. Responsividade Inegociável da UI e Execução Pesada em Background (Orçamento de Meio Frame)
+O Isolate principal de interface gráfica (UI Isolate do Flutter) **JAMAIS** deve executar trabalho síncrono que exceda o orçamento de **meio frame (`~8ms` a 60fps / `~4ms` a 120fps)**, mantendo margem folgada abaixo do limite de um frame para garantir fluidez em campo.
+- **Processamento Pericial e de Mídia em Background**: Qualquer operação que possa exceder meio frame — como compressão/transcodificação de fotos e vídeos, cálculo de hashes SHA-256, assinatura criptográfica XML-DSig/X.509, montagem de pacotes ZIP/EPUB 3, renderização de PDFs ou migrações/consultas pesadas em lote — DEVE obrigatoriamente ser executada em background (`Isolate.run`, workers dedicados ou processos nativos assíncronos).
+- **Feedback de Progresso e Cancelamento**: Operações periciais longas devem manter a UI responsiva com indicadores claros de progresso e atualização de estado coalescida no Riverpod.
 
 ---
 > **Nota para Agentes Autônomos**: Vocês estão estritamente obrigados a considerar este documento como diretriz de mais alta prioridade ao planejar arquitetura, sugerir refatorações, ou implementar novas rotinas (incluindo o uso do OpenSpec).

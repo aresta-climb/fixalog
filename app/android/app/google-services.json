@@ -12,7 +12,12 @@
           "package_name": "com.arestaclimb.fixalog"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1025411452942-l2dbk6vrt52di1ql7lm4u65i0ndvodes.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDVgTTrYA1XaYTaQU-H5Ollzq9j42UqrDI"
@@ -20,7 +25,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1025411452942-l2dbk6vrt52di1ql7lm4u65i0ndvodes.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1025411452942-eimt7ppo50n2ctur5r8ag4trk1mlo999.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.arestaclimb.fixalog",
+                "app_store_id": "6818883254"
+              }
+            }
+          ]
         }
       }
     }

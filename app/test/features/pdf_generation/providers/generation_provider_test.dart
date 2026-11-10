@@ -357,6 +357,19 @@ void main() {
       binarypb: Uint8List.fromList(registroComMidias.writeToBuffer()),
     );
 
+    final kf10Path = await sessionManager.getMediaFilePath(
+      sessionId: 'sessao-midia',
+      mediaUuid: 'uuid-video_kf_10s',
+      extension: '.jpg',
+    );
+    File(kf10Path).writeAsBytesSync([7, 8, 9]);
+    final kf20Path = await sessionManager.getMediaFilePath(
+      sessionId: 'sessao-midia',
+      mediaUuid: 'uuid-video_kf_20s',
+      extension: '.jpg',
+    );
+    File(kf20Path).writeAsBytesSync([10, 11, 12]);
+
     final outPath = '${tempDir.path}/relatorio.epub';
     await notifier.startGeneration(
       'Via com Fotos e Vídeos',
@@ -372,6 +385,8 @@ void main() {
     final zip = ZipDecoder().decodeBytes(File(outPath).readAsBytesSync());
     final nomes = zip.files.map((f) => f.name).toSet();
     expect(nomes, contains('OEBPS/midias/uuid-video_poster.jpg'));
+    expect(nomes, contains('OEBPS/midias/uuid-video_kf_10s.jpg'));
+    expect(nomes, contains('OEBPS/midias/uuid-video_kf_20s.jpg'));
   });
 
   test('Deve empacotar documento PDF original bit-a-bit e páginas WebP rasterizadas no EPUB 3 com assinatura XML-DSig válida', () async {

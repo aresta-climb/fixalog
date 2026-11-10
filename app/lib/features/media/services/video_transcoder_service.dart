@@ -98,6 +98,44 @@ class VideoTranscoderService {
     return null;
   }
 
+  /// Extrai miniaturas JPEG leves (`360p`, qualidade comprimida `-q:v 14`) a cada 10 segundos
+  /// de duração do vídeo (`10s, 20s, 30s, ...` até [limiteMaximoDuracaoVideoSegundos])
+  /// para auditoria pericial e moderação de segurança no servidor.
+  ///
+  /// Retorna a lista de arquivos [File] gerados (ex.: `<prefixoCaminhoSaida>_kf_10s.jpg`).
+  Future<List<File>> extrairKeyframesModeracao({
+    required File arquivoEntrada,
+    required String prefixoCaminhoSaida,
+    double inicioSegundos = 0.0,
+    double? duracaoSegundos,
+  }) async {
+    if (!await arquivoEntrada.exists()) {
+      return const <File>[];
+    }
+
+    final duracaoInspecionada =
+        duracaoSegundos ?? await obterDuracaoSegundos(arquivoEntrada) ?? 0.0;
+    final duracaoFinal = duracaoInspecionada > limiteMaximoDuracaoVideoSegundos
+        ? limiteMaximoDuracaoVideoSegundos
+        : duracaoInspecionada;
+
+    final inputPath = arquivoEntrada.absolute.path;
+    final gerados = <File>[];
+
+    for (var seg = 10; seg <= duracaoFinal.floor(); seg += 10) {
+      final tempoAbsoluto = inicioSegundos + seg;
+      final caminhoKf = '${prefixoCaminhoSaida}_kf_${seg}s.jpg';
+      final comando =
+          '-ss $tempoAbsoluto -i "$inputPath" -vf scale=-2:360 -q:v 14 -vframes 1 -y "$caminhoKf"';
+      final sucesso = await _executador(comando);
+      if (sucesso) {
+        gerados.add(File(caminhoKf));
+      }
+    }
+
+    return gerados;
+  }
+
   /// Executa o comando FFmpeg através do [FFmpegKit].
   static Future<bool> executarFfmpeg(String comando) async {
     final session = await FFmpegKit.execute(comando);
@@ -107,13 +145,18 @@ class VideoTranscoderService {
 
   /// Inspeciona a duração do vídeo via [FFprobeKit.getMediaInformation].
   static Future<double?> inspecionarDuracaoPadrao(File arquivoVideo) async {
-    final sessao = await FFprobeKit.getMediaInformation(arquivoVideo.absolute.path);
-    final info = sessao.getMediaInformation();
-    final duracaoStr = info?.getDuration();
-    if (duracaoStr == null) {
+    try {
+      final sessao =
+          await FFprobeKit.getMediaInformation(arquivoVideo.absolute.path);
+      final info = sessao.getMediaInformation();
+      final duracaoStr = info?.getDuration();
+      if (duracaoStr == null) {
+        return null;
+      }
+      return double.tryParse(duracaoStr);
+    } catch (_) {
       return null;
     }
-    return double.tryParse(duracaoStr);
   }
 }
 

@@ -106,13 +106,17 @@ class MediaCompressorService {
     } catch (_) {}
   }
 
+  /// Executor estático configurável para testes de [rasterizarPdfPadrao].
+  static Stream<PdfRaster> Function(Uint8List pdfBytes, {double dpi})
+  executorPrintingRaster = Printing.raster;
+
   /// Rasterizador padrão utilizando [Printing.raster] para converter cada página do PDF em PNG.
   static Future<List<Uint8List>> rasterizarPdfPadrao(
     Uint8List pdfBytes, {
     double dpi = 150.0,
   }) async {
     final paginasPng = <Uint8List>[];
-    await for (final pagina in Printing.raster(pdfBytes, dpi: dpi)) {
+    await for (final pagina in executorPrintingRaster(pdfBytes, dpi: dpi)) {
       final pngBytes = await pagina.toPng();
       paginasPng.add(pngBytes);
     }
@@ -154,15 +158,12 @@ class MediaCompressorService {
       }
 
       final tmpFile = File(result.path);
-      if (tmpFile.existsSync()) {
-        final destino = File(outputPath);
-        await destino.parent.create(recursive: true);
-        if (destino.existsSync()) {
-          destino.deleteSync();
-        }
-        return await tmpFile.rename(outputPath);
+      final destino = File(outputPath);
+      await destino.parent.create(recursive: true);
+      if (destino.existsSync()) {
+        destino.deleteSync();
       }
-      return File(outputPath);
+      return await tmpFile.rename(outputPath);
     } catch (_) {
       _limparArquivoSeExistir(tmpPath);
       return null;
@@ -204,15 +205,12 @@ class MediaCompressorService {
       }
 
       final tmpFile = File(result.path);
-      if (tmpFile.existsSync()) {
-        final destino = File(outputPath);
-        await destino.parent.create(recursive: true);
-        if (destino.existsSync()) {
-          destino.deleteSync();
-        }
-        return await tmpFile.rename(outputPath);
+      final destino = File(outputPath);
+      await destino.parent.create(recursive: true);
+      if (destino.existsSync()) {
+        destino.deleteSync();
       }
-      return File(outputPath);
+      return await tmpFile.rename(outputPath);
     } catch (_) {
       _limparArquivoSeExistir(tmpPath);
       return null;
@@ -429,6 +427,16 @@ class MediaCompressorService {
                 caminhoSaida: outPosterPath,
                 tempoSegundos: tempoPoster,
               );
+
+        final prefixoKf = outVideoPath.endsWith('.mp4')
+            ? outVideoPath.substring(0, outVideoPath.length - 4)
+            : outVideoPath;
+        await _videoTranscoderService.extrairKeyframesModeracao(
+          arquivoEntrada: originalFile,
+          prefixoCaminhoSaida: prefixoKf,
+          inicioSegundos: inicioEfetivo ?? 0.0,
+          duracaoSegundos: duracaoEfetiva,
+        );
 
         return (video: videoFile, poster: posterFile);
       } catch (_) {

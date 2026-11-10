@@ -248,6 +248,29 @@ void main() {
         find.byKey(const Key('modal_progresso_upload_laudo')),
         findsNothing,
       );
+
+      // Testa cancelar o envio diretamente pelo botão "CANCELAR ENVIO" do modal
+      clienteHttp.consultasEmAnaliseAntesDeAtivar['sessao_1'] = 3;
+      textoCompartilhado = null;
+      await tester.tap(find.byKey(const Key('btn_compartilhar')));
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(
+        find.byKey(const Key('btn_cancelar_envio_modal_upload')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const Key('btn_cancelar_envio_modal_upload')),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
+      expect(
+        find.byKey(const Key('modal_progresso_upload_laudo')),
+        findsNothing,
+      );
+      expect(
+        sincronizador.foiCanceladoPeloUsuario('sessao_1'),
+        isTrue,
+      );
+      expect(textoCompartilhado, isNull);
     },
   );
 

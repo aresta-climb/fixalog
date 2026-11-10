@@ -25,10 +25,18 @@ void main() {
       );
 
       String? idSelecionadoPorCallback;
+      String? idCanceladoPorCallback;
       final idsStream = <String>[];
+      final idsCanceladosStream = <String>[];
       final sub = gerenciador.streamLaudosSelecionados.listen(idsStream.add);
+      final subCancel = gerenciador.streamCancelamentosSolicitados.listen(
+        idsCanceladosStream.add,
+      );
       gerenciador.aoSelecionarLaudoConcluido = (id) {
         idSelecionadoPorCallback = id;
+      };
+      gerenciador.aoSolicitarCancelamento = (id) {
+        idCanceladoPorCallback = id;
       };
 
       await gerenciador.exibirProgresso(
@@ -49,6 +57,24 @@ void main() {
       expect(notifProgresso.detalhesAndroid?.ongoing, isTrue);
       expect(notifProgresso.detalhesAndroid?.autoCancel, isFalse);
       expect(notifProgresso.detalhesAndroid?.progress, 25);
+      expect(
+        notifProgresso.detalhesAndroid?.actions?.single.id,
+        GerenciadorNotificacaoUploadLaudo.idAcaoCancelarUpload,
+      );
+      expect(
+        notifProgresso.detalhesAndroid?.actions?.single.title,
+        'Cancelar envio',
+      );
+
+      // Simula toque na ação "Cancelar envio" da notificação sticky
+      plugin.simularToqueNotificacao(
+        payload: 'sessao_barras_1',
+        actionId: GerenciadorNotificacaoUploadLaudo.idAcaoCancelarUpload,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(idCanceladoPorCallback, 'sessao_barras_1');
+      expect(idsCanceladosStream, ['sessao_barras_1']);
+      expect(idSelecionadoPorCallback, isNull);
 
       // Transiciona para concluído -> para ForegroundService e exibe notificação autoCancel: true
       await gerenciador.exibirConcluido(
@@ -85,6 +111,7 @@ void main() {
       expect(gerenciador.consumirIdSessaoTocadoPendente(), isNull);
 
       await sub.cancel();
+      await subCancel.cancel();
     });
 
     test('usa fallback show quando startForegroundService falha ou Android nao esta disponivel, e suporta exibirFalha e cancelar', () async {

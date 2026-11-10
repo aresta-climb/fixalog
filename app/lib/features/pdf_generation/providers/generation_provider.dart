@@ -226,6 +226,18 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
           arquivosMidias['midias/${uuid}_poster.jpg'] = bytes;
           posterFrames[uuid] = 'midias/${uuid}_poster.jpg';
         }
+        for (var seg = 10; seg <= 60; seg += 10) {
+          final caminhoKf = await _sessionManager.getMediaFilePath(
+            sessionId: sid,
+            mediaUuid: '${uuid}_kf_${seg}s',
+            extension: '.jpg',
+          );
+          final arqKf = File(caminhoKf);
+          if (arqKf.existsSync() && arqKf.lengthSync() > 0) {
+            arquivosMidias['midias/${uuid}_kf_${seg}s.jpg'] =
+                arqKf.readAsBytesSync();
+          }
+        }
         final qrSvg =
             EpubDocumentBuilder.gerarQrCodeSvg('$urlCanonica#video-$uuid');
         qrCodesVideos[uuid] =

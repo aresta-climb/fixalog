@@ -195,6 +195,37 @@ void main() {
       expect(resultado, isNull);
     });
 
+    test('extrairKeyframesModeracao extrai miniaturas 360p a cada 10s ate o limite de 60s', () async {
+      final comandos = <String>[];
+      final service = VideoTranscoderService(
+        executador: (cmd) async {
+          comandos.add(cmd);
+          return !cmd.contains('kf_30s');
+        },
+        inspetorDuracao: (_) async => 75.0,
+      );
+
+      final prefixo = '${tempDir.path}/vid_1';
+      final gerados = await service.extrairKeyframesModeracao(
+        arquivoEntrada: videoOriginal,
+        prefixoCaminhoSaida: prefixo,
+        inicioSegundos: 5.0,
+      );
+
+      // Como 75s e limitado a 60s (10, 20, 30, 40, 50, 60) e o de 30s falha, 5 arquivos sao retornados
+      expect(comandos.length, equals(6));
+      expect(comandos[0], contains('-ss 15.0'));
+      expect(comandos[0], contains('-vf scale=-2:360 -q:v 14 -vframes 1'));
+      expect(comandos[0], contains('${prefixo}_kf_10s.jpg'));
+      expect(gerados.length, equals(5));
+
+      final inexistente = await service.extrairKeyframesModeracao(
+        arquivoEntrada: File('${tempDir.path}/nao_existe.mp4'),
+        prefixoCaminhoSaida: prefixo,
+      );
+      expect(inexistente, isEmpty);
+    });
+
     test('VideoTranscoderService pode ser instanciado sem executador customizado', () {
       final service = VideoTranscoderService();
       expect(service, isNotNull);

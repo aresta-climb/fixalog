@@ -152,6 +152,7 @@ enum EtapaPublicacaoLaudo {
   concluidoAtivo,
   semInternet,
   rejeitadoOuFalha,
+  canceladoPeloUsuario,
 }
 
 /// Estado de progresso observável da publicação de um laudo na nuvem.
@@ -399,6 +400,7 @@ class SincronizadorNuvemService {
 
   final Map<String, Future<bool>> _uploadsEmAndamento = {};
   final Map<String, ProgressoPublicacaoLaudo> _progressoPorSessao = {};
+  final Set<String> _sessoesCanceladasPeloUsuario = <String>{};
   final StreamController<ProgressoPublicacaoLaudo> _controladorProgresso =
       StreamController<ProgressoPublicacaoLaudo>.broadcast(sync: true);
 
@@ -422,7 +424,11 @@ class SincronizadorNuvemService {
        _tamanhoBlocoBytes = tamanhoBlocoBytes,
        _intervaloPollingModeracao = intervaloPollingModeracao,
        _maxTentativasPollingModeracao = maxTentativasPollingModeracao,
-       _emModoDesenvolvimento = emModoDesenvolvimento;
+       _emModoDesenvolvimento = emModoDesenvolvimento {
+    _gerenciadorNotificacao.streamCancelamentosSolicitados.listen((idSessao) {
+      unawaited(cancelarPublicacao(idSessao));
+    });
+  }
 
   /// Constrói a URL canônica pública de compartilhamento web de uma sessão.
   static String obterUrlCompartilhamentoPublico(String idSessao) {
@@ -512,12 +518,41 @@ class SincronizadorNuvemService {
     return _progressoPorSessao[idSessao];
   }
 
+  /// Indica se o envio da sessão [idSessao] foi cancelado manualmente pelo usuário.
+  bool foiCanceladoPeloUsuario(String idSessao) {
+    return _sessoesCanceladasPeloUsuario.contains(idSessao);
+  }
+
+  /// Cancela imediatamente o envio em blocos ou o polling de verificação de [idSessao],
+  /// remove a notificação *sticky* e pausa retentativas automáticas até nova ação do usuário.
+  Future<void> cancelarPublicacao(String idSessao) async {
+    _sessoesCanceladasPeloUsuario.add(idSessao);
+    final atual = _progressoPorSessao[idSessao];
+    final cancelado = ProgressoPublicacaoLaudo(
+      idSessao: idSessao,
+      etapa: EtapaPublicacaoLaudo.canceladoPeloUsuario,
+      blocosEnviados: atual?.blocosEnviados ?? 0,
+      totalBlocos: atual?.totalBlocos ?? 1,
+      verificacaoConcluida: atual?.verificacaoConcluida ?? 0,
+      verificacaoTotal: atual?.verificacaoTotal ?? 1,
+      mensagemErro: 'Envio cancelado pelo usuário.',
+    );
+    _progressoPorSessao[idSessao] = cancelado;
+    await Future<void>.value();
+    _emitirProgresso(cancelado);
+    await _gerenciadorNotificacao.cancelar(idSessao);
+  }
+
   /// Observa atualizações em tempo real do progresso de publicação de [idSessao].
   Stream<ProgressoPublicacaoLaudo> observarProgresso(String idSessao) {
     return _controladorProgresso.stream.where((p) => p.idSessao == idSessao);
   }
 
   void _emitirProgresso(ProgressoPublicacaoLaudo progresso) {
+    if (_sessoesCanceladasPeloUsuario.contains(progresso.idSessao) &&
+        progresso.etapa != EtapaPublicacaoLaudo.canceladoPeloUsuario) {
+      return;
+    }
     _progressoPorSessao[progresso.idSessao] = progresso;
     _controladorProgresso.add(progresso);
 
@@ -565,6 +600,8 @@ class SincronizadorNuvemService {
                 progresso.mensagemErro ?? 'Falha ao publicar laudo no Fixalog.',
           ),
         );
+      case EtapaPublicacaoLaudo.canceladoPeloUsuario:
+        unawaited(_gerenciadorNotificacao.cancelar(progresso.idSessao));
       case EtapaPublicacaoLaudo.semInternet:
         break;
     }
@@ -611,7 +648,12 @@ class SincronizadorNuvemService {
 
     final todas = await banco.listarSubmissoes();
     final pendentes = todas
-        .where((r) => r.isGerado && !r.enviadoNuvem)
+        .where(
+          (r) =>
+              r.isGerado &&
+              !r.enviadoNuvem &&
+              !_sessoesCanceladasPeloUsuario.contains(r.idSessao),
+        )
         .toList();
 
     // Ordena materiais primeiro, depois manutenções
@@ -653,6 +695,9 @@ class SincronizadorNuvemService {
   /// (enviando antes quaisquer materiais referenciados ainda não sincronizados) e deduplicando
   /// chamadas concorrentes (*single-flight*) para o mesmo `idSessao`.
   Future<bool> enviarSubmissao(SubmissionRecord record) {
+    if (_sessoesCanceladasPeloUsuario.contains(record.idSessao)) {
+      return Future.value(false);
+    }
     final emAndamento = _uploadsEmAndamento[record.idSessao];
     if (emAndamento != null) {
       return emAndamento;
@@ -770,6 +815,9 @@ class SincronizadorNuvemService {
 
       String? ultimoStatusModeracao;
       for (int i = 0; i < totalBlocos; i++) {
+        if (_sessoesCanceladasPeloUsuario.contains(record.idSessao)) {
+          return false;
+        }
         if (recebidos.contains(i)) {
           continue;
         }
@@ -789,6 +837,10 @@ class SincronizadorNuvemService {
           tokenAppCheck: tokenAppCheck,
         );
 
+        if (_sessoesCanceladasPeloUsuario.contains(record.idSessao)) {
+          return false;
+        }
+
         ultimoStatusModeracao = resChunk.statusModeracao;
         concluidos++;
         final estaAtivoChunk = ultimoStatusModeracao == 'ativo';
@@ -806,6 +858,10 @@ class SincronizadorNuvemService {
             verificacaoTotal: 1,
           ),
         );
+      }
+
+      if (_sessoesCanceladasPeloUsuario.contains(record.idSessao)) {
+        return false;
       }
 
       record.enviadoNuvem = true;
@@ -842,6 +898,7 @@ class SincronizadorNuvemService {
     String? epubPath,
     void Function(ProgressoPublicacaoLaudo progresso)? aoProgredir,
   }) async {
+    _sessoesCanceladasPeloUsuario.remove(idSessao);
     StreamSubscription<ProgressoPublicacaoLaudo>? inscricao;
     if (aoProgredir != null) {
       inscricao = observarProgresso(idSessao).listen(aoProgredir);
@@ -876,6 +933,9 @@ class SincronizadorNuvemService {
       for (int tentativa = 0;
           tentativa < _maxTentativasPollingModeracao;
           tentativa++) {
+        if (_sessoesCanceladasPeloUsuario.contains(idSessao)) {
+          return obterProgressoAtual(idSessao)!;
+        }
         final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
         if (_emModoDesenvolvimento &&
             !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
@@ -905,7 +965,10 @@ class SincronizadorNuvemService {
           if (!await enviarSubmissao(registro)) {
             final ultimoProgresso = obterProgressoAtual(idSessao);
             if (ultimoProgresso != null &&
-                ultimoProgresso.etapa == EtapaPublicacaoLaudo.rejeitadoOuFalha) {
+                (ultimoProgresso.etapa ==
+                        EtapaPublicacaoLaudo.rejeitadoOuFalha ||
+                    ultimoProgresso.etapa ==
+                        EtapaPublicacaoLaudo.canceladoPeloUsuario)) {
               return ultimoProgresso;
             }
             throw StateError('Falha no envio dos blocos do laudo.');
@@ -954,7 +1017,9 @@ class SincronizadorNuvemService {
             verificacaoTotal: status.verificacaoTotal,
           ),
         );
-        await Future<void>.delayed(_intervaloPollingModeracao);
+        if (!_sessoesCanceladasPeloUsuario.contains(idSessao)) {
+          await Future<void>.delayed(_intervaloPollingModeracao);
+        }
       }
 
       final tempoEsgotado = ProgressoPublicacaoLaudo(

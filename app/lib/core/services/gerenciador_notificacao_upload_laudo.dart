@@ -25,13 +25,25 @@ class GerenciadorNotificacaoUploadLaudo {
 
   final StreamController<String> _controladorLaudosSelecionados =
       StreamController<String>.broadcast();
+  final StreamController<String> _controladorCancelamentosSolicitados =
+      StreamController<String>.broadcast();
+
+  /// Identificador da ação de cancelamento exibida na notificação *sticky* de progresso.
+  static const String idAcaoCancelarUpload = 'cancelar_upload';
 
   /// Callback opcional invocado imediatamente quando o usuário toca na notificação de conclusão.
   void Function(String idSessao)? aoSelecionarLaudoConcluido;
 
+  /// Callback opcional invocado imediatamente quando o usuário toca em "Cancelar envio" na notificação.
+  void Function(String idSessao)? aoSolicitarCancelamento;
+
   /// Canal de eventos emitido sempre que o usuário toca em uma notificação de laudo concluído.
   Stream<String> get streamLaudosSelecionados =>
       _controladorLaudosSelecionados.stream;
+
+  /// Canal de eventos emitido sempre que o usuário toca na ação "Cancelar envio" da notificação *sticky*.
+  Stream<String> get streamCancelamentosSolicitados =>
+      _controladorCancelamentosSolicitados.stream;
 
   static const String _idCanalProgresso = 'fixalog_uploads_progresso';
   static const String _nomeCanalProgresso = 'Publicação de Laudos Fixalog';
@@ -65,6 +77,8 @@ class GerenciadorNotificacaoUploadLaudo {
     _permissaoSolicitada = false;
     _servicoPrimeiroPlanoAtivo = false;
     _idSessaoTocadoPendente = null;
+    aoSelecionarLaudoConcluido = null;
+    aoSolicitarCancelamento = null;
   }
 
   /// Consome e limpa o `idSessao` da última notificação tocada pelo usuário, se houver.
@@ -77,6 +91,12 @@ class GerenciadorNotificacaoUploadLaudo {
   void _aoReceberToqueNotificacao(NotificationResponse resposta) {
     final payload = resposta.payload?.trim();
     if (payload == null || payload.isEmpty) {
+      return;
+    }
+    if (resposta.actionId == idAcaoCancelarUpload) {
+      unawaited(cancelar(payload));
+      aoSolicitarCancelamento?.call(payload);
+      _controladorCancelamentosSolicitados.add(payload);
       return;
     }
     _idSessaoTocadoPendente = payload;
@@ -203,6 +223,14 @@ class GerenciadorNotificacaoUploadLaudo {
         playSound: false,
         enableVibration: false,
         category: AndroidNotificationCategory.progress,
+        actions: const <AndroidNotificationAction>[
+          AndroidNotificationAction(
+            idAcaoCancelarUpload,
+            'Cancelar envio',
+            showsUserInterface: true,
+            cancelNotification: true,
+          ),
+        ],
       );
 
       final implAndroid = _plugin

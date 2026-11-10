@@ -9,6 +9,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_image_compress_platform_interface/flutter_image_compress_platform_interface.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:printing/printing.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/media/services/video_transcoder_service.dart';
@@ -18,6 +19,7 @@ class FakeFlutterImageCompressPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements FlutterImageCompressPlatform {
   bool shouldFail = false;
+  bool shouldThrow = false;
   CompressFormat? lastFormat;
   int? lastQuality;
   int? lastMinWidth;
@@ -46,6 +48,7 @@ class FakeFlutterImageCompressPlatform extends Fake
     lastMinWidth = minWidth;
     lastMinHeight = minHeight;
 
+    if (shouldThrow) throw Exception('Falha simulada nativa');
     if (shouldFail) return null;
     final file = File(targetPath);
     await file.create(recursive: true);
@@ -381,6 +384,14 @@ void main() {
         comandosExecutados.any((cmd) => cmd.contains('-ss 12.5')),
         isTrue,
       );
+      expect(
+        comandosExecutados.any((cmd) => cmd.contains('_kf_10s.jpg')),
+        isTrue,
+      );
+      expect(
+        comandosExecutados.any((cmd) => cmd.contains('_kf_60s.jpg')),
+        isTrue,
+      );
     });
 
     test('transcodificarVideoSessao retorna nulos se arquivo original não existir', () async {
@@ -589,6 +600,182 @@ void main() {
         extension: '.jpg',
       );
       expect(File(thumb1).existsSync(), isTrue);
+
+      // 2ª chamada sem páginas _original.jpg reaproveita <uuid>_p<N>.webp já prontos em disco (e regera thumb se ausente)
+      File(
+        await sessionManager.getMediaFilePath(
+          sessionId: sessionId,
+          mediaUuid: '${mediaUuid}_p1_original',
+          extension: '.jpg',
+        ),
+      ).deleteSync();
+      File(
+        await sessionManager.getMediaFilePath(
+          sessionId: sessionId,
+          mediaUuid: '${mediaUuid}_p2_original',
+          extension: '.jpg',
+        ),
+      ).deleteSync();
+      File(thumb1).deleteSync();
+
+      final paginasCacheWebp = await servicoComPdf.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: sessionId,
+        mediaUuid: mediaUuid,
+      );
+      expect(paginasCacheWebp.length, equals(2));
+      expect(File(thumb1).existsSync(), isTrue);
+    });
+
+    test('filas de concorrencia, sobrescrita atomica, cache de video pronto, fallback PDF e excecoes funcionam com seguranca', () async {
+      final imgOriginal = File('${tempDir.path}/foto_over.jpg')
+        ..writeAsBytesSync([1, 2, 3]);
+      final outImg = '${tempDir.path}/foto_over.webp';
+      final outThumb = '${tempDir.path}/foto_over_thumb.jpg';
+      File(outImg).writeAsBytesSync([0]);
+      File(outThumb).writeAsBytesSync([0]);
+
+      // Sobrescreve destino existente
+      expect(await service.compressImage(imgOriginal, outImg), isNotNull);
+      expect(await service.compressThumbnail(imgOriginal, outThumb), isNotNull);
+
+      // Trata exceção lançada pelo compressor nativo
+      fakeImageCompress.shouldThrow = true;
+      expect(await service.compressImage(imgOriginal, outImg), isNull);
+      expect(await service.compressThumbnail(imgOriginal, outThumb), isNull);
+      fakeImageCompress.shouldThrow = false;
+
+      // Pool de imagens (>2 simultâneas)
+      for (int i = 1; i <= 4; i++) {
+        await sessionManager.saveOriginalMedia(
+          sessionId: 's_pool',
+          mediaUuid: 'img_$i',
+          extension: '.jpg',
+          bytes: Uint8List.fromList([i]),
+        );
+      }
+      final resPool = await Future.wait([
+        service.comprimirImagemSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_pool',
+          mediaUuid: 'img_1',
+        ),
+        service.comprimirImagemSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_pool',
+          mediaUuid: 'img_2',
+        ),
+        service.comprimirImagemSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_pool',
+          mediaUuid: 'img_3',
+        ),
+        service.comprimirImagemSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_pool',
+          mediaUuid: 'img_4',
+        ),
+      ]);
+      expect(resPool.whereType<File>().length, equals(4));
+
+      // Fila de vídeos (2 vídeos diferentes em paralelo) + cache de vídeo/poster já existentes em disco
+      final transcoderCriador = VideoTranscoderService(
+        executador: (cmd) async {
+          final m = RegExp(r'"([^"]+\.(?:mp4|jpg))"$').firstMatch(cmd);
+          if (m != null) {
+            File(m.group(1)!).writeAsBytesSync([1, 2, 3]);
+          }
+          return true;
+        },
+      );
+      final serviceCriador = MediaCompressorService(
+        videoTranscoderService: transcoderCriador,
+      );
+      await sessionManager.saveOriginalMedia(
+        sessionId: 's_vpool',
+        mediaUuid: 'v1',
+        extension: '.mp4',
+        bytes: Uint8List.fromList([1]),
+      );
+      await sessionManager.saveOriginalMedia(
+        sessionId: 's_vpool',
+        mediaUuid: 'v2',
+        extension: '.mp4',
+        bytes: Uint8List.fromList([2]),
+      );
+      await Future.wait([
+        serviceCriador.transcodificarVideoSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_vpool',
+          mediaUuid: 'v1',
+        ),
+        serviceCriador.transcodificarVideoSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_vpool',
+          mediaUuid: 'v2',
+        ),
+      ]);
+      // 2ª chamada para v1 retorna imediatamente do cache em disco
+      final cacheVideo = await serviceCriador.transcodificarVideoSessao(
+        sessionManager: sessionManager,
+        sessionId: 's_vpool',
+        mediaUuid: 'v1',
+      );
+      expect(cacheVideo.video, isNotNull);
+      expect(cacheVideo.poster, isNotNull);
+
+      // Fallback PDF quando compressImage falha e quando rasterizador lança erro
+      await sessionManager.saveOriginalMedia(
+        sessionId: 's_pdf_fb',
+        mediaUuid: 'doc_fb',
+        extension: '.pdf',
+        bytes: Uint8List.fromList([1, 2, 3]),
+      );
+      fakeImageCompress.shouldFail = true;
+      final servicoPdfFallback = MediaCompressorService(
+        rasterizadorPdf: (bytes, {double dpi = 150.0}) async => [
+          Uint8List.fromList([10, 20, 30]),
+        ],
+      );
+      final pagsFb = await servicoPdfFallback.rasterizarDocumentoPdfSessao(
+        sessionManager: sessionManager,
+        sessionId: 's_pdf_fb',
+        mediaUuid: 'doc_fb',
+      );
+      expect(pagsFb.length, equals(1));
+      fakeImageCompress.shouldFail = false;
+
+      final servicoPdfErro = MediaCompressorService(
+        rasterizadorPdf: (bytes, {double dpi = 150.0}) async {
+          throw Exception('PDF inválido');
+        },
+      );
+      await sessionManager.saveOriginalMedia(
+        sessionId: 's_pdf_err',
+        mediaUuid: 'doc_err',
+        extension: '.pdf',
+        bytes: Uint8List.fromList([1]),
+      );
+      expect(
+        await servicoPdfErro.rasterizarDocumentoPdfSessao(
+          sessionManager: sessionManager,
+          sessionId: 's_pdf_err',
+          mediaUuid: 'doc_err',
+        ),
+        isEmpty,
+      );
+
+      final executorOriginal = MediaCompressorService.executorPrintingRaster;
+      MediaCompressorService.executorPrintingRaster =
+          (pdfBytes, {double dpi = 150.0}) => Stream.fromIterable([
+            PdfRaster(1, 1, Uint8List.fromList([255, 0, 0, 255])),
+          ]);
+      final pngsGerados = await MediaCompressorService.rasterizarPdfPadrao(
+        Uint8List.fromList([1, 2, 3]),
+      );
+      MediaCompressorService.executorPrintingRaster = executorOriginal;
+      expect(pngsGerados.length, equals(1));
+      expect(pngsGerados.first, isNotEmpty);
     });
   });
 }

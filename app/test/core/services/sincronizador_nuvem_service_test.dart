@@ -835,5 +835,117 @@ void main() {
         );
       },
     );
+
+    test(
+      'cancelarPublicacao interrompe envio de blocos e polling imediatamente, remove notificacao sticky, pausa sincronizarPendentes e retoma do chunk seguinte ao compartilhar novamente',
+      () async {
+        final pluginNotif = PluginNotificacoesLocaisFake();
+        final gerenciadorNotif = GerenciadorNotificacaoUploadLaudo.paraTestes(
+          plugin: pluginNotif,
+        );
+        await gerenciadorNotif.inicializar();
+
+        clienteHttp.atrasoEnvioChunk = const Duration(milliseconds: 15);
+        final syncCancelavel = SincronizadorNuvemService(
+          banco: banco,
+          autenticacaoService: auth,
+          clienteHttp: clienteHttp,
+          gerenciadorNotificacao: gerenciadorNotif,
+          tamanhoBlocoBytes: 128,
+          intervaloPollingModeracao: const Duration(milliseconds: 20),
+        );
+
+        final bytesGrandes = _criarZipEpubTeste(bytesExtrasPadding: 600);
+        final epubCancel = File(p.join(tempDir.path, 'cancelavel.epub'))
+          ..writeAsBytesSync(bytesGrandes);
+        final recCancel = SubmissionRecord()
+          ..idSessao = 's_cancelavel'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Via Cancelável'
+          ..tituloExibicao = 'Via Cancelável'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..status = SubmissionStatus.gerado
+          ..epubPath = epubCancel.path
+          ..enviadoNuvem = false;
+        await banco.salvarSubmissao(recCancel);
+
+        // 1. Inicia publicação e cancela após o primeiro bloco via ação da notificação sticky
+        var cancelouNoBloco1 = false;
+        final futuroCancelado = syncCancelavel.publicarEAguardarLiberacao(
+          idSessao: 's_cancelavel',
+          epubPath: epubCancel.path,
+          aoProgredir: (progresso) {
+            if (!cancelouNoBloco1 &&
+                progresso.etapa == EtapaPublicacaoLaudo.enviandoBlocos &&
+                progresso.blocosEnviados >= 1) {
+              cancelouNoBloco1 = true;
+              pluginNotif.simularToqueNotificacao(
+                id: 2001,
+                payload: 's_cancelavel',
+                actionId: GerenciadorNotificacaoUploadLaudo.idAcaoCancelarUpload,
+              );
+            }
+          },
+        );
+
+        final resCancelado = await futuroCancelado;
+        expect(
+          resCancelado.etapa,
+          equals(EtapaPublicacaoLaudo.canceladoPeloUsuario),
+        );
+        expect(syncCancelavel.foiCanceladoPeloUsuario('s_cancelavel'), isTrue);
+        expect(pluginNotif.idsCancelados, isNotEmpty);
+
+        // Chunks parciais foram salvos no staging, mas o envio completo foi abortado
+        final chunksNaPrimeiraTentativa = List<int>.from(
+          clienteHttp.indicesChunksEnviados,
+        );
+        expect(chunksNaPrimeiraTentativa, contains(0));
+        expect(
+          clienteHttp.versoesRecebidasPorSessao['s_cancelavel'],
+          isNull,
+        );
+
+        // 2. Enquanto estiver cancelado pelo usuário, sincronizarPendentes e enviarSubmissao automático ignoram a sessão
+        clienteHttp.indicesChunksEnviados.clear();
+        final resFilaPausada = await syncCancelavel.sincronizarPendentes();
+        expect(resFilaPausada.enviados, equals(0));
+        expect(await syncCancelavel.enviarSubmissao(recCancel), isFalse);
+        expect(clienteHttp.indicesChunksEnviados, isEmpty);
+
+        // 3. Quando o usuário inicia publicarEAguardarLiberacao explicitamente, limpa o cancelamento e retoma do chunk seguinte
+        clienteHttp.atrasoEnvioChunk = null;
+        clienteHttp.consultasEmAnaliseAntesDeAtivar['s_cancelavel'] = 3;
+        var cancelouNoPolling = false;
+        final resCanceladoNoPolling = await syncCancelavel
+            .publicarEAguardarLiberacao(
+              idSessao: 's_cancelavel',
+              epubPath: epubCancel.path,
+              aoProgredir: (progresso) {
+                if (!cancelouNoPolling &&
+                    progresso.etapa ==
+                        EtapaPublicacaoLaudo.aguardandoVerificacaoServidor) {
+                  cancelouNoPolling = true;
+                  syncCancelavel.cancelarPublicacao('s_cancelavel');
+                }
+              },
+            );
+        expect(
+          resCanceladoNoPolling.etapa,
+          equals(EtapaPublicacaoLaudo.canceladoPeloUsuario),
+        );
+        // O chunk 0 já enviado antes do cancelamento não foi reenviado!
+        expect(clienteHttp.indicesChunksEnviados, isNot(contains(0)));
+
+        // 4. Retoma novamente até concluir ativo
+        clienteHttp.consultasEmAnaliseAntesDeAtivar['s_cancelavel'] = 0;
+        final resConcluido = await syncCancelavel.publicarEAguardarLiberacao(
+          idSessao: 's_cancelavel',
+          epubPath: epubCancel.path,
+        );
+        expect(resConcluido.etapa, equals(EtapaPublicacaoLaudo.concluidoAtivo));
+        expect(syncCancelavel.foiCanceladoPeloUsuario('s_cancelavel'), isFalse);
+      },
+    );
   });
 }

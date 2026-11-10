@@ -120,6 +120,20 @@ void main() {
       );
       expect(lista.length, equals(1));
 
+      final fakeComAtraso = ClienteHttpFixalogNuvemFake(
+        atrasoEnvioChunk: const Duration(milliseconds: 1),
+      );
+      final resComAtraso = await fakeComAtraso.enviarChunkEpub(
+        idSessao: 's_atraso',
+        sha256: 'hash_atraso',
+        index: 0,
+        total: 1,
+        chunkBytes: Uint8List.fromList([1, 2]),
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(resComAtraso.finalizado, isTrue);
+
       fake.deveLancarErroRede = true;
       await expectLater(
         fake.enviarVersaoEpub(

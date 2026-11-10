@@ -234,13 +234,20 @@ class PluginNotificacoesLocaisFake implements FlutterLocalNotificationsPlugin {
     return resultadoInicializacao;
   }
 
-  /// Simula o toque do usuário em uma notificação exibida, disparando o callback registrado.
-  void simularToqueNotificacao({int id = 1, String? payload}) {
+  /// Simula o toque do usuário em uma notificação exibida ou em uma ação da notificação, disparando o callback registrado.
+  void simularToqueNotificacao({
+    int id = 1,
+    String? payload,
+    String? actionId,
+  }) {
     callbackRespostaNotificacao?.call(
       NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotification,
+        notificationResponseType: actionId != null
+            ? NotificationResponseType.selectedNotificationAction
+            : NotificationResponseType.selectedNotification,
         id: id,
         payload: payload,
+        actionId: actionId,
       ),
     );
   }

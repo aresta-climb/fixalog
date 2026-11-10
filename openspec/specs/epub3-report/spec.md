@@ -14,11 +14,11 @@ O sistema DEVE (MUST) compilar o relatório técnico de vistoria em um arquivo d
 - **THEN** o sistema compila um arquivo `.epub` válido onde os arquivos `.xhtml`, `.css`, `.opf`, `.xml`, `.yaml` e `.proto` são comprimidos com `DEFLATE` e os arquivos de mídia em `OEBPS/midias/` e `OEBPS/materiais/` são armazenados com `CompressionType.none` (`STORE`)
 
 ### Requirement: O sistema DEVE embutir e reproduzir múltiplos vídeos e fotos no EPUB 3
-O sistema DEVE incorporar arquivos de vídeo MP4 (codec H.264 720p CRF 26 `-preset veryfast` / áudio mono AAC 64k / faststart) e fotos em formato WebP (resolução de até 4MP e qualidade 85) no manifesto do EPUB 3, sem impor limites arbitrários à quantidade total de mídias. Os vídeos DEVEM ser referenciados semanticamente via tags HTML5 `<video controls>` com imagem de capa (*poster frame*) estática em formato JPEG (`<uuid>_poster.jpg`).
+O sistema DEVE (MUST) incorporar arquivos de vídeo MP4 (codec H.264 720p CRF 26 `-preset veryfast` / áudio mono AAC 64k / faststart) e fotos em formato WebP (resolução de até 4MP e qualidade 85) no manifesto do EPUB 3, sem impor limites arbitrários à quantidade total de mídias. Os vídeos DEVEM (MUST) ser referenciados semanticamente via tags HTML5 `<video controls>` com imagem de capa (*poster frame*) estática em formato JPEG (`<uuid>_poster.jpg`) e DEVEM (MUST) ser acompanhados em `OEBPS/midias/` por miniaturas JPEG altamente comprimidas (`360p`, qualidade leve) extraídas a cada 10 segundos de vídeo (`<uuid>_kf_10s.jpg`, `<uuid>_kf_20s.jpg`, ...), todas declaradas no `content.opf` e assinadas no `META-INF/signatures.xml` para auditoria pericial e moderação de segurança no servidor.
 
 #### Scenario: Vistoria com múltiplos vídeos e fotos de proteções
-- **WHEN** a sessão de manutenção inclui múltiplos vídeos e fotos documentando o estado das proteções, sem limitação fixa de quantidade
-- **THEN** todas as mídias pré-processadas ou transcodificadas são empacotadas na pasta de mídias do EPUB e renderizadas com controles nativos de reprodução e atributo `poster` apontando para `<uuid>_poster.jpg`
+- **WHEN** a sessão de manutenção inclui vídeos e fotos documentando o estado das proteções
+- **THEN** todas as mídias pré-processadas ou transcodificadas são empacotadas em `OEBPS/midias/` (incluindo `<uuid>.mp4`, `<uuid>_poster.jpg` e as miniaturas de keyframes `<uuid>_kf_<N>s.jpg` a cada 10 segundos de vídeo), assinadas em `META-INF/signatures.xml` e renderizadas com controles nativos de reprodução
 
 ### Requirement: O sistema DEVE preservar mídias originais para re-geração
 O sistema DEVE manter os arquivos brutos originais de fotos e vídeos gravados no dispositivo com o sufixo _original dentro do armazenamento local da sessão (sessoes/<sessionId>/), garantindo que futuras compilações do EPUB sejam realizadas a partir da mídia matriz sem perda cumulativa de qualidade.

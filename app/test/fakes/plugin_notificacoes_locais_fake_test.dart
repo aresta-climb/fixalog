@@ -15,10 +15,12 @@ void main() {
       );
 
       String? payloadRecebido;
+      String? actionIdRecebido;
       final resultado = await fake.initialize(
         settings: settings,
         onDidReceiveNotificationResponse: (resp) {
           payloadRecebido = resp.payload;
+          actionIdRecebido = resp.actionId;
         },
       );
 
@@ -26,6 +28,14 @@ void main() {
       expect(fake.configuracoesInicializadas, same(settings));
       fake.simularToqueNotificacao(id: 42, payload: 'sessao_123');
       expect(payloadRecebido, 'sessao_123');
+      expect(actionIdRecebido, isNull);
+
+      fake.simularToqueNotificacao(
+        id: 42,
+        payload: 'sessao_123',
+        actionId: 'cancelar_upload',
+      );
+      expect(actionIdRecebido, 'cancelar_upload');
 
       expect(
         fake.resolvePlatformSpecificImplementation<

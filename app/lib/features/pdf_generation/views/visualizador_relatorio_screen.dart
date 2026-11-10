@@ -241,17 +241,21 @@ class _VisualizadorRelatorioScreenState
     );
     final SincronizadorNuvemService sincronizador =
         widget.sincronizadorNuvem ?? ref.read(sincronizadorNuvemServiceProvider);
+    final progressoAnterior = sincronizador.obterProgressoAtual(idSessao);
 
     setState(() {
       _modalFechadoPeloUsuario = false;
       _progressoUpload =
-          sincronizador.obterProgressoAtual(idSessao) ??
-          ProgressoPublicacaoLaudo(
-            idSessao: idSessao,
-            etapa: EtapaPublicacaoLaudo.enviandoBlocos,
-            blocosEnviados: 0,
-            totalBlocos: 1,
-          );
+          (progressoAnterior != null &&
+              progressoAnterior.etapa !=
+                  EtapaPublicacaoLaudo.canceladoPeloUsuario)
+          ? progressoAnterior
+          : ProgressoPublicacaoLaudo(
+              idSessao: idSessao,
+              etapa: EtapaPublicacaoLaudo.enviandoBlocos,
+              blocosEnviados: 0,
+              totalBlocos: 1,
+            );
     });
 
     final resultado = await sincronizador.publicarEAguardarLiberacao(
@@ -261,13 +265,20 @@ class _VisualizadorRelatorioScreenState
         if (mounted && !_modalFechadoPeloUsuario) {
           setState(() {
             _progressoUpload =
-                p.etapa == EtapaPublicacaoLaudo.concluidoAtivo ? null : p;
+                (p.etapa == EtapaPublicacaoLaudo.concluidoAtivo ||
+                    p.etapa == EtapaPublicacaoLaudo.canceladoPeloUsuario)
+                ? null
+                : p;
           });
         }
       },
     );
 
-    if (!mounted || _modalFechadoPeloUsuario) return;
+    if (!mounted ||
+        _modalFechadoPeloUsuario ||
+        resultado.etapa == EtapaPublicacaoLaudo.canceladoPeloUsuario) {
+      return;
+    }
 
     if (resultado.etapa != EtapaPublicacaoLaudo.concluidoAtivo) {
       setState(() {
@@ -368,6 +379,14 @@ class _VisualizadorRelatorioScreenState
       });
     }
 
+    void cancelarEnvio() {
+      final SincronizadorNuvemService sincronizador =
+          widget.sincronizadorNuvem ??
+          ref.read(sincronizadorNuvemServiceProvider);
+      unawaited(sincronizador.cancelarPublicacao(progresso.idSessao));
+      fecharModal();
+    }
+
     return Stack(
       children: [
         const ModalBarrier(color: Colors.black54, dismissible: false),
@@ -461,6 +480,12 @@ class _VisualizadorRelatorioScreenState
               ],
             ),
             actions: [
+              if (!ehSemInternet && !ehFalha)
+                TextButton(
+                  key: const Key('btn_cancelar_envio_modal_upload'),
+                  onPressed: cancelarEnvio,
+                  child: const Text('CANCELAR ENVIO'),
+                ),
               TextButton(
                 key: const Key('btn_fechar_modal_upload'),
                 onPressed: fecharModal,

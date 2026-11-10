@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UserNotifications
 import AuthenticationServices
 import CryptoKit
 import Security
@@ -14,6 +15,9 @@ import Security
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    if #available(iOS 10.0, *) {
+      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/services/agendador_sincronizacao_background.dart';
+import '../../../core/services/banco_dados_local.dart';
+import '../../../core/services/gerenciador_notificacao_upload_laudo.dart';
 import '../../../core/services/servico_telemetria.dart';
+import '../../pdf_generation/views/visualizador_relatorio_screen.dart';
 import '../../settings/views/tela_configuracoes.dart';
 import 'new_protocol_screen.dart';
 import 'history_screen.dart';
@@ -22,6 +25,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
   AgendadorSincronizacaoBackground? _agendadorBackground;
+  StreamSubscription<String>? _inscricaoNotificacoes;
 
   static const _pages = <Widget>[
     NewProtocolScreen(),
@@ -35,6 +39,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     _agendadorBackground = ref.read(agendadorSincronizacaoBackgroundProvider);
     unawaited(_agendadorBackground!.iniciarMonitoramento());
+    _inscricaoNotificacoes = GerenciadorNotificacaoUploadLaudo
+        .instancia
+        .streamLaudosSelecionados
+        .listen(_abrirLaudoPorNotificacao);
+    final pendente = GerenciadorNotificacaoUploadLaudo.instancia
+        .consumirIdSessaoTocadoPendente();
+    if (pendente != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _abrirLaudoPorNotificacao(pendente);
+      });
+    }
+  }
+
+  void _abrirLaudoPorNotificacao(String idSessao) {
+    final banco = ref.read(bancoDadosLocalProvider);
+    final registro = banco?.obterSubmissaoPorIdSessaoSync(idSessao);
+    if (registro == null || !mounted) return;
+    final titulo = registro.tituloExibicao.trim().isNotEmpty
+        ? registro.tituloExibicao.trim()
+        : registro.nomeProtocolo;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => VisualizadorRelatorioScreen(
+          idSessao: registro.idSessao,
+          titulo: titulo,
+          caminhoEpub: registro.epubPath.isNotEmpty ? registro.epubPath : null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -47,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_inscricaoNotificacoes?.cancel());
     _agendadorBackground?.cancelarTimer();
     super.dispose();
   }

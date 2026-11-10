@@ -8,11 +8,13 @@ import 'package:archive/archive.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/gerenciador_notificacao_upload_laudo.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import '../../fakes/crypto_service_fake.dart';
+import '../../fakes/plugin_notificacoes_locais_fake.dart';
 import '../../fakes/registro_logger_fake.dart';
 import 'autenticacao_nuvem_service_fake.dart';
 import 'sincronizador_nuvem_service_fake.dart';
@@ -670,6 +672,167 @@ void main() {
         );
         recDev.enviadoNuvem = false;
         expect(await syncRelease.enviarSubmissao(recDev), isFalse);
+      },
+    );
+
+    test(
+      'propaga progresso verificacaoConcluida/verificacaoTotal do D1, aciona notificacao sticky e falha imediatamente em HTTP >= 400 sem ficar em loop',
+      () async {
+        final pluginNotif = PluginNotificacoesLocaisFake();
+        final gerenciadorNotif = GerenciadorNotificacaoUploadLaudo.paraTestes(
+          plugin: pluginNotif,
+        );
+        final syncComNotif = SincronizadorNuvemService(
+          banco: banco,
+          autenticacaoService: auth,
+          clienteHttp: clienteHttp,
+          gerenciadorNotificacao: gerenciadorNotif,
+          intervaloPollingModeracao: const Duration(milliseconds: 5),
+        );
+
+        final epubOk = File(p.join(tempDir.path, 'progresso_d1.epub'))
+          ..writeAsBytesSync(_criarZipEpubTeste());
+        final recOk = SubmissionRecord()
+          ..idSessao = 's_progresso_d1'
+          ..idProtocolo = 'material_registration'
+          ..nomeProtocolo = 'Cadastro de Material'
+          ..tituloExibicao = 'Barras Roscadas Inox'
+          ..tipoRegistro = SubmissionTipoRegistro.material
+          ..status = SubmissionStatus.gerado
+          ..epubPath = epubOk.path
+          ..enviadoNuvem = false;
+        await banco.salvarSubmissao(recOk);
+
+        clienteHttp.consultasEmAnaliseAntesDeAtivar['s_progresso_d1'] = 2;
+        final progressos = <ProgressoPublicacaoLaudo>[];
+        final resOk = await syncComNotif.publicarEAguardarLiberacao(
+          idSessao: 's_progresso_d1',
+          epubPath: epubOk.path,
+          aoProgredir: progressos.add,
+        );
+
+        expect(resOk.etapa, equals(EtapaPublicacaoLaudo.concluidoAtivo));
+        expect(resOk.fracaoVerificacao, equals(1.0));
+        expect(resOk.fracaoCombinada, equals(1.0));
+        expect(
+          progressos.any(
+            (p) =>
+                p.etapa ==
+                    EtapaPublicacaoLaudo.aguardandoVerificacaoServidor &&
+                p.verificacaoTotal >= 2,
+          ),
+          isTrue,
+        );
+        // Notificação sticky iniciada e depois substituída por notificação de conclusão
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        expect(pluginNotif.androidFake!.servicosIniciados, isNotEmpty);
+        expect(
+          pluginNotif.notificacoesExibidas.last.corpo,
+          contains('Toque para abrir o laudo e compartilhar'),
+        );
+
+        // Testa erro HTTP 400 real em ClienteHttpFixalogNuvemPadrao (consultarStatusLaudo e enviarChunkEpub)
+        final serverErro = await HttpServer.bind(
+          InternetAddress.loopbackIPv4,
+          0,
+        );
+        addTearDown(serverErro.close);
+        serverErro.listen((HttpRequest req) async {
+          await req.drain<void>();
+          req.response.statusCode = 400;
+          req.response.write(
+            jsonEncode({
+              'erro':
+                  'O claim nonce do atestado_oidc_jwt não corresponde ao hash SHA-256 da chave pública ECDSA.',
+            }),
+          );
+          await req.response.close();
+        });
+
+        final clienteHttpErro = ClienteHttpFixalogNuvemPadrao(
+          urlBase: 'http://127.0.0.1:${serverErro.port}',
+        );
+        await expectLater(
+          clienteHttpErro.consultarStatusLaudo(
+            idSessao: 's_400',
+            sha256: 'abc',
+            jwtSupabase: 'jwt',
+            tokenAppCheck: 'appcheck',
+          ),
+          throwsA(
+            isA<ExcecaoApiFixalogNuvem>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              400,
+            ),
+          ),
+        );
+        await expectLater(
+          clienteHttpErro.enviarChunkEpub(
+            idSessao: 's_400',
+            sha256: 'abc',
+            index: 0,
+            total: 1,
+            chunkBytes: Uint8List.fromList([1, 2, 3]),
+            jwtSupabase: 'jwt',
+            tokenAppCheck: 'appcheck',
+          ),
+          throwsA(
+            isA<ExcecaoApiFixalogNuvem>().having(
+              (e) => e.toString(),
+              'mensagem',
+              contains('nonce'),
+            ),
+          ),
+        );
+
+        // E valida que publicarEAguardarLiberacao retorna rejeitadoOuFalha imediatamente em erro HTTP 400 no chunk
+        clienteHttp.erroHttpChunkPorSessao['s_falha_400'] =
+            const ExcecaoApiFixalogNuvem(
+              400,
+              'Assinatura XML-DSig inválida no pacote.',
+            );
+        final rec400 = SubmissionRecord()
+          ..idSessao = 's_falha_400'
+          ..idProtocolo = 'manutencao_ferragens'
+          ..nomeProtocolo = 'Via Inválida'
+          ..tipoRegistro = SubmissionTipoRegistro.manutencao
+          ..status = SubmissionStatus.gerado
+          ..epubPath = epubOk.path
+          ..enviadoNuvem = false;
+        await banco.salvarSubmissao(rec400);
+
+        final resFalha400 = await syncComNotif.publicarEAguardarLiberacao(
+          idSessao: 's_falha_400',
+          epubPath: epubOk.path,
+        );
+        expect(
+          resFalha400.etapa,
+          equals(EtapaPublicacaoLaudo.rejeitadoOuFalha),
+        );
+        expect(
+          resFalha400.mensagemErro,
+          contains('Assinatura XML-DSig inválida'),
+        );
+
+        // E valida erro HTTP 403 direto no consultarStatusLaudo
+        clienteHttp.erroHttpPorSessao['s_403_status'] =
+            const ExcecaoApiFixalogNuvem(
+              403,
+              'Apenas a conta proprietária do laudo pode consultar seu status.',
+            );
+        final resFalha403 = await syncComNotif.publicarEAguardarLiberacao(
+          idSessao: 's_403_status',
+          epubPath: epubOk.path,
+        );
+        expect(
+          resFalha403.etapa,
+          equals(EtapaPublicacaoLaudo.rejeitadoOuFalha),
+        );
+        expect(
+          resFalha403.mensagemErro,
+          contains('conta proprietária'),
+        );
       },
     );
   });

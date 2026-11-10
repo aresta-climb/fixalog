@@ -110,6 +110,7 @@ class _VisualizadorRelatorioScreenState
   String? _mensagemErro;
   String? _caminhoXhtmlFinal;
   ProgressoPublicacaoLaudo? _progressoUpload;
+  bool _modalFechadoPeloUsuario = false;
   Widget? _webViewConstruido;
 
   @override
@@ -242,6 +243,7 @@ class _VisualizadorRelatorioScreenState
         widget.sincronizadorNuvem ?? ref.read(sincronizadorNuvemServiceProvider);
 
     setState(() {
+      _modalFechadoPeloUsuario = false;
       _progressoUpload =
           sincronizador.obterProgressoAtual(idSessao) ??
           ProgressoPublicacaoLaudo(
@@ -256,7 +258,7 @@ class _VisualizadorRelatorioScreenState
       idSessao: idSessao,
       epubPath: widget.caminhoEpub,
       aoProgredir: (p) {
-        if (mounted) {
+        if (mounted && !_modalFechadoPeloUsuario) {
           setState(() {
             _progressoUpload =
                 p.etapa == EtapaPublicacaoLaudo.concluidoAtivo ? null : p;
@@ -265,7 +267,7 @@ class _VisualizadorRelatorioScreenState
       },
     );
 
-    if (!mounted) return;
+    if (!mounted || _modalFechadoPeloUsuario) return;
 
     if (resultado.etapa != EtapaPublicacaoLaudo.concluidoAtivo) {
       setState(() {
@@ -359,18 +361,37 @@ class _VisualizadorRelatorioScreenState
         progresso.etapa == EtapaPublicacaoLaudo.aguardandoVerificacaoServidor ||
         progresso.etapa == EtapaPublicacaoLaudo.concluidoAtivo;
 
+    void fecharModal() {
+      setState(() {
+        _modalFechadoPeloUsuario = true;
+        _progressoUpload = null;
+      });
+    }
+
     return Stack(
       children: [
         const ModalBarrier(color: Colors.black54, dismissible: false),
         Center(
           child: AlertDialog(
             key: const Key('modal_progresso_upload_laudo'),
-            title: Text(
-              ehSemInternet
-                  ? 'Sem conexão com a internet'
-                  : (ehFalha
-                        ? 'Verificação pendente'
-                        : 'Publicando laudo no Fixalog'),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    ehSemInternet
+                        ? 'Sem conexão com a internet'
+                        : (ehFalha
+                              ? 'Verificação pendente'
+                              : 'Publicando laudo no Fixalog'),
+                  ),
+                ),
+                IconButton(
+                  key: const Key('btn_fechar_icone_modal_upload'),
+                  icon: const Icon(Icons.close, size: 20),
+                  tooltip: 'Fechar',
+                  onPressed: fecharModal,
+                ),
+              ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -406,6 +427,7 @@ class _VisualizadorRelatorioScreenState
                   ),
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
+                    key: const Key('progresso_etapa_blocos'),
                     value: etapa1Concluida ? 1.0 : progresso.fracaoBlocos,
                   ),
                   const SizedBox(height: 16),
@@ -423,27 +445,31 @@ class _VisualizadorRelatorioScreenState
                           color: Colors.grey,
                         ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          '2. Verificando integridade e mídias no servidor',
+                          '2. Verificando integridade e mídias no servidor (${progresso.verificacaoConcluida}/${progresso.verificacaoTotal})',
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    key: const Key('progresso_etapa_verificacao'),
+                    value: etapa1Concluida ? progresso.fracaoVerificacao : 0.0,
                   ),
                 ],
               ],
             ),
             actions: [
-              if (ehSemInternet || ehFalha)
-                TextButton(
-                  key: const Key('btn_fechar_modal_upload'),
-                  onPressed: () {
-                    setState(() {
-                      _progressoUpload = null;
-                    });
-                  },
-                  child: const Text('FECHAR'),
+              TextButton(
+                key: const Key('btn_fechar_modal_upload'),
+                onPressed: fecharModal,
+                child: Text(
+                  (ehSemInternet || ehFalha)
+                      ? 'FECHAR'
+                      : 'CONTINUAR EM 2º PLANO',
                 ),
+              ),
             ],
           ),
         ),

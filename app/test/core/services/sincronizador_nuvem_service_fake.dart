@@ -16,6 +16,8 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
   final Map<String, Map<int, Uint8List>> _stagingChunksPorChave = {};
   final Map<String, int> consultasEmAnaliseAntesDeAtivar = {};
   final Map<String, String> statusModeracaoForcadoPorSessao = {};
+  final Map<String, ExcecaoApiFixalogNuvem> erroHttpPorSessao = {};
+  final Map<String, ExcecaoApiFixalogNuvem> erroHttpChunkPorSessao = {};
   final List<MetadadosLaudoRemoto> laudosRemotosConta = [];
   final Map<String, Uint8List> epubsPublicosPorSessao = {};
   bool deveLancarErroRede;
@@ -70,6 +72,10 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
     if (deveLancarErroRede) {
       throw Exception('Falha simulada de rede ao consultar status do laudo.');
     }
+    final erroHttp = erroHttpPorSessao[idSessao];
+    if (erroHttp != null) {
+      throw erroHttp;
+    }
     final mapaVersoes = versaoPorSessaoESha256[idSessao] ?? const {};
     int? versaoEncontrada;
     if (sha256 != null && sha256.isNotEmpty) {
@@ -85,9 +91,13 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
               epubsPublicosPorSessao.containsKey(idSessao))) {
       final restantesEmAnalise = consultasEmAnaliseAntesDeAtivar[idSessao] ?? 0;
       String statusMod = statusModeracaoForcadoPorSessao[idSessao] ?? 'ativo';
+      int verificacaoTotal = 4;
+      int verificacaoConcluida = 4;
       if (restantesEmAnalise > 0) {
         consultasEmAnaliseAntesDeAtivar[idSessao] = restantesEmAnalise - 1;
         statusMod = 'em_analise';
+        verificacaoTotal = restantesEmAnalise + 1;
+        verificacaoConcluida = 1;
       }
       return StatusLaudoRemoto(
         idSessao: idSessao,
@@ -95,6 +105,8 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
         jaEnviado: true,
         versao: versaoEncontrada ?? 1,
         statusModeracao: statusMod,
+        verificacaoConcluida: verificacaoConcluida,
+        verificacaoTotal: verificacaoTotal,
         chunksRecebidos: const [],
       );
     }
@@ -127,6 +139,11 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
     }
     if (deveLancarErroRede) {
       throw Exception('Falha simulada de rede ao enviar chunk de EPUB.');
+    }
+    final erroHttp =
+        erroHttpChunkPorSessao[idSessao] ?? erroHttpPorSessao[idSessao];
+    if (erroHttp != null) {
+      throw erroHttp;
     }
     indicesChunksEnviados.add(index);
     final chave = _chaveStaging(idSessao, sha256);

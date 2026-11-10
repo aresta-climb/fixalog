@@ -55,6 +55,7 @@ dependencies:
   feedback: ^3.1.0
   http: ^1.2.2
   http_parser: ^4.0.2
+  flutter_local_notifications: ^22.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

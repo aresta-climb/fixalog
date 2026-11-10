@@ -72,6 +72,37 @@ void main() {
       );
       expect(statusFinal.jaEnviado, isTrue);
       expect(statusFinal.estaAtivo, isTrue);
+      expect(statusFinal.verificacaoConcluida, greaterThan(0));
+      expect(
+        statusFinal.verificacaoConcluida,
+        equals(statusFinal.verificacaoTotal),
+      );
+
+      // Simula erro HTTP >= 400 configurado por sessão
+      fake.erroHttpPorSessao['s_erro_400'] = const ExcecaoApiFixalogNuvem(
+        400,
+        'Assinatura XML-DSig inválida.',
+      );
+      await expectLater(
+        fake.consultarStatusLaudo(
+          idSessao: 's_erro_400',
+          jwtSupabase: 'jwt',
+          tokenAppCheck: 'appcheck',
+        ),
+        throwsA(isA<ExcecaoApiFixalogNuvem>()),
+      );
+      await expectLater(
+        fake.enviarChunkEpub(
+          idSessao: 's_erro_400',
+          sha256: 'abc',
+          index: 0,
+          total: 1,
+          chunkBytes: Uint8List.fromList([1]),
+          jwtSupabase: 'jwt',
+          tokenAppCheck: 'appcheck',
+        ),
+        throwsA(isA<ExcecaoApiFixalogNuvem>()),
+      );
 
       fake.laudosRemotosConta.add(
         MetadadosLaudoRemoto(

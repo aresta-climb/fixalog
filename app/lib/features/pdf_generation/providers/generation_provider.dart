@@ -454,6 +454,7 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       final signaturesXml = await _xmlSigner.gerarAssinaturaXml(
         arquivos: recursosAssinatura,
         privateKeyPem: privateKeyPem,
+        publicKeyPem: publicKeyPem,
         certificadoX509Pem: x509CertPem,
         atestadoOidcJwt: atestadoOidcJwt,
       );

@@ -12,8 +12,24 @@ import 'package:path/path.dart' as p;
 import '../models/local/submission_record.dart';
 import 'autenticacao_nuvem_service.dart';
 import 'banco_dados_local.dart';
+import 'gerenciador_notificacao_upload_laudo.dart';
 import 'registro_logger.dart';
 import 'servico_telemetria.dart';
+
+/// Exceção lançada quando a API `fixalog.app` retorna HTTP `>= 400`.
+class ExcecaoApiFixalogNuvem implements Exception {
+  /// Código de status HTTP retornado pelo Worker.
+  final int statusCode;
+
+  /// Mensagem de erro descritiva extraída do corpo JSON (`erro`).
+  final String mensagem;
+
+  /// Cria uma exceção com o código HTTP e a mensagem do servidor.
+  const ExcecaoApiFixalogNuvem(this.statusCode, this.mensagem);
+
+  @override
+  String toString() => mensagem;
+}
 
 /// Metadados resumidos de um laudo remoto retornado por `GET /api/v1/laudos`.
 class MetadadosLaudoRemoto {
@@ -55,6 +71,9 @@ class StatusLaudoRemoto {
   final bool jaEnviado;
   final int? versao;
   final String? statusModeracao;
+  final String? motivoModeracao;
+  final int verificacaoConcluida;
+  final int verificacaoTotal;
   final List<int> chunksRecebidos;
 
   const StatusLaudoRemoto({
@@ -63,6 +82,9 @@ class StatusLaudoRemoto {
     required this.jaEnviado,
     required this.versao,
     required this.statusModeracao,
+    this.motivoModeracao,
+    this.verificacaoConcluida = 0,
+    this.verificacaoTotal = 1,
     required this.chunksRecebidos,
   });
 
@@ -70,12 +92,20 @@ class StatusLaudoRemoto {
 
   factory StatusLaudoRemoto.deJson(Map<String, dynamic> json) {
     final chunks = (json['chunks_recebidos'] as List<dynamic>?) ?? const [];
+    final statusMod = json['status_moderacao'] as String?;
+    final total = (json['verificacao_total'] as num?)?.toInt() ?? 1;
+    final concluida =
+        (json['verificacao_concluida'] as num?)?.toInt() ??
+        (statusMod == 'ativo' ? total : 0);
     return StatusLaudoRemoto(
       idSessao: (json['id_sessao'] as String?) ?? '',
       sha256: json['sha256'] as String?,
       jaEnviado: (json['ja_enviado'] as bool?) ?? false,
       versao: (json['versao'] as num?)?.toInt(),
-      statusModeracao: json['status_moderacao'] as String?,
+      statusModeracao: statusMod,
+      motivoModeracao: json['motivo_moderacao'] as String?,
+      verificacaoConcluida: concluida,
+      verificacaoTotal: total <= 0 ? 1 : total,
       chunksRecebidos: chunks.whereType<num>().map((e) => e.toInt()).toList(),
     );
   }
@@ -130,6 +160,8 @@ class ProgressoPublicacaoLaudo {
   final EtapaPublicacaoLaudo etapa;
   final int blocosEnviados;
   final int totalBlocos;
+  final int verificacaoConcluida;
+  final int verificacaoTotal;
   final String? mensagemErro;
 
   const ProgressoPublicacaoLaudo({
@@ -137,11 +169,20 @@ class ProgressoPublicacaoLaudo {
     required this.etapa,
     required this.blocosEnviados,
     required this.totalBlocos,
+    this.verificacaoConcluida = 0,
+    this.verificacaoTotal = 1,
     this.mensagemErro,
   });
 
   double get fracaoBlocos =>
       totalBlocos <= 0 ? 0.0 : (blocosEnviados / totalBlocos).clamp(0.0, 1.0);
+
+  double get fracaoVerificacao => verificacaoTotal <= 0
+      ? 0.0
+      : (verificacaoConcluida / verificacaoTotal).clamp(0.0, 1.0);
+
+  double get fracaoCombinada =>
+      (fracaoBlocos * 0.5 + fracaoVerificacao * 0.5).clamp(0.0, 1.0);
 }
 
 /// Resultado de uma execução da fila de sincronização de laudos com a nuvem.
@@ -247,6 +288,9 @@ class ClienteHttpFixalogNuvemPadrao implements ClienteHttpFixalogNuvem {
       final res = await req.close();
       final texto = await utf8.decoder.bind(res).join();
       final mapa = jsonDecode(texto) as Map<String, dynamic>;
+      if (res.statusCode >= 400) {
+        throw ExcecaoApiFixalogNuvem(res.statusCode, '${mapa['erro']}');
+      }
       return StatusLaudoRemoto.deJson(mapa);
     } finally {
       client.close(force: true);
@@ -277,6 +321,9 @@ class ClienteHttpFixalogNuvemPadrao implements ClienteHttpFixalogNuvem {
       final res = await req.close();
       final texto = await utf8.decoder.bind(res).join();
       final mapa = jsonDecode(texto) as Map<String, dynamic>;
+      if (res.statusCode >= 400) {
+        throw ExcecaoApiFixalogNuvem(res.statusCode, '${mapa['erro']}');
+      }
       return RespostaChunkLaudoRemoto.deJson(res.statusCode, mapa);
     } finally {
       client.close(force: true);
@@ -343,6 +390,7 @@ class SincronizadorNuvemService {
   final BancoDadosLocal? _banco;
   final AutenticacaoNuvemService _autenticacaoService;
   final ClienteHttpFixalogNuvem _clienteHttp;
+  final GerenciadorNotificacaoUploadLaudo _gerenciadorNotificacao;
   final RegistroLogger _logger;
   final int _tamanhoBlocoBytes;
   final Duration _intervaloPollingModeracao;
@@ -358,19 +406,23 @@ class SincronizadorNuvemService {
     required BancoDadosLocal? banco,
     required AutenticacaoNuvemService autenticacaoService,
     ClienteHttpFixalogNuvem? clienteHttp,
+    GerenciadorNotificacaoUploadLaudo? gerenciadorNotificacao,
     RegistroLogger? logger,
     int tamanhoBlocoBytes = tamanhoPadraoBlocoBytes,
     Duration intervaloPollingModeracao = const Duration(seconds: 2),
     int maxTentativasPollingModeracao = 30,
     bool emModoDesenvolvimento = kModoDesenvolvimento,
-  })  : _banco = banco,
-        _autenticacaoService = autenticacaoService,
-        _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao(),
-        _logger = logger ?? RegistroLogger.instancia,
-        _tamanhoBlocoBytes = tamanhoBlocoBytes,
-        _intervaloPollingModeracao = intervaloPollingModeracao,
-        _maxTentativasPollingModeracao = maxTentativasPollingModeracao,
-        _emModoDesenvolvimento = emModoDesenvolvimento;
+  }) : _banco = banco,
+       _autenticacaoService = autenticacaoService,
+       _clienteHttp = clienteHttp ?? ClienteHttpFixalogNuvemPadrao(),
+       _gerenciadorNotificacao =
+           gerenciadorNotificacao ??
+           GerenciadorNotificacaoUploadLaudo.instancia,
+       _logger = logger ?? RegistroLogger.instancia,
+       _tamanhoBlocoBytes = tamanhoBlocoBytes,
+       _intervaloPollingModeracao = intervaloPollingModeracao,
+       _maxTentativasPollingModeracao = maxTentativasPollingModeracao,
+       _emModoDesenvolvimento = emModoDesenvolvimento;
 
   /// Constrói a URL canônica pública de compartilhamento web de uma sessão.
   static String obterUrlCompartilhamentoPublico(String idSessao) {
@@ -468,6 +520,54 @@ class SincronizadorNuvemService {
   void _emitirProgresso(ProgressoPublicacaoLaudo progresso) {
     _progressoPorSessao[progresso.idSessao] = progresso;
     _controladorProgresso.add(progresso);
+
+    final reg = _banco?.obterSubmissaoPorIdSessaoSync(progresso.idSessao);
+    final titulo = (reg?.tituloExibicao.trim().isNotEmpty ?? false)
+        ? reg!.tituloExibicao.trim()
+        : (reg?.nomeProtocolo.trim().isNotEmpty ?? false)
+        ? reg!.nomeProtocolo.trim()
+        : 'Laudo Técnico Fixalog';
+
+    switch (progresso.etapa) {
+      case EtapaPublicacaoLaudo.enviandoBlocos:
+        unawaited(
+          _gerenciadorNotificacao.exibirProgresso(
+            idSessao: progresso.idSessao,
+            tituloLaudo: titulo,
+            etapaDescricao:
+                'Enviando blocos do laudo (${progresso.blocosEnviados}/${progresso.totalBlocos})',
+            progresso: progresso.fracaoCombinada,
+          ),
+        );
+      case EtapaPublicacaoLaudo.aguardandoVerificacaoServidor:
+        unawaited(
+          _gerenciadorNotificacao.exibirProgresso(
+            idSessao: progresso.idSessao,
+            tituloLaudo: titulo,
+            etapaDescricao:
+                'Verificando integridade e mídias no servidor (${progresso.verificacaoConcluida}/${progresso.verificacaoTotal})',
+            progresso: progresso.fracaoCombinada,
+          ),
+        );
+      case EtapaPublicacaoLaudo.concluidoAtivo:
+        unawaited(
+          _gerenciadorNotificacao.exibirConcluido(
+            idSessao: progresso.idSessao,
+            tituloLaudo: titulo,
+          ),
+        );
+      case EtapaPublicacaoLaudo.rejeitadoOuFalha:
+        unawaited(
+          _gerenciadorNotificacao.exibirFalha(
+            idSessao: progresso.idSessao,
+            tituloLaudo: titulo,
+            motivo:
+                progresso.mensagemErro ?? 'Falha ao publicar laudo no Fixalog.',
+          ),
+        );
+      case EtapaPublicacaoLaudo.semInternet:
+        break;
+    }
   }
 
   /// Extrai os IDs de materiais aninhados (`OEBPS/materiais/<uuid>/`) de dentro de um `.epub`.
@@ -621,6 +721,8 @@ class SincronizadorNuvemService {
             etapa: EtapaPublicacaoLaudo.concluidoAtivo,
             blocosEnviados: totalBlocos,
             totalBlocos: totalBlocos,
+            verificacaoConcluida: 1,
+            verificacaoTotal: 1,
           ),
         );
         return true;
@@ -648,6 +750,8 @@ class SincronizadorNuvemService {
                 : EtapaPublicacaoLaudo.aguardandoVerificacaoServidor,
             blocosEnviados: totalBlocos,
             totalBlocos: totalBlocos,
+            verificacaoConcluida: statusRemoto.verificacaoConcluida,
+            verificacaoTotal: statusRemoto.verificacaoTotal,
           ),
         );
         return true;
@@ -687,16 +791,19 @@ class SincronizadorNuvemService {
 
         ultimoStatusModeracao = resChunk.statusModeracao;
         concluidos++;
+        final estaAtivoChunk = ultimoStatusModeracao == 'ativo';
         _emitirProgresso(
           ProgressoPublicacaoLaudo(
             idSessao: record.idSessao,
             etapa: (concluidos >= totalBlocos)
-                ? (ultimoStatusModeracao == 'ativo'
+                ? (estaAtivoChunk
                       ? EtapaPublicacaoLaudo.concluidoAtivo
                       : EtapaPublicacaoLaudo.aguardandoVerificacaoServidor)
                 : EtapaPublicacaoLaudo.enviandoBlocos,
             blocosEnviados: concluidos,
             totalBlocos: totalBlocos,
+            verificacaoConcluida: estaAtivoChunk ? 1 : 0,
+            verificacaoTotal: 1,
           ),
         );
       }
@@ -712,10 +819,13 @@ class SincronizadorNuvemService {
         error: e,
         stackTrace: stackTrace,
       );
+      final ehErroHttpServidor = e is ExcecaoApiFixalogNuvem;
       _emitirProgresso(
         ProgressoPublicacaoLaudo(
           idSessao: record.idSessao,
-          etapa: EtapaPublicacaoLaudo.semInternet,
+          etapa: ehErroHttpServidor
+              ? EtapaPublicacaoLaudo.rejeitadoOuFalha
+              : EtapaPublicacaoLaudo.semInternet,
           blocosEnviados: 0,
           totalBlocos: 1,
           mensagemErro: e.toString(),
@@ -777,6 +887,8 @@ class SincronizadorNuvemService {
             etapa: EtapaPublicacaoLaudo.concluidoAtivo,
             blocosEnviados: 1,
             totalBlocos: 1,
+            verificacaoConcluida: 1,
+            verificacaoTotal: 1,
           );
           _emitirProgresso(concluidoMock);
           return concluidoMock;
@@ -791,6 +903,11 @@ class SincronizadorNuvemService {
         if (!status.jaEnviado && registro != null) {
           registro.enviadoNuvem = false;
           if (!await enviarSubmissao(registro)) {
+            final ultimoProgresso = obterProgressoAtual(idSessao);
+            if (ultimoProgresso != null &&
+                ultimoProgresso.etapa == EtapaPublicacaoLaudo.rejeitadoOuFalha) {
+              return ultimoProgresso;
+            }
             throw StateError('Falha no envio dos blocos do laudo.');
           }
           continue;
@@ -802,18 +919,25 @@ class SincronizadorNuvemService {
             etapa: EtapaPublicacaoLaudo.concluidoAtivo,
             blocosEnviados: 1,
             totalBlocos: 1,
+            verificacaoConcluida: status.verificacaoTotal,
+            verificacaoTotal: status.verificacaoTotal,
           );
           _emitirProgresso(concluido);
           return concluido;
         }
 
-        if (status.statusModeracao == 'rejeitado') {
+        if (status.statusModeracao == 'rejeitado' ||
+            status.statusModeracao == 'bloqueado' ||
+            status.statusModeracao == 'suspenso') {
           final rejeitado = ProgressoPublicacaoLaudo(
             idSessao: idSessao,
             etapa: EtapaPublicacaoLaudo.rejeitadoOuFalha,
             blocosEnviados: 1,
             totalBlocos: 1,
+            verificacaoConcluida: status.verificacaoConcluida,
+            verificacaoTotal: status.verificacaoTotal,
             mensagemErro:
+                status.motivoModeracao ??
                 'O laudo não pôde ser publicado pela verificação de segurança.',
           );
           _emitirProgresso(rejeitado);
@@ -826,6 +950,8 @@ class SincronizadorNuvemService {
             etapa: EtapaPublicacaoLaudo.aguardandoVerificacaoServidor,
             blocosEnviados: 1,
             totalBlocos: 1,
+            verificacaoConcluida: status.verificacaoConcluida,
+            verificacaoTotal: status.verificacaoTotal,
           ),
         );
         await Future<void>.delayed(_intervaloPollingModeracao);
@@ -842,9 +968,12 @@ class SincronizadorNuvemService {
       _emitirProgresso(tempoEsgotado);
       return tempoEsgotado;
     } catch (e) {
+      final ehErroHttpServidor = e is ExcecaoApiFixalogNuvem;
       final semRede = ProgressoPublicacaoLaudo(
         idSessao: idSessao,
-        etapa: EtapaPublicacaoLaudo.semInternet,
+        etapa: ehErroHttpServidor
+            ? EtapaPublicacaoLaudo.rejeitadoOuFalha
+            : EtapaPublicacaoLaudo.semInternet,
         blocosEnviados: 0,
         totalBlocos: 1,
         mensagemErro: e.toString(),

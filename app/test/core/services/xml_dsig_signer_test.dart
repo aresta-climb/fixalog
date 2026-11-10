@@ -36,6 +36,7 @@ void main() {
       final xmlAssinatura = await assinador.gerarAssinaturaXml(
         arquivos: arquivos,
         privateKeyPem: privateKeyPem,
+        publicKeyPem: publicKeyPem,
         certificadoX509Pem: '-----BEGIN CERTIFICATE-----\nMOCK_CERT\n-----END CERTIFICATE-----',
         atestadoOidcJwt: 'eyJhbGciOiJSUzI1NiJ9.payload.sig',
       );
@@ -45,6 +46,7 @@ void main() {
       expect(xmlAssinatura, contains('Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"'));
       expect(xmlAssinatura, contains('<SignatureValue>'));
       expect(xmlAssinatura, contains('<X509Certificate>MOCK_CERT</X509Certificate>'));
+      expect(xmlAssinatura, contains('<PublicKeyPem>${publicKeyPem.trim()}</PublicKeyPem>'));
       expect(xmlAssinatura, contains('<OidcIdToken>eyJhbGciOiJSUzI1NiJ9.payload.sig</OidcIdToken>'));
       expect(
         assinador.extrairAtestadoOidcJwt(xmlAssinatura),

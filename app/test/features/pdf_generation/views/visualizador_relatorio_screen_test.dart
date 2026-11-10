@@ -195,7 +195,7 @@ void main() {
       expect(find.byIcon(Icons.cloud_upload_outlined), findsOneWidget);
       expect(find.byIcon(Icons.verified_user_outlined), findsOneWidget);
 
-      // Avança para Etapa 2: verificando no servidor
+      // Avança para Etapa 2: verificando no servidor com barra de progresso contínua
       await tester.pump(const Duration(milliseconds: 20));
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(
@@ -203,7 +203,16 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('Verificando integridade e mídias no servidor'),
+        find.textContaining('Verificando integridade e mídias no servidor (1/'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('progresso_etapa_verificacao')),
+        findsOneWidget,
+      );
+      expect(find.text('CONTINUAR EM 2º PLANO'), findsOneWidget);
+      expect(
+        find.byKey(const Key('btn_fechar_icone_modal_upload')),
         findsOneWidget,
       );
       expect(textoCompartilhado, isNull);
@@ -223,6 +232,22 @@ void main() {
         contains('https://fixalog.app/v/sessao_1'),
       );
       expect(assuntoCompartilhado, equals('Via Paredão Sul'));
+
+      // Testa também fechar o modal durante o processamento ("CONTINUAR EM 2º PLANO")
+      clienteHttp.consultasEmAnaliseAntesDeAtivar['sessao_1'] = 2;
+      textoCompartilhado = null;
+      await tester.tap(find.byKey(const Key('btn_compartilhar')));
+      await tester.pump(const Duration(milliseconds: 5));
+      expect(
+        find.byKey(const Key('modal_progresso_upload_laudo')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('btn_fechar_icone_modal_upload')));
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
+      expect(
+        find.byKey(const Key('modal_progresso_upload_laudo')),
+        findsNothing,
+      );
     },
   );
 

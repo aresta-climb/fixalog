@@ -6,12 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
+import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/gerenciador_notificacao_upload_laudo.dart';
 import 'package:fixalog/core/services/gravador_breadcrumbs.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/core/models/local/identity_record.dart';
+import '../../../fakes/plugin_notificacoes_locais_fake.dart';
 
 // Helper que envolve o widget numa árvore mínima com providers configurados.
 Widget _buildTestApp({IdentityRecord? identity}) {
@@ -161,6 +164,82 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Ao tocar na notificacao de conclusao de upload, reabre automaticamente a VisualizadorRelatorioScreen do laudo',
+      (tester) async {
+        late BancoDadosLocal banco;
+        await tester.runAsync(() async {
+          banco = await BancoDadosLocal.abrirEmMemoria();
+          await banco.salvarSubmissao(
+            SubmissionRecord()
+              ..idSessao = 'sessao_notif_1'
+              ..idProtocolo = 'material_registration'
+              ..nomeProtocolo = 'Cadastro de Material'
+              ..tituloExibicao = 'Barras Roscadas Inox 304'
+              ..tipoRegistro = SubmissionTipoRegistro.material
+              ..status = SubmissionStatus.gerado
+              ..epubPath = '/inexistente.epub',
+          );
+          await banco.salvarSubmissao(
+            SubmissionRecord()
+              ..idSessao = 'sessao_notif_2'
+              ..idProtocolo = 'manutencao_ferragens'
+              ..nomeProtocolo = 'Manutenção Sem Título Exibição'
+              ..tituloExibicao = ''
+              ..tipoRegistro = SubmissionTipoRegistro.manutencao
+              ..status = SubmissionStatus.gerado
+              ..epubPath = '',
+          );
+        });
+
+        final pluginFake = PluginNotificacoesLocaisFake();
+        GerenciadorNotificacaoUploadLaudo.instancia.reiniciarParaTestes(
+          novoPlugin: pluginFake,
+        );
+        addTearDown(() async {
+          GerenciadorNotificacaoUploadLaudo.instancia.reiniciarParaTestes(
+            novoPlugin: PluginNotificacoesLocaisFake(),
+          );
+          await tester.runAsync(() async => await banco.fechar());
+        });
+
+        // 1. Toque pendente registrado ANTES da montagem da HomeScreen
+        await GerenciadorNotificacaoUploadLaudo.instancia.inicializar();
+        pluginFake.simularToqueNotificacao(payload: 'sessao_notif_1');
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              currentIdentityProvider.overrideWith(
+                (ref) async => IdentityRecord(),
+              ),
+              historyProvider.overrideWith((ref) => Stream.value([])),
+            ],
+            child: const MaterialApp(home: HomeScreen()),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        // Verifica que abriu a VisualizadorRelatorioScreen com o título do laudo
+        expect(find.text('Barras Roscadas Inox 304'), findsOneWidget);
+
+        // Volta para a HomeScreen e simula um novo toque em tempo real via stream
+        Navigator.of(
+          tester.element(find.text('Barras Roscadas Inox 304')),
+        ).pop();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        pluginFake.simularToqueNotificacao(payload: 'sessao_notif_2');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Manutenção Sem Título Exibição'), findsOneWidget);
       },
     );
   });

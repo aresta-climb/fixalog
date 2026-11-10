@@ -18,6 +18,7 @@ class XmlDsigSigner {
   Future<String> gerarAssinaturaXml({
     required Map<String, List<int>> arquivos,
     required String privateKeyPem,
+    String? publicKeyPem,
     String? certificadoX509Pem,
     String? atestadoOidcJwt,
   }) async {
@@ -59,17 +60,24 @@ class XmlDsigSigner {
     bufferFinal.writeln('    $signedInfoXml');
     bufferFinal.writeln('    <SignatureValue>$signatureValueBase64</SignatureValue>');
 
-    if (certificadoX509Pem != null && certificadoX509Pem.isNotEmpty) {
-      final certLimpo = certificadoX509Pem
-          .replaceAll('-----BEGIN CERTIFICATE-----', '')
-          .replaceAll('-----END CERTIFICATE-----', '')
-          .replaceAll('\r', '')
-          .replaceAll('\n', '')
-          .trim();
+    final temCert = certificadoX509Pem != null && certificadoX509Pem.isNotEmpty;
+    final temPubKey = publicKeyPem != null && publicKeyPem.trim().isNotEmpty;
+    if (temCert || temPubKey) {
       bufferFinal.writeln('    <KeyInfo>');
-      bufferFinal.writeln('      <X509Data>');
-      bufferFinal.writeln('        <X509Certificate>$certLimpo</X509Certificate>');
-      bufferFinal.writeln('      </X509Data>');
+      if (temCert) {
+        final certLimpo = certificadoX509Pem
+            .replaceAll('-----BEGIN CERTIFICATE-----', '')
+            .replaceAll('-----END CERTIFICATE-----', '')
+            .replaceAll('\r', '')
+            .replaceAll('\n', '')
+            .trim();
+        bufferFinal.writeln('      <X509Data>');
+        bufferFinal.writeln('        <X509Certificate>$certLimpo</X509Certificate>');
+        bufferFinal.writeln('      </X509Data>');
+      }
+      if (temPubKey) {
+        bufferFinal.writeln('      <PublicKeyPem>${publicKeyPem.trim()}</PublicKeyPem>');
+      }
       bufferFinal.writeln('    </KeyInfo>');
     }
 

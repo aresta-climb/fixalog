@@ -110,7 +110,7 @@ class _SeletorTrechoVideoDialogState extends State<SeletorTrechoVideoDialog> {
         children: [
           Text(
             'O vídeo possui ${_formatarTempo(widget.duracaoTotalSegundos)}. '
-            'Selecione um período de até ${limiteInt} segundos para incluir no relatório:',
+            'Selecione um período de até $limiteInt segundos para incluir no relatório:',
           ),
           const SizedBox(height: 16),
           Center(

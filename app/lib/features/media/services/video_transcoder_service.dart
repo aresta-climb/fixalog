@@ -26,8 +26,12 @@ class VideoTranscoderService {
   VideoTranscoderService({
     ExecutadorFfmpeg? executador,
     InspetorDuracaoVideo? inspetorDuracao,
-  })  : _executador = executador ?? executarFfmpeg,
-        _inspetorDuracao = inspetorDuracao ?? inspecionarDuracaoPadrao;
+  }) : _executador = executador ?? executarFfmpeg,
+       _inspetorDuracao =
+           inspetorDuracao ??
+           (executador != null ? _semInspecaoDuracao : inspecionarDuracaoPadrao);
+
+  static Future<double?> _semInspecaoDuracao(File _) async => null;
 
   /// Inspeciona a duração total em segundos de [arquivoVideo] (retorna `null` se inexistente ou ilegível).
   Future<double?> obterDuracaoSegundos(File arquivoVideo) async {

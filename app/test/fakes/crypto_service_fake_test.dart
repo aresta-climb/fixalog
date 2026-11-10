@@ -20,8 +20,9 @@ void main() {
       expect(await fake.obterCertificadoX509Pem(), equals(cert1));
 
       final x509 = X509Utils.x509CertificateFromPem(cert1);
-      expect(x509.subject['2.5.4.3'], equals('Renato Ferreira'));
-      expect(x509.subject['2.5.4.11'], equals('FEMERJ'));
+      final subject = x509.tbsCertificate!.subject;
+      expect(subject['2.5.4.3'], equals('Renato Ferreira'));
+      expect(subject['2.5.4.11'], equals('FEMERJ'));
 
       final cert2 = await fake.generateX509Certificate(
         'Renato Atualizado',

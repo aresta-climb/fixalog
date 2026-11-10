@@ -38,10 +38,7 @@ class GenerationRecoveryService {
       if (targetDir.existsSync()) {
         try {
           targetDir.deleteSync(recursive: true);
-          print('Garbage Collector limpou o diretório temporário.');
-        } catch (e) {
-          print('Falha ao rodar Garbage Collector: \$e');
-        }
+        } catch (_) {}
       }
       // Limpa a flag
       await markAsProcessing(false);

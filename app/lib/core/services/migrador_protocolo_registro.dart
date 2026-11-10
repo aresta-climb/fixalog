@@ -335,7 +335,7 @@ class MigradorProtocoloRegistro {
     if (limpo.contains('__')) {
       final partes = limpo.split('__');
       final base = mapaConteudosPtParaEn[partes.first] ?? partes.first;
-      return '$base\__${partes.sublist(1).join('__')}';
+      return '${base}__${partes.sublist(1).join('__')}';
     }
     return mapaConteudosPtParaEn[limpo] ?? limpo;
   }

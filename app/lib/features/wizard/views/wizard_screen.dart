@@ -149,7 +149,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
 
   void _scrollToIndex(int index) {
     Future.delayed(const Duration(milliseconds: 150), () {
-      if (!_scrollController.hasClients) return;
+      if (!mounted || !_scrollController.hasClients) return;
       final state = ref.read(wizardControllerProvider);
       final isSummary = index >= state.queue.length;
       GlobalKey key;
@@ -160,13 +160,17 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       } else {
         return;
       }
+      // ignore: use_build_context_synchronously
       final ctx = key.currentContext;
       if (ctx == null) return;
+      // ignore: use_build_context_synchronously
       final box = ctx.findRenderObject() as RenderBox;
+      // ignore: use_build_context_synchronously
+      final ancestorObj = _scrollController.position.context.storageContext
+          .findRenderObject();
       final pos = box.localToGlobal(
         Offset.zero,
-        ancestor: _scrollController.position.context.storageContext
-            .findRenderObject(),
+        ancestor: ancestorObj,
       );
       final target = _scrollController.offset + pos.dy - 90;
       _scrollController.animateTo(
@@ -1869,7 +1873,9 @@ class _CampoSimplesContent extends ConsumerWidget {
             }
 
             final position = await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.high,
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+              ),
             );
             _saveString(ref, '${position.latitude}, ${position.longitude}');
             unawaited(

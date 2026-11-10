@@ -18,7 +18,6 @@ import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
-import 'package:fixalog/core/services/pdf_print_summary_service.dart';
 import 'package:fixalog/features/media/services/media_compressor_service.dart';
 import 'package:fixalog/features/pdf_generation/providers/generation_provider.dart';
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
@@ -47,8 +46,6 @@ class FakeMediaCompressorService extends MediaCompressorService {
     required SessionBundleManager sessionManager,
     required String sessionId,
     required String mediaUuid,
-    int maxDimension = 2048,
-    int quality = 85,
   }) async {
     final file = File('${dir.path}/$mediaUuid.webp');
     await file.writeAsBytes(Uint8List.fromList([1, 2, 3]));
@@ -60,9 +57,11 @@ class FakeMediaCompressorService extends MediaCompressorService {
     required SessionBundleManager sessionManager,
     required String sessionId,
     required String mediaUuid,
+    double? inicioSegundos,
+    double? duracaoSegundos,
   }) async {
     final video = File('${dir.path}/$mediaUuid.mp4');
-    final poster = File('${dir.path}/${mediaUuid}_poster.webp');
+    final poster = File('${dir.path}/${mediaUuid}_poster.jpg');
     await video.writeAsBytes(Uint8List.fromList([4, 5, 6]));
     await poster.writeAsBytes(Uint8List.fromList([7, 8, 9]));
     return (video: video, poster: poster);
@@ -124,7 +123,6 @@ void main() {
       cryptoService = CryptoService(secureStorage: mockSecureStorage);
 
       notifier = GenerationNotifier(
-        null,
         FakeMediaCompressorService(tempDir),
         recoveryService,
         sessionManager,
@@ -132,7 +130,6 @@ void main() {
         EpubDocumentBuilder(),
         EpubPackagerService(),
         XmlDsigSigner(),
-        PdfPrintSummaryService(),
         cryptoService,
       );
     });
@@ -143,7 +140,7 @@ void main() {
       }
     });
 
-    test('Geração ponta a ponta do relatório EPUB 3 e PDF', () async {
+    test('Geração ponta a ponta do relatório EPUB 3', () async {
       final sid = 'sessao_fluxo_123';
       final registro = Registro()
         ..idProtocolo = 'PROT-2026-99'
@@ -158,11 +155,11 @@ void main() {
         binarypb: Uint8List.fromList(registro.writeToBuffer()),
       );
 
-      final outputPathPdf = '${tempDir.path}/relatorio_final.pdf';
+      final outputPathEpub = '${tempDir.path}/relatorio_final.epub';
 
       await notifier.startGeneration(
         'Relatório de Integração',
-        outputPathPdf,
+        outputPathEpub,
         sessionId: sid,
       );
 
@@ -170,12 +167,6 @@ void main() {
       expect(state.hasError, isFalse, reason: state.errorMessage);
       expect(state.isComplete, isTrue);
       expect(state.progress, equals(1.0));
-
-      // Validar existência do arquivo PDF
-      expect(state.pdfPath, isNotNull);
-      final pdfFile = File(state.pdfPath!);
-      expect(await pdfFile.exists(), isTrue);
-      expect(await pdfFile.length(), greaterThan(0));
 
       // Validar existência do arquivo EPUB 3
       expect(state.epubPath, isNotNull);
@@ -197,7 +188,7 @@ void main() {
       expect(nomesArquivos, contains('OEBPS/dados/registro.binarypb'));
       expect(nomesArquivos, contains('OEBPS/midias/foto_p1.webp'));
       expect(nomesArquivos, contains('OEBPS/midias/video_p1.mp4'));
-      expect(nomesArquivos, contains('OEBPS/midias/video_p1_poster.webp'));
+      expect(nomesArquivos, contains('OEBPS/midias/video_p1_poster.jpg'));
     });
   });
 }

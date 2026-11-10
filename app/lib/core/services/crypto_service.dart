@@ -17,9 +17,6 @@ class CryptoService {
       synchronizable: true,
       accessibility: KeychainAccessibility.first_unlock,
     ),
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
   );
 
   final FlutterSecureStorage _secureStorage;

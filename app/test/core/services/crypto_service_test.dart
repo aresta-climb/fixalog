@@ -56,17 +56,19 @@ void main() {
       expect(await cryptoService.obterCertificadoX509Pem(), equals(certPem));
 
       final x509 = X509Utils.x509CertificateFromPem(certPem);
-      expect(x509.subject, containsPair('2.5.4.3', 'Renato'));
-      expect(x509.subject, containsPair('2.5.4.10', 'Fixalog'));
-      expect(x509.subject, containsPair('2.5.4.11', 'FEMERJ'));
+      final subject = x509.tbsCertificate!.subject;
+      expect(subject, containsPair('2.5.4.3', 'Renato'));
+      expect(subject, containsPair('2.5.4.10', 'Fixalog'));
+      expect(subject, containsPair('2.5.4.11', 'FEMERJ'));
 
       final certAtualizado = await cryptoService.generateX509Certificate(
         'Renato Ferreira',
         clubeAssociacao: 'N/A',
       );
       final x509Atualizado = X509Utils.x509CertificateFromPem(certAtualizado);
-      expect(x509Atualizado.subject, containsPair('2.5.4.3', 'Renato Ferreira'));
-      expect(x509Atualizado.subject.containsKey('2.5.4.11'), isFalse);
+      final subjectAtualizado = x509Atualizado.tbsCertificate!.subject;
+      expect(subjectAtualizado, containsPair('2.5.4.3', 'Renato Ferreira'));
+      expect(subjectAtualizado.containsKey('2.5.4.11'), isFalse);
       expect(
         await cryptoService.calcularFingerprintChavePublica(),
         equals(fingerprintInicial),

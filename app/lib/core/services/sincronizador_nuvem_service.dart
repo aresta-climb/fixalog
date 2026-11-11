@@ -999,9 +999,9 @@ class SincronizadorNuvemService {
             totalBlocos: 1,
             verificacaoConcluida: status.verificacaoConcluida,
             verificacaoTotal: status.verificacaoTotal,
-            mensagemErro:
-                status.motivoModeracao ??
-                'O laudo não pôde ser publicado pela verificação de segurança.',
+            mensagemErro: formatarMensagemErroModeracao(
+              status.motivoModeracao,
+            ),
           );
           _emitirProgresso(rejeitado);
           return rejeitado;
@@ -1143,6 +1143,64 @@ class SincronizadorNuvemService {
       );
       return 0;
     }
+  }
+
+  static String _descreverMidiaDoCaminho(String caminho) {
+    final lower = caminho.trim().toLowerCase();
+    final matchPdf = RegExp(r'_p(\d+)\.webp$').firstMatch(lower);
+    if (matchPdf != null) {
+      return 'a página ${matchPdf.group(1)} do documento PDF anexado';
+    }
+    final matchKeyframe = RegExp(r'_kf_(\d+)s\.jpe?g$').firstMatch(lower);
+    if (matchKeyframe != null) {
+      return 'o vídeo anexado (trecho de ${matchKeyframe.group(1)}s)';
+    }
+    if (lower.endsWith('_poster.jpg') ||
+        lower.endsWith('_poster.jpeg') ||
+        lower.endsWith('.mp4')) {
+      return 'o vídeo anexado';
+    }
+    if (lower.endsWith('.webp') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png')) {
+      return 'uma das fotos anexadas';
+    }
+    return 'um dos anexos do laudo';
+  }
+
+  /// Converte os códigos técnicos de rejeição/bloqueio da moderação no servidor
+  /// em mensagens claras em português identificando a mídia afetada.
+  static String formatarMensagemErroModeracao(String? motivoBruto) {
+    final texto = motivoBruto?.trim() ?? '';
+    if (texto.isEmpty) {
+      return 'Não foi possível concluir a verificação de segurança do laudo no servidor. Tente compartilhar novamente.';
+    }
+
+    final idxCaminho = texto.lastIndexOf(':OEBPS/');
+    final caminho = idxCaminho >= 0 ? texto.substring(idxCaminho + 1) : '';
+    final midia = _descreverMidiaDoCaminho(caminho);
+
+    if (texto.startsWith('ERRO_TECNICO_VERIFICACAO:VIDEO_SEM_POSTER')) {
+      return 'Um vídeo do laudo foi empacotado sem miniatura de verificação. Gere o relatório novamente e tente compartilhar.';
+    }
+    if (texto.startsWith('ERRO_TECNICO_VERIFICACAO:IMAGEM_VAZIA_OU_ILEGIVEL')) {
+      return 'Não foi possível ler $midia no pacote do relatório. Gere o relatório novamente e tente compartilhar.';
+    }
+    if (texto.startsWith('ERRO_TECNICO_VERIFICACAO:')) {
+      return 'Ocorreu uma falha técnica temporária no servidor ao analisar $midia. Você não precisa reenviar o laudo: toque em COMPARTILHAR novamente para retomar a verificação de onde parou.';
+    }
+    if (texto.startsWith('WORKERS_AI_S12_NSFW')) {
+      return 'A verificação automática de segurança sinalizou $midia por suspeita de conteúdo adulto ou violência explícita. Revise a mídia anexada ou tente compartilhar novamente.';
+    }
+    if (texto.startsWith('WORKERS_AI_S4_CSAM') ||
+        texto.startsWith('CSAM_SCAN_TOOL_MATCH')) {
+      return 'A publicação deste laudo foi bloqueada pela verificação automática de proteção infantil ao analisar $midia.';
+    }
+    if (texto.startsWith('DENUNCIA:')) {
+      return 'Este laudo encontra-se temporariamente suspenso para revisão da equipe de moderação.';
+    }
+    return texto;
   }
 }
 

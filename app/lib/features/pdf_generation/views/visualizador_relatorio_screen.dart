@@ -400,7 +400,7 @@ class _VisualizadorRelatorioScreenState
                     ehSemInternet
                         ? 'Sem conexão com a internet'
                         : (ehFalha
-                              ? 'Verificação pendente'
+                              ? 'Não foi possível publicar o laudo'
                               : 'Publicando laudo no Fixalog'),
                   ),
                 ),

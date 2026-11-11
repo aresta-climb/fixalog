@@ -78,6 +78,21 @@ void main() {
         equals(statusFinal.verificacaoTotal),
       );
 
+      fake.statusModeracaoForcadoPorSessao['s_chunk'] = 'bloqueado';
+      fake.motivoModeracaoForcadoPorSessao['s_chunk'] =
+          'WORKERS_AI_S12_NSFW:OEBPS/midias/doc_p2.webp';
+      final statusBloqueado = await fake.consultarStatusLaudo(
+        idSessao: 's_chunk',
+        sha256: 'abc123',
+        jwtSupabase: 'jwt',
+        tokenAppCheck: 'appcheck',
+      );
+      expect(statusBloqueado.statusModeracao, equals('bloqueado'));
+      expect(
+        statusBloqueado.motivoModeracao,
+        equals('WORKERS_AI_S12_NSFW:OEBPS/midias/doc_p2.webp'),
+      );
+
       // Simula erro HTTP >= 400 configurado por sessão
       fake.erroHttpPorSessao['s_erro_400'] = const ExcecaoApiFixalogNuvem(
         400,

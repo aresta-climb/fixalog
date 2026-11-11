@@ -328,6 +328,8 @@ void main() {
       final epubFile = File(p.join(tempDir.path, 'rejeitado.epub'))
         ..writeAsBytesSync(_criarEpubAssinadoTeste());
       clienteHttp.statusModeracaoForcadoPorSessao['rejeitado'] = 'rejeitado';
+      clienteHttp.motivoModeracaoForcadoPorSessao['rejeitado'] =
+          'WORKERS_AI_S12_NSFW:OEBPS/midias/b090ab85_p2.webp';
 
       await tester.pumpWidget(
         criarTelaParaTeste(
@@ -344,6 +346,11 @@ void main() {
 
       expect(
         find.byKey(const Key('modal_progresso_upload_laudo')),
+        findsOneWidget,
+      );
+      expect(find.text('Não foi possível publicar o laudo'), findsOneWidget);
+      expect(
+        find.textContaining('página 2 do documento PDF anexado'),
         findsOneWidget,
       );
       await tester.tap(find.byKey(const Key('btn_fechar_modal_upload')));

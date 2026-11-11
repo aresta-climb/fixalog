@@ -16,6 +16,7 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
   final Map<String, Map<int, Uint8List>> _stagingChunksPorChave = {};
   final Map<String, int> consultasEmAnaliseAntesDeAtivar = {};
   final Map<String, String> statusModeracaoForcadoPorSessao = {};
+  final Map<String, String> motivoModeracaoForcadoPorSessao = {};
   final Map<String, ExcecaoApiFixalogNuvem> erroHttpPorSessao = {};
   final Map<String, ExcecaoApiFixalogNuvem> erroHttpChunkPorSessao = {};
   final List<MetadadosLaudoRemoto> laudosRemotosConta = [];
@@ -105,6 +106,7 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
         jaEnviado: true,
         versao: versaoEncontrada ?? 1,
         statusModeracao: statusMod,
+        motivoModeracao: motivoModeracaoForcadoPorSessao[idSessao],
         verificacaoConcluida: verificacaoConcluida,
         verificacaoTotal: verificacaoTotal,
         chunksRecebidos: const [],

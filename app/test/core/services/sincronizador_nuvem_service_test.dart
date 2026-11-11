@@ -947,5 +947,79 @@ void main() {
         expect(syncCancelavel.foiCanceladoPeloUsuario('s_cancelavel'), isFalse);
       },
     );
+
+    test(
+      'formatarMensagemErroModeracao traduz códigos técnicos do servidor em mensagens claras em português identificando a mídia afetada',
+      () async {
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(null),
+          contains('Não foi possível concluir a verificação'),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'WORKERS_AI_S12_NSFW:OEBPS/midias/b090ab85-0e8e-4794-99da-53641e0d5e44_p2.webp',
+          ),
+          allOf(
+            contains('página 2 do documento PDF anexado'),
+            isNot(contains('WORKERS_AI_S12_NSFW')),
+          ),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'ERRO_TECNICO_VERIFICACAO:CSAM_SCAN_HTTP_522:OEBPS/midias/8b420d2b.webp',
+          ),
+          allOf(
+            contains('falha técnica temporária'),
+            contains('uma das fotos anexadas'),
+            contains('toque em COMPARTILHAR novamente'),
+          ),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'ERRO_TECNICO_VERIFICACAO:WORKERS_AI_FALHA:OEBPS/midias/vid_kf_10s.jpg',
+          ),
+          allOf(
+            contains('falha técnica temporária'),
+            contains('vídeo anexado (trecho de 10s)'),
+          ),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'ERRO_TECNICO_VERIFICACAO:VIDEO_SEM_POSTER:OEBPS/midias/vid.mp4',
+          ),
+          contains('sem miniatura de verificação'),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'ERRO_TECNICO_VERIFICACAO:IMAGEM_VAZIA_OU_ILEGIVEL:OEBPS/midias/vid_poster.jpg',
+          ),
+          allOf(
+            contains('Não foi possível ler'),
+            contains('vídeo anexado'),
+          ),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'CSAM_SCAN_TOOL_MATCH:OEBPS/midias/anexo.bin',
+          ),
+          allOf(
+            contains('proteção infantil'),
+            contains('um dos anexos do laudo'),
+          ),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'DENUNCIA:SPAM',
+          ),
+          contains('temporariamente suspenso'),
+        );
+        expect(
+          SincronizadorNuvemService.formatarMensagemErroModeracao(
+            'Mensagem já amigável do servidor.',
+          ),
+          equals('Mensagem já amigável do servidor.'),
+        );
+      },
+    );
   });
 }

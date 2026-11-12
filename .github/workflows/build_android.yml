@@ -233,14 +233,16 @@ jobs:
           creds = service_account.Credentials.from_service_account_file(
               sa_path, scopes=["https://www.googleapis.com/auth/androidpublisher"]
           )
-          authed_http = google_auth_httplib2.AuthorizedHttp(creds, http=httplib2.Http(timeout=300))
+          http_client = httplib2.Http(timeout=300)
+          http_client.redirect_codes = set(http_client.redirect_codes) - {308}
+          authed_http = google_auth_httplib2.AuthorizedHttp(creds, http=http_client)
           service = build("androidpublisher", "v3", http=authed_http)
           release_notes = [{"language": "pt-BR", "text": notas}] if notas else []
 
           def garantir_bundle_e_simbolos(edit_id):
               try:
-                  media = MediaFileUpload(aab_path, mimetype="application/octet-stream", chunksize=10 * 1024 * 1024, resumable=True)
-                  bundle = service.edits().bundles().upload(packageName=pkg, editId=edit_id, media_body=media).execute(num_retries=3)
+                  media = MediaFileUpload(aab_path, mimetype="application/octet-stream", resumable=False)
+                  bundle = service.edits().bundles().upload(packageName=pkg, editId=edit_id, media_body=media).execute(num_retries=2)
                   vc = bundle["versionCode"]
                   print(f"AAB enviado com sucesso: versionCode={vc}")
               except HttpError as exc:

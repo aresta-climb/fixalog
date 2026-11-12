@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fixalog/features/media/services/video_transcoder_service.dart';
 
 /// Representa o intervalo de tempo selecionado pelo usuário para corte de um vídeo.

@@ -6,7 +6,7 @@ import 'dart:math' as math;
 
 import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/main.dart' show kSentryDsn;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 

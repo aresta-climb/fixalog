@@ -217,25 +217,27 @@ jobs:
           
           APPLE_ID_EFETIVO="${APPLE_ID:-6818883254}"
           set +e
-          ALTOOL_OUT=$(xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID_EFETIVO" --bundle-id "com.arestaclimb.fixalog" 2>&1)
-          ALTOOL_RC=$?
-          echo "$ALTOOL_OUT"
-          if [ $ALTOOL_RC -ne 0 ]; then
-            if echo "$ALTOOL_OUT" | grep -qE "STATE_ERROR\.UPDATING|This resource is currently being updated|Redundant Binary Upload|already been uploaded"; then
-              echo "::warning::A Apple já recebeu o pacote na requisição anterior e está processando o binário (STATE_ERROR.UPDATING / Redundant Binary Upload). Prosseguindo com sucesso!"
-              exit 0
+          UPLOAD_OK=0
+          for TENTATIVA in 1 2 3 4; do
+            echo "Tentativa $TENTATIVA de upload para o TestFlight..."
+            ALTOOL_OUT=$(xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID_EFETIVO" --bundle-id "com.arestaclimb.fixalog" 2>&1)
+            ALTOOL_RC=$?
+            echo "$ALTOOL_OUT"
+            if echo "$ALTOOL_OUT" | grep -qE "Redundant Binary Upload|already been uploaded"; then
+              echo "::notice::O binário já foi recebido e registrado na App Store Connect em tentativa anterior. Prosseguindo!"
+              UPLOAD_OK=1
+              break
             fi
-            echo "Retentando upload para o TestFlight após 20 segundos..."
-            sleep 20
-            ALTOOL_OUT2=$(xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID_EFETIVO" --bundle-id "com.arestaclimb.fixalog" 2>&1)
-            ALTOOL_RC2=$?
-            echo "$ALTOOL_OUT2"
-            if [ $ALTOOL_RC2 -ne 0 ]; then
-              if echo "$ALTOOL_OUT2" | grep -qE "STATE_ERROR\.UPDATING|This resource is currently being updated|Redundant Binary Upload|already been uploaded"; then
-                echo "::warning::Binário já recebido pela Apple na tentativa anterior. Prosseguindo com sucesso!"
-                exit 0
-              fi
-              exit $ALTOOL_RC2
+            if [ $ALTOOL_RC -eq 0 ] && ! echo "$ALTOOL_OUT" | grep -q "ERROR:"; then
+              echo "Upload concluído sem erros na tentativa $TENTATIVA!"
+              UPLOAD_OK=1
+              break
             fi
-          fi
+            echo "::warning::Falha ou erro transitório da Apple ContentDelivery detectado na tentativa $TENTATIVA (rc=$ALTOOL_RC). Aguardando 30s antes de retentar..."
+            sleep 30
+          done
           set -e
+          if [ $UPLOAD_OK -ne 1 ]; then
+            echo "::error::Não foi possível concluir o upload do IPA para o TestFlight após 4 tentativas."
+            exit 1
+          fi

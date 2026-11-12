@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fastlane_core/build_watcher'
+require 'timeout'
 
 opt_out_usage
 
@@ -33,16 +34,33 @@ platform :ios do
 
     if build_num && !build_num.to_s.empty?
       UI.message("⏳ Aguardando a Apple concluir o processamento da build #{build_num} (versão #{versao})...")
-      # return_spaceship_testflight_build: false evita que o Fastlane tente converter o retorno para
-      # a classe legada Spaceship::TestFlight::Build, a qual exige login interativo de usuário/senha (Tunes.login).
-      FastlaneCore::BuildWatcher.wait_for_build_processing_to_be_complete(
-        app_id: app_id,
-        platform: :ios,
-        app_version: versao,
-        build_version: build_num.to_s,
-        poll_interval: 30,
-        return_spaceship_testflight_build: false
-      )
+      begin
+        # return_spaceship_testflight_build: false evita que o Fastlane tente converter o retorno para
+        # a classe legada Spaceship::TestFlight::Build, a qual exige login interativo de usuário/senha (Tunes.login).
+        Timeout.timeout(600) do
+          FastlaneCore::BuildWatcher.wait_for_build_processing_to_be_complete(
+            app_id: app_id,
+            platform: :ios,
+            app_version: versao,
+            build_version: build_num.to_s,
+            poll_interval: 30,
+            return_spaceship_testflight_build: false
+          )
+        end
+      rescue Timeout::Error
+        UI.important("⚠️ Tempo limite de 10 minutos excedido aguardando o processamento da build #{build_num} na Apple. Buscando a build processada mais recente disponível no App Store Connect...")
+        builds_validas = Spaceship::ConnectAPI::Build.all(
+          app_id: app_id,
+          sort: "-uploadedDate",
+          limit: 10
+        ).select { |b| b.processing_state == Spaceship::ConnectAPI::Build::ProcessingState::VALID }
+        if builds_validas.any?
+          build_num = builds_validas.first.version
+          UI.important("ℹ️ Utilizando build válida mais recente encontrada no App Store Connect: #{build_num}")
+        else
+          UI.user_error!("Nenhuma build processada (VALID) foi encontrada no App Store Connect após 10 minutos.")
+        end
+      end
     end
 
     # Na primeira versão do app (quando ainda não existe versão publicada na App Store),

@@ -6,7 +6,7 @@ import 'dart:ui';
 
 import 'package:feedback/feedback.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';

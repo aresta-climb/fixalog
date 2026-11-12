@@ -56,8 +56,6 @@ dependencies:
   http: ^1.2.2
   http_parser: ^4.0.2
   flutter_local_notifications: ^22.3.0
-  material_ui: ^1.11.0
-  cupertino_ui: ^1.1.6
 dev_dependencies:
   flutter_test:
     sdk: flutter

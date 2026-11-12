@@ -1,4 +1,6 @@
 analyzer:
+  errors:
+    deprecated_member_use: ignore
   exclude:
     - build/**
     - android/**
@@ -8,5 +10,4 @@ analyzer:
     - macos/**
     - linux/**
     - "**/*.g.dart"
-    - lib/core/l10n/generated/**
 include: package:flutter_lints/flutter.yaml

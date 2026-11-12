@@ -9,7 +9,7 @@ import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
 import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 class ProtocolIcons {
   static final Map<String, IconData> _iconMap = {

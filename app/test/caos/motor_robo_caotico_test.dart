@@ -4,7 +4,7 @@
 import 'dart:io';
 
 import 'package:fixalog/core/services/registro_logger.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fakes/registro_logger_fake.dart';

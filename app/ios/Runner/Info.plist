@@ -69,9 +69,13 @@
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 		<key>NSCameraUsageDescription</key>
-		<string>Precisamos da sua câmera para registrar a manutenção.</string>
+		<string>Precisamos da sua câmera para fotografar e filmar as ancoragens, proteções e equipamentos durante a vistoria técnica e manutenção da via de escalada.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Precisamos do microfone para gravar o áudio dos vídeos de vistoria técnica e testes de equipamentos anexados ao laudo de manutenção.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Precisamos acessar sua biblioteca de fotos para anexar imagens e vídeos de ancoragens, proteções e equipamentos aos laudos técnicos de manutenção e cadastros de materiais.</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
-		<string>Precisamos de permissão para salvar no rolo da câmera as fotos e vídeos capturados durante a manutenção.</string>
+		<string>Precisamos de permissão para salvar na sua biblioteca de fotos uma cópia das imagens e vídeos capturados durante a vistoria e manutenção da via de escalada.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Precisamos do seu GPS para registrar o local exato da manutenção.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

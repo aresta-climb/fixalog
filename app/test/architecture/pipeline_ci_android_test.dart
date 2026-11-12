@@ -130,6 +130,43 @@ void main() {
           releaseContent,
           contains('app/test/caos/caminhos_regressao/*.json'),
         );
+        expect(releaseContent, contains('bump_type:'));
+        expect(releaseContent, contains('enviar_para_producao:'));
+        expect(releaseContent, contains('release_notes:'));
+        expect(releaseContent, contains('calcular_versao_release.dart'));
+        expect(releaseContent, contains('calcular_proximo_dev.dart'));
+        expect(releaseContent, contains('submit_ios_review.yml'));
+      },
+    );
+
+    test(
+      'build_android.yml, build_ios.yml e submit_ios_review.yml devem manter paridade com aresta_app',
+      () {
+        expect(workflowContent, contains('crashlytics:symbols:upload'));
+        expect(workflowContent, contains('1:1025411452942:android:3161d968aec1b093d92c5f'));
+        expect(workflowContent, contains('whatsnew-pt-BR'));
+        expect(
+          workflowContent,
+          contains("tracks: \${{ inputs.enviar_para_producao && 'internal,production' || 'internal' }}"),
+        );
+
+        var iosFile = File('../.github/workflows/build_ios.yml');
+        if (!iosFile.existsSync()) {
+          iosFile = File('.github/workflows/build_ios.yml');
+        }
+        expect(iosFile.existsSync(), isTrue);
+        final iosContent = iosFile.readAsStringSync();
+        expect(iosContent, contains('<key>uploadSymbols</key>'));
+        expect(iosContent, contains('upload-symbols'));
+        expect(iosContent, contains('6818883254'));
+
+        var submitIosFile = File('../.github/workflows/submit_ios_review.yml');
+        if (!submitIosFile.existsSync()) {
+          submitIosFile = File('.github/workflows/submit_ios_review.yml');
+        }
+        expect(submitIosFile.existsSync(), isTrue);
+        final submitIosContent = submitIosFile.readAsStringSync();
+        expect(submitIosContent, contains('bundle exec fastlane submeter_revisao'));
       },
     );
   });

@@ -7,6 +7,16 @@ on:
         description: 'A tag do git para construir'
         required: true
         type: string
+      enviar_para_producao:
+        description: 'Enviar para Produção nas lojas?'
+        required: false
+        type: boolean
+        default: true
+      release_notes:
+        description: 'Notas de lançamento da versão'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -70,18 +80,19 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           STORE_FILE: upload-keystore.jks
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
 
-      - name: Upload de Símbolos para o Sentry
+      - name: Validar e Fazer Upload de Símbolos para o Sentry (Fail-Fast)
         working-directory: ./app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
-            dart run sentry_dart_plugin
-          else
-            echo "::notice::SENTRY_AUTH_TOKEN não definido; pulando upload de símbolos para o Sentry."
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::error::SENTRY_AUTH_TOKEN não configurado nos secrets do GitHub! O build de release não pode ser publicado sem símbolos de desofuscação no Sentry."
+            exit 1
           fi
+          dart run sentry_dart_plugin
 
       - name: Empacotar Símbolos de Depuração Nativos
         working-directory: ./app
@@ -116,6 +127,34 @@ jobs:
             app/build/native-debug-symbols/native-debug-symbols.zip
           retention-days: 90
 
+      - name: Upload de Símbolos Dart para o Firebase Crashlytics
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        working-directory: ./app
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON não configurada."
+            exit 1
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" > $GOOGLE_APPLICATION_CREDENTIALS
+          if [ ! -d "build/symbols" ]; then
+            echo "::error::Diretório build/symbols não encontrado."
+            exit 1
+          fi
+          echo "Enviando símbolos Dart do Android para o Crashlytics..."
+          npx --yes firebase-tools crashlytics:symbols:upload \
+            --app="1:1025411452942:android:3161d968aec1b093d92c5f" \
+            build/symbols
+
+      - name: Preparar Notas de Versão para Google Play
+        env:
+          NOTAS_LANCAMENTO: ${{ inputs.release_notes }}
+        run: |
+          mkdir -p app/build/whatsnew
+          echo "$NOTAS_LANCAMENTO" > app/build/whatsnew/whatsnew-pt-BR
+          echo "Arquivo whatsnew-pt-BR criado com sucesso em app/build/whatsnew/whatsnew-pt-BR"
+
       - name: Preparar e Validar Credencial da Google Play Service Account
         env:
           RAW_SA_JSON: ${{ secrets.ANDROID_PLAY_STORE_CONFIG_JSON }}
@@ -146,7 +185,7 @@ jobs:
               json.dump(data, f)
           PY
 
-      - name: Upload para Google Play Console (Faixa Interna)
+      - name: Upload para Google Play Console
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ runner.temp }}/play-service-account.json
@@ -154,5 +193,6 @@ jobs:
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
           mappingFile: app/build/app/outputs/mapping/release/mapping.txt
           debugSymbols: app/build/native-debug-symbols/native-debug-symbols.zip
-          tracks: internal
+          tracks: ${{ inputs.enviar_para_producao && 'internal,production' || 'internal' }}
+          whatsNewDirectory: app/build/whatsnew
           status: completed

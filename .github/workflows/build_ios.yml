@@ -39,6 +39,16 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Cache de Swift Package Manager
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('app/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
       - name: Cache de dependências Pub
         uses: actions/cache@v5
         with:
@@ -118,6 +128,8 @@ jobs:
             <string>manual</string>
             <key>signingCertificate</key>
             <string>Apple Distribution</string>
+            <key>uploadSymbols</key>
+            <true/>
             <key>provisioningProfiles</key>
             <dict>
               <key>com.arestaclimb.fixalog</key>
@@ -129,20 +141,62 @@ jobs:
 
       - name: Compilar IPA do iOS
         working-directory: app
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # Compila o app e gera o arquivo .ipa usando as configurações de ExportOptions.plist
           flutter build ipa --release --obfuscate --split-debug-info=build/symbols --export-options-plist=ios/ExportOptions.plist
 
-      - name: Upload de Símbolos para o Sentry
+      - name: Validar e Fazer Upload de Símbolos para o Sentry (Fail-Fast)
         working-directory: app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
-            dart run sentry_dart_plugin
-          else
-            echo "::notice::SENTRY_AUTH_TOKEN não definido; pulando upload de símbolos para o Sentry."
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::error::SENTRY_AUTH_TOKEN não configurado nos secrets do GitHub! O build de release não pode ser publicado sem símbolos de desofuscação no Sentry."
+            exit 1
           fi
+          dart run sentry_dart_plugin
+
+      - name: Upload de Artefatos de Release iOS (IPA, dSYMs e Símbolos Dart)
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-release-${{ inputs.tag_name }}
+          path: |
+            app/build/ios/ipa/*.ipa
+            app/build/ios/archive/Runner.xcarchive/dSYMs
+            app/build/symbols
+          retention-days: 90
+
+      - name: Upload de dSYMs e Símbolos para o Firebase Crashlytics
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        working-directory: app
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON não configurada."
+            exit 1
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" > $GOOGLE_APPLICATION_CREDENTIALS
+          
+          if [ ! -d "build/ios/archive/Runner.xcarchive/dSYMs" ]; then
+            echo "::error::Diretório build/ios/archive/Runner.xcarchive/dSYMs não encontrado."
+            exit 1
+          fi
+          
+          UPLOAD_SYMBOLS=$(find ios ~/Library/Developer/Xcode/DerivedData -name "upload-symbols" -type f 2>/dev/null | head -n 1)
+          if [ -z "$UPLOAD_SYMBOLS" ]; then
+            echo "upload-symbols não encontrado localmente. Baixando utilitário oficial do repositório do Firebase iOS SDK..."
+            curl -sSL "https://github.com/firebase/firebase-ios-sdk/raw/main/Crashlytics/upload-symbols" -o /tmp/upload-symbols
+            chmod +x /tmp/upload-symbols
+            UPLOAD_SYMBOLS="/tmp/upload-symbols"
+          else
+            chmod +x "$UPLOAD_SYMBOLS"
+          fi
+          
+          echo "Enviando dSYMs nativos para o Crashlytics via $UPLOAD_SYMBOLS..."
+          "$UPLOAD_SYMBOLS" -gsp ios/Runner/GoogleService-Info.plist -p ios build/ios/archive/Runner.xcarchive/dSYMs
 
       - name: Upload para App Store Connect (TestFlight)
         env:
@@ -161,9 +215,5 @@ jobs:
           
           echo "Fazendo upload do arquivo: $IPA_PATH"
           
-          # Se o APPSTORE_APPLE_ID for fornecido, inclui no comando, senão usa lookup por bundle-id
-          if [ -n "$APPLE_ID" ]; then
-            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID" --bundle-id "com.arestaclimb.fixalog"
-          else
-            xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --bundle-id "com.arestaclimb.fixalog"
-          fi
+          APPLE_ID_EFETIVO="${APPLE_ID:-6818883254}"
+          xcrun altool --upload-app -f "$IPA_PATH" -t ios --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --apple-id "$APPLE_ID_EFETIVO" --bundle-id "com.arestaclimb.fixalog"

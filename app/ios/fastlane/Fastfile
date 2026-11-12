@@ -1,0 +1,71 @@
+# frozen_string_literal: true
+
+require 'fastlane_core/build_watcher'
+
+opt_out_usage
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Aguardar processamento e submeter versão para revisão na App Store"
+  lane :submeter_revisao do |options|
+    versao = options[:versao]
+    build_num = options[:build_number]
+    notas = options[:notas]
+
+    UI.user_error!("O parâmetro :versao é obrigatório.") if versao.nil? || versao.empty?
+    UI.user_error!("O parâmetro :notas é obrigatório.") if notas.nil? || notas.empty?
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV['APPSTORE_KEY_ID'],
+      issuer_id: ENV['APPSTORE_ISSUER_ID'],
+      key_content: ENV['APPSTORE_PRIVATE_KEY'],
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    UI.message("🚀 Iniciando submissão na App Store Connect")
+    UI.message("📦 Versão alvo: #{versao} (Build: #{build_num})")
+    UI.message("📝 Notas de lançamento: #{notas}")
+
+    app = Spaceship::ConnectAPI::App.find("com.arestaclimb.fixalog")
+    app_id = app ? app.id : "6818883254"
+
+    if build_num && !build_num.to_s.empty?
+      UI.message("⏳ Aguardando a Apple concluir o processamento da build #{build_num} (versão #{versao})...")
+      # return_spaceship_testflight_build: false evita que o Fastlane tente converter o retorno para
+      # a classe legada Spaceship::TestFlight::Build, a qual exige login interativo de usuário/senha (Tunes.login).
+      FastlaneCore::BuildWatcher.wait_for_build_processing_to_be_complete(
+        app_id: app_id,
+        platform: :ios,
+        app_version: versao,
+        build_version: build_num.to_s,
+        poll_interval: 30,
+        return_spaceship_testflight_build: false
+      )
+    end
+
+    deliver(
+      api_key: api_key,
+      app_identifier: "com.arestaclimb.fixalog",
+      app_version: versao,
+      build_number: build_num,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      skip_app_version_update: false,
+      release_notes: {
+        'default' => notas,
+        'pt-BR' => notas
+      },
+      reject_if_possible: true,
+      submit_for_review: true,
+      automatic_release: true,
+      phased_release: false,
+      force: true,
+      run_precheck_before_submit: false
+    )
+
+    UI.success("🎉 Versão #{versao} submetida com sucesso para revisão da Apple!")
+  end
+end

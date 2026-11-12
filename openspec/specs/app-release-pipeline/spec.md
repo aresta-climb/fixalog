@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Pipeline de Lançamento do Aplicativo
+
+## Purpose
+
+Define a esteira automatizada de CI/CD do GitHub Actions para versionamento semântico, compilação multiplataforma (Android e iOS), upload de símbolos de telemetria e publicação automatizada no Google Play Console e App Store Connect (TestFlight e revisão da App Store).
+
+## Requirements
 
 ### Requirement: Suporte Híbrido de Assinatura Android e Conformidade iOS
 O projeto Android DEVE suportar assinatura de release via variáveis de ambiente e arquivo local, e o projeto iOS DEVE declarar conformidade de criptografia adequada para distribuição automatizada no TestFlight.
@@ -23,5 +29,5 @@ O repositório DEVE possuir fluxos automatizados do GitHub Actions para versiona
 - **THEN** o runner DEVE configurar Java 17, Flutter, Rust toolchain com targets Android, compilar o bundle `.aab` e publicá-lo na faixa interna do Google Play Console
 
 #### Scenario: Compilação e Deploy do iOS
-- **WHEN** o workflow `build_ios.yml` for executado
+- **WHEN** o pacote iOS for compilado pelo workflow `build_ios.yml`
 - **THEN** o runner macOS DEVE configurar Xcode, Flutter, Rust toolchain com targets iOS, importar os certificados de assinatura e enviar o `.ipa` para o TestFlight via `xcrun altool`

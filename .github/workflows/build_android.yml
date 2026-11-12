@@ -200,7 +200,7 @@ jobs:
           status: completed
 
       - name: Fallback Resiliente Google Play (Faixa Interna e Draft)
-        if: steps.upload_play.outcome == 'failure'
+        if: steps.upload_play.outcome != 'success'
         env:
           SA_PATH: ${{ runner.temp }}/play-service-account.json
           PACKAGE_NAME: com.arestaclimb.fixalog
@@ -210,13 +210,17 @@ jobs:
           NOTAS_LANCAMENTO: ${{ inputs.release_notes }}
           ENVIAR_PRODUCAO: ${{ inputs.enviar_para_producao }}
         run: |
-          pip install --quiet google-api-python-client google-auth
+          pip install --quiet google-api-python-client google-auth google-auth-httplib2 httplib2
           python3 - << 'PY'
-          import os, sys
+          import os, sys, socket
+          import httplib2
+          import google_auth_httplib2
           from google.oauth2 import service_account
           from googleapiclient.discovery import build
           from googleapiclient.errors import HttpError
           from googleapiclient.http import MediaFileUpload
+
+          socket.setdefaulttimeout(300)
 
           pkg = os.environ["PACKAGE_NAME"]
           sa_path = os.environ["SA_PATH"]
@@ -229,17 +233,19 @@ jobs:
           creds = service_account.Credentials.from_service_account_file(
               sa_path, scopes=["https://www.googleapis.com/auth/androidpublisher"]
           )
-          service = build("androidpublisher", "v3", credentials=creds)
+          authed_http = google_auth_httplib2.AuthorizedHttp(creds, http=httplib2.Http(timeout=300))
+          service = build("androidpublisher", "v3", http=authed_http)
           release_notes = [{"language": "pt-BR", "text": notas}] if notas else []
 
           def garantir_bundle_e_simbolos(edit_id):
               try:
-                  media = MediaFileUpload(aab_path, mimetype="application/octet-stream", resumable=True)
-                  bundle = service.edits().bundles().upload(packageName=pkg, editId=edit_id, media_body=media).execute()
+                  media = MediaFileUpload(aab_path, mimetype="application/octet-stream", chunksize=10 * 1024 * 1024, resumable=True)
+                  bundle = service.edits().bundles().upload(packageName=pkg, editId=edit_id, media_body=media).execute(num_retries=3)
                   vc = bundle["versionCode"]
                   print(f"AAB enviado com sucesso: versionCode={vc}")
               except HttpError as exc:
-                  print(f"Aviso ao enviar AAB ({exc.resp.status}): consultando bundles existentes...")
+                  detalhe = exc.content.decode("utf-8", errors="replace") if hasattr(exc, "content") else str(exc)
+                  print(f"Aviso ao enviar AAB ({exc.resp.status}): {detalhe} | consultando bundles existentes...")
                   bundles_resp = service.edits().bundles().list(packageName=pkg, editId=edit_id).execute()
                   bundles = bundles_resp.get("bundles", [])
                   if not bundles:
@@ -253,7 +259,7 @@ jobs:
                       service.edits().deobfuscationfiles().upload(
                           packageName=pkg, editId=edit_id, apkVersionCode=vc,
                           deobfuscationFileType="proguard", media_body=m_media
-                      ).execute()
+                      ).execute(num_retries=2)
                   except HttpError as exc:
                       print(f"Aviso ao anexar mapping ProGuard: {exc}")
 
@@ -263,38 +269,39 @@ jobs:
                       service.edits().deobfuscationfiles().upload(
                           packageName=pkg, editId=edit_id, apkVersionCode=vc,
                           deobfuscationFileType="nativeCode", media_body=s_media
-                      ).execute()
+                      ).execute(num_retries=2)
                   except HttpError as exc:
                       print(f"Aviso ao anexar símbolos nativos: {exc}")
               return vc
 
           def publicar_em_faixa(track_name, vc_existente=None):
+              edit = service.edits().insert(packageName=pkg, body={}).execute()
+              eid = edit["id"]
+              vc = vc_existente if vc_existente is not None else garantir_bundle_e_simbolos(eid)
               for status_tentativa in ("completed", "draft"):
-                  for not_sent in (False, True):
-                      try:
-                          edit = service.edits().insert(packageName=pkg, body={}).execute()
-                          eid = edit["id"]
-                          vc = vc_existente if vc_existente is not None else garantir_bundle_e_simbolos(eid)
-                          vc_existente = vc
-                          release_body = {
-                              "status": status_tentativa,
-                              "versionCodes": [str(vc)],
-                          }
-                          if release_notes:
-                              release_body["releaseNotes"] = release_notes
-                          service.edits().tracks().update(
-                              packageName=pkg,
-                              editId=eid,
-                              track=track_name,
-                              body={"track": track_name, "releases": [release_body]},
-                          ).execute()
-                          res = service.edits().commit(
-                              packageName=pkg, editId=eid, changesNotSentForReview=not_sent
-                          ).execute()
-                          print(f"Sucesso na faixa '{track_name}' (status='{status_tentativa}', changesNotSentForReview={not_sent}, editId={res.get('id')})!")
-                          return vc
-                      except HttpError as exc:
-                          print(f"Tentativa faixa='{track_name}' status='{status_tentativa}' changesNotSentForReview={not_sent} falhou ({exc.resp.status}): {exc}")
+                  for usar_notas in (True, False):
+                      for not_sent in (False, True):
+                          try:
+                              release_body = {
+                                  "status": status_tentativa,
+                                  "versionCodes": [str(vc)],
+                              }
+                              if usar_notas and release_notes:
+                                  release_body["releaseNotes"] = release_notes
+                              service.edits().tracks().update(
+                                  packageName=pkg,
+                                  editId=eid,
+                                  track=track_name,
+                                  body={"track": track_name, "releases": [release_body]},
+                              ).execute()
+                              res = service.edits().commit(
+                                  packageName=pkg, editId=eid, changesNotSentForReview=not_sent
+                              ).execute()
+                              print(f"Sucesso na faixa '{track_name}' (status='{status_tentativa}', notas={usar_notas}, changesNotSentForReview={not_sent}, editId={res.get('id')})!")
+                              return vc
+                          except HttpError as exc:
+                              detalhe = exc.content.decode("utf-8", errors="replace") if hasattr(exc, "content") else str(exc)
+                              print(f"Tentativa faixa='{track_name}' status='{status_tentativa}' notas={usar_notas} changesNotSentForReview={not_sent} falhou ({exc.resp.status}): {detalhe}")
               return None
 
           vc_publicado = publicar_em_faixa("internal")

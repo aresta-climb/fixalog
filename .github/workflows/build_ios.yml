@@ -134,11 +134,15 @@ jobs:
           flutter build ipa --release --obfuscate --split-debug-info=build/symbols --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload de Símbolos para o Sentry
-        if: env.SENTRY_AUTH_TOKEN != ''
         working-directory: app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: dart run sentry_dart_plugin
+        run: |
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            dart run sentry_dart_plugin
+          else
+            echo "::notice::SENTRY_AUTH_TOKEN não definido; pulando upload de símbolos para o Sentry."
+          fi
 
       - name: Upload para App Store Connect (TestFlight)
         env:

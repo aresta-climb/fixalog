@@ -73,17 +73,86 @@ jobs:
         run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
 
       - name: Upload de Símbolos para o Sentry
-        if: env.SENTRY_AUTH_TOKEN != ''
         working-directory: ./app
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: dart run sentry_dart_plugin
+        run: |
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            dart run sentry_dart_plugin
+          else
+            echo "::notice::SENTRY_AUTH_TOKEN não definido; pulando upload de símbolos para o Sentry."
+          fi
+
+      - name: Empacotar Símbolos de Depuração Nativos
+        working-directory: ./app
+        run: |
+          SRC_DIR="build/app/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"
+          if [ ! -d "$SRC_DIR" ]; then
+            SRC_DIR="build/app/intermediates/merged_native_libs/release/out/lib"
+          fi
+          if [ ! -d "$SRC_DIR" ]; then
+            SRC_DIR="build/app/intermediates/stripped_native_libs/release/out/lib"
+          fi
+          mkdir -p build/native-debug-symbols
+          DEST_ZIP="$(pwd)/build/native-debug-symbols/native-debug-symbols.zip"
+          if [ -d "$SRC_DIR" ]; then
+            cd "$SRC_DIR"
+            zip -r "$DEST_ZIP" ./*
+            cd - > /dev/null
+          else
+            touch empty_symbol
+            zip -j "$DEST_ZIP" empty_symbol
+            rm empty_symbol
+          fi
+
+      - name: Salvar Artefatos de Release Android (AAB, Mappings e Símbolos)
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release-${{ inputs.tag_name }}
+          path: |
+            app/build/app/outputs/bundle/release/*.aab
+            app/build/app/outputs/mapping/release/
+            app/build/symbols
+            app/build/native-debug-symbols/native-debug-symbols.zip
+          retention-days: 90
+
+      - name: Preparar e Validar Credencial da Google Play Service Account
+        env:
+          RAW_SA_JSON: ${{ secrets.ANDROID_PLAY_STORE_CONFIG_JSON }}
+        run: |
+          python3 - << 'PY'
+          import base64, json, os, sys
+
+          raw = os.environ.get("RAW_SA_JSON", "").strip()
+          if not raw:
+              print("::error::Secret ANDROID_PLAY_STORE_CONFIG_JSON está vazio nos Secrets do repositório!")
+              sys.exit(1)
+
+          if not raw.startswith("{"):
+              try:
+                  raw = base64.b64decode(raw).decode("utf-8").strip()
+              except Exception as exc:
+                  print(f"::error::ANDROID_PLAY_STORE_CONFIG_JSON não é um JSON válido nem Base64: {exc}")
+                  sys.exit(1)
+
+          data = json.loads(raw)
+          pk = data.get("private_key", "")
+          if "\\n" in pk:
+              data["private_key"] = pk.replace("\\n", "\n")
+
+          print(f"Service Account carregada: client_email={data.get('client_email')} | private_key_id={data.get('private_key_id')}")
+          out_path = os.path.join(os.environ["RUNNER_TEMP"], "play-service-account.json")
+          with open(out_path, "w", encoding="utf-8") as f:
+              json.dump(data, f)
+          PY
 
       - name: Upload para Google Play Console (Faixa Interna)
-        uses: r0adkll/upload-google-play@v1.1.3
+        uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.ANDROID_PLAY_STORE_CONFIG_JSON }}
+          serviceAccountJson: ${{ runner.temp }}/play-service-account.json
           packageName: com.arestaclimb.fixalog
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
+          mappingFile: app/build/app/outputs/mapping/release/mapping.txt
+          debugSymbols: app/build/native-debug-symbols/native-debug-symbols.zip
           tracks: internal
           status: completed

@@ -1,7 +1,7 @@
 name: fixalog
 description: "Aplicativo de inventário e vistoria técnica de proteções em vias de escalada."
 publish_to: 'none'
-version: 0.2.4+18
+version: 0.2.5-dev+19
 
 environment:
   sdk: ^3.11.3

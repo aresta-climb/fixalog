@@ -45,6 +45,15 @@ platform :ios do
       )
     end
 
+    # Na primeira versão do app (quando ainda não existe versão publicada na App Store),
+    # a Apple não possui campo "Novidades desta versão" (release_notes) e o upload_metadata
+    # falha com "No data" em fetch_app_store_review_detail caso os dados de revisão ainda não existam.
+    versao_ao_vivo = app&.get_live_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    primeira_versao = versao_ao_vivo.nil?
+    if primeira_versao
+      UI.message("ℹ️ Primeira versão do app na App Store detectada: ignorando upload de release_notes (skip_metadata: true).")
+    end
+
     deliver(
       api_key: api_key,
       app_identifier: "com.arestaclimb.fixalog",
@@ -52,7 +61,7 @@ platform :ios do
       build_number: build_num,
       skip_binary_upload: true,
       skip_screenshots: true,
-      skip_metadata: false,
+      skip_metadata: primeira_versao,
       skip_app_version_update: false,
       release_notes: {
         'default' => notas,

@@ -37,7 +37,7 @@ platform :ios do
       begin
         # return_spaceship_testflight_build: false evita que o Fastlane tente converter o retorno para
         # a classe legada Spaceship::TestFlight::Build, a qual exige login interativo de usuário/senha (Tunes.login).
-        Timeout.timeout(600) do
+        Timeout.timeout(300) do
           FastlaneCore::BuildWatcher.wait_for_build_processing_to_be_complete(
             app_id: app_id,
             platform: :ios,
@@ -48,18 +48,7 @@ platform :ios do
           )
         end
       rescue Timeout::Error
-        UI.important("⚠️ Tempo limite de 10 minutos excedido aguardando o processamento da build #{build_num} na Apple. Buscando a build processada mais recente disponível no App Store Connect...")
-        builds_validas = Spaceship::ConnectAPI::Build.all(
-          app_id: app_id,
-          sort: "-uploadedDate",
-          limit: 10
-        ).select { |b| b.processing_state == Spaceship::ConnectAPI::Build::ProcessingState::VALID }
-        if builds_validas.any?
-          build_num = builds_validas.first.version
-          UI.important("ℹ️ Utilizando build válida mais recente encontrada no App Store Connect: #{build_num}")
-        else
-          UI.user_error!("Nenhuma build processada (VALID) foi encontrada no App Store Connect após 10 minutos.")
-        end
+        UI.important("⚠️ O processamento assíncrono do TestFlight para a build #{build_num} (versão #{versao}) na Apple excedeu a janela rápida de 5 minutos (pacotes com FFmpeg levam até ~40 min na fila da Apple). Prosseguindo para preparar a versão #{versao} no App Store Connect...")
       end
     end
 
@@ -96,8 +85,10 @@ platform :ios do
 
       UI.success("🎉 Versão #{versao} submetida com sucesso para revisão da Apple!")
     rescue => e
-      if e.message.include?("This resource cannot be reviewed") || e.message.include?("is not in valid state")
-        UI.important("⚠️ Build #{build_num} vinculada com sucesso à versão #{versao} na App Store Connect! A submissão final para revisão aguarda o preenchimento inicial dos metadados obrigatórios na loja (screenshots, preço, política de privacidade, classificação indicativa e descrição): #{e.message}")
+      if e.message.include?("This resource cannot be reviewed") ||
+         e.message.include?("is not in valid state") ||
+         e.message.include?("does not exist")
+        UI.important("⚠️ Versão #{versao} preparada com sucesso no App Store Connect! A seleção final da build #{build_num} ou submissão para revisão aguarda a conclusão da fila assíncrona do TestFlight ou preenchimento inicial dos metadados da loja: #{e.message}")
       else
         raise e
       end

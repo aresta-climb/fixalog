@@ -8,6 +8,7 @@ import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
 import 'package:fixalog/features/home/views/home_screen.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
 import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -250,6 +251,119 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text('氏名 *'), findsOneWidget);
         expect(find.text('鍵を生成して続行'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'mantém tela aberta ao abrir via Navigator.push após isSuccess=true prévio e executa Navigator.pop atualizando currentIdentityProvider ao salvar edição',
+      (tester) async {
+        late BancoDadosLocal banco;
+        await tester.runAsync(() async {
+          banco = await BancoDadosLocal.abrirEmMemoria();
+        });
+        addTearDown(() async {
+          await tester.runAsync(() async {
+            await banco.fechar();
+          });
+        });
+
+        final crypto = CryptoServiceFake();
+        final auth = AutenticacaoNuvemServiceFake(
+          crypto: crypto,
+          nomeRetornadoOidc: 'Renato Inicial',
+          clubeRetornadoOidc: 'FEMERJ',
+        );
+        await auth.entrarComProvedorOidc(ProvedorOidc.google);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              cryptoServiceProvider.overrideWithValue(crypto),
+              autenticacaoNuvemServiceProvider.overrideWithValue(auth),
+            ],
+            child: MaterialApp(
+              home: Consumer(
+                builder: (context, ref, _) {
+                  final identidadeAsync = ref.watch(currentIdentityProvider);
+                  return Scaffold(
+                    key: const Key('tela_origem_config'),
+                    body: Column(
+                      children: [
+                        Text(
+                          'Identidade atual: ${identidadeAsync.valueOrNull?.nome ?? "nenhuma"}',
+                        ),
+                        ElevatedButton(
+                          key: const Key('botao_abrir_edicao_identidade'),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => IdentitySetupScreen(
+                                  solicitadorPermissoes: () async {},
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Editar Identidade'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Simula conclusão prévia do onboarding deixando isSuccess=true no provider compartilhado
+        final container = ProviderScope.containerOf(
+          tester.element(find.byKey(const Key('tela_origem_config'))),
+        );
+        await tester.runAsync(() async {
+          await container
+              .read(identityFormViewModelProvider.notifier)
+              .submitIdentity(
+                'Renato Inicial',
+                'FEMERJ',
+                exigirAutenticacaoOidc: true,
+              );
+        });
+        container.invalidate(currentIdentityProvider);
+        await tester.pumpAndSettle();
+        expect(
+          container.read(identityFormViewModelProvider).isSuccess,
+          isTrue,
+        );
+        expect(find.text('Identidade atual: Renato Inicial'), findsOneWidget);
+
+        // Abre a IdentitySetupScreen empilhada (como na TelaConfiguracoes)
+        await tester.tap(find.byKey(const Key('botao_abrir_edicao_identidade')));
+        await tester.pumpAndSettle();
+
+        // A tela DEVE permanecer aberta para edição (sem auto-navegar imediatamente)
+        expect(find.byType(IdentitySetupScreen), findsOneWidget);
+        expect(find.byType(HomeScreen), findsNothing);
+        expect(find.text('Renato Inicial'), findsOneWidget);
+
+        // Edita o nome e confirma
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.first, 'Renato Editado');
+        await tester.pump();
+
+        final botaoConfirmar = find.byKey(const Key('botao_gerar_chaves_entrar'));
+        await tester.ensureVisible(botaoConfirmar);
+        await tester.runAsync(() async {
+          await tester.tap(botaoConfirmar);
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pumpAndSettle();
+
+        // Deve ter executado Navigator.pop de volta para a tela_origem_config sem empilhar HomeScreen
+        expect(find.byKey(const Key('tela_origem_config')), findsOneWidget);
+        expect(find.byType(IdentitySetupScreen), findsNothing);
+        expect(find.byType(HomeScreen), findsNothing);
+        expect(find.text('Identidade atual: Renato Editado'), findsOneWidget);
       },
     );
   });

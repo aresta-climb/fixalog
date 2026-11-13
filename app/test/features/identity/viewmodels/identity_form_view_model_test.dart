@@ -110,7 +110,7 @@ void main() {
       expect(await auth.obterSessaoAtual(), isNull);
     });
 
-    test('carregarSessaoExistente restaura sessão OIDC e identidade local prévia quando disponíveis', () async {
+    test('carregarSessaoExistente restaura sessão OIDC, reinicia isSuccess e limpa errorMessage de submissão anterior', () async {
       final repo = SqliteIdentityRepository(banco);
       final crypto = CryptoServiceFake();
       final auth = AutenticacaoNuvemServiceFake(
@@ -121,11 +121,20 @@ void main() {
       await auth.entrarComProvedorOidc(ProvedorOidc.google);
 
       final viewModel = IdentityFormViewModel(repo, crypto, auth);
+      await viewModel.submitIdentity(
+        'Nome Inicial',
+        'Clube Inicial',
+        exigirAutenticacaoOidc: true,
+      );
+      expect(viewModel.state.isSuccess, isTrue);
+
       await viewModel.carregarSessaoExistente();
 
+      expect(viewModel.state.isSuccess, isFalse);
+      expect(viewModel.state.errorMessage, isNull);
       expect(viewModel.state.sessaoNuvem, isNotNull);
-      expect(viewModel.state.nomeSugerido, equals('Nome OIDC'));
-      expect(viewModel.state.clubeSugerido, equals('Clube OIDC'));
+      expect(viewModel.state.nomeSugerido, equals('Nome Inicial'));
+      expect(viewModel.state.clubeSugerido, equals('Clube Inicial'));
     });
 
     test('submitIdentity recupera sessão OIDC já persistida no cofre quando exigirAutenticacaoOidc=true', () async {

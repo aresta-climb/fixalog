@@ -153,5 +153,59 @@ void main() {
         expect(await ServicoAppCheck.instancia.obterToken(), isNull);
       },
     );
+
+    test(
+      'obterToken registra Too many attempts / DecodeIntegrityToken como logAviso em release e aplica cooldown de 5 minutos ignorável por forcarAtualizacao=true',
+      () async {
+        var agora = DateTime.utc(2026, 11, 13, 18, 0, 0);
+        var chamadasNativas = 0;
+        var deveFalhar = true;
+
+        final servico = ServicoAppCheck(
+          logger: loggerFake,
+          emModoDesenvolvimento: false,
+          relogio: () => agora,
+          obterTokenAppCheck: (_) async {
+            chamadasNativas++;
+            if (deveFalhar) {
+              throw Exception(
+                '[firebase_app_check/unknown] com.google.firebase.FirebaseException: Too many attempts.',
+              );
+            }
+            return 'jwt_apos_cooldown';
+          },
+        );
+
+        // 1ª chamada em release falha com Too many attempts -> registra logAviso (sem logError) e ativa cooldown
+        expect(await servico.obterToken(), isNull);
+        expect(chamadasNativas, equals(1));
+        expect(loggerFake.errosRegistrados, isEmpty);
+        expect(loggerFake.avisosRegistrados, hasLength(1));
+        expect(
+          loggerFake.avisosRegistrados.single,
+          contains('Too many attempts'),
+        );
+
+        // 2ª chamada dentro da janela de 5 minutos (após 2 min) retorna null sem acionar o canal nativo
+        agora = agora.add(const Duration(minutes: 2));
+        expect(await servico.obterToken(), isNull);
+        expect(chamadasNativas, equals(1));
+
+        // Chamada explícita com forcarAtualizacao=true ignora o cooldown mesmo antes de 5 minutos
+        deveFalhar = false;
+        expect(await servico.obterToken(true), equals('jwt_apos_cooldown'));
+        expect(chamadasNativas, equals(2));
+
+        // Se falhar novamente com DecodeIntegrityToken e avançar o relógio além de 5 minutos, volta a consultar o canal nativo
+        deveFalhar = true;
+        expect(await servico.obterToken(), isNull);
+        expect(chamadasNativas, equals(3));
+
+        deveFalhar = false;
+        agora = agora.add(const Duration(minutes: 6));
+        expect(await servico.obterToken(), equals('jwt_apos_cooldown'));
+        expect(chamadasNativas, equals(4));
+      },
+    );
   });
 }

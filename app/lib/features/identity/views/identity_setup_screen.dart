@@ -74,10 +74,16 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
           _clubeController.text.trim().isEmpty) {
         _clubeController.text = next.clubeSugerido!;
       }
-      if (next.isSuccess) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+      if (!(previous?.isSuccess ?? false) && next.isSuccess) {
+        ref.invalidate(currentIdentityProvider);
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          navigator.pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       }
       if (next.errorMessage != null &&
           (previous?.errorMessage != next.errorMessage)) {

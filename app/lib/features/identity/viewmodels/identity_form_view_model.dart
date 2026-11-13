@@ -65,14 +65,16 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
             AutenticacaoNuvemService(cryptoService: _cryptoService),
         super(IdentityFormState());
 
-  /// Carrega uma sessão OIDC já existente quando a tela é aberta.
+  /// Carrega uma sessão OIDC já existente quando a tela é aberta,
+  /// reiniciando flags transitórias de submissão anterior (`isSuccess` e `errorMessage`).
   Future<void> carregarSessaoExistente() async {
     final sessao = await _autenticacaoService.obterSessaoAtual();
-    if (sessao == null) return;
     state = state.copyWith(
+      isSuccess: false,
+      errorMessage: null,
       sessaoNuvem: sessao,
-      nomeSugerido: sessao.nomeCompleto,
-      clubeSugerido: sessao.clubeAssociacao,
+      nomeSugerido: sessao?.nomeCompleto,
+      clubeSugerido: sessao?.clubeAssociacao,
     );
   }
 
@@ -158,6 +160,7 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       );
 
       final identity = IdentityRecord()
+        ..id = 1
         ..nome = nomeLimpo
         ..clubeAssociacao = clubeLimpo.isEmpty ? 'N/A' : clubeLimpo
         ..dataRegistro = DateTime.now();

@@ -27,6 +27,9 @@ class ServicoAppCheck {
   final AtivarAppCheckCallback _ativarAppCheck;
   final ObterTokenAppCheckCallback _obterTokenAppCheck;
   final bool _emModoDesenvolvimento;
+  final DateTime Function() _relogio;
+  final Duration _duracaoCooldownFalha;
+  DateTime? _cooldownAte;
 
   /// Cria uma instância de [ServicoAppCheck] permitindo injeção determinística de dependências.
   ServicoAppCheck({
@@ -34,10 +37,24 @@ class ServicoAppCheck {
     AtivarAppCheckCallback? ativarAppCheck,
     ObterTokenAppCheckCallback? obterTokenAppCheck,
     bool emModoDesenvolvimento = kModoDesenvolvimento,
+    DateTime Function()? relogio,
+    Duration duracaoCooldownFalha = const Duration(minutes: 5),
   })  : _logger = logger ?? RegistroLogger.instancia,
         _ativarAppCheck = ativarAppCheck ?? _ativarPadrao,
         _obterTokenAppCheck = obterTokenAppCheck ?? _obterTokenPadrao,
-        _emModoDesenvolvimento = emModoDesenvolvimento;
+        _emModoDesenvolvimento = emModoDesenvolvimento,
+        _relogio = relogio ?? DateTime.now,
+        _duracaoCooldownFalha = duracaoCooldownFalha;
+
+  /// Identifica se o [erro] corresponde a rate-limit (`Too many attempts`) ou
+  /// rejeição de atestação (`DecodeIntegrityToken` / `App attestation failed`)
+  /// comum em emuladores de Pre-Launch Report.
+  static bool isFalhaAtestacaoOuRateLimit(Object erro) {
+    final texto = erro.toString().toLowerCase();
+    return texto.contains('too many attempts') ||
+        texto.contains('decodeintegritytoken') ||
+        texto.contains('app attestation failed');
+  }
 
   /// Instância global padrão utilizada pela aplicação.
   static ServicoAppCheck instancia = ServicoAppCheck();
@@ -93,25 +110,39 @@ class ServicoAppCheck {
   }
 
   /// Obtém o token JWT atual do App Check, retornando `null` caso o dispositivo
-  /// esteja offline ou em ambiente não atestado.
+  /// esteja offline, em *cooldown* após falha prévia ou em ambiente não atestado.
   Future<String?> obterToken([bool forcarAtualizacao = false]) async {
+    if (!forcarAtualizacao &&
+        _cooldownAte != null &&
+        _relogio().isBefore(_cooldownAte!)) {
+      return null;
+    }
     try {
-      return await _obterTokenAppCheck(forcarAtualizacao);
+      final token = await _obterTokenAppCheck(forcarAtualizacao);
+      _cooldownAte = null;
+      return token;
     } catch (e, stackTrace) {
       if (RegistroLogger.isFalhaConexaoOuTimeout(e)) {
         _logger.logAviso(
           '🛡️ [ServicoAppCheck] Falha de conexão ao obter token do App Check (offline/timeout): $e',
         );
-      } else if (_emModoDesenvolvimento) {
-        _logger.logAviso(
-          '🛡️ [ServicoAppCheck] Token do App Check indisponível em modo de desenvolvimento (UUID de debug não registrado): $e',
-        );
       } else {
-        _logger.logError(
-          '🛡️ [ServicoAppCheck] Não foi possível obter o token do App Check',
-          error: e,
-          stackTrace: stackTrace,
-        );
+        _cooldownAte = _relogio().add(_duracaoCooldownFalha);
+        if (_emModoDesenvolvimento) {
+          _logger.logAviso(
+            '🛡️ [ServicoAppCheck] Token do App Check indisponível em modo de desenvolvimento (UUID de debug não registrado): $e',
+          );
+        } else if (isFalhaAtestacaoOuRateLimit(e)) {
+          _logger.logAviso(
+            '🛡️ [ServicoAppCheck] Limite de tentativas ou atestação recusada no App Check (cooldown ativo): $e',
+          );
+        } else {
+          _logger.logError(
+            '🛡️ [ServicoAppCheck] Não foi possível obter o token do App Check',
+            error: e,
+            stackTrace: stackTrace,
+          );
+        }
       }
       return null;
     }

@@ -153,76 +153,90 @@ class FixalogApp extends ConsumerWidget {
       ),
       child: MaterialApp(
         title: 'Fixalog',
-      themeMode: ThemeMode.dark,
-      locale: localeAtivo,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: ResolvedorIdioma.localesSuportados,
-      builder: (context, child) {
-        final mediaQueryData = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQueryData.copyWith(
-            textScaler: TextScaler.linear(mediaQueryData.textScaler.scale(1) * 1.25),
+        themeMode: ThemeMode.dark,
+        locale: localeAtivo,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: ResolvedorIdioma.localesSuportados,
+        builder: (context, child) {
+          final mediaQueryData = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQueryData.copyWith(
+              textScaler: TextScaler.linear(mediaQueryData.textScaler.scale(1) * 1.25),
+            ),
+            child: child!,
+          );
+        },
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          fontFamily: 'NotoSans',
+          fontFamilyFallback: const ['NotoSansArabic', 'NotoSansJP'],
+          scaffoldBackgroundColor: const Color(0xFF121416), // Surface Noise Background
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: ZoomPageTransitionsBuilder(
+                allowSnapshotting: false,
+              ),
+            },
           ),
-          child: child!,
-        );
-      },
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: 'NotoSans',
-        fontFamilyFallback: const ['NotoSansArabic', 'NotoSansJP'],
-        scaffoldBackgroundColor: const Color(0xFF121416), // Surface Noise Background
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF6B00), // Rescue Orange
-          primaryContainer: Color(0xFFFF6B00),
-          onPrimaryContainer: Colors.black, // High contrast text on orange
-          secondary: Color(0xFF4F6D44), // Moss Green
-          surface: Color(0xFF1A1C1E), // Surface-container-low
-          surfaceContainerHighest: Color(0xFF333537),
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFFFF6B00), // Rescue Orange
+            primaryContainer: Color(0xFFFF6B00),
+            onPrimaryContainer: Colors.black, // High contrast text on orange
+            secondary: Color(0xFF4F6D44), // Moss Green
+            surface: Color(0xFF1A1C1E), // Surface-container-low
+            surfaceContainerHighest: Color(0xFF333537),
+          ),
+          textTheme: ThemeData.dark().textTheme.copyWith(
+            headlineLarge: const TextStyle(
+              fontFamily: 'NotoSans',
+              fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+              letterSpacing: -0.02,
+            ),
+            bodyMedium: const TextStyle(
+              fontFamily: 'NotoSans',
+              fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+            ),
+            labelMedium: const TextStyle(
+              fontFamily: 'NotoSans',
+              fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
+              textBaseline: TextBaseline.alphabetic,
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B00),
+              foregroundColor: Colors.black, // on_primary_container
+              minimumSize: const Size(double.infinity, 56), // Hit area for gloved hands
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // xl radius
+              elevation: 0,
+            ),
+          ),
+          inputDecorationTheme: const InputDecorationTheme(
+            filled: true,
+            fillColor: Color(0xFF333537), // surface_container_highest
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFFF6B00), width: 2),
+            ),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          ),
         ),
-        textTheme: ThemeData.dark().textTheme.copyWith(
-          headlineLarge: const TextStyle(
-            fontFamily: 'NotoSans',
-            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
-            letterSpacing: -0.02,
-          ),
-          bodyMedium: const TextStyle(
-            fontFamily: 'NotoSans',
-            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
-          ),
-          labelMedium: const TextStyle(
-            fontFamily: 'NotoSans',
-            fontFamilyFallback: ['NotoSansArabic', 'NotoSansJP'],
-            textBaseline: TextBaseline.alphabetic,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF6B00),
-            foregroundColor: Colors.black, // on_primary_container
-            minimumSize: const Size(double.infinity, 56), // Hit area for gloved hands
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // xl radius
-            elevation: 0,
-          ),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          fillColor: Color(0xFF333537), // surface_container_highest
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFFF6B00), width: 2),
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        ),
-      ),
-      home: _StartupRouter(),
+        home: const _StartupRouter(),
       ),
     );
   }
 }
 
-class _StartupRouter extends ConsumerWidget {
+class _StartupRouter extends ConsumerStatefulWidget {
+  const _StartupRouter();
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StartupRouter> createState() => _StartupRouterState();
+}
+
+class _StartupRouterState extends ConsumerState<_StartupRouter> {
+  @override
+  Widget build(BuildContext context) {
     final banco = ref.watch(bancoDadosLocalProvider);
     if (banco == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -232,7 +246,9 @@ class _StartupRouter extends ConsumerWidget {
     final acceptedTerms = (config?.acceptedTermsVersion ?? 0) >= kVersaoLegal;
 
     if (!acceptedTerms) {
-      return const fixalog_onboarding.TelaTermosDeUso();
+      return fixalog_onboarding.TelaTermosDeUso(
+        aoAceitar: () => setState(() {}),
+      );
     }
 
     final hasIdentityAsync = ref.watch(hasIdentityProvider);

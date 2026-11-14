@@ -3,7 +3,6 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart' hide Step;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -225,17 +224,11 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               child: Container(
                 width: 700,
                 height: 700,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 140, sigmaY: 140),
-                  child: Container(color: Colors.transparent),
+                  gradient: RadialGradient(
+                    colors: [Color(0x661B3D2F), Color(0x001B3D2F)],
+                  ),
                 ),
               ),
             ),

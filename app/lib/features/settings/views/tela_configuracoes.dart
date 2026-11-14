@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,17 +88,11 @@ class TelaConfiguracoes extends ConsumerWidget {
           child: Container(
             width: 600,
             height: 600,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withValues(alpha: 0.5),
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 150, sigmaY: 150),
-              child: Container(color: Colors.transparent),
+              gradient: RadialGradient(
+                colors: [Color(0x801B3D2F), Color(0x001B3D2F)],
+              ),
             ),
           ),
         ),

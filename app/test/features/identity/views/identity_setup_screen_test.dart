@@ -77,6 +77,9 @@ void main() {
 
       expect(find.text('FIXA'), findsOneWidget);
       expect(find.text('LOG'), findsOneWidget);
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.backgroundColor, const Color(0xFF2D3328));
+      expect(find.byKey(const Key('botao_voltar_identidade')), findsNothing);
       expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
       expect(find.byKey(const Key('botao_login_apple')), findsOneWidget);
       expect(find.text('Continuar com o Google'), findsOneWidget);
@@ -338,6 +341,26 @@ void main() {
         expect(find.text('Identidade atual: Renato Inicial'), findsOneWidget);
 
         // Abre a IdentitySetupScreen empilhada (como na TelaConfiguracoes)
+        await tester.tap(find.byKey(const Key('botao_abrir_edicao_identidade')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // Já durante a transição (antes de concluir postFrameCallback assíncrono),
+        // os campos devem estar pré-preenchidos sincronamente e o botão voltar visível
+        expect(find.byType(IdentitySetupScreen), findsOneWidget);
+        expect(find.text('Renato Inicial'), findsOneWidget);
+        expect(find.text('FEMERJ'), findsOneWidget);
+        expect(find.byKey(const Key('botao_voltar_identidade')), findsOneWidget);
+
+        await tester.pumpAndSettle();
+
+        // Testa cancelar a edição pelo botão voltar no topo da tela
+        await tester.tap(find.byKey(const Key('botao_voltar_identidade')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('tela_origem_config')), findsOneWidget);
+        expect(find.byType(IdentitySetupScreen), findsNothing);
+
+        // Abre novamente a IdentitySetupScreen empilhada para editar e salvar
         await tester.tap(find.byKey(const Key('botao_abrir_edicao_identidade')));
         await tester.pumpAndSettle();
 

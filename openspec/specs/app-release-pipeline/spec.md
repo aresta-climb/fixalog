@@ -7,11 +7,11 @@ Define a esteira automatizada de CI/CD do GitHub Actions para versionamento sem�
 ## Requirements
 
 ### Requirement: Suporte Híbrido de Assinatura Android e Conformidade iOS
-O projeto Android DEVE suportar assinatura de release via variáveis de ambiente e arquivo local, e o projeto iOS DEVE declarar conformidade de criptografia adequada para distribuição automatizada no TestFlight.
+O projeto Android DEVE suportar assinatura de release via variáveis de ambiente e arquivo local, habilitar minificação/otimização R8 em modo completo (`isMinifyEnabled = true`, `isShrinkResources = true`, `android.enableR8.fullMode=true`, `android.r8.optimizedResourceShrinking=true`) com regras ProGuard (`proguard-rules.pro`) preservando metadados de stacktrace e incluir tabela de símbolos nativos (`ndk.debugSymbolLevel = "SYMBOL_TABLE"`) no `.aab` de release; e o projeto iOS DEVE declarar conformidade de criptografia adequada para distribuição automatizada no TestFlight.
 
-#### Scenario: Assinatura de Release no Gradle
+#### Scenario: Assinatura de Release e Símbolos Nativos no Gradle
 - **WHEN** o build de release Android for executado em ambiente com variáveis de ambiente ou com arquivo `key.properties`
-- **THEN** o `build.gradle.kts` DEVE utilizar essas credenciais para gerar um artefato `.aab` assinado
+- **THEN** o `build.gradle.kts` DEVE utilizar essas credenciais, aplicar `proguard-rules.pro` com R8 full mode e embutir `debugSymbolLevel = "SYMBOL_TABLE"` para gerar um artefato `.aab` assinado e simbolizado
 
 #### Scenario: Conformidade de Criptografia no iOS
 - **WHEN** o pacote iOS for inspecionado para upload no TestFlight

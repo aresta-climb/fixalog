@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:fixalog/main.dart';
+import 'package:fixalog/core/constantes/versao_legal.g.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/models/local/app_config_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
@@ -16,6 +17,10 @@ import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/servico_app_check.dart';
 import 'package:fixalog/core/services/servico_configuracao_remota.dart';
 import 'package:fixalog/core/services/servico_telemetria.dart';
+import 'package:fixalog/features/home/views/home_screen.dart';
+import 'package:fixalog/features/identity/viewmodels/identity_form_view_model.dart';
+import 'package:fixalog/features/identity/views/identity_setup_screen.dart';
+import 'package:fixalog/features/onboarding/views/tela_termos_de_uso.dart';
 
 import 'fakes/registro_logger_fake.dart';
 
@@ -49,7 +54,91 @@ void main() {
         materialApp.darkTheme?.textTheme.bodyMedium?.fontFamily,
         equals('NotoSans'),
       );
+      final builderAndroid = materialApp
+          .darkTheme
+          ?.pageTransitionsTheme
+          .builders[TargetPlatform.android];
+      expect(builderAndroid, isA<ZoomPageTransitionsBuilder>());
+      expect(
+        (builderAndroid as ZoomPageTransitionsBuilder).allowSnapshotting,
+        isFalse,
+      );
     });
+
+    testWidgets(
+      'roteia declarativamente entre TelaTermosDeUso, IdentitySetupScreen, HomeScreen e estado de erro no _StartupRouter',
+      (tester) async {
+        late BancoDadosLocal banco;
+        await tester.runAsync(() async {
+          banco = await BancoDadosLocal.abrirEmMemoria();
+        });
+        addTearDown(() async {
+          await tester.runAsync(() async {
+            await banco.fechar();
+          });
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              hasIdentityProvider.overrideWith((ref) async => false),
+            ],
+            child: const FixalogApp(),
+          ),
+        );
+        await tester.pump();
+
+        // 1. Termos não aceitos -> exibe TelaTermosDeUso com callback aoAceitar conectado
+        final telaTermos = tester.widget<TelaTermosDeUso>(
+          find.byType(TelaTermosDeUso),
+        );
+        expect(telaTermos.aoAceitar, isNotNull);
+
+        // 2. Ao aceitar termos -> transiciona declarativamente para IdentitySetupScreen (hasIdentity == false)
+        await tester.runAsync(() async {
+          await banco.salvarConfiguracao(
+            AppConfigRecord()..acceptedTermsVersion = kVersaoLegal,
+          );
+        });
+        telaTermos.aoAceitar!();
+        await tester.pumpAndSettle();
+        expect(find.byType(IdentitySetupScreen), findsOneWidget);
+
+        // 3. Quando hasIdentity == true -> exibe HomeScreen
+        await tester.pumpWidget(
+          ProviderScope(
+            key: UniqueKey(),
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              hasIdentityProvider.overrideWith((ref) async => true),
+            ],
+            child: const FixalogApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+
+        // 4. Quando hasIdentityProvider falha -> exibe mensagem de erro fatal
+        await tester.pumpWidget(
+          ProviderScope(
+            key: UniqueKey(),
+            overrides: [
+              bancoDadosLocalProvider.overrideWithValue(banco),
+              hasIdentityProvider.overrideWith(
+                (ref) => Future<bool>.error(StateError('banco corrompido')),
+              ),
+            ],
+            child: const FixalogApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.textContaining('Erro fatal ao ler banco:'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('aplica idioma preferido do banco e direcionalidade RTL em árabe (ar)', (tester) async {
       final banco = await BancoDadosLocal.abrirEmMemoria();

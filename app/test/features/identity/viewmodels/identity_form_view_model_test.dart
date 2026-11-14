@@ -135,6 +135,25 @@ void main() {
       expect(viewModel.state.sessaoNuvem, isNotNull);
       expect(viewModel.state.nomeSugerido, equals('Nome Inicial'));
       expect(viewModel.state.clubeSugerido, equals('Clube Inicial'));
+
+      // Quando a sessão OIDC possui nome/clube em branco, usa o IdentityRecord local como fallback
+      final authSemPerfil = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        sessaoArmazenada: const SessaoUsuarioNuvem(
+          userId: 'usr_sem_perfil',
+          email: 'semperfil@arestaclimb.com',
+          provedor: ProvedorOidc.apple,
+          nomeCompleto: '',
+          clubeAssociacao: '',
+          jwtSupabase: 'jwt_1',
+          atestadoOidcJwt: 'oidc_1',
+          fingerprintChavePublica: 'fp_1',
+        ),
+      );
+      final vmFallback = IdentityFormViewModel(repo, crypto, authSemPerfil);
+      await vmFallback.carregarSessaoExistente();
+      expect(vmFallback.state.nomeSugerido, equals('Nome Inicial'));
+      expect(vmFallback.state.clubeSugerido, equals('Clube Inicial'));
     });
 
     test('submitIdentity recupera sessão OIDC já persistida no cofre quando exigirAutenticacaoOidc=true', () async {

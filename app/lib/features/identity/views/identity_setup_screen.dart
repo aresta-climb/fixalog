@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../home/views/home_screen.dart';
+import '../../settings/views/tela_configuracoes.dart';
 import '../viewmodels/identity_form_view_model.dart';
 
 /// Tela de configuração de identidade em 2 etapas:
@@ -30,6 +31,13 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
   @override
   void initState() {
     super.initState();
+    final estadoAtual = ref.read(identityFormViewModelProvider);
+    final identidadeAtual = ref.read(currentIdentityProvider).valueOrNull;
+    final clubeLocal = identidadeAtual?.clubeAssociacao ?? '';
+    _nomeController.text =
+        estadoAtual.nomeSugerido ?? identidadeAtual?.nome ?? '';
+    _clubeController.text =
+        estadoAtual.clubeSugerido ?? (clubeLocal == 'N/A' ? '' : clubeLocal);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(identityFormViewModelProvider.notifier)
@@ -76,6 +84,8 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
       }
       if (!(previous?.isSuccess ?? false) && next.isSuccess) {
         ref.invalidate(currentIdentityProvider);
+        ref.invalidate(hasIdentityProvider);
+        ref.invalidate(sessaoOidcConfigProvider);
         final navigator = Navigator.of(context);
         if (navigator.canPop()) {
           navigator.pop();
@@ -97,17 +107,17 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
       }
     });
 
+    final podeVoltar = Navigator.of(context).canPop();
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF2D3328),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: [0.0, 0.5, 1.0],
             colors: [
               Color(0xFF2D3328),
-              Color(0xFF9CB892),
               Color(0xFF455A46),
             ],
           ),
@@ -124,10 +134,29 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(
-                      Icons.credit_card_outlined,
-                      color: Color(0xFFFF6B00),
-                      size: 28,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (podeVoltar) ...[
+                          IconButton(
+                            key: const Key('botao_voltar_identidade'),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        const Icon(
+                          Icons.credit_card_outlined,
+                          color: Color(0xFFFF6B00),
+                          size: 28,
+                        ),
+                      ],
                     ),
                     Icon(
                       Icons.shield_outlined,
@@ -296,6 +325,8 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                             ref
                                 .read(identityFormViewModelProvider.notifier)
                                 .trocarConta();
+                            ref.invalidate(hasIdentityProvider);
+                            ref.invalidate(sessaoOidcConfigProvider);
                           },
                           child: Text(
                             ehPt ? 'Trocar' : 'Switch',

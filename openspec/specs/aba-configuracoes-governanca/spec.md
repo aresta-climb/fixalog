@@ -7,7 +7,11 @@ Apresenta o seletor multilíngue (7 idiomas), as informações completas da iden
 ## Requirements
 
 ### Requirement: Exibição da Identidade Pericial e Seletor de Idioma
-O sistema DEVE (MUST) exibir na aba de configurações (`TelaConfiguracoes`) o seletor de idioma (suportando os 7 idiomas offline) e os dados do perito cadastrado, incluindo nome legível, clube/associação (`IdentityRecord`), status da conta OIDC OpenPubkey (`AutenticacaoNuvemService`), o fingerprint de sua chave criptográfica ECDSA P-256 (`CryptoService`) e o botão para gerenciar a identidade (`IdentitySetupScreen`). Ao abrir a `IdentitySetupScreen` a partir da `TelaConfiguracoes` (quando já existe uma identidade/sessão salva anteriormente), o sistema DEVE (MUST) reiniciar o estado de conclusão do formulário (`isSuccess: false`) para que a tela permaneça aberta permitindo editar o Nome/Clube ou trocar a conta OIDC, e ao confirmar a edição DEVE (MUST) desempilhar a rota (`Navigator.pop`) retornando à `TelaConfiguracoes` em vez de empilhar uma nova instância duplicada da `HomeScreen`.
+O sistema DEVE (MUST) exibir na aba de configurações (`TelaConfiguracoes`) o seletor de idioma (suportando os 7 idiomas offline) e os dados do perito cadastrado, incluindo nome legível, clube/associação (`IdentityRecord`), status da conta OIDC OpenPubkey (`AutenticacaoNuvemService`), o fingerprint de sua chave criptográfica ECDSA P-256 (`CryptoService`) e o botão para gerenciar a identidade (`IdentitySetupScreen`). Ao abrir a `IdentitySetupScreen` a partir da `TelaConfiguracoes` (quando já existe uma identidade/sessão salva anteriormente), o sistema DEVE (MUST):
+1. Pré-preencher sincronamente os controladores de Nome e Clube já no primeiro frame (`initState`) com os dados existentes no estado/banco local (`IdentityFormState` ou `IdentityRecord`), evitando mutação de texto no meio da animação de transição de rota;
+2. Reiniciar o estado de conclusão do formulário (`isSuccess: false`) e recuperar o perfil local (`IdentityRepository.getCurrentIdentity()`) como fallback caso a sessão OIDC não traga nome ou clube preenchidos, mantendo a tela aberta para editar o Nome/Clube ou trocar a conta OIDC;
+3. Renderizar um `Scaffold` com fundo opaco (`Color(0xFF2D3328)`), gradiente linear simples de duas paradas e transições de rota sem captura offscreen (`ZoomPageTransitionsBuilder(allowSnapshotting: false)`), além de exibir um botão de retorno (`botao_voltar_identidade`) no cabeçalho quando a rota puder ser desempilhada (`Navigator.canPop(context)`);
+4. Ao confirmar a edição, invalidar `currentIdentityProvider`, `hasIdentityProvider` e `sessaoOidcConfigProvider` e desempilhar a rota (`Navigator.pop`) retornando à `TelaConfiguracoes` em vez de empilhar uma nova instância duplicada da `HomeScreen`.
 
 #### Scenario: Visualização do perfil do auditor e troca de idioma
 - **WHEN** o usuário acessa a aba de configurações
@@ -15,11 +19,15 @@ O sistema DEVE (MUST) exibir na aba de configurações (`TelaConfiguracoes`) o s
 
 #### Scenario: Abertura da tela de edição de identidade após conclusão prévia do onboarding
 - **WHEN** o usuário já concluiu o cadastro inicial de identidade (`isSuccess` foi `true` anteriormente) e toca em "Vincular / Editar Conta OIDC" (`botao_gerenciar_identidade_config`) na `TelaConfiguracoes`
-- **THEN** o sistema reinicia `isSuccess` para `false`, pré-preenche os campos com os dados atuais da sessão e mantém a `IdentitySetupScreen` aberta sem fechar automaticamente
+- **THEN** o sistema pré-preenche sincronamente os campos já no primeiro frame com os dados atuais da sessão ou da identidade local (`IdentityRecord`), reinicia `isSuccess` para `false`, exibe o botão de retorno (`botao_voltar_identidade`) e mantém a `IdentitySetupScreen` aberta sem fechar automaticamente
+
+#### Scenario: Cancelamento da edição de identidade pelo botão voltar
+- **WHEN** o usuário abre a `IdentitySetupScreen` empilhada a partir da `TelaConfiguracoes` e toca no botão de voltar (`botao_voltar_identidade`)
+- **THEN** o sistema desempilha a rota (`Navigator.pop`) retornando à `TelaConfiguracoes` sem alterar a identidade salva
 
 #### Scenario: Retorno para a aba de configurações ao salvar edição de identidade
 - **WHEN** o usuário edita seus dados na `IdentitySetupScreen` aberta a partir da `TelaConfiguracoes` e confirma o salvamento
-- **THEN** o sistema persiste a identidade atualizada e desempilha a rota (`Navigator.pop`), retornando para a `TelaConfiguracoes` existente sem empilhar uma segunda `HomeScreen`
+- **THEN** o sistema persiste a identidade atualizada, invalida `currentIdentityProvider`, `hasIdentityProvider` e `sessaoOidcConfigProvider` e desempilha a rota (`Navigator.pop`), retornando para a `TelaConfiguracoes` existente sem empilhar uma segunda `HomeScreen`
 
 ### Requirement: Histórico de Auditoria dos Termos de Uso
 O sistema DEVE (MUST) exibir a versão dos termos de uso e política de privacidade atualmente aceita (`versaoTermosAceita`), juntamente com a data e hora exata em que o consentimento foi registrado (`dataHoraAceiteTermos`) e opção para consultar o texto legal vigente.

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,16 +55,18 @@ class NewProtocolScreen extends ConsumerWidget {
           ),
         ),
 
-        // 2. Blobs de Cor
+        // 2. Blobs de Cor com Gradiente Radial Suave
         Positioned(
           top: -150,
           right: -150,
           child: Container(
             width: 600,
             height: 600,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withValues(alpha: 0.5),
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [Color(0x801B3D2F), Color(0x001B3D2F)],
+              ),
             ),
           ),
         ),
@@ -75,19 +76,11 @@ class NewProtocolScreen extends ConsumerWidget {
           child: Container(
             width: 800,
             height: 800,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1B3D2F).withValues(alpha: 0.4),
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-            ),
-          ),
-        ),
-
-        // 3. Desfoque Atmosférico
-        Positioned.fill(
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 150, sigmaY: 150),
-              child: Container(color: Colors.transparent),
+              gradient: RadialGradient(
+                colors: [Color(0x661B3D2F), Color(0x001B3D2F)],
+              ),
             ),
           ),
         ),

@@ -1,0 +1,19 @@
+# Tasks
+
+## 1. Pré-preenchimento Síncrono, Saneamento Gráfico e Ciclo de Vida da `IdentitySetupScreen` (TDD)
+
+- [x] 1.1 Escrever testes unitários em `app/test/features/identity/viewmodels/identity_form_view_model_test.dart` validando que `carregarSessaoExistente()` usa `IdentityRepository.getCurrentIdentity()` como fallback para `nomeSugerido` e `clubeSugerido` quando os campos da sessão OIDC estiverem vazios ou ausentes, verificando que falham antes da implementação (*Red*).
+- [x] 1.2 Atualizar `IdentityFormViewModel.carregarSessaoExistente()` em `app/lib/features/identity/viewmodels/identity_form_view_model.dart` para consultar também `_repository.getCurrentIdentity()` como fallback de nome/clube, verificando que `flutter test --coverage test/features/identity/viewmodels/identity_form_view_model_test.dart` passa com 100% de cobertura (*Green*).
+- [x] 1.3 Escrever testes de widget em `app/test/features/identity/views/identity_setup_screen_test.dart` validando que `IdentitySetupScreen` usa `Scaffold` com fundo opaco (`Color(0xFF2D3328)`), gradiente linear de 2 cores sem `stops`, pré-preenche sincronamente os campos desde o primeiro frame a partir do estado existente, exibe e aciona o botão de retorno (`botao_voltar_identidade`) quando empilhada (`canPop`) e invalida `sessaoOidcConfigProvider` e `hasIdentityProvider` ao concluir, verificando que falham antes da implementação (*Red*).
+- [x] 1.4 Atualizar `IdentitySetupScreen` em `app/lib/features/identity/views/identity_setup_screen.dart` com `Scaffold` opaco, gradiente de 2 cores sem `stops`, pré-preenchimento síncrono em `initState()`, botão de retorno `botao_voltar_identidade` quando `canPop` for verdadeiro e invalidação de `currentIdentityProvider`, `hasIdentityProvider` e `sessaoOidcConfigProvider`, verificando que `flutter test --coverage test/features/identity/views/identity_setup_screen_test.dart` passa com 100% de cobertura (*Green*).
+
+## 2. Transições sem Snapshotting Offscreen, Roteamento Declarativo e Remoção de `BackdropFilter`
+
+- [x] 2.1 Escrever testes em `app/test/main_test.dart` validando que `FixalogApp` configura `ZoomPageTransitionsBuilder(allowSnapshotting: false)` no `pageTransitionsTheme` para Android e que `_StartupRouter` transiciona declarativamente de `TelaTermosDeUso` para `IdentitySetupScreen` (ao acionar `aoAceitar`) e para `HomeScreen`, verificando que falham antes da implementação (*Red*).
+- [x] 2.2 Atualizar `FixalogApp` e `_StartupRouter` em `app/lib/main.dart` para configurar `ZoomPageTransitionsBuilder(allowSnapshotting: false)` e reagir declarativamente ao aceite dos termos, verificando que `flutter test --coverage test/main_test.dart` passa com 100% de cobertura (*Green*).
+- [x] 2.3 Substituir os 4 usos de `BackdropFilter(filter: ui.ImageFilter.blur(sigmaX: 150, sigmaY: 150))` sobre círculos estáticos por `RadialGradient` em `app/lib/features/home/views/new_protocol_screen.dart`, `app/lib/features/home/views/history_screen.dart`, `app/lib/features/settings/views/tela_configuracoes.dart` e `app/lib/features/wizard/views/wizard_screen.dart`, verificando que os respectivos testes espelhados passam com 100% de cobertura.
+
+## 3. Configuração de Release Android (R8 Full Mode, Resource Shrinking Otimizado e Símbolos Nativos) e Verificação Geral
+
+- [x] 3.1 Criar `app/android/app/proguard-rules.pro` e atualizar `app/android/app/build.gradle.kts` (`isMinifyEnabled = true`, `isShrinkResources = true`, `proguardFiles(...)`, `ndk { debugSymbolLevel = "SYMBOL_TABLE" }`) e `app/android/gradle.properties` (`android.enableR8.fullMode=true`, `android.r8.optimizedResourceShrinking=true`), verificando os arquivos criados.
+- [x] 3.2 Executar `flutter analyze`, `flutter test test/test_structure_mirror_test.dart` e os testes dos módulos alterados com `--coverage`, garantindo 0 avisos de lint e 100% de cobertura comportamental.

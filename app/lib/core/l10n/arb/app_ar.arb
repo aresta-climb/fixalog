@@ -281,5 +281,8 @@
   "configBotaoPortalWeb": "البوابة الرسمية لأريستا كلايمب",
   "configRotuloContaOidc": "حساب OIDC",
   "configContaOidcNaoVinculada": "غير مرتبط (الوضع المحلي)",
-  "configRotuloFingerprintChave": "مفتاح ECDSA P-256"
+  "configRotuloFingerprintChave": "مفتاح ECDSA P-256",
+  "identidadeErroLoginOidc": "تعذر إكمال تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+  "identidadeErroSemConexaoOidc": "لا يوجد اتصال بالإنترنت. اتصل بالإنترنت لربط حسابك.",
+  "identidadeErroSalvarGenerico": "تعذر حفظ الهوية. يرجى المحاولة مرة أخرى."
 }

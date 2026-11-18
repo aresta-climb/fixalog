@@ -9,6 +9,17 @@ import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+class _ExcecaoApiTeste implements ExcecaoComStatusHttp {
+  @override
+  final int? statusCode;
+  final String mensagem;
+
+  const _ExcecaoApiTeste(this.statusCode, this.mensagem);
+
+  @override
+  String toString() => mensagem;
+}
+
 void main() {
   setUp(() {
     RegistroLogger.resetarParaTestes();
@@ -296,10 +307,16 @@ void main() {
       'isFalhaConexaoOuTimeout identifica exceções de rede, timeouts, códigos HTTP transitórios e erros Firebase offline',
       () {
         expect(RegistroLogger.isFalhaConexaoOuTimeout(null), isFalse);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(408), isTrue);
         expect(RegistroLogger.isFalhaConexaoOuTimeout(502), isTrue);
         expect(RegistroLogger.isFalhaConexaoOuTimeout(503), isTrue);
         expect(RegistroLogger.isFalhaConexaoOuTimeout(504), isTrue);
         expect(RegistroLogger.isFalhaConexaoOuTimeout(429), isTrue);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(400), isFalse);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(401), isFalse);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(403), isFalse);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(404), isFalse);
+        expect(RegistroLogger.isFalhaConexaoOuTimeout(422), isFalse);
         expect(RegistroLogger.isFalhaConexaoOuTimeout(500), isFalse);
 
         expect(
@@ -319,6 +336,47 @@ void main() {
             const HttpException('Connection closed before full header'),
           ),
           isTrue,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            HttpException(
+              'Falha ao autenticar no Supabase (400): {"code":400,"error_code":"provider_disabled","msg":"Provider is not enabled"}',
+              uri: Uri.parse(
+                'https://yzkhiaoqtxvvcyyuwmqg.supabase.co/auth/v1/token?grant_type=id_token',
+              ),
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            const HttpException('Erro interno no servidor (500)'),
+          ),
+          isFalse,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            const HttpException('Serviço temporariamente indisponível (503)'),
+          ),
+          isTrue,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            const _ExcecaoApiTeste(400, 'provider_disabled unavailable'),
+          ),
+          isFalse,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            const _ExcecaoApiTeste(503, 'Gateway temporariamente indisponível'),
+          ),
+          isTrue,
+        );
+        expect(
+          RegistroLogger.isFalhaConexaoOuTimeout(
+            const _ExcecaoApiTeste(null, 'Canal nativo retornou nulo'),
+          ),
+          isFalse,
         );
         expect(
           RegistroLogger.isFalhaConexaoOuTimeout(
@@ -418,9 +476,20 @@ void main() {
           stackTrace: StackTrace.current,
         );
 
+        logger.logFalhaSyncOuDownload(
+          'Falha ao autenticar com Apple no Supabase',
+          error: const HttpException(
+            'Falha ao autenticar no Supabase (400): {"code":400,"error_code":"provider_disabled"}',
+          ),
+          stackTrace: StackTrace.current,
+        );
+
         expect(
           crashes,
-          equals(['Pacote EPUB rejeitado por assinatura inválida (HTTP 400)']),
+          equals([
+            'Pacote EPUB rejeitado por assinatura inválida (HTTP 400)',
+            'Falha ao autenticar com Apple no Supabase',
+          ]),
         );
       },
     );

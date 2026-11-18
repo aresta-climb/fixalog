@@ -579,4 +579,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get configRotuloFingerprintChave => 'ECDSA P-256 鍵';
+
+  @override
+  String get identidadeErroLoginOidc => 'サインインを完了できませんでした。もう一度お試しください。';
+
+  @override
+  String get identidadeErroSemConexaoOidc =>
+      'インターネット接続がありません。アカウントを連携するには接続してください。';
+
+  @override
+  String get identidadeErroSalvarGenerico => 'ID情報を保存できませんでした。もう一度お試しください。';
 }

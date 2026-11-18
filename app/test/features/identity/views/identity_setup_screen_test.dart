@@ -41,6 +41,7 @@ void main() {
   Widget createWidgetUnderTest({
     BancoDadosLocal? banco,
     Locale? locale,
+    TargetPlatform plataforma = TargetPlatform.iOS,
     CryptoService? cryptoService,
     AutenticacaoNuvemService? autenticacaoService,
     Future<void> Function()? solicitadorPermissoes,
@@ -57,6 +58,7 @@ void main() {
           ),
       ],
       child: MaterialApp(
+        theme: ThemeData.dark().copyWith(platform: plataforma),
         localizationsDelegates: locale != null
             ? AppLocalizations.localizationsDelegates
             : null,
@@ -69,10 +71,12 @@ void main() {
   }
 
   group('IdentitySetupScreen Widget Tests', () {
-    testWidgets('Etapa 1 renderiza cabeçalho FIXA LOG e apenas botões clássicos Google e Apple', (
+    testWidgets('Etapa 1 no iOS renderiza cabeçalho FIXA LOG e botões Google e Apple', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(
+        createWidgetUnderTest(plataforma: TargetPlatform.iOS),
+      );
       await tester.pump();
 
       expect(find.text('FIXA'), findsOneWidget);
@@ -88,6 +92,68 @@ void main() {
       expect(find.text('GERAR CHAVES E ENTRAR'), findsNothing);
     });
 
+    testWidgets('Etapa 1 no Android renderiza exclusivamente botão do Google e oculta botão da Apple (PT e EN)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          plataforma: TargetPlatform.android,
+          locale: const Locale('pt'),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('botao_login_google')), findsOneWidget);
+      expect(find.byKey(const Key('botao_login_apple')), findsNothing);
+      expect(find.text('Continuar com o Google'), findsOneWidget);
+      expect(find.text('Continuar com a Apple'), findsNothing);
+
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          plataforma: TargetPlatform.android,
+          locale: const Locale('en'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Continue with Google'), findsOneWidget);
+      expect(find.byKey(const Key('botao_login_apple')), findsNothing);
+    });
+
+    testWidgets('Cancelamento do login na Etapa 1 não exibe SnackBar e erro OIDC exibe mensagem amigável localizada', (
+      tester,
+    ) async {
+      final crypto = CryptoServiceFake();
+      final auth = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        deveCancelarLogin: true,
+      );
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          plataforma: TargetPlatform.iOS,
+          locale: const Locale('en'),
+          cryptoService: crypto,
+          autenticacaoService: auth,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('botao_login_apple')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
+
+      auth.deveCancelarLogin = false;
+      auth.deveFalharLogin = true;
+      await tester.tap(find.byKey(const Key('botao_login_apple')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+        find.text('Could not complete sign-in. Please try again.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('provider_disabled'), findsNothing);
+    });
+
     testWidgets('Etapa 2 exibe erro se nome for limpo, permite trocar de conta e alternar checkbox do Aresta Climb', (
       tester,
     ) async {
@@ -99,6 +165,7 @@ void main() {
       );
       await tester.pumpWidget(
         createWidgetUnderTest(
+          plataforma: TargetPlatform.iOS,
           cryptoService: crypto,
           autenticacaoService: auth,
         ),
@@ -177,6 +244,7 @@ void main() {
       await tester.pumpWidget(
         createWidgetUnderTest(
           banco: banco,
+          plataforma: TargetPlatform.android,
           cryptoService: crypto,
           autenticacaoService: auth,
           solicitadorPermissoes: () async {

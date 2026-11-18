@@ -14,11 +14,15 @@ O sistema DEVE (MUST) registrar eventos informativos, avisos e capturar exceçõ
 - **THEN** o sistema envia o evento com stacktrace tanto para o Crashlytics quanto para o Sentry com nível de severidade correspondente
 
 ### Requirement: Filtro de Desconexão Transitória em Montanha
-O sistema DEVE (MUST) reconhecer falhas decorrentes de perda temporária de sinal de rede, timeout de socket ou indisponibilidade transitória de servidor (incluindo durante a sincronização de laudos EPUB 3 no `SincronizadorNuvemService` e autenticação no `AutenticacaoNuvemService`) como eventos transitórios de campo, rebaixando-os exclusivamente para breadcrumbs sem acionar alarmes de erro não-fatal ou crash.
+O sistema DEVE (MUST) reconhecer falhas decorrentes de perda temporária de sinal de rede, timeout de socket ou indisponibilidade transitória de gateway/rate-limit (códigos HTTP `408`, `429`, `502`, `503` e `504`) como eventos transitórios de campo, rebaixando-os exclusivamente para breadcrumbs de aviso sem acionar alarmes de erro não-fatal ou crash. O sistema DEVE (MUST) inspecionar o código de status HTTP presente em exceções de resposta HTTP (incluindo `HttpException` que contenha código de status da resposta) antes de classificá-las como falha de conexão, garantindo que códigos definitivos de erro de cliente, autenticação, configuração ou servidor (como `400`, `401`, `403`, `404`, `422` e `500`) NUNCA sejam rebaixados para aviso offline.
 
 #### Scenario: Ocorrência de timeout ou falha de soquete na sincronização
-- **WHEN** uma requisição do `SincronizadorNuvemService` ou `AutenticacaoNuvemService` falhar por falta de conectividade na montanha (`SocketException` ou `TimeoutException`)
-- **THEN** o sistema classifica a falha via `RegistroLogger.isFalhaConexaoOuTimeout` e grava apenas um breadcrumb de aviso (`logAviso`), sem emitir alerta de erro no Sentry ou Crashlytics
+- **WHEN** uma requisição de sincronização ou autenticação falhar por falta de conectividade na montanha (`SocketException`, `TimeoutException`, `HttpException` pura de transporte sem status HTTP definitivo ou resposta HTTP `408`/`429`/`502`/`503`/`504`)
+- **THEN** o sistema classifica a falha como transitória e grava apenas um breadcrumb de aviso (`logAviso`), sem emitir alerta de erro no Sentry ou Crashlytics
+
+#### Scenario: Erro HTTP definitivo do servidor ou configuração de provedor OIDC
+- **WHEN** o servidor de autenticação ou API retornar um código HTTP definitivo (como `400 provider_disabled`, `401`, `403`, `404`, `422` ou `500`)
+- **THEN** o sistema NÃO classifica o evento como desconexão transitória e registra a falha com `StackTrace` como erro no Sentry e no Crashlytics
 
 ### Requirement: Atestação de Integridade via Firebase App Check
 O sistema DEVE (MUST) ativar o Firebase App Check (`ServicoAppCheck`) utilizando Play Integrity no Android, App Attest no iOS e provedores de depuração fora de builds de release oficial, fornecendo tokens JWT válidos para o `AutenticacaoNuvemService` e degradando graciosamente sem bloquear o aplicativo quando offline ou quando o UUID de depuração local não estiver cadastrado no Firebase Console em modo de desenvolvimento (`kModoDesenvolvimento`). Quando a obtenção do token falhar por *rate-limit* (`Too many attempts`) ou erro de atestação da API, o `ServicoAppCheck` DEVE (MUST) aplicar uma janela de *cooldown* em memória (5 minutos por padrão) durante a qual chamadas subsequentes a `obterToken(false)` retornam `null` imediatamente sem acionar o canal nativo, e DEVE (MUST) registrar falhas de *rate-limit* (`Too many attempts`) como aviso (`logAviso`) em vez de erro não-tratado (`logError`).
@@ -55,4 +59,11 @@ O `RegistroLogger` e o `ServicoTelemetria` DEVEM (MUST) verificar se o Firebase 
 #### Scenario: Emissão de breadcrumb e telemetria sem Firebase inicializado
 - **WHEN** `ServicoTelemetria.instancia.registrarEvento` ou `RegistroLogger.instancia.logInfo` é chamado durante um teste de widget ou sessão do Robô Caótico sem `Firebase.initializeApp`
 - **THEN** o log informativo é impresso no console local e enviado ao Sentry (se `Sentry.isEnabled` for `true`), ignorando silenciosamente as chamadas nativas ao Firebase sem lançar exceção nem acionar `logError`
+
+### Requirement: Encaminhamento Obrigatório de Exceções Tratadas na Interface e ViewModels
+Todo bloco `try/catch` em fluxos operacionais de autenticação, persistência de identidade, geração de relatórios EPUB/PDF, carregamento/duplicação de histórico e publicação manual DEVE (MUST) capturar o `StackTrace` original e encaminhar a falha à camada central de observabilidade (exceto em cancelamentos voluntários do usuário ou validações locais de formulário), apresentando apenas mensagens amigáveis e localizadas ao usuário sem expor payloads JSON ou URLs técnicas cruas.
+
+#### Scenario: Falha de autenticação OIDC ou geração de relatório tratada pelo ViewModel
+- **WHEN** ocorre uma exceção inesperada ou erro HTTP definitivo durante o login OIDC, salvamento de identidade, geração de pacote EPUB/PDF ou abertura/duplicação de sessão no histórico
+- **THEN** o sistema registra a exceção com seu `StackTrace` no Sentry e no Crashlytics (respeitando o filtro de desconexão transitória quando aplicável) e exibe uma mensagem localizada amigável na interface
 

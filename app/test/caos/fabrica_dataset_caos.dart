@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../core/services/autenticacao_nuvem_service_fake.dart';
 import '../fakes/crypto_service_fake.dart';
 import '../fakes/servico_fila_feedback_fake.dart';
 import '../fakes/servico_galeria_dispositivo_fake.dart';
@@ -300,7 +301,13 @@ class AmbienteAppCaos {
         nomeCompleto: sessaoOidc.nomeCompleto,
         clubeAssociacao: sessaoOidc.clubeAssociacao,
         jwtSupabase: sessaoOidc.jwtSupabase,
-        idTokenOidc: 'id-token-caos',
+        idTokenOidc: AutenticacaoNuvemServiceFake.construirIdTokenOidcComNonce(
+          provedor: provedor,
+          sub: sessaoOidc.userId,
+          email: sessaoOidc.email,
+          nomeCompleto: sessaoOidc.nomeCompleto,
+          rawNonce: rawNonce,
+        ),
       ),
       provedorTokenAppCheck: () async => 'appcheck-token-caos',
       sincronizadorPerfilRemoto: (nome, clube) async {},

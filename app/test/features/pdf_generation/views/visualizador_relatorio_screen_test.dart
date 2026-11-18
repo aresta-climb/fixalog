@@ -12,10 +12,12 @@ import 'package:fixalog/core/l10n/generated/app_localizations.dart';
 import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:path/path.dart' as p;
 import '../../../fakes/crypto_service_fake.dart';
+import '../../../fakes/registro_logger_fake.dart';
 import '../../../core/services/autenticacao_nuvem_service_fake.dart';
 import '../../../core/services/sincronizador_nuvem_service_fake.dart';
 
@@ -361,6 +363,10 @@ void main() {
   testWidgets(
     'Trata erros de extração, ausência de caminhos, abertura externa, clique em URL PDF e localização',
     (tester) async {
+      final loggerFake = RegistroLoggerFake();
+      RegistroLogger.instancia = loggerFake;
+      addTearDown(RegistroLogger.resetarParaTestes);
+
       // 1. Ausência de caminhoEpub e caminhoXhtml
       await tester.pumpWidget(
         criarTelaParaTeste(
@@ -446,6 +452,7 @@ void main() {
         find.textContaining('Erro ao abrir aplicativo externo'),
         findsOneWidget,
       );
+      expect(loggerFake.errosRegistrados, hasLength(5));
 
       // 4. Localização em Inglês e Japonês sem overflow
       late WidgetRef refCapturado;

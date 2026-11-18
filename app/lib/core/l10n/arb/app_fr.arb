@@ -281,5 +281,8 @@
   "configBotaoPortalWeb": "PORTAIL OFFICIEL ARESTA CLIMB",
   "configRotuloContaOidc": "Compte OIDC",
   "configContaOidcNaoVinculada": "Non lié (mode local)",
-  "configRotuloFingerprintChave": "Clé ECDSA P-256"
+  "configRotuloFingerprintChave": "Clé ECDSA P-256",
+  "identidadeErroLoginOidc": "Impossible de terminer l'authentification. Veuillez réessayer.",
+  "identidadeErroSemConexaoOidc": "Aucune connexion Internet. Connectez-vous pour lier votre compte.",
+  "identidadeErroSalvarGenerico": "Impossible d'enregistrer l'identité. Veuillez réessayer."
 }

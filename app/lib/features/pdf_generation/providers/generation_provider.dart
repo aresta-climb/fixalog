@@ -17,6 +17,7 @@ import 'package:fixalog/core/services/protocol_parser.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
 import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
@@ -590,7 +591,12 @@ class GenerationNotifier extends StateNotifier<GenerationState> {
       if (sincronizador != null) {
         unawaited(sincronizador.sincronizarPendentes());
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      RegistroLogger.instancia.logError(
+        'Falha ao gerar e assinar pacote pericial EPUB 3',
+        error: e,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(hasError: true, errorMessage: e.toString());
       await _recoveryService.markAsProcessing(false);
     }

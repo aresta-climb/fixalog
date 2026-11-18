@@ -49,6 +49,14 @@ typedef AoRegistrarErroOuCrashCallback = void Function(
   required bool fatal,
 });
 
+/// Interface para exceções que transportam um código de status HTTP explícito,
+/// permitindo ao [RegistroLogger] distinguir códigos transitórios (`408`, `429`, `502`, `503`, `504`)
+/// de erros definitivos de cliente ou servidor (`400`, `401`, `403`, `404`, `422`, `500`).
+abstract interface class ExcecaoComStatusHttp implements Exception {
+  /// Código de status HTTP retornado pelo servidor, quando houve resposta HTTP.
+  int? get statusCode;
+}
+
 /// Serviço centralizado para registro de logs informativos, avisos operacionais e
 /// captura dual de exceções (Firebase Crashlytics + Sentry) com filtro inteligente
 /// de instabilidades transitórias de rede em ambientes remotos de montanha.
@@ -232,19 +240,45 @@ class RegistroLogger {
     );
   }
 
+  static final RegExp _padraoCodigoHttp = RegExp(r'\b([45]\d{2})\b');
+
+  /// Verifica se um [statusCode] HTTP representa instabilidade transitória de transporte,
+  /// gateway ou rate-limit (`408`, `429`, `502`, `503` e `504`).
+  static bool isCodigoHttpTransitorio(int statusCode) {
+    return statusCode == 408 ||
+        statusCode == 429 ||
+        statusCode == 502 ||
+        statusCode == 503 ||
+        statusCode == 504;
+  }
+
   /// Verifica se o erro ou mensagem descreve uma falha transitória de conectividade,
-  /// timeout de socket, instabilidade de gateway/servidor (HTTP 502, 503, 504, 429) ou
+  /// timeout de socket, instabilidade de gateway/servidor (HTTP 408, 429, 502, 503, 504) ou
   /// falha de transporte nos SDKs do Firebase quando o dispositivo encontra-se offline na montanha.
+  ///
+  /// Exceções com código HTTP definitivo (como `400`, `401`, `403`, `404`, `422` ou `500`)
+  /// nunca são classificadas como falha de conexão, mesmo quando encapsuladas em [HttpException].
   static bool isFalhaConexaoOuTimeout(Object? error) {
     if (error == null) return false;
 
     if (error is int) {
-      return error == 502 || error == 503 || error == 504 || error == 429;
+      return isCodigoHttpTransitorio(error);
+    }
+
+    if (error is ExcecaoComStatusHttp && error.statusCode != null) {
+      return isCodigoHttpTransitorio(error.statusCode!);
+    }
+
+    if (error is HttpException) {
+      final matchCodigo = _padraoCodigoHttp.firstMatch(error.message);
+      if (matchCodigo != null) {
+        return isCodigoHttpTransitorio(int.parse(matchCodigo.group(1)!));
+      }
+      return true;
     }
 
     if (error is TimeoutException ||
         error is SocketException ||
-        error is HttpException ||
         error is HandshakeException ||
         error is CertificateException) {
       return true;

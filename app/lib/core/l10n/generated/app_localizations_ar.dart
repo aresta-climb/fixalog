@@ -604,4 +604,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get configRotuloFingerprintChave => 'مفتاح ECDSA P-256';
+
+  @override
+  String get identidadeErroLoginOidc =>
+      'تعذر إكمال تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get identidadeErroSemConexaoOidc =>
+      'لا يوجد اتصال بالإنترنت. اتصل بالإنترنت لربط حسابك.';
+
+  @override
+  String get identidadeErroSalvarGenerico =>
+      'تعذر حفظ الهوية. يرجى المحاولة مرة أخرى.';
 }

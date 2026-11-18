@@ -11,11 +11,13 @@ import 'package:fixalog/features/home/views/history_screen.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/features/pdf_generation/views/visualizador_relatorio_screen.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
 import 'package:fixalog/features/wizard/controllers/wizard_state_controller.dart';
 import 'package:fixalog/core/models/proto/protos/registro.pb.dart';
+import '../../../fakes/registro_logger_fake.dart';
 
 Widget _buildScreen({List<SubmissionRecord>? customLogs}) {
   return ProviderScope(
@@ -752,6 +754,10 @@ protocolo:
     testWidgets(
       'Exibe SnackBar de erro ao tocar em item EM PROGRESSO ou tentar duplicar sessão ausente em disco',
       (tester) async {
+        final loggerFake = RegistroLoggerFake();
+        RegistroLogger.instancia = loggerFake;
+        addTearDown(RegistroLogger.resetarParaTestes);
+
         final tempDir = Directory.systemTemp.createTempSync('hist_err_');
         final sessionManager = SessionBundleManager(
           baseDirectoryGetter: () async => tempDir,
@@ -796,6 +802,7 @@ protocolo:
         });
         await tester.pumpAndSettle();
         expect(find.textContaining('Erro ao criar cópia:'), findsOneWidget);
+        expect(loggerFake.errosRegistrados, hasLength(2));
 
         tempDir.deleteSync(recursive: true);
       },

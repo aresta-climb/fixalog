@@ -604,4 +604,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get configRotuloFingerprintChave => 'ECDSA P-256 Key';
+
+  @override
+  String get identidadeErroLoginOidc =>
+      'Could not complete sign-in. Please try again.';
+
+  @override
+  String get identidadeErroSemConexaoOidc =>
+      'No internet connection. Connect to the internet to link your account.';
+
+  @override
+  String get identidadeErroSalvarGenerico =>
+      'Could not save your identity. Please try again.';
 }

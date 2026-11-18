@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
@@ -40,7 +41,7 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
     required String tokenAppCheck,
   }) async {
     if (deveLancarErroRede) {
-      throw Exception('Falha simulada de rede ao enviar EPUB.');
+      throw const SocketException('Falha simulada de rede ao enviar EPUB.');
     }
     ordemIdsEnviados.add(idSessao);
     final status = statusPorSessao[idSessao] ?? statusEnvioPadrao;
@@ -71,7 +72,9 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
     required String tokenAppCheck,
   }) async {
     if (deveLancarErroRede) {
-      throw Exception('Falha simulada de rede ao consultar status do laudo.');
+      throw const SocketException(
+        'Falha simulada de rede ao consultar status do laudo.',
+      );
     }
     final erroHttp = erroHttpPorSessao[idSessao];
     if (erroHttp != null) {
@@ -140,7 +143,9 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
       await Future<void>.delayed(atrasoEnvioChunk!);
     }
     if (deveLancarErroRede) {
-      throw Exception('Falha simulada de rede ao enviar chunk de EPUB.');
+      throw const SocketException(
+        'Falha simulada de rede ao enviar chunk de EPUB.',
+      );
     }
     final erroHttp =
         erroHttpChunkPorSessao[idSessao] ?? erroHttpPorSessao[idSessao];
@@ -208,7 +213,7 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
     required String tokenAppCheck,
   }) async {
     if (deveLancarErroRede) {
-      throw Exception('Falha simulada de rede ao listar laudos.');
+      throw const SocketException('Falha simulada de rede ao listar laudos.');
     }
     return List<MetadadosLaudoRemoto>.from(laudosRemotosConta);
   }
@@ -216,7 +221,7 @@ class ClienteHttpFixalogNuvemFake implements ClienteHttpFixalogNuvem {
   @override
   Future<Uint8List?> baixarEpubPublico({required String idSessao}) async {
     if (deveLancarErroRede) {
-      throw Exception('Falha simulada de rede ao baixar EPUB.');
+      throw const SocketException('Falha simulada de rede ao baixar EPUB.');
     }
     return epubsPublicosPorSessao[idSessao];
   }

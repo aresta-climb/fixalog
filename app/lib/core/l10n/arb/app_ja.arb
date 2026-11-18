@@ -281,5 +281,8 @@
   "configBotaoPortalWeb": "ARESTA CLIMB 公式ポータル",
   "configRotuloContaOidc": "OIDC アカウント",
   "configContaOidcNaoVinculada": "未連携 (ローカルモード)",
-  "configRotuloFingerprintChave": "ECDSA P-256 鍵"
+  "configRotuloFingerprintChave": "ECDSA P-256 鍵",
+  "identidadeErroLoginOidc": "サインインを完了できませんでした。もう一度お試しください。",
+  "identidadeErroSemConexaoOidc": "インターネット接続がありません。アカウントを連携するには接続してください。",
+  "identidadeErroSalvarGenerico": "ID情報を保存できませんでした。もう一度お試しください。"
 }

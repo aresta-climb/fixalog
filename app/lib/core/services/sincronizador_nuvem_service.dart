@@ -17,8 +17,9 @@ import 'registro_logger.dart';
 import 'servico_telemetria.dart';
 
 /// Exceção lançada quando a API `fixalog.app` retorna HTTP `>= 400`.
-class ExcecaoApiFixalogNuvem implements Exception {
+class ExcecaoApiFixalogNuvem implements ExcecaoComStatusHttp {
   /// Código de status HTTP retornado pelo Worker.
+  @override
   final int statusCode;
 
   /// Mensagem de erro descritiva extraída do corpo JSON (`erro`).
@@ -964,14 +965,18 @@ class SincronizadorNuvemService {
           registro.enviadoNuvem = false;
           if (!await enviarSubmissao(registro)) {
             final ultimoProgresso = obterProgressoAtual(idSessao);
-            if (ultimoProgresso != null &&
-                (ultimoProgresso.etapa ==
-                        EtapaPublicacaoLaudo.rejeitadoOuFalha ||
-                    ultimoProgresso.etapa ==
-                        EtapaPublicacaoLaudo.canceladoPeloUsuario)) {
+            if (ultimoProgresso != null) {
               return ultimoProgresso;
             }
-            throw StateError('Falha no envio dos blocos do laudo.');
+            final falhaEnvio = ProgressoPublicacaoLaudo(
+              idSessao: idSessao,
+              etapa: EtapaPublicacaoLaudo.semInternet,
+              blocosEnviados: 0,
+              totalBlocos: 1,
+              mensagemErro: 'Arquivo EPUB local indisponível para envio.',
+            );
+            _emitirProgresso(falhaEnvio);
+            return falhaEnvio;
           }
           continue;
         }
@@ -1032,19 +1037,33 @@ class SincronizadorNuvemService {
       );
       _emitirProgresso(tempoEsgotado);
       return tempoEsgotado;
-    } catch (e) {
-      final ehErroHttpServidor = e is ExcecaoApiFixalogNuvem;
-      final semRede = ProgressoPublicacaoLaudo(
+    } on ExcecaoAutenticacaoCancelada {
+      final cancelado = ProgressoPublicacaoLaudo(
         idSessao: idSessao,
-        etapa: ehErroHttpServidor
+        etapa: EtapaPublicacaoLaudo.canceladoPeloUsuario,
+        blocosEnviados: 0,
+        totalBlocos: 1,
+      );
+      _emitirProgresso(cancelado);
+      return cancelado;
+    } catch (e, stackTrace) {
+      _logger.logFalhaSyncOuDownload(
+        'Falha ao publicar e verificar laudo ($idSessao) na nuvem',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      final ehErroDefinitivo = !RegistroLogger.isFalhaConexaoOuTimeout(e);
+      final falha = ProgressoPublicacaoLaudo(
+        idSessao: idSessao,
+        etapa: ehErroDefinitivo
             ? EtapaPublicacaoLaudo.rejeitadoOuFalha
             : EtapaPublicacaoLaudo.semInternet,
         blocosEnviados: 0,
         totalBlocos: 1,
         mensagemErro: e.toString(),
       );
-      _emitirProgresso(semRede);
-      return semRede;
+      _emitirProgresso(falha);
+      return falha;
     } finally {
       unawaited(inscricao?.cancel());
     }

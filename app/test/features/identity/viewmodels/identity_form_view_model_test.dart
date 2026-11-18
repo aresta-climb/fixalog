@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
+import 'dart:ui';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
@@ -11,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../../core/services/autenticacao_nuvem_service_fake.dart';
 import '../../../fakes/crypto_service_fake.dart';
+import '../../../fakes/registro_logger_fake.dart';
 
 void main() {
   late BancoDadosLocal banco;
@@ -24,11 +27,12 @@ void main() {
   });
 
   group('IdentityFormViewModel e Providers', () {
-    test('submitIdentity com nome vazio define errorMessage sem gravar no banco', () async {
+    test('submitIdentity com nome vazio define errorMessage sem gravar no banco nem acionar logError', () async {
       final repo = SqliteIdentityRepository(banco);
       final crypto = CryptoServiceFake();
       final auth = AutenticacaoNuvemServiceFake(crypto: crypto);
-      final viewModel = IdentityFormViewModel(repo, crypto, auth);
+      final logger = RegistroLoggerFake();
+      final viewModel = IdentityFormViewModel(repo, crypto, auth, logger);
 
       await viewModel.submitIdentity('', 'Clube');
 
@@ -37,13 +41,15 @@ void main() {
         'Atenção. O nome não pode estar vazio.',
       );
       expect(await repo.hasIdentity(), isFalse);
+      expect(logger.errosRegistrados, isEmpty);
     });
 
     test('submitIdentity exige autenticação Google ou Apple quando exigirAutenticacaoOidc=true', () async {
       final repo = SqliteIdentityRepository(banco);
       final crypto = CryptoServiceFake();
       final auth = AutenticacaoNuvemServiceFake(crypto: crypto);
-      final viewModel = IdentityFormViewModel(repo, crypto, auth);
+      final logger = RegistroLoggerFake();
+      final viewModel = IdentityFormViewModel(repo, crypto, auth, logger);
 
       await viewModel.submitIdentity(
         'Alex Honnold',
@@ -57,6 +63,7 @@ void main() {
         'Autentique-se com Google ou Apple antes de continuar.',
       );
       expect(await repo.hasIdentity(), isFalse);
+      expect(logger.errosRegistrados, isEmpty);
     });
 
     test('autenticarComProvedor vincula chave ECDSA ao nonce OIDC, pré-preenche Nome/Clube e submitIdentity atualiza X.509 sem regerar chaves', () async {
@@ -173,25 +180,87 @@ void main() {
       expect((await repo.getCurrentIdentity())?.clubeAssociacao, equals('N/A'));
     });
 
-    test('autenticarComProvedor e submitIdentity capturam exceções e definem errorMessage', () async {
+    test('autenticarComProvedor trata cancelamento silenciosamente, rebaixa falta de sinal para logAviso e registra erros definitivos no RegistroLogger sem vazar JSON', () async {
       final repo = SqliteIdentityRepository(banco);
       final crypto = CryptoServiceFake(deveFalharGeracaoChaves: true);
-      final auth = AutenticacaoNuvemServiceFake(
+      final logger = RegistroLoggerFake();
+
+      // 1. Cancelamento voluntário pelo usuário: sem erro na UI e sem Sentry
+      final authCancelado = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        deveCancelarLogin: true,
+      );
+      final vmCancelado = IdentityFormViewModel(
+        repo,
+        crypto,
+        authCancelado,
+        logger,
+      );
+      await vmCancelado.autenticarComProvedor(ProvedorOidc.apple);
+      expect(vmCancelado.state.isLoading, isFalse);
+      expect(vmCancelado.state.errorMessage, isNull);
+      expect(logger.errosRegistrados, isEmpty);
+      expect(logger.avisosRegistrados, isEmpty);
+
+      // 2. Falta de sinal na montanha: apenas logAviso e mensagem amigável offline
+      final authOffline = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        erroCustomizadoLogin: const SocketException('Network is unreachable'),
+      );
+      final vmOffline = IdentityFormViewModel(
+        repo,
+        crypto,
+        authOffline,
+        logger,
+      );
+      await vmOffline.autenticarComProvedor(
+        ProvedorOidc.google,
+        locale: const Locale('en'),
+      );
+      expect(logger.errosRegistrados, isEmpty);
+      expect(logger.avisosRegistrados, hasLength(1));
+      expect(
+        vmOffline.state.errorMessage,
+        equals(
+          'No internet connection. Connect to the internet to link your account.',
+        ),
+      );
+
+      // 3. Erro HTTP 400 (provider_disabled) e falha ao salvar: logError com StackTrace e mensagem limpa sem JSON/URI
+      final authErro400 = AutenticacaoNuvemServiceFake(
         crypto: crypto,
         deveFalharLogin: true,
       );
-      final viewModel = IdentityFormViewModel(repo, crypto, auth);
+      final viewModel = IdentityFormViewModel(
+        repo,
+        crypto,
+        authErro400,
+        logger,
+      );
 
-      await viewModel.autenticarComProvedor(ProvedorOidc.google);
+      await viewModel.autenticarComProvedor(
+        ProvedorOidc.apple,
+        locale: const Locale('en'),
+      );
+      expect(logger.errosRegistrados, hasLength(1));
+      expect(
+        logger.errosRegistrados.first.erro,
+        isA<ExcecaoAutenticacaoOidc>(),
+      );
       expect(
         viewModel.state.errorMessage,
-        contains('Falha na autenticação OIDC'),
+        equals('Could not complete sign-in. Please try again.'),
       );
+      expect(viewModel.state.errorMessage, isNot(contains('provider_disabled')));
 
       await viewModel.submitIdentity('Tommy Caldwell', 'El Cap');
       expect(viewModel.state.isSuccess, isFalse);
       expect(viewModel.state.isLoading, isFalse);
-      expect(viewModel.state.errorMessage, contains('Falha durante registro'));
+      expect(logger.errosRegistrados, hasLength(2));
+      expect(
+        viewModel.state.errorMessage,
+        equals('Não foi possível salvar a identidade. Tente novamente.'),
+      );
     });
 
     test('identityFormViewModelProvider, hasIdentityProvider e currentIdentityProvider operam com BancoDadosLocal', () async {

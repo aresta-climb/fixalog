@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'dart:io';
 import 'package:fixalog/core/services/autenticacao_nuvem_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../fakes/crypto_service_fake.dart';
@@ -48,8 +49,26 @@ void main() {
       expect(await fake.obterSessaoAtual(), isNull);
     });
 
-    test('Simula falhas determinísticas no login OIDC e no App Check', () async {
+    test('Simula cancelamento voluntário, falhas tipadas OIDC, erro customizado e falha no App Check', () async {
       final crypto = CryptoServiceFake();
+      final fakeCancelado = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        deveCancelarLogin: true,
+      );
+      await expectLater(
+        fakeCancelado.entrarComProvedorOidc(ProvedorOidc.apple),
+        throwsA(isA<ExcecaoAutenticacaoCancelada>()),
+      );
+
+      final fakeErroCustomizado = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        erroCustomizadoLogin: const SocketException('Sem sinal na montanha'),
+      );
+      await expectLater(
+        fakeErroCustomizado.entrarComProvedorOidc(ProvedorOidc.google),
+        throwsA(isA<SocketException>()),
+      );
+
       final fake = AutenticacaoNuvemServiceFake(
         crypto: crypto,
         deveFalharLogin: true,
@@ -58,7 +77,15 @@ void main() {
 
       await expectLater(
         fake.entrarComProvedorOidc(ProvedorOidc.google),
-        throwsException,
+        throwsA(
+          isA<ExcecaoAutenticacaoOidc>()
+              .having((e) => e.statusCode, 'statusCode', 400)
+              .having(
+                (e) => e.codigoErroServidor,
+                'codigoErroServidor',
+                'provider_disabled',
+              ),
+        ),
       );
       await expectLater(fake.obterTokenAppCheck(), throwsException);
       expect(

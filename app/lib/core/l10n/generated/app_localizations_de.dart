@@ -615,4 +615,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get configRotuloFingerprintChave => 'ECDSA P-256 Schlüssel';
+
+  @override
+  String get identidadeErroLoginOidc =>
+      'Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.';
+
+  @override
+  String get identidadeErroSemConexaoOidc =>
+      'Keine Internetverbindung. Verbinden Sie sich, um Ihr Konto zu verknüpfen.';
+
+  @override
+  String get identidadeErroSalvarGenerico =>
+      'Identität konnte nicht gespeichert werden. Bitte erneut versuchen.';
 }

@@ -2,11 +2,14 @@
 // Copyright (c) 2026 Fixalog Contributors
 
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/l10n/resolvedor_idioma.dart';
 import '../../../core/models/local/identity_record.dart';
 import '../../../core/services/autenticacao_nuvem_service.dart';
 import '../../../core/services/crypto_service.dart';
 import '../../../core/services/providers.dart';
+import '../../../core/services/registro_logger.dart';
 import '../../../core/services/servico_telemetria.dart';
 import '../repositories/identity_repository.dart';
 
@@ -55,14 +58,17 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
   final IdentityRepository _repository;
   final CryptoService _cryptoService;
   final AutenticacaoNuvemService _autenticacaoService;
+  final RegistroLogger _logger;
 
   IdentityFormViewModel(
     this._repository,
     this._cryptoService, [
     AutenticacaoNuvemService? autenticacaoService,
+    RegistroLogger? logger,
   ])  : _autenticacaoService =
             autenticacaoService ??
             AutenticacaoNuvemService(cryptoService: _cryptoService),
+        _logger = logger ?? RegistroLogger.instancia,
         super(IdentityFormState());
 
   /// Carrega uma sessão OIDC já existente e a identidade local persistida quando a tela é aberta,
@@ -102,7 +108,10 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
 
   /// Autentica com Google ou Apple vinculando o `nonce` OpenPubkey da chave
   /// pública ECDSA local (gerada ou restaurada do cofre do SO) ao `id_token` OIDC.
-  Future<void> autenticarComProvedor(ProvedorOidc provedor) async {
+  Future<void> autenticarComProvedor(
+    ProvedorOidc provedor, {
+    Locale locale = const Locale('pt'),
+  }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final sessao = await _autenticacaoService.entrarComProvedorOidc(provedor);
@@ -119,10 +128,27 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
         nomeSugerido: sessao.nomeCompleto,
         clubeSugerido: sessao.clubeAssociacao,
       );
-    } catch (e) {
+    } on ExcecaoAutenticacaoCancelada {
+      state = state.copyWith(isLoading: false, errorMessage: null);
+    } catch (e, stackTrace) {
+      final l10n = ResolvedorIdioma.obterTraducoes(locale);
+      final semRede = RegistroLogger.isFalhaConexaoOuTimeout(e);
+      if (semRede) {
+        _logger.logAviso(
+          'Falha de conexão durante autenticação OIDC (${provedor.valor}): $e',
+        );
+      } else {
+        _logger.logError(
+          'Falha na autenticação OIDC (${provedor.valor})',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Falha na autenticação OIDC: $e',
+        errorMessage: semRede
+            ? l10n.identidadeErroSemConexaoOidc
+            : l10n.identidadeErroLoginOidc,
       );
     }
   }
@@ -133,6 +159,7 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
     String nome,
     String clube, {
     bool exigirAutenticacaoOidc = false,
+    Locale locale = const Locale('pt'),
   }) async {
     if (nome.trim().isEmpty) {
       state = state.copyWith(
@@ -179,10 +206,16 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       );
 
       state = state.copyWith(isLoading: false, isSuccess: true);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final l10n = ResolvedorIdioma.obterTraducoes(locale);
+      _logger.logError(
+        'Falha ao registrar identidade local e certificado X.509',
+        error: e,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Falha durante registro: $e',
+        errorMessage: l10n.identidadeErroSalvarGenerico,
       );
     }
   }

@@ -156,6 +156,9 @@ void main() {
           if (modoFalha == 'offline') {
             throw const SocketException('Sem sinal na parede');
           }
+          if (modoFalha == 'erro_503') {
+            return http.Response('Gateway indisponivel', 503);
+          }
           if (modoFalha == 'erro_500') {
             return http.Response('Erro interno', 500);
           }
@@ -204,15 +207,22 @@ void main() {
           contains(contains('Falha ao despachar feedback (fb-offline-002)')),
         );
 
-        // Tentativa com HTTP 500 mantém na fila e registra aviso
+        // Tentativa com HTTP 503 (transitório) mantém na fila e registra apenas aviso
+        modoFalha = 'erro_503';
+        expect(await servico.processarFilaPendentes(), equals(0));
+        expect(await banco.listarFeedbacksPendentes(), hasLength(1));
+        expect(loggerFake.errosRegistrados, isEmpty);
+
+        // Tentativa com HTTP 500 (erro definitivo do servidor) mantém na fila e registra erro no Sentry
         modoFalha = 'erro_500';
         expect(await servico.processarFilaPendentes(), equals(0));
         expect(await banco.listarFeedbacksPendentes(), hasLength(1));
+        expect(loggerFake.errosRegistrados, hasLength(1));
 
-        // Erro não-rede (StateError) registra logError e mantém na fila
+        // Erro não-rede (StateError) também registra erro e mantém na fila
         modoFalha = 'erro_inesperado';
         expect(await servico.processarFilaPendentes(), equals(0));
-        expect(loggerFake.errosRegistrados, hasLength(1));
+        expect(loggerFake.errosRegistrados, hasLength(2));
 
         // Recuperação de sinal envia o item pendente e limpa o arquivo
         modoFalha = 'ok';

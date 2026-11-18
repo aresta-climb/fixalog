@@ -16,6 +16,7 @@ import 'package:fixalog/core/services/crypto_service.dart';
 import 'package:fixalog/core/services/epub_document_builder.dart';
 import 'package:fixalog/core/services/epub_packager_service.dart';
 import 'package:fixalog/core/services/providers.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/core/services/xml_dsig_signer.dart';
@@ -24,6 +25,7 @@ import 'package:fixalog/features/pdf_generation/providers/generation_provider.da
 import 'package:fixalog/features/pdf_generation/services/generation_recovery_service.dart';
 import '../../../core/services/autenticacao_nuvem_service_fake.dart';
 import '../../../core/services/sincronizador_nuvem_service_fake.dart';
+import '../../../fakes/registro_logger_fake.dart';
 
 const String kYamlProtocoloManut = '''
 id: "manutencao_ferragens"
@@ -697,6 +699,10 @@ void main() {
       cryptoService,
     );
 
+    final loggerFake = RegistroLoggerFake();
+    RegistroLogger.instancia = loggerFake;
+    addTearDown(RegistroLogger.resetarParaTestes);
+
     await notifierFalha.startGeneration(
       'Teste Falha',
       '${tempDir.path}/invalida/teste.pdf',
@@ -706,6 +712,7 @@ void main() {
     expect(notifierFalha.state.hasError, isTrue);
     expect(notifierFalha.state.isComplete, isFalse);
     expect(notifierFalha.state.errorMessage, contains('Falha catastrófica'));
+    expect(loggerFake.errosRegistrados, hasLength(1));
   });
 
   test('GenerationState copyWith atualiza todos os campos corretamente', () {

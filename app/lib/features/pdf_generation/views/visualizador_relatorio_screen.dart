@@ -15,6 +15,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
 import 'package:fixalog/core/services/session_bundle_manager.dart';
 import 'package:fixalog/core/services/epub_extrator_service.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 
@@ -148,7 +149,12 @@ class _VisualizadorRelatorioScreenState
           _carregando = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      RegistroLogger.instancia.logError(
+        'Falha ao preparar visualização do relatório',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() {
           _carregando = false;
@@ -180,7 +186,12 @@ class _VisualizadorRelatorioScreenState
         [widget.caminhoEpub!],
         subject: 'Relatório Técnico Fixalog (EPUB 3)',
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      RegistroLogger.instancia.logError(
+        'Falha ao exportar arquivo EPUB',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,7 +232,12 @@ class _VisualizadorRelatorioScreenState
 
     try {
       await widget.abrirArquivoProxy(alvo);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      RegistroLogger.instancia.logError(
+        'Falha ao abrir relatório em aplicativo externo',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -309,7 +325,12 @@ class _VisualizadorRelatorioScreenState
         text: textoCompartilhamento,
         subject: widget.titulo,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      RegistroLogger.instancia.logError(
+        'Falha ao compartilhar link web do relatório',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(

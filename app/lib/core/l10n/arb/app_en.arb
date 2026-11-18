@@ -281,5 +281,8 @@
   "configBotaoPortalWeb": "OFFICIAL ARESTA CLIMB PORTAL",
   "configRotuloContaOidc": "OIDC Account",
   "configContaOidcNaoVinculada": "Not linked (local mode)",
-  "configRotuloFingerprintChave": "ECDSA P-256 Key"
+  "configRotuloFingerprintChave": "ECDSA P-256 Key",
+  "identidadeErroLoginOidc": "Could not complete sign-in. Please try again.",
+  "identidadeErroSemConexaoOidc": "No internet connection. Connect to the internet to link your account.",
+  "identidadeErroSalvarGenerico": "Could not save your identity. Please try again."
 }

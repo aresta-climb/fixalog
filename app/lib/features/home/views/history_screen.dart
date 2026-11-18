@@ -11,6 +11,7 @@ import 'package:fixalog/core/l10n/resolvedor_idioma.dart';
 import 'package:fixalog/features/home/providers/history_provider.dart';
 import 'package:fixalog/core/models/local/submission_record.dart';
 import 'package:fixalog/core/services/banco_dados_local.dart';
+import 'package:fixalog/core/services/registro_logger.dart';
 import 'package:fixalog/core/services/servico_telemetria.dart';
 import 'package:fixalog/core/services/sincronizador_nuvem_service.dart';
 import 'package:fixalog/features/wizard/views/wizard_screen.dart';
@@ -363,7 +364,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                       ),
                                     );
                                   }
-                                } catch (e) {
+                                } catch (e, stackTrace) {
+                                  RegistroLogger.instancia.logError(
+                                    'Falha ao carregar sessão do histórico (${record.idSessao})',
+                                    error: e,
+                                    stackTrace: stackTrace,
+                                  );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -437,7 +443,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                       ),
                                     );
                                   }
-                                } catch (e) {
+                                } catch (e, stackTrace) {
+                                  RegistroLogger.instancia.logError(
+                                    'Falha ao duplicar sessão do histórico (${record.idSessao})',
+                                    error: e,
+                                    stackTrace: stackTrace,
+                                  );
                                   if (context.mounted) {
                                     Navigator.of(
                                       context,

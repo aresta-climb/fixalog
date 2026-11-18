@@ -28,6 +28,44 @@ enum ProvedorOidc {
   }
 }
 
+/// Exceção lançada quando o usuário fecha ou cancela voluntariamente o modal nativo de login OIDC.
+class ExcecaoAutenticacaoCancelada implements Exception {
+  final String mensagem;
+
+  const ExcecaoAutenticacaoCancelada([
+    this.mensagem = 'Autenticação cancelada pelo usuário.',
+  ]);
+
+  @override
+  String toString() => mensagem;
+}
+
+/// Exceção operacional lançada em falhas do canal nativo OIDC ou respostas de erro HTTP do Supabase GoTrue.
+class ExcecaoAutenticacaoOidc implements ExcecaoComStatusHttp {
+  final String mensagem;
+
+  @override
+  final int? statusCode;
+
+  final String? codigoErroServidor;
+  final Uri? uri;
+
+  const ExcecaoAutenticacaoOidc(
+    this.mensagem, {
+    this.statusCode,
+    this.codigoErroServidor,
+    this.uri,
+  });
+
+  @override
+  String toString() {
+    if (uri != null) {
+      return 'ExcecaoAutenticacaoOidc: $mensagem, uri = $uri';
+    }
+    return 'ExcecaoAutenticacaoOidc: $mensagem';
+  }
+}
+
 /// Dados retornados pelo provedor OIDC + Supabase (`signInWithIdToken`) durante o login.
 class CredencialOidcBruta {
   final String userId;
@@ -207,40 +245,6 @@ class AutenticacaoNuvemService {
             provedorTokenAppCheck ?? _provedorAppCheckPadrao,
         _sincronizadorPerfilRemoto = sincronizadorPerfilRemoto;
 
-  /// Constrói um JWT OIDC assinado localmente em ambiente sem SDK nativo configurado,
-  /// preservando o contrato OpenPubkey (`nonce = sha256(rawNonce)`).
-  static String construirIdTokenOidcComNonce({
-    required ProvedorOidc provedor,
-    required String sub,
-    required String email,
-    required String nomeCompleto,
-    required String rawNonce,
-  }) {
-    final nonceHash = sha256.convert(utf8.encode(rawNonce)).toString();
-    final header = base64Url
-        .encode(utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT'})))
-        .replaceAll('=', '');
-    final iss = provedor == ProvedorOidc.apple
-        ? 'https://appleid.apple.com'
-        : 'https://accounts.google.com';
-    final payload = base64Url
-        .encode(
-          utf8.encode(
-            jsonEncode({
-              'iss': iss,
-              'sub': sub,
-              'email': email,
-              'name': nomeCompleto,
-              'nonce': nonceHash,
-              'iat': 1762000000,
-              'exp': 2077360000,
-            }),
-          ),
-        )
-        .replaceAll('=', '');
-    return '$header.$payload.assinatura_oidc_${provedor.valor}';
-  }
-
   /// Realiza a troca de um `id_token` OIDC (Google ou Apple) por uma sessão JWT do Supabase GoTrue
   /// (`POST /auth/v1/token?grant_type=id_token`) enviando o `rawNonce` para verificação criptográfica.
   static Future<CredencialOidcBruta> trocarIdTokenNoSupabase({
@@ -271,8 +275,18 @@ class AutenticacaoNuvemService {
       final res = await req.close();
       final corpo = await utf8.decoder.bind(res).join();
       if (res.statusCode < 200 || res.statusCode >= 300) {
-        throw HttpException(
+        String? codigoErro;
+        try {
+          final jsonErro = jsonDecode(corpo);
+          if (jsonErro is Map<String, dynamic>) {
+            codigoErro = (jsonErro['error_code'] ?? jsonErro['error'])
+                ?.toString();
+          }
+        } catch (_) {}
+        throw ExcecaoAutenticacaoOidc(
           'Falha ao autenticar no Supabase (${res.statusCode}): $corpo',
+          statusCode: res.statusCode,
+          codigoErroServidor: codigoErro,
           uri: uri,
         );
       }
@@ -347,51 +361,54 @@ class AutenticacaoNuvemService {
     ProvedorOidc provedor,
     String rawNonce,
   ) async {
+    final metodo = provedor == ProvedorOidc.apple
+        ? 'solicitarIdTokenApple'
+        : 'solicitarIdTokenGoogle';
+    final Map<String, dynamic>? respostaNativa;
     try {
-      final metodo = provedor == ProvedorOidc.apple
-          ? 'solicitarIdTokenApple'
-          : 'solicitarIdTokenGoogle';
-      final respostaNativa = await canalAutenticacaoNativa
+      respostaNativa = await canalAutenticacaoNativa
           .invokeMapMethod<String, dynamic>(metodo, <String, dynamic>{
             'rawNonce': rawNonce,
             'webClientId': idClienteWebGooglePadrao,
             'iosClientId': idClienteIosGooglePadrao,
           });
-      if (respostaNativa != null) {
-        final idTokenNativo = (respostaNativa['idToken'] as String?) ?? '';
-        final nomeNativo = (respostaNativa['nomeCompleto'] as String?) ?? '';
-        final emailNativo = (respostaNativa['email'] as String?) ?? '';
-        return await trocarIdTokenNoSupabase(
-          provedor: provedor,
-          idToken: idTokenNativo,
-          rawNonce: rawNonce,
-          nomeInicial: nomeNativo,
-          emailInicial: emailNativo,
-        );
-      }
+    } on PlatformException catch (e) {
+      throw ExcecaoAutenticacaoOidc(
+        'Falha no canal nativo OIDC (${provedor.valor}): ${e.message ?? e.code}',
+      );
     } on MissingPluginException {
-      // Em ambientes de teste ou desktop sem handler nativo registrado, utiliza o fallback local.
+      throw ExcecaoAutenticacaoOidc(
+        'Canal nativo de autenticação OIDC indisponível para ${provedor.valor}.',
+      );
     }
 
-    final email = provedor == ProvedorOidc.apple
-        ? 'escalador@privaterelay.appleid.com'
-        : 'escalador@gmail.com';
-    const nome = 'Escalador Aresta';
-    final idToken = construirIdTokenOidcComNonce(
+    if (respostaNativa == null) {
+      throw ExcecaoAutenticacaoOidc(
+        'O seletor nativo de contas (${provedor.valor}) não retornou credenciais.',
+      );
+    }
+    if (respostaNativa['cancelado'] == true) {
+      throw const ExcecaoAutenticacaoCancelada();
+    }
+
+    final idTokenNativo = (respostaNativa['idToken'] as String?)?.trim() ?? '';
+    if (idTokenNativo.isEmpty) {
+      throw ExcecaoAutenticacaoOidc(
+        'O provedor nativo (${provedor.valor}) retornou um id_token vazio.',
+      );
+    }
+    final nomeCompletoBruto =
+        (respostaNativa['nomeCompleto'] as String?)?.trim() ?? '';
+    final nomeNativo = nomeCompletoBruto.isNotEmpty
+        ? nomeCompletoBruto
+        : ((respostaNativa['nomeExibicao'] as String?)?.trim() ?? '');
+    final emailNativo = (respostaNativa['email'] as String?)?.trim() ?? '';
+    return trocarIdTokenNoSupabase(
       provedor: provedor,
-      sub: 'oidc_${provedor.valor}_sub',
-      email: email,
-      nomeCompleto: nome,
+      idToken: idTokenNativo,
       rawNonce: rawNonce,
-    );
-    return CredencialOidcBruta(
-      userId: 'usr_${provedor.valor}_padrao',
-      email: email,
-      provedor: provedor,
-      nomeCompleto: nome,
-      clubeAssociacao: '',
-      jwtSupabase: 'jwt_supabase_${provedor.valor}',
-      idTokenOidc: idToken,
+      nomeInicial: nomeNativo,
+      emailInicial: emailNativo,
     );
   }
 

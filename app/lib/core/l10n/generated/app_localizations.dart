@@ -1172,6 +1172,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Chave ECDSA P-256'**
   String get configRotuloFingerprintChave;
+
+  /// No description provided for @identidadeErroLoginOidc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível concluir a autenticação. Tente novamente.'**
+  String get identidadeErroLoginOidc;
+
+  /// No description provided for @identidadeErroSemConexaoOidc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Conecte-se para vincular sua conta.'**
+  String get identidadeErroSemConexaoOidc;
+
+  /// No description provided for @identidadeErroSalvarGenerico.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível salvar a identidade. Tente novamente.'**
+  String get identidadeErroSalvarGenerico;
 }
 
 class _AppLocalizationsDelegate

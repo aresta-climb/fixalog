@@ -67,6 +67,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
     final locale = ResolvedorIdioma.obterLocaleEfetivo(context, ref);
     final l10n = ResolvedorIdioma.obterTraducoes(locale);
     final ehPt = locale.languageCode == 'pt';
+    final exibirBotaoApple = Theme.of(context).platform == TargetPlatform.iOS;
 
     ref.listen<IdentityFormState>(identityFormViewModelProvider, (
       previous,
@@ -203,9 +204,13 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    ehPt
-                        ? 'Entre com sua conta Google ou Apple para vincular sua identidade pericial e carregar seu perfil do Aresta Climb.'
-                        : 'Sign in with your Google or Apple account to bind your forensic identity and load your Aresta Climb profile.',
+                    exibirBotaoApple
+                        ? (ehPt
+                              ? 'Entre com sua conta Google ou Apple para vincular sua identidade pericial e carregar seu perfil do Aresta Climb.'
+                              : 'Sign in with your Google or Apple account to bind your forensic identity and load your Aresta Climb profile.')
+                        : (ehPt
+                              ? 'Entre com sua conta Google para vincular sua identidade pericial e carregar seu perfil do Aresta Climb.'
+                              : 'Sign in with your Google account to bind your forensic identity and load your Aresta Climb profile.'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
@@ -221,7 +226,10 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                       onPressed: () {
                         ref
                             .read(identityFormViewModelProvider.notifier)
-                            .autenticarComProvedor(ProvedorOidc.google);
+                            .autenticarComProvedor(
+                              ProvedorOidc.google,
+                              locale: locale,
+                            );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -248,42 +256,47 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      key: const Key('botao_login_apple'),
-                      onPressed: () {
-                        ref
-                            .read(identityFormViewModelProvider.notifier)
-                            .autenticarComProvedor(ProvedorOidc.apple);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  if (exibirBotaoApple) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        key: const Key('botao_login_apple'),
+                        onPressed: () {
+                          ref
+                              .read(identityFormViewModelProvider.notifier)
+                              .autenticarComProvedor(
+                                ProvedorOidc.apple,
+                                locale: locale,
+                              );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(
-                        Icons.apple,
-                        size: 24,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        ehPt
-                            ? 'Continuar com a Apple'
-                            : 'Continue with Apple',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                        icon: const Icon(
+                          Icons.apple,
+                          size: 24,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          ehPt
+                              ? 'Continuar com a Apple'
+                              : 'Continue with Apple',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ] else ...[
                   Container(
                     key: const Key('badge_sessao_oidc'),
@@ -621,6 +634,7 @@ class _IdentitySetupScreenState extends ConsumerState<IdentitySetupScreen> {
                               _nomeController.text,
                               _clubeController.text,
                               exigirAutenticacaoOidc: true,
+                              locale: locale,
                             );
                       },
                       style: ElevatedButton.styleFrom(

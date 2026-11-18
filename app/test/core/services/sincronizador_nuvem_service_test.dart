@@ -815,13 +815,23 @@ void main() {
           contains('Assinatura XML-DSig inválida'),
         );
 
-        // E valida erro HTTP 403 direto no consultarStatusLaudo
+        // E valida erro HTTP 403 direto no consultarStatusLaudo registrando no logger e cancelamento OIDC silencioso
+        final loggerPub = RegistroLoggerFake();
+        final authPub = AutenticacaoNuvemServiceFake(crypto: crypto);
+        await authPub.entrarComProvedorOidc(ProvedorOidc.google);
+        final syncComLogger = SincronizadorNuvemService(
+          banco: banco,
+          autenticacaoService: authPub,
+          clienteHttp: clienteHttp,
+          logger: loggerPub,
+          intervaloPollingModeracao: const Duration(milliseconds: 5),
+        );
         clienteHttp.erroHttpPorSessao['s_403_status'] =
             const ExcecaoApiFixalogNuvem(
               403,
               'Apenas a conta proprietária do laudo pode consultar seu status.',
             );
-        final resFalha403 = await syncComNotif.publicarEAguardarLiberacao(
+        final resFalha403 = await syncComLogger.publicarEAguardarLiberacao(
           idSessao: 's_403_status',
           epubPath: epubOk.path,
         );
@@ -833,6 +843,20 @@ void main() {
           resFalha403.mensagemErro,
           contains('conta proprietária'),
         );
+        expect(loggerPub.errosRegistrados, hasLength(1));
+
+        // E se o usuário não tinha sessão e cancela o modal OIDC ao publicar, retorna canceladoPeloUsuario sem erro no Sentry
+        await authPub.encerrarSessao();
+        authPub.deveCancelarLogin = true;
+        final resCanceladoOidc = await syncComLogger.publicarEAguardarLiberacao(
+          idSessao: 's_cancel_oidc',
+          epubPath: epubOk.path,
+        );
+        expect(
+          resCanceladoOidc.etapa,
+          equals(EtapaPublicacaoLaudo.canceladoPeloUsuario),
+        );
+        expect(loggerPub.errosRegistrados, hasLength(1));
       },
     );
 

@@ -254,7 +254,8 @@ class RegistroLogger {
 
   /// Verifica se o erro ou mensagem descreve uma falha transitória de conectividade,
   /// timeout de socket, instabilidade de gateway/servidor (HTTP 408, 429, 502, 503, 504) ou
-  /// falha de transporte nos SDKs do Firebase quando o dispositivo encontra-se offline na montanha.
+  /// falha de transporte nos SDKs do Firebase e na pilha nativa `NSURLErrorDomain` / `CFNetwork`
+  /// quando o dispositivo encontra-se offline na montanha.
   ///
   /// Exceções com código HTTP definitivo (como `400`, `401`, `403`, `404`, `422` ou `500`)
   /// nunca são classificadas como falha de conexão, mesmo quando encapsuladas em [HttpException].
@@ -289,6 +290,7 @@ class RegistroLogger {
       if (codigo == 'unavailable' ||
           codigo == 'network-request-failed' ||
           codigo == 'network_error' ||
+          codigo == 'network-error' ||
           codigo == 'deadline-exceeded' ||
           codigo == 'throttled') {
         return true;
@@ -311,12 +313,14 @@ class RegistroLogger {
     if (msg.contains(
           'firebase installations failed to get installation auth token',
         ) ||
+        msg.contains('failed to get installations token') ||
         msg.contains('error while calling the backend') ||
         msg.contains('unable to connect to the server') ||
         msg.contains('fetch failed') ||
         msg.contains('fetch throttled') ||
         msg.contains('network-request-failed') ||
         msg.contains('network_error') ||
+        msg.contains('network-error') ||
         msg.contains('network error') ||
         msg.contains('unavailable')) {
       return true;
@@ -327,6 +331,12 @@ class RegistroLogger {
         msg.contains('socketexception') ||
         msg.contains('failed host lookup') ||
         msg.contains('network is unreachable') ||
+        msg.contains('internet connection appears to be offline') ||
+        msg.contains('network connection was lost') ||
+        msg.contains('could not connect to the server') ||
+        msg.contains('specified hostname could not be found') ||
+        msg.contains('cannot find host') ||
+        msg.contains('data connection is not currently allowed') ||
         msg.contains('connection refused') ||
         msg.contains('connection reset') ||
         msg.contains('connection closed') ||

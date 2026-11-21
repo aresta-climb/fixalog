@@ -3,6 +3,9 @@
 
 package com.arestaclimb.fixalog
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -13,7 +16,12 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.security.MessageDigest
 
 class MainActivity : FlutterFragmentActivity() {
@@ -23,6 +31,19 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        if (BuildConfig.ARESTA_SMOKE_CI && ehEmuladorAndroid()) {
+            MethodChannel(
+                flutterEngine.dartExecutor.binaryMessenger,
+                "com.arestaclimb.fixalog/" + "smoke_ci"
+            ).setMethodCallHandler { call, result ->
+                if (call.method == "obterConfiguracaoSmoke") {
+                    result.success(lerConfiguracaoSmokeDaIntent(intent))
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -36,6 +57,18 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                         return@setMethodCallHandler
                     }
+                    if (BuildConfig.ARESTA_SMOKE_CI && ehEmuladorAndroid()) {
+                        val configSmoke = lerConfiguracaoSmokeDaIntent(intent)
+                        if (configSmoke["ativo"] == true) {
+                            solicitarIdTokenSmokeLoopback(
+                                servidorUrl = configSmoke["servidorUrl"] as String,
+                                webClientId = webClientId,
+                                rawNonce = rawNonce,
+                                result = result
+                            )
+                            return@setMethodCallHandler
+                        }
+                    }
                     iniciarLoginNativoGoogle(webClientId, rawNonce, result)
                 }
                 "solicitarIdTokenApple" -> {
@@ -44,6 +77,11 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     private fun iniciarLoginNativoGoogle(
@@ -93,6 +131,92 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             } catch (_: GetCredentialCancellationException) {
                 result.success(mapOf("cancelado" to true))
+            } catch (_: Exception) {
+                result.success(null)
+            }
+        }
+    }
+
+    private fun ehEmuladorAndroid(): Boolean {
+        val fingerprint = Build.FINGERPRINT.lowercase()
+        val hardware = Build.HARDWARE.lowercase()
+        val modelo = Build.MODEL.lowercase()
+        val produto = Build.PRODUCT.lowercase()
+        return fingerprint.startsWith("generic") ||
+            fingerprint.contains("emulator") ||
+            hardware.contains("ranchu") ||
+            hardware.contains("goldfish") ||
+            modelo.contains("sdk_gphone") ||
+            modelo.contains("emulator") ||
+            modelo.contains("android sdk built for") ||
+            produto.contains("sdk")
+    }
+
+    private fun lerConfiguracaoSmokeDaIntent(intentAtual: Intent?): Map<String, Any> {
+        val servidorBruto = intentAtual?.getStringExtra("smoke_server")?.trim().orEmpty()
+        val token = intentAtual?.getStringExtra("smoke_token")?.trim().orEmpty()
+        if (servidorBruto.isEmpty() || token.isEmpty()) {
+            return mapOf("ativo" to false)
+        }
+        val uri = Uri.parse(servidorBruto)
+        val host = uri.host?.lowercase().orEmpty()
+        val porta = uri.port
+        val hostsPermitidos = setOf("10.0.2.2", "127.0.0.1", "localhost")
+        if (uri.scheme != "http" || porta <= 0 || !hostsPermitidos.contains(host)) {
+            return mapOf("ativo" to false)
+        }
+        return mapOf(
+            "ativo" to true,
+            "servidorUrl" to "http://$host:$porta",
+            "token" to token
+        )
+    }
+
+    private fun solicitarIdTokenSmokeLoopback(
+        servidorUrl: String,
+        webClientId: String,
+        rawNonce: String,
+        result: MethodChannel.Result
+    ) {
+        lifecycleScope.launch {
+            try {
+                val nonceHash = if (rawNonce.isNotEmpty()) sha256Hex(rawNonce) else ""
+                val resposta = withContext(Dispatchers.IO) {
+                    val endpoint = "$servidorUrl/" + "__smoke__/oidc-token"
+                    val conexao = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 10000
+                        readTimeout = 10000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                    }
+                    try {
+                        val payload = JSONObject().apply {
+                            put("nonceHash", nonceHash)
+                            put("webClientId", webClientId)
+                            put("provedor", "google")
+                        }
+                        conexao.outputStream.use { os ->
+                            os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                        }
+                        if (conexao.responseCode !in 200..299) {
+                            null
+                        } else {
+                            val texto = conexao.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                            val json = JSONObject(texto)
+                            mapOf(
+                                "idToken" to json.optString("idToken", ""),
+                                "nonce" to rawNonce,
+                                "email" to json.optString("email", ""),
+                                "nomeExibicao" to json.optString("nomeExibicao", ""),
+                                "cancelado" to false
+                            )
+                        }
+                    } finally {
+                        conexao.disconnect()
+                    }
+                }
+                result.success(resposta)
             } catch (_: Exception) {
                 result.success(null)
             }

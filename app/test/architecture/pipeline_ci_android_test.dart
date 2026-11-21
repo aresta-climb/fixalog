@@ -132,10 +132,36 @@ void main() {
         );
         expect(releaseContent, contains('bump_type:'));
         expect(releaseContent, contains('enviar_para_producao:'));
+        expect(releaseContent, contains('publicar_nas_lojas:'));
         expect(releaseContent, contains('release_notes:'));
         expect(releaseContent, contains('calcular_versao_release.dart'));
         expect(releaseContent, contains('calcular_proximo_dev.dart'));
+        expect(releaseContent, contains('build_e_smoke_android:'));
+        expect(releaseContent, contains('build_e_smoke_ios:'));
+        expect(releaseContent, contains('cortar_versao:'));
+        expect(releaseContent, contains('git push --atomic'));
+        expect(releaseContent, contains('publicar_android:'));
+        expect(releaseContent, contains('publicar_ios:'));
         expect(releaseContent, contains('submit_ios_review.yml'));
+      },
+    );
+
+    test(
+      'build_android.yml e build_ios.yml devem executar auditoria binária e smoke test pós-build antes da publicação',
+      () {
+        expect(workflowContent, contains('smoke_test_pacote.dart'));
+        expect(workflowContent, contains('ORG_GRADLE_PROJECT_arestaSmokeCi=true'));
+        expect(workflowContent, contains('system-images;android-34;google_apis;x86_64'));
+        expect(workflowContent, contains('evidencia-smoke-android'));
+
+        var iosFile = File('../.github/workflows/build_ios.yml');
+        if (!iosFile.existsSync()) {
+          iosFile = File('.github/workflows/build_ios.yml');
+        }
+        final iosContent = iosFile.readAsStringSync();
+        expect(iosContent, contains('flutter build ios --simulator'));
+        expect(iosContent, contains('smoke_test_pacote.dart'));
+        expect(iosContent, contains('evidencia-smoke-ios'));
       },
     );
 

@@ -13,10 +13,17 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val habilitarSmokeCi =
+    project.findProperty("arestaSmokeCi")?.toString()?.toBoolean() == true
+
 android {
     namespace = "com.arestaclimb.fixalog"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -30,6 +37,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        buildConfigField("boolean", "ARESTA_SMOKE_CI", habilitarSmokeCi.toString())
+        manifestPlaceholders["usesCleartextTraffic"] = habilitarSmokeCi.toString()
     }
 
     signingConfigs {

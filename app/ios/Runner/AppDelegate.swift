@@ -24,6 +24,24 @@ import Security
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
+    #if targetEnvironment(simulator)
+    let canalSmoke = FlutterMethodChannel(
+      name: "com.arestaclimb.fixalog/smoke_ci",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    canalSmoke.setMethodCallHandler { [weak self] (call, result) in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+      if call.method == "obterConfiguracaoSmoke" {
+        result(self.lerConfiguracaoSmokeDoAmbiente())
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    #endif
+
     let canalAutenticacao = FlutterMethodChannel(
       name: "com.arestaclimb.fixalog/autenticacao_nativa",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
@@ -35,6 +53,34 @@ import Security
       }
       let args = call.arguments as? [String: Any]
       let rawNonce = (args?["rawNonce"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+      #if targetEnvironment(simulator)
+      let configSmoke = self.lerConfiguracaoSmokeDoAmbiente()
+      if (configSmoke["ativo"] as? Bool) == true,
+         let servidorUrl = configSmoke["servidorUrl"] as? String {
+        switch call.method {
+        case "solicitarIdTokenApple":
+          self.solicitarIdTokenSmokeLoopback(
+            servidorUrl: servidorUrl,
+            provedor: "apple",
+            rawNonce: rawNonce,
+            result: result
+          )
+          return
+        case "solicitarIdTokenGoogle":
+          self.solicitarIdTokenSmokeLoopback(
+            servidorUrl: servidorUrl,
+            provedor: "google",
+            rawNonce: rawNonce,
+            result: result
+          )
+          return
+        default:
+          break
+        }
+      }
+      #endif
+
       switch call.method {
       case "solicitarIdTokenApple":
         self.iniciarLoginNativoApple(rawNonce: rawNonce, result: result)
@@ -48,6 +94,77 @@ import Security
       }
     }
   }
+
+  #if targetEnvironment(simulator)
+  private func lerConfiguracaoSmokeDoAmbiente() -> [String: Any] {
+    let env = ProcessInfo.processInfo.environment
+    let servidorBruto = (env["ARESTA_SMOKE_SERVER"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let token = (env["ARESTA_SMOKE_TOKEN"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !servidorBruto.isEmpty,
+          !token.isEmpty,
+          let comp = URLComponents(string: servidorBruto),
+          comp.scheme == "http",
+          let host = comp.host?.lowercased(),
+          let porta = comp.port,
+          porta > 0,
+          (host == "127.0.0.1" || host == "localhost") else {
+      return ["ativo": false]
+    }
+    return [
+      "ativo": true,
+      "servidorUrl": "http://\(host):\(porta)",
+      "token": token
+    ]
+  }
+
+  private func solicitarIdTokenSmokeLoopback(
+    servidorUrl: String,
+    provedor: String,
+    rawNonce: String?,
+    result: @escaping FlutterResult
+  ) {
+    let nonceBruto = (rawNonce != nil && !rawNonce!.isEmpty) ? rawNonce! : self.gerarNonceAleatorio()
+    let nonceHash = self.sha256Hex(nonceBruto)
+    guard let url = URL(string: "\(servidorUrl)/__smoke__/oidc-token") else {
+      result(nil)
+      return
+    }
+    var req = URLRequest(url: url)
+    req.httpMethod = "POST"
+    req.timeoutInterval = 10
+    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    let payload: [String: Any] = [
+      "nonceHash": nonceHash,
+      "provedor": provedor
+    ]
+    req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+    URLSession.shared.dataTask(with: req) { data, response, error in
+      guard error == nil,
+            let httpRes = response as? HTTPURLResponse,
+            (200...299).contains(httpRes.statusCode),
+            let data = data,
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let idToken = json["idToken"] as? String,
+            !idToken.isEmpty else {
+        DispatchQueue.main.async { result(nil) }
+        return
+      }
+      let nome = (json["nomeCompleto"] as? String) ?? (json["nomeExibicao"] as? String) ?? ""
+      let email = (json["email"] as? String) ?? ""
+      DispatchQueue.main.async {
+        result([
+          "idToken": idToken,
+          "nonce": nonceBruto,
+          "nomeCompleto": nome,
+          "nomeExibicao": nome,
+          "email": email,
+          "cancelado": false
+        ])
+      }
+    }.resume()
+  }
+  #endif
 
   private func iniciarLoginNativoApple(rawNonce: String?, result: @escaping FlutterResult) {
     DispatchQueue.main.async {

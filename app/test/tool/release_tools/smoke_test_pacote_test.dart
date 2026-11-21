@@ -118,6 +118,7 @@ void main() {
       final evidencia = jsonDecode(saidaJson.readAsStringSync()) as Map<String, dynamic>;
       expect(evidencia['coldStartLojaAprovado'], isTrue);
       expect((evidencia['jornadaSmoke'] as Map<String, dynamic>)['sucesso'], isTrue);
+      expect(comandos.any((c) => c.contains('--ks=')), isTrue);
       expect(comandos.any((c) => c.contains('pidof com.arestaclimb.fixalog')), isTrue);
     });
 

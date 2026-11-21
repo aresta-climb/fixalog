@@ -153,6 +153,7 @@ void main() {
         expect(workflowContent, contains('ORG_GRADLE_PROJECT_arestaSmokeCi=true'));
         expect(workflowContent, contains('system-images;android-34;google_apis;x86_64'));
         expect(workflowContent, contains('libpulse0'));
+        expect(workflowContent, contains('ANDROID_AVD_HOME'));
         expect(workflowContent, contains('kill -0 "\$EMU_PID"'));
         expect(workflowContent.contains('wait-for-device'), isFalse);
         expect(workflowContent, contains('evidencia-smoke-android'));

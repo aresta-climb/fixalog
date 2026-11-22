@@ -140,6 +140,21 @@ void main() {
         expect(releaseContent, contains('build_e_smoke_ios:'));
         expect(releaseContent, contains('cortar_versao:'));
         expect(releaseContent, contains('git push --atomic'));
+        final blocoCortar = releaseContent
+            .split('cortar_versao:')
+            .last
+            .split('publicar_android:')
+            .first;
+        expect(
+          blocoCortar.indexOf('flutter pub get'),
+          greaterThanOrEqualTo(0),
+          reason:
+              'cortar_versao DEVE executar flutter pub get antes de dart run calcular_proximo_dev.dart.',
+        );
+        expect(
+          blocoCortar.indexOf('flutter pub get'),
+          lessThan(blocoCortar.indexOf('calcular_proximo_dev.dart')),
+        );
         expect(releaseContent, contains('publicar_android:'));
         expect(releaseContent, contains('publicar_ios:'));
         expect(releaseContent, contains('submit_ios_review.yml'));

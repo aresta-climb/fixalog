@@ -594,12 +594,11 @@ void main() {
     });
 
     test(
-      'realiza mock gracioso local em enviarSubmissao, publicarEAguardarLiberacao e restaurarRelatoriosDaConta quando em modo de desenvolvimento sem token real do App Check',
+      'realiza mock gracioso em desenvolvimento e suspende chamadas HTTP silenciosamente em produção quando sem token real do App Check',
       () async {
         final loggerMockDev = RegistroLoggerFake();
-        auth.tokenAppCheckRetornado =
-            AutenticacaoNuvemService.tokenAppCheckFallbackLocal;
-        // Mesmo com erro de rede forçado no cliente HTTP, o mock gracioso não deve tocar na rede
+        auth.tokenAppCheckRetornado = null;
+        // Mesmo com erro de rede forçado no cliente HTTP, nem dev nem release sem token devem tocar na rede
         clienteHttp.deveLancarErroRede = true;
 
         final syncDevSemAppCheck = SincronizadorNuvemService(
@@ -662,7 +661,9 @@ void main() {
           ),
         );
 
-        // Em modo release (emModoDesenvolvimento: false), não usa mock gracioso e tenta a rede real
+        // Em modo release oficial (emModoDesenvolvimento: false), sem token real do App Check:
+        // suspende chamadas HTTP silenciosamente (zero erros no Sentry, apenas logAviso)
+        loggerMockDev.limpar();
         final syncRelease = SincronizadorNuvemService(
           banco: banco,
           autenticacaoService: auth,
@@ -671,7 +672,30 @@ void main() {
           emModoDesenvolvimento: false,
         );
         recDev.enviadoNuvem = false;
+        await banco.salvarSubmissao(recDev);
+
         expect(await syncRelease.enviarSubmissao(recDev), isFalse);
+        expect(
+          (await banco.obterSubmissaoPorIdSessao('sessao_dev_mock'))
+              ?.enviadoNuvem,
+          isFalse,
+        );
+
+        final pubReleaseSemToken =
+            await syncRelease.publicarEAguardarLiberacao(
+              idSessao: 'sessao_dev_mock',
+              epubPath: epubDev.path,
+            );
+        expect(
+          pubReleaseSemToken.etapa,
+          equals(EtapaPublicacaoLaudo.semInternet),
+        );
+
+        final restReleaseSemToken = await syncRelease
+            .restaurarRelatoriosDaConta(diretorioBase: tempDir);
+        expect(restReleaseSemToken, equals(0));
+        expect(loggerMockDev.errosRegistrados, isEmpty);
+        expect(loggerMockDev.avisosRegistrados, hasLength(3));
       },
     );
 
@@ -960,6 +984,27 @@ void main() {
         );
         // O chunk 0 já enviado antes do cancelamento não foi reenviado!
         expect(clienteHttp.indicesChunksEnviados, isNot(contains(0)));
+
+        // 3.5. Cancela durante o polling quando o pacote já consta como recebido no servidor (jaEnviado == true)
+        clienteHttp.consultasEmAnaliseAntesDeAtivar['s_cancelavel'] = 3;
+        var cancelouAposEnvioCompleto = false;
+        final resCanceladoJaEnviado = await syncCancelavel
+            .publicarEAguardarLiberacao(
+              idSessao: 's_cancelavel',
+              epubPath: epubCancel.path,
+              aoProgredir: (progresso) {
+                if (!cancelouAposEnvioCompleto &&
+                    progresso.etapa ==
+                        EtapaPublicacaoLaudo.aguardandoVerificacaoServidor) {
+                  cancelouAposEnvioCompleto = true;
+                  syncCancelavel.cancelarPublicacao('s_cancelavel');
+                }
+              },
+            );
+        expect(
+          resCanceladoJaEnviado.etapa,
+          equals(EtapaPublicacaoLaudo.canceladoPeloUsuario),
+        );
 
         // 4. Retoma novamente até concluir ativo
         clienteHttp.consultasEmAnaliseAntesDeAtivar['s_cancelavel'] = 0;

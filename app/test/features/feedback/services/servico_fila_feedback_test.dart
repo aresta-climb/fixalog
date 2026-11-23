@@ -265,14 +265,13 @@ void main() {
     );
 
     test(
-      'realiza mock gracioso local em modo de desenvolvimento quando App Check retorna token de fallback, limpando a fila sem requisição HTTP',
+      'realiza mock gracioso em desenvolvimento e suspende envio silenciosamente em produção quando o token do App Check é nulo ou vazio',
       () async {
-        authFake.tokenAppCheckRetornado =
-            AutenticacaoNuvemService.tokenAppCheckFallbackLocal;
+        authFake.tokenAppCheckRetornado = null;
         var chamouHttp = false;
         final mockClientProibido = MockClient((_) async {
           chamouHttp = true;
-          throw const SocketException('Rede não deveria ser chamada no mock dev');
+          throw const SocketException('Rede não deveria ser chamada sem App Check');
         });
 
         final servicoDevMock = ServicoFilaFeedback(
@@ -303,7 +302,8 @@ void main() {
           ),
         );
 
-        // Em modo release (emModoDesenvolvimento: false), tenta enviar via HTTP real
+        // Em modo release oficial (emModoDesenvolvimento: false), sem token real do App Check:
+        // NÃO dispara requisição HTTP (evita HTTP 403 Invalid Compact JWS), emite apenas logAviso e mantém na fila SQLite
         final servicoRelease = ServicoFilaFeedback(
           banco: banco,
           autenticacaoService: authFake,
@@ -314,8 +314,24 @@ void main() {
           geradorIdFeedback: () => 'fb-release-002',
           emModoDesenvolvimento: false,
         );
-        expect(await servicoRelease.enviarItemFeedback(registro), isFalse);
-        expect(chamouHttp, isTrue);
+        final regRelease = await servicoRelease.enfileirarEDespacharFeedback(
+          mensagem: 'Feedback em emulador rodando release oficial',
+          capturaTela: Uint8List.fromList([4, 5, 6]),
+        );
+        expect(chamouHttp, isFalse);
+        expect(loggerFake.errosRegistrados, isEmpty);
+        expect(
+          loggerFake.avisosRegistrados,
+          contains(
+            contains(
+              'Envio de feedback (fb-release-002) adiado: token do App Check indisponível',
+            ),
+          ),
+        );
+        final pendentesRelease = await banco.listarFeedbacksPendentes();
+        expect(pendentesRelease, hasLength(1));
+        expect(pendentesRelease.single.idFeedback, equals(regRelease.idFeedback));
+        expect(File(regRelease.caminhoImagem).existsSync(), isTrue);
       },
     );
   });

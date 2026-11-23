@@ -163,6 +163,65 @@ void main() {
       expect(agendador.timerAtivo, isFalse);
     });
 
+    test('Pausa o timer periódico após esgotar os intervalos de backoff e reinicia a sequência ao retomar o aplicativo', () async {
+      await banco.inserirFeedback(
+        FeedbackRecord(
+          idFeedback: 'fb_loop_guard',
+          mensagem: 'Feedback aguardando App Check',
+          categoria: 'aplicativo',
+          caminhoImagem: '',
+          metadadosJson: '{}',
+          dataCriacao: DateTime.utc(2026, 11, 22),
+          enviado: false,
+        ),
+      );
+
+      var tentativasRede = 0;
+      final servicoFeedbackFalhando = ServicoFilaFeedback(
+        banco: banco,
+        autenticacaoService: auth,
+        obterDiretorioSuporte: () async => tempDir,
+        urlEdgeFunction: 'https://fixalog.app/feedback',
+        clienteHttp: MockClient((req) async {
+          tentativasRede++;
+          throw const SocketException('Sem sinal');
+        }),
+      );
+
+      final agendador = AgendadorSincronizacaoBackground(
+        banco: banco,
+        sincronizadorNuvem: sincronizadorNuvem,
+        servicoFilaFeedback: servicoFeedbackFalhando,
+        verificadorRedeAtiva: () async => true,
+        intervalosBackoff: const [
+          Duration(milliseconds: 15),
+          Duration(milliseconds: 20),
+          Duration(milliseconds: 25),
+        ],
+      );
+      addTearDown(agendador.cancelarTimer);
+
+      await agendador.iniciarMonitoramento();
+      expect(tentativasRede, equals(1));
+      expect(agendador.timerAtivo, isTrue);
+      expect(agendador.indiceBackoffAtual, equals(1));
+
+      // Aguarda esgotar os 3 degraus de backoff (15ms + 20ms + 25ms) e mais uma folga
+      await Future<void>.delayed(const Duration(milliseconds: 140));
+
+      // Deve ter executado exatamente 1 inicial + 3 retries = 4 tentativas, desligando o timer depois!
+      expect(tentativasRede, equals(4));
+      expect(agendador.timerAtivo, isFalse);
+      expect(agendador.indiceBackoffAtual, equals(3));
+
+      // Ao retomar o aplicativo, reinicia o contador de backoff e concede nova sequência
+      await agendador.aoRetomarAplicativo();
+      expect(tentativasRede, equals(5));
+      expect(agendador.timerAtivo, isTrue);
+      expect(agendador.indiceBackoffAtual, equals(1));
+      agendador.cancelarTimer();
+    });
+
     test('Valida verificador de interface de rede padrão, ausência de banco e provider Riverpod', () async {
       final resultadoInterface =
           await AgendadorSincronizacaoBackground.verificarInterfaceRedeAtivaPadrao();

@@ -588,5 +588,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'インターネット接続がありません。アカウントを連携するには接続してください。';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'この端末に Google アカウントが見つかりません。端末の設定から Google アカウントを追加して、もう一度お試しください。';
+
+  @override
   String get identidadeErroSalvarGenerico => 'ID情報を保存できませんでした。もう一度お試しください。';
 }

@@ -10,6 +10,8 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.lifecycleScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -127,12 +129,36 @@ class MainActivity : FlutterFragmentActivity() {
                         )
                     )
                 } else {
-                    result.success(null)
+                    result.success(
+                        mapOf(
+                            "erroCodigo" to "credencial_inesperada",
+                            "erroMensagem" to "Tipo de credencial inesperado: ${credencial.type}"
+                        )
+                    )
                 }
             } catch (_: GetCredentialCancellationException) {
                 result.success(mapOf("cancelado" to true))
-            } catch (_: Exception) {
-                result.success(null)
+            } catch (e: NoCredentialException) {
+                result.success(
+                    mapOf(
+                        "erroCodigo" to "sem_credencial_dispositivo",
+                        "erroMensagem" to (e.message ?: "No credentials available")
+                    )
+                )
+            } catch (e: GetCredentialException) {
+                result.success(
+                    mapOf(
+                        "erroCodigo" to e.type,
+                        "erroMensagem" to (e.message ?: e.javaClass.simpleName)
+                    )
+                )
+            } catch (e: Exception) {
+                result.success(
+                    mapOf(
+                        "erroCodigo" to e.javaClass.simpleName,
+                        "erroMensagem" to (e.message ?: e.javaClass.simpleName)
+                    )
+                )
             }
         }
     }

@@ -410,7 +410,7 @@ class RegistroLogger {
 
   /// Registra uma falha de sincronização na nuvem ou comunicação de rede.
   /// Caso a falha seja decorrente de desconexão transitória ou timeout em montanha,
-  /// rebaixa o evento para [logAviso] (breadcrumb). Caso contrário, registra como [logCrash].
+  /// rebaixa o evento para [logAviso] (breadcrumb). Caso contrário, registra como [logError] não-fatal.
   void logFalhaSyncOuDownload(
     String mensagemContexto, {
     Object? error,
@@ -423,7 +423,7 @@ class RegistroLogger {
       final detalhe = error != null ? ' ($error)' : '';
       logAviso('$mensagemContexto$detalhe');
     } else {
-      logCrash(
+      logError(
         mensagemContexto,
         error: error,
         stackTrace: stackTrace,

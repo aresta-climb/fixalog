@@ -541,10 +541,13 @@ void main() {
     );
 
     test(
-      'logFalhaSyncOuDownload rebaixa falhas de conexão para logAviso e eleva erros de integridade para logCrash',
+      'logFalhaSyncOuDownload rebaixa falhas de conexão para logAviso e registra erros definitivos via logError não-fatal',
       () {
         final avisos = <String>[];
-        final crashes = <String>[];
+        final errosNaoFataisCrashlytics = <String>[];
+        final errosFataisCrashlytics = <String>[];
+        final errosNaoFataisSentry = <String>[];
+        final eventosHook = <bool>[];
 
         final logger = RegistroLogger(
           emModoDesenvolvimento: false,
@@ -556,7 +559,11 @@ void main() {
             required String motivo,
             required bool fatal,
           }) async {
-            if (fatal) crashes.add(motivo);
+            if (fatal) {
+              errosFataisCrashlytics.add(motivo);
+            } else {
+              errosNaoFataisCrashlytics.add(motivo);
+            }
           },
           enviarExcecaoSentry: (
             erro, {
@@ -564,8 +571,14 @@ void main() {
             required String motivo,
             required bool fatal,
             Map<String, Map<String, Object?>>? contextosExtras,
-          }) async {},
-        );
+          }) async {
+            if (!fatal) {
+              errosNaoFataisSentry.add(motivo);
+            }
+          },
+        )..aoRegistrarErroOuCrash = (erro, stack, mensagem, {required fatal}) {
+          eventosHook.add(fatal);
+        };
 
         logger.logFalhaSyncOuDownload(
           'Falha ao sincronizar EPUB com fixalog.app',
@@ -573,7 +586,8 @@ void main() {
           stackTrace: StackTrace.current,
         );
 
-        expect(crashes, isEmpty);
+        expect(errosFataisCrashlytics, isEmpty);
+        expect(errosNaoFataisCrashlytics, isEmpty);
         expect(
           avisos.single,
           contains('Falha ao sincronizar EPUB com fixalog.app'),
@@ -593,13 +607,22 @@ void main() {
           stackTrace: StackTrace.current,
         );
 
+        expect(errosFataisCrashlytics, isEmpty);
         expect(
-          crashes,
+          errosNaoFataisCrashlytics,
           equals([
             'Pacote EPUB rejeitado por assinatura inválida (HTTP 400)',
             'Falha ao autenticar com Apple no Supabase',
           ]),
         );
+        expect(
+          errosNaoFataisSentry,
+          equals([
+            'Pacote EPUB rejeitado por assinatura inválida (HTTP 400)',
+            'Falha ao autenticar com Apple no Supabase',
+          ]),
+        );
+        expect(eventosHook, equals([false, false]));
       },
     );
   });

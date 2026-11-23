@@ -48,12 +48,16 @@ class ExcecaoAutenticacaoOidc implements ExcecaoComStatusHttp {
   final int? statusCode;
 
   final String? codigoErroServidor;
+  final String? codigoErroNativo;
+  final bool semCredencialDispositivo;
   final Uri? uri;
 
   const ExcecaoAutenticacaoOidc(
     this.mensagem, {
     this.statusCode,
     this.codigoErroServidor,
+    this.codigoErroNativo,
+    this.semCredencialDispositivo = false,
     this.uri,
   });
 
@@ -159,18 +163,9 @@ class SessaoUsuarioNuvem {
 class AutenticacaoNuvemService {
   static const String _chaveSessaoJson = 'fixalog_sessao_nuvem_json';
 
-  /// Marcador local retornado quando o `ServicoAppCheck` não possui um JWT real emitido pelo Firebase.
-  static const String tokenAppCheckFallbackLocal =
-      'app_check_token_fixalog_padrao';
-
-  /// Indica se [token] representa um token JWT real do App Check (ou token de teste explícito),
-  /// retornando `false` quando ausente, em branco ou igual ao [tokenAppCheckFallbackLocal].
+  /// Indica se [token] representa um token JWT não-vazio do Firebase App Check.
   static bool possuiTokenAppCheckReal(String? token) {
-    if (token == null) {
-      return false;
-    }
-    final limpo = token.trim();
-    return limpo.isNotEmpty && limpo != tokenAppCheckFallbackLocal;
+    return token != null && token.trim().isNotEmpty;
   }
 
   /// URL padrão do projeto Supabase compartilhado (`aresta`).
@@ -220,7 +215,7 @@ class AutenticacaoNuvemService {
     ProvedorOidc provedor,
     String rawNonce,
   ) _autenticadorOidc;
-  final Future<String> Function() _provedorTokenAppCheck;
+  final Future<String?> Function() _provedorTokenAppCheck;
   final Future<void> Function(
     String nomeCompleto,
     String clubeAssociacao,
@@ -233,7 +228,7 @@ class AutenticacaoNuvemService {
       ProvedorOidc provedor,
       String rawNonce,
     )? autenticadorOidc,
-    Future<String> Function()? provedorTokenAppCheck,
+    Future<String?> Function()? provedorTokenAppCheck,
     Future<void> Function(
       String nomeCompleto,
       String clubeAssociacao,
@@ -390,6 +385,23 @@ class AutenticacaoNuvemService {
     if (respostaNativa['cancelado'] == true) {
       throw const ExcecaoAutenticacaoCancelada();
     }
+    final erroCodigoNativo =
+        (respostaNativa['erroCodigo'] as String?)?.trim() ?? '';
+    if (erroCodigoNativo.isNotEmpty) {
+      final erroMensagemNativa =
+          (respostaNativa['erroMensagem'] as String?)?.trim() ?? '';
+      final semCredencial =
+          erroCodigoNativo == 'sem_credencial_dispositivo' ||
+          erroMensagemNativa.toLowerCase().contains('no credentials available');
+      final detalhe = erroMensagemNativa.isNotEmpty
+          ? '$erroCodigoNativo: $erroMensagemNativa'
+          : erroCodigoNativo;
+      throw ExcecaoAutenticacaoOidc(
+        'Falha no canal nativo OIDC (${provedor.valor}) [$detalhe]',
+        codigoErroNativo: erroCodigoNativo,
+        semCredencialDispositivo: semCredencial,
+      );
+    }
 
     final idTokenNativo = (respostaNativa['idToken'] as String?)?.trim() ?? '';
     if (idTokenNativo.isEmpty) {
@@ -412,9 +424,8 @@ class AutenticacaoNuvemService {
     );
   }
 
-  static Future<String> _provedorAppCheckPadrao() async {
-    final token = await ServicoAppCheck.instancia.obterToken();
-    return token ?? tokenAppCheckFallbackLocal;
+  static Future<String?> _provedorAppCheckPadrao() {
+    return ServicoAppCheck.instancia.obterToken();
   }
 
   /// Valida que o `id_token` OIDC recebido contém o claim `nonce` correspondente
@@ -623,8 +634,9 @@ class AutenticacaoNuvemService {
     }
   }
 
-  /// Obtém o token de atestação de integridade do aplicativo (Firebase App Check).
-  Future<String> obterTokenAppCheck() {
+  /// Obtém o token JWT de atestação de integridade do aplicativo (Firebase App Check),
+  /// retornando `null` quando indisponível para evitar transmissão de cabeçalhos sintéticos.
+  Future<String?> obterTokenAppCheck() {
     return _provedorTokenAppCheck();
   }
 

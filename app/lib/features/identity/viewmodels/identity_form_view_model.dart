@@ -132,8 +132,15 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       state = state.copyWith(isLoading: false, errorMessage: null);
     } catch (e, stackTrace) {
       final l10n = ResolvedorIdioma.obterTraducoes(locale);
-      final semRede = RegistroLogger.isFalhaConexaoOuTimeout(e);
-      if (semRede) {
+      final semContaDispositivo =
+          e is ExcecaoAutenticacaoOidc && e.semCredencialDispositivo;
+      final semRede =
+          !semContaDispositivo && RegistroLogger.isFalhaConexaoOuTimeout(e);
+      if (semContaDispositivo) {
+        _logger.logAviso(
+          'Nenhuma credencial cadastrada no dispositivo durante autenticação OIDC (${provedor.valor}): $e',
+        );
+      } else if (semRede) {
         _logger.logAviso(
           'Falha de conexão durante autenticação OIDC (${provedor.valor}): $e',
         );
@@ -146,9 +153,11 @@ class IdentityFormViewModel extends StateNotifier<IdentityFormState> {
       }
       state = state.copyWith(
         isLoading: false,
-        errorMessage: semRede
-            ? l10n.identidadeErroSemConexaoOidc
-            : l10n.identidadeErroLoginOidc,
+        errorMessage: semContaDispositivo
+            ? l10n.identidadeErroSemContaDispositivoOidc
+            : (semRede
+                  ? l10n.identidadeErroSemConexaoOidc
+                  : l10n.identidadeErroLoginOidc),
       );
     }
   }

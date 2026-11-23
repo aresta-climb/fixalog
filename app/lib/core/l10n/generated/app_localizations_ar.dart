@@ -614,6 +614,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يوجد اتصال بالإنترنت. اتصل بالإنترنت لربط حسابك.';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'لم يتم العثور على حساب Google على هذا الجهاز. أضف حساب Google في إعدادات الجهاز وحاول مرة أخرى.';
+
+  @override
   String get identidadeErroSalvarGenerico =>
       'تعذر حفظ الهوية. يرجى المحاولة مرة أخرى.';
 }

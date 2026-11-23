@@ -284,5 +284,6 @@
   "configRotuloFingerprintChave": "مفتاح ECDSA P-256",
   "identidadeErroLoginOidc": "تعذر إكمال تسجيل الدخول. يرجى المحاولة مرة أخرى.",
   "identidadeErroSemConexaoOidc": "لا يوجد اتصال بالإنترنت. اتصل بالإنترنت لربط حسابك.",
+  "identidadeErroSemContaDispositivoOidc": "لم يتم العثور على حساب Google على هذا الجهاز. أضف حساب Google في إعدادات الجهاز وحاول مرة أخرى.",
   "identidadeErroSalvarGenerico": "تعذر حفظ الهوية. يرجى المحاولة مرة أخرى."
 }

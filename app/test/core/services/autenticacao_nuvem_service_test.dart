@@ -177,6 +177,62 @@ void main() {
           ),
         ),
       );
+
+      // 6. Handler nativo retorna ausência de conta no dispositivo (NoCredentialException)
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            AutenticacaoNuvemService.canalAutenticacaoNativa,
+            (MethodCall call) async => <String, dynamic>{
+              'erroCodigo': 'sem_credencial_dispositivo',
+              'erroMensagem': 'No credentials available',
+            },
+          );
+      await expectLater(
+        service.entrarComProvedorOidc(ProvedorOidc.google),
+        throwsA(
+          isA<ExcecaoAutenticacaoOidc>()
+              .having(
+                (e) => e.semCredencialDispositivo,
+                'semCredencialDispositivo',
+                isTrue,
+              )
+              .having(
+                (e) => e.codigoErroNativo,
+                'codigoErroNativo',
+                'sem_credencial_dispositivo',
+              ),
+        ),
+      );
+
+      // 7. Handler nativo retorna outro código estruturado de erro nativo (sem mensagem)
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            AutenticacaoNuvemService.canalAutenticacaoNativa,
+            (MethodCall call) async => <String, dynamic>{
+              'erroCodigo': 'ASAuthorizationErrorDomain:1004',
+            },
+          );
+      await expectLater(
+        service.entrarComProvedorOidc(ProvedorOidc.apple),
+        throwsA(
+          isA<ExcecaoAutenticacaoOidc>()
+              .having(
+                (e) => e.semCredencialDispositivo,
+                'semCredencialDispositivo',
+                isFalse,
+              )
+              .having(
+                (e) => e.codigoErroNativo,
+                'codigoErroNativo',
+                'ASAuthorizationErrorDomain:1004',
+              )
+              .having(
+                (e) => e.mensagem,
+                'mensagem',
+                contains('ASAuthorizationErrorDomain:1004'),
+              ),
+        ),
+      );
     });
 
     test('Lança ExcecaoAutenticacaoCancelada quando usuário cancela modal nativo sem disparar requisição HTTP ao Supabase', () async {
@@ -359,22 +415,13 @@ void main() {
         autenticadorOidc: autenticadorTesteValido,
       );
 
-      expect(
-        await service.obterTokenAppCheck(),
-        equals(AutenticacaoNuvemService.tokenAppCheckFallbackLocal),
-      );
+      expect(await service.obterTokenAppCheck(), isNull);
       expect(
         AutenticacaoNuvemService.possuiTokenAppCheckReal(null),
         isFalse,
       );
       expect(
         AutenticacaoNuvemService.possuiTokenAppCheckReal('   '),
-        isFalse,
-      );
-      expect(
-        AutenticacaoNuvemService.possuiTokenAppCheckReal(
-          AutenticacaoNuvemService.tokenAppCheckFallbackLocal,
-        ),
         isFalse,
       );
       expect(

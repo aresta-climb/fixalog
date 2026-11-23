@@ -84,6 +84,15 @@ void main() {
       expect(l10nJa.comumSim, equals('はい'));
       expect(l10nFallback.comumSim, equals('Yes'));
       expect(ResolvedorIdioma.obterTraducoes(null).comumSim, equals('Yes'));
+
+      for (final codigo in ['pt', 'en', 'es', 'fr', 'de', 'ar', 'ja']) {
+        final l10n = ResolvedorIdioma.obterTraducoes(Locale(codigo));
+        expect(l10n.identidadeErroSemContaDispositivoOidc, isNotEmpty);
+      }
+      expect(
+        l10nPt.identidadeErroSemContaDispositivoOidc,
+        contains('Nenhuma conta Google encontrada neste aparelho'),
+      );
     });
   });
 

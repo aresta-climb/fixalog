@@ -226,6 +226,30 @@ void main() {
         ),
       );
 
+      // 2.5. Ausência de conta Google cadastrada no aparelho: apenas logAviso (zero logError) e mensagem orientativa localizada
+      final authSemConta = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        deveSimularSemCredencialDispositivo: true,
+      );
+      final vmSemConta = IdentityFormViewModel(
+        repo,
+        crypto,
+        authSemConta,
+        logger,
+      );
+      await vmSemConta.autenticarComProvedor(
+        ProvedorOidc.google,
+        locale: const Locale('pt'),
+      );
+      expect(logger.errosRegistrados, isEmpty);
+      expect(logger.avisosRegistrados, hasLength(2));
+      expect(
+        vmSemConta.state.errorMessage,
+        equals(
+          'Nenhuma conta Google encontrada neste aparelho. Adicione uma conta Google nas configurações do dispositivo e tente novamente.',
+        ),
+      );
+
       // 3. Erro HTTP 400 (provider_disabled) e falha ao salvar: logError com StackTrace e mensagem limpa sem JSON/URI
       final authErro400 = AutenticacaoNuvemServiceFake(
         crypto: crypto,

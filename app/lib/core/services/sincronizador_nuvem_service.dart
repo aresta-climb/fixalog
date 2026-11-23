@@ -752,35 +752,51 @@ class SincronizadorNuvemService {
         1000000,
       );
 
-      if (_emModoDesenvolvimento &&
-          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
-        _logger.logInfo(
-          '📝 [DEBUG MOCK] Upload de laudo concluído localmente (App Check não registrado em dev): ${record.idSessao}',
-        );
-        record.enviadoNuvem = true;
-        if (banco != null) {
-          await banco.salvarSubmissao(record);
+      if (!AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        if (_emModoDesenvolvimento) {
+          _logger.logInfo(
+            '📝 [DEBUG MOCK] Upload de laudo concluído localmente (App Check não registrado em dev): ${record.idSessao}',
+          );
+          record.enviadoNuvem = true;
+          if (banco != null) {
+            await banco.salvarSubmissao(record);
+          }
+          _emitirProgresso(
+            ProgressoPublicacaoLaudo(
+              idSessao: record.idSessao,
+              etapa: EtapaPublicacaoLaudo.concluidoAtivo,
+              blocosEnviados: totalBlocos,
+              totalBlocos: totalBlocos,
+              verificacaoConcluida: 1,
+              verificacaoTotal: 1,
+            ),
+          );
+          return true;
         }
+        _logger.logAviso(
+          '🛡️ [SincronizadorNuvemService] Upload do laudo (${record.idSessao}) adiado: token do App Check indisponível.',
+        );
         _emitirProgresso(
           ProgressoPublicacaoLaudo(
             idSessao: record.idSessao,
-            etapa: EtapaPublicacaoLaudo.concluidoAtivo,
-            blocosEnviados: totalBlocos,
+            etapa: EtapaPublicacaoLaudo.semInternet,
+            blocosEnviados: 0,
             totalBlocos: totalBlocos,
-            verificacaoConcluida: 1,
-            verificacaoTotal: 1,
+            mensagemErro:
+                'Não foi possível validar a atestação de segurança do dispositivo no momento.',
           ),
         );
-        return true;
+        return false;
       }
 
+      final tokenValido = tokenAppCheck!.trim();
       final hashSha256 = calcularSha256Hex(epubBytes);
 
       final statusRemoto = await _clienteHttp.consultarStatusLaudo(
         idSessao: record.idSessao,
         sha256: hashSha256,
         jwtSupabase: sessao.jwtSupabase,
-        tokenAppCheck: tokenAppCheck,
+        tokenAppCheck: tokenValido,
       );
 
       if (statusRemoto.jaEnviado) {
@@ -835,7 +851,7 @@ class SincronizadorNuvemService {
           total: totalBlocos,
           chunkBytes: fatia,
           jwtSupabase: sessao.jwtSupabase,
-          tokenAppCheck: tokenAppCheck,
+          tokenAppCheck: tokenValido,
         );
 
         if (_sessoesCanceladasPeloUsuario.contains(record.idSessao)) {
@@ -938,27 +954,41 @@ class SincronizadorNuvemService {
           return obterProgressoAtual(idSessao)!;
         }
         final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
-        if (_emModoDesenvolvimento &&
-            !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
-          if (registro != null && !registro.enviadoNuvem) {
-            await enviarSubmissao(registro);
+        if (!AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+          if (_emModoDesenvolvimento) {
+            if (registro != null && !registro.enviadoNuvem) {
+              await enviarSubmissao(registro);
+            }
+            final concluidoMock = ProgressoPublicacaoLaudo(
+              idSessao: idSessao,
+              etapa: EtapaPublicacaoLaudo.concluidoAtivo,
+              blocosEnviados: 1,
+              totalBlocos: 1,
+              verificacaoConcluida: 1,
+              verificacaoTotal: 1,
+            );
+            _emitirProgresso(concluidoMock);
+            return concluidoMock;
           }
-          final concluidoMock = ProgressoPublicacaoLaudo(
-            idSessao: idSessao,
-            etapa: EtapaPublicacaoLaudo.concluidoAtivo,
-            blocosEnviados: 1,
-            totalBlocos: 1,
-            verificacaoConcluida: 1,
-            verificacaoTotal: 1,
+          _logger.logAviso(
+            '🛡️ [SincronizadorNuvemService] Publicação do laudo ($idSessao) adiada: token do App Check indisponível.',
           );
-          _emitirProgresso(concluidoMock);
-          return concluidoMock;
+          final semAppCheck = ProgressoPublicacaoLaudo(
+            idSessao: idSessao,
+            etapa: EtapaPublicacaoLaudo.semInternet,
+            blocosEnviados: 0,
+            totalBlocos: 1,
+            mensagemErro:
+                'Não foi possível validar a atestação de segurança do dispositivo no momento.',
+          );
+          _emitirProgresso(semAppCheck);
+          return semAppCheck;
         }
         final status = await _clienteHttp.consultarStatusLaudo(
           idSessao: idSessao,
           sha256: hashSha256,
           jwtSupabase: sessao.jwtSupabase,
-          tokenAppCheck: tokenAppCheck,
+          tokenAppCheck: tokenAppCheck!.trim(),
         );
 
         if (!status.jaEnviado && registro != null) {
@@ -1086,16 +1116,21 @@ class SincronizadorNuvemService {
 
     try {
       final tokenAppCheck = await _autenticacaoService.obterTokenAppCheck();
-      if (_emModoDesenvolvimento &&
-          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
-        _logger.logInfo(
-          '📝 [DEBUG MOCK] Restauração de relatórios concluída localmente (App Check não registrado em dev).',
-        );
+      if (!AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        if (_emModoDesenvolvimento) {
+          _logger.logInfo(
+            '📝 [DEBUG MOCK] Restauração de relatórios concluída localmente (App Check não registrado em dev).',
+          );
+        } else {
+          _logger.logAviso(
+            '🛡️ [SincronizadorNuvemService] Restauração de relatórios adiada: token do App Check indisponível.',
+          );
+        }
         return 0;
       }
       final remotos = await _clienteHttp.listarLaudosConta(
         jwtSupabase: sessao.jwtSupabase,
-        tokenAppCheck: tokenAppCheck,
+        tokenAppCheck: tokenAppCheck!.trim(),
       );
 
       int restaurados = 0;

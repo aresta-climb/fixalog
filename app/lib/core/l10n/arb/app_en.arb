@@ -284,5 +284,6 @@
   "configRotuloFingerprintChave": "ECDSA P-256 Key",
   "identidadeErroLoginOidc": "Could not complete sign-in. Please try again.",
   "identidadeErroSemConexaoOidc": "No internet connection. Connect to the internet to link your account.",
+  "identidadeErroSemContaDispositivoOidc": "No Google account found on this device. Add a Google account in your device settings and try again.",
   "identidadeErroSalvarGenerico": "Could not save your identity. Please try again."
 }

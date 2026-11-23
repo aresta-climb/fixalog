@@ -69,6 +69,29 @@ void main() {
         throwsA(isA<SocketException>()),
       );
 
+      final fakeSemConta = AutenticacaoNuvemServiceFake(
+        crypto: crypto,
+        deveSimularSemCredencialDispositivo: true,
+        tokenAppCheckRetornado: null,
+      );
+      await expectLater(
+        fakeSemConta.entrarComProvedorOidc(ProvedorOidc.google),
+        throwsA(
+          isA<ExcecaoAutenticacaoOidc>()
+              .having(
+                (e) => e.semCredencialDispositivo,
+                'semCredencialDispositivo',
+                isTrue,
+              )
+              .having(
+                (e) => e.codigoErroNativo,
+                'codigoErroNativo',
+                'sem_credencial_dispositivo',
+              ),
+        ),
+      );
+      expect(await fakeSemConta.obterTokenAppCheck(), isNull);
+
       final fake = AutenticacaoNuvemServiceFake(
         crypto: crypto,
         deveFalharLogin: true,

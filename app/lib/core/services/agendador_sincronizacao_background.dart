@@ -77,11 +77,13 @@ class AgendadorSincronizacaoBackground {
 
   /// Inicia o monitoramento (na abertura do app ou após selar um laudo).
   Future<bool> iniciarMonitoramento() {
+    _indiceBackoff = 0;
     return executarCicloSeNecessario();
   }
 
   /// Acionado quando o aplicativo retorna ao primeiro plano (`AppLifecycleState.resumed`).
   Future<bool> aoRetomarAplicativo() {
+    _indiceBackoff = 0;
     return executarCicloSeNecessario();
   }
 
@@ -122,10 +124,10 @@ class AgendadorSincronizacaoBackground {
 
   void _agendarProximaTentativaComBackoff() {
     cancelarTimer();
-    final duracao = _intervalosBackoff[_indiceBackoff];
-    if (_indiceBackoff < _intervalosBackoff.length - 1) {
-      _indiceBackoff++;
+    if (_indiceBackoff >= _intervalosBackoff.length) {
+      return;
     }
+    final duracao = _intervalosBackoff[_indiceBackoff++];
     _timer = Timer(duracao, () {
       unawaited(executarCicloSeNecessario());
     });

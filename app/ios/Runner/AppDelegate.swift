@@ -228,11 +228,25 @@ import Security
         callbackURLScheme: esquemaCallback
       ) { [weak self] callbackURL, error in
         self?.sessaoWebAuthGoogle = nil
-        guard error == nil,
-              let callbackURL = callbackURL,
+        if let erroWeb = error as? ASWebAuthenticationSessionError, erroWeb.code == .canceledLogin {
+          result(["cancelado": true])
+          return
+        }
+        if let error = error {
+          let nsError = error as NSError
+          result([
+            "erroCodigo": "\(nsError.domain):\(nsError.code)",
+            "erroMensagem": nsError.localizedDescription
+          ])
+          return
+        }
+        guard let callbackURL = callbackURL,
               let itens = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems,
               let codigo = itens.first(where: { $0.name == "code" })?.value else {
-          result(nil)
+          result([
+            "erroCodigo": "callback_invalido",
+            "erroMensagem": "URL de retorno OAuth sem código de autorização."
+          ])
           return
         }
         self?.trocarCodigoGooglePorIdToken(
@@ -274,11 +288,26 @@ import Security
     ]
     req.httpBody = form.percentEncodedQuery?.data(using: .utf8)
 
-    URLSession.shared.dataTask(with: req) { data, _, _ in
+    URLSession.shared.dataTask(with: req) { data, _, error in
+      if let error = error {
+        let nsError = error as NSError
+        DispatchQueue.main.async {
+          result([
+            "erroCodigo": "\(nsError.domain):\(nsError.code)",
+            "erroMensagem": nsError.localizedDescription
+          ])
+        }
+        return
+      }
       guard let data = data,
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let idToken = json["id_token"] as? String else {
-        DispatchQueue.main.async { result(nil) }
+        DispatchQueue.main.async {
+          result([
+            "erroCodigo": "troca_token_invalida",
+            "erroMensagem": "Resposta sem id_token ao trocar código Google OAuth."
+          ])
+        }
         return
       }
       DispatchQueue.main.async {
@@ -337,7 +366,11 @@ import Security
     if let erroAuth = error as? ASAuthorizationError, erroAuth.code == .canceled {
       callback?(["cancelado": true])
     } else {
-      callback?(nil)
+      let nsError = error as NSError
+      callback?([
+        "erroCodigo": "\(nsError.domain):\(nsError.code)",
+        "erroMensagem": nsError.localizedDescription
+      ])
     }
   }
 

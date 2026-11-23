@@ -616,6 +616,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Sem conexão com a internet. Conecte-se para vincular sua conta.';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'Nenhuma conta Google encontrada neste aparelho. Adicione uma conta Google nas configurações do dispositivo e tente novamente.';
+
+  @override
   String get identidadeErroSalvarGenerico =>
       'Não foi possível salvar a identidade. Tente novamente.';
 }

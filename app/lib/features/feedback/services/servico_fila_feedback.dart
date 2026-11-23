@@ -183,20 +183,22 @@ class ServicoFilaFeedback {
   Future<bool> enviarItemFeedback(FeedbackRecord item) async {
     try {
       final tokenAppCheck = await _autenticacaoService?.obterTokenAppCheck();
-      if (_emModoDesenvolvimento &&
-          !AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
-        _logger.logInfo(
-          '📝 [DEBUG MOCK] Feedback concluído localmente (App Check não registrado em dev): ${item.idFeedback}',
+      if (!AutenticacaoNuvemService.possuiTokenAppCheckReal(tokenAppCheck)) {
+        if (_emModoDesenvolvimento) {
+          _logger.logInfo(
+            '📝 [DEBUG MOCK] Feedback concluído localmente (App Check não registrado em dev): ${item.idFeedback}',
+          );
+          return true;
+        }
+        _logger.logAviso(
+          '🛡️ [ServicoFilaFeedback] Envio de feedback (${item.idFeedback}) adiado: token do App Check indisponível.',
         );
-        return true;
+        return false;
       }
 
       final uri = Uri.parse(_obterUrlEdgeFunction());
       final request = http.MultipartRequest('POST', uri);
-
-      if (tokenAppCheck != null && tokenAppCheck.isNotEmpty) {
-        request.headers['X-Firebase-AppCheck'] = tokenAppCheck;
-      }
+      request.headers['X-Firebase-AppCheck'] = tokenAppCheck!.trim();
 
       request.fields['description'] = item.mensagem;
       request.fields['category'] = item.categoria;

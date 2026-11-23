@@ -614,6 +614,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No internet connection. Connect to the internet to link your account.';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'No Google account found on this device. Add a Google account in your device settings and try again.';
+
+  @override
   String get identidadeErroSalvarGenerico =>
       'Could not save your identity. Please try again.';
 }

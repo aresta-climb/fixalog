@@ -625,6 +625,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Internetverbindung. Verbinden Sie sich, um Ihr Konto zu verknüpfen.';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'Kein Google-Konto auf diesem Gerät gefunden. Fügen Sie in den Geräteeinstellungen ein Google-Konto hinzu und versuchen Sie es erneut.';
+
+  @override
   String get identidadeErroSalvarGenerico =>
       'Identität konnte nicht gespeichert werden. Bitte erneut versuchen.';
 }

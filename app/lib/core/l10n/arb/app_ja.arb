@@ -284,5 +284,6 @@
   "configRotuloFingerprintChave": "ECDSA P-256 鍵",
   "identidadeErroLoginOidc": "サインインを完了できませんでした。もう一度お試しください。",
   "identidadeErroSemConexaoOidc": "インターネット接続がありません。アカウントを連携するには接続してください。",
+  "identidadeErroSemContaDispositivoOidc": "この端末に Google アカウントが見つかりません。端末の設定から Google アカウントを追加して、もう一度お試しください。",
   "identidadeErroSalvarGenerico": "ID情報を保存できませんでした。もう一度お試しください。"
 }

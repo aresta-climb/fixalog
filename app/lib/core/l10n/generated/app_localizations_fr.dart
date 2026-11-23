@@ -623,6 +623,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune connexion Internet. Connectez-vous pour lier votre compte.';
 
   @override
+  String get identidadeErroSemContaDispositivoOidc =>
+      'Aucun compte Google trouvé sur cet appareil. Ajoutez un compte Google dans les paramètres de l\'appareil et réessayez.';
+
+  @override
   String get identidadeErroSalvarGenerico =>
       'Impossible d\'enregistrer l\'identité. Veuillez réessayer.';
 }

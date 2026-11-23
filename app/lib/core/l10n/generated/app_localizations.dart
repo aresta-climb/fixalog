@@ -1185,6 +1185,12 @@ abstract class AppLocalizations {
   /// **'Sem conexão com a internet. Conecte-se para vincular sua conta.'**
   String get identidadeErroSemConexaoOidc;
 
+  /// No description provided for @identidadeErroSemContaDispositivoOidc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma conta Google encontrada neste aparelho. Adicione uma conta Google nas configurações do dispositivo e tente novamente.'**
+  String get identidadeErroSemContaDispositivoOidc;
+
   /// No description provided for @identidadeErroSalvarGenerico.
   ///
   /// In pt, this message translates to:

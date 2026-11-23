@@ -284,5 +284,6 @@
   "configRotuloFingerprintChave": "Clé ECDSA P-256",
   "identidadeErroLoginOidc": "Impossible de terminer l'authentification. Veuillez réessayer.",
   "identidadeErroSemConexaoOidc": "Aucune connexion Internet. Connectez-vous pour lier votre compte.",
+  "identidadeErroSemContaDispositivoOidc": "Aucun compte Google trouvé sur cet appareil. Ajoutez un compte Google dans les paramètres de l'appareil et réessayez.",
   "identidadeErroSalvarGenerico": "Impossible d'enregistrer l'identité. Veuillez réessayer."
 }

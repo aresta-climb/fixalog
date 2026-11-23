@@ -12,13 +12,14 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
   final CryptoService crypto;
   bool deveFalharLogin;
   bool deveCancelarLogin;
+  bool deveSimularSemCredencialDispositivo;
   Object? erroCustomizadoLogin;
   bool deveFalharAppCheck;
   String nomeRetornadoOidc;
   String clubeRetornadoOidc;
   String emailRetornadoOidc;
   String userIdRetornadoOidc;
-  String tokenAppCheckRetornado;
+  String? tokenAppCheckRetornado;
   SessaoUsuarioNuvem? sessaoArmazenada;
   final List<ProvedorOidc> loginsRealizados = [];
   final List<({String nome, String clube})> perfisAtualizados = [];
@@ -28,6 +29,7 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
     required this.crypto,
     this.deveFalharLogin = false,
     this.deveCancelarLogin = false,
+    this.deveSimularSemCredencialDispositivo = false,
     this.erroCustomizadoLogin,
     this.deveFalharAppCheck = false,
     this.nomeRetornadoOidc = 'Renato Ferreira',
@@ -78,6 +80,13 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
   ) async {
     if (deveCancelarLogin) {
       throw const ExcecaoAutenticacaoCancelada();
+    }
+    if (deveSimularSemCredencialDispositivo) {
+      throw const ExcecaoAutenticacaoOidc(
+        'Falha no canal nativo OIDC (google) [sem_credencial_dispositivo: No credentials available]',
+        codigoErroNativo: 'sem_credencial_dispositivo',
+        semCredencialDispositivo: true,
+      );
     }
     if (erroCustomizadoLogin != null) {
       throw erroCustomizadoLogin!;
@@ -159,7 +168,7 @@ class AutenticacaoNuvemServiceFake extends AutenticacaoNuvemService {
   Future<SessaoUsuarioNuvem?> obterSessaoAtual() async => sessaoArmazenada;
 
   @override
-  Future<String> obterTokenAppCheck() async {
+  Future<String?> obterTokenAppCheck() async {
     if (deveFalharAppCheck) {
       throw Exception('Falha simulada no Firebase App Check.');
     }

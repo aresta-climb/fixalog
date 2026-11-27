@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Fixalog Contributors
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test/caos/fabrica_dataset_caos.dart';
+import '../test/caos/motor_robo_caotico.dart';
 
 /// Duração da campanha de caos quando executada em dispositivo físico/emulador.
 const int kDuracaoDispositivoSegundos = int.fromEnvironment(
@@ -17,7 +19,7 @@ const bool kReportarSentryDispositivo = bool.fromEnvironment(
   defaultValue: true,
 );
 
-/// Semente inicial opcional (`0` gera semente variável a cada execução).
+/// Semente inicial opcional (`0` gera semente via `Random.secure()` / CSPRNG do SO a cada execução).
 const int kSeedInicialDispositivo = int.fromEnvironment(
   'SEED_INICIAL_CAOS',
   defaultValue: 0,
@@ -36,9 +38,12 @@ void main() {
           reportarAoSentry: kReportarSentryDispositivo,
         );
 
-        final seedInicial = kSeedInicialDispositivo != 0
-            ? kSeedInicialDispositivo
-            : (DateTime.now().millisecondsSinceEpoch % 100000000);
+        final seedInicial = resolverSeedInicialCampanha(
+          kSeedInicialDispositivo,
+        );
+        debugPrint(
+          '🎲 [Robô Caótico Fixalog] Iniciando campanha em dispositivo com seedInicial=$seedInicial...',
+        );
 
         final relatorio = await motor.executarCampanhaPorTempo(
           duracaoMaxima: const Duration(seconds: kDuracaoDispositivoSegundos),

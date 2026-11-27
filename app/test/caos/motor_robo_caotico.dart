@@ -13,6 +13,18 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'encolhedor_caminho_crash.dart';
 import 'receita_crash_robo.dart';
 
+/// Resolve a semente inicial da campanha do Robô Caótico.
+///
+/// Quando [valorConfigurado] é `<= 0`, gera uma semente aleatória em `[1, 0x7FFFFFFE]`
+/// utilizando o gerador criptograficamente seguro do sistema operacional ([math.Random.secure],
+/// respaldado por `/dev/urandom` / `BCryptGenRandom`), evitando colisões de relógio.
+int resolverSeedInicialCampanha([int valorConfigurado = 0]) {
+  if (valorConfigurado > 0) {
+    return valorConfigurado;
+  }
+  return math.Random.secure().nextInt(0x7FFFFFFE) + 1;
+}
+
 /// Resultado de uma única sessão exploratória executada pelo [MotorRoboCaotico].
 class ResultadoSessaoRobo {
   /// Semente pseudo-aleatória utilizada na sessão.
@@ -82,8 +94,7 @@ class RelatorioCampanhaRobo {
       )
       ..writeln('Falhas únicas encontradas: ${falhasUnicas.length}');
     for (final receita in falhasUnicas) {
-      final ocorrencias =
-          contagemPorAssinatura[receita.assinaturaFalha] ?? 1;
+      final ocorrencias = contagemPorAssinatura[receita.assinaturaFalha] ?? 1;
       buffer
         ..writeln(
           '- [${receita.oraculo}] ${receita.assinaturaFalha} ($ocorrencias ocorrências) | seed=${receita.seed} | dataset=${receita.dataset.name}',
@@ -259,8 +270,9 @@ class MotorRoboCaotico {
   Future<RelatorioCampanhaRobo> executarCampanhaPorTempo({
     required Duration duracaoMaxima,
     int maxPassosPorSessao = 25,
-    int seedInicial = 1,
+    int seedInicial = 0,
   }) async {
+    final seedBase = resolverSeedInicialCampanha(seedInicial);
     final cronometro = Stopwatch()..start();
     final falhasUnicas = <ReceitaCrashRobo>[];
     final contagemPorAssinatura = <String, int>{};
@@ -270,7 +282,7 @@ class MotorRoboCaotico {
       if (reportarAoSentry) {
         await _garantirSentryInicializadoParaCampanha();
       }
-      final seedAtual = seedInicial + sessoesExecutadas;
+      final seedAtual = seedBase + sessoesExecutadas;
       final datasetAtual = sessoesExecutadas.isEven
           ? TipoDatasetCaos.normal
           : TipoDatasetCaos.toxico;
@@ -317,8 +329,9 @@ class MotorRoboCaotico {
       totalSessoesExecutadas: sessoesExecutadas,
       duracaoTotal: cronometro.elapsed,
       falhasUnicas: List<ReceitaCrashRobo>.unmodifiable(falhasUnicas),
-      contagemPorAssinatura:
-          Map<String, int>.unmodifiable(contagemPorAssinatura),
+      contagemPorAssinatura: Map<String, int>.unmodifiable(
+        contagemPorAssinatura,
+      ),
     );
   }
 
@@ -514,8 +527,7 @@ class MotorRoboCaotico {
     // 3. Descobre listas/scrollables visíveis
     final seletoresScroll = _descobrirSeletoresPorTipo(Scrollable);
     for (final seletor in seletoresScroll) {
-      final dy =
-          (random.nextBool() ? -1.0 : 1.0) * (120 + random.nextInt(300));
+      final dy = (random.nextBool() ? -1.0 : 1.0) * (120 + random.nextInt(300));
       candidatos.add(
         PassoRobo(
           acao: TipoAcaoRobo.scroll,
@@ -629,10 +641,7 @@ class MotorRoboCaotico {
       }
 
       seletores.add(
-        SeletorAlvoRobo.porTipoEIndice(
-          tipoWidget: nomeTipo,
-          ocorrencia: i,
-        ),
+        SeletorAlvoRobo.porTipoEIndice(tipoWidget: nomeTipo, ocorrencia: i),
       );
     }
 
@@ -668,8 +677,9 @@ class MotorRoboCaotico {
         case TipoAcaoRobo.voltarSistema:
           await tester.binding.handlePopRoute();
         case TipoAcaoRobo.voltarAppNav:
-          final elementos =
-              find.byType(Scaffold, skipOffstage: true).evaluate();
+          final elementos = find
+              .byType(Scaffold, skipOffstage: true)
+              .evaluate();
           if (elementos.isNotEmpty) {
             Navigator.maybePop(elementos.first);
           }
@@ -762,19 +772,15 @@ class MotorRoboCaotico {
       detalhesFlutter ??= details;
       handlerAnterior?.call(details);
     };
-    RegistroLogger.instancia.aoRegistrarErroOuCrash = (
-      erro,
-      stackTrace,
-      mensagem, {
-      required fatal,
-    }) {
-      falhaLogger ??= _FalhaCapturada(
-        oraculo: 'erro_registrado_log',
-        excecao: erro,
-        stackTrace: stackTrace,
-      );
-      hookLoggerAnterior?.call(erro, stackTrace, mensagem, fatal: fatal);
-    };
+    RegistroLogger.instancia.aoRegistrarErroOuCrash =
+        (erro, stackTrace, mensagem, {required fatal}) {
+          falhaLogger ??= _FalhaCapturada(
+            oraculo: 'erro_registrado_log',
+            excecao: erro,
+            stackTrace: stackTrace,
+          );
+          hookLoggerAnterior?.call(erro, stackTrace, mensagem, fatal: fatal);
+        };
 
     try {
       await bloco();

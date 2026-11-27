@@ -35,7 +35,7 @@ A suíte de testes DEVE (MUST) carregar automaticamente todas as receitas JSON e
 - **THEN** todas as receitas salvas em `caminhos_regressao` são reexecutadas contra o aplicativo completo em menos de um segundo por receita
 
 ### Requirement: Campanha Exploratória Controlada por Flag no Workflow de Release
-O workflow `.github/workflows/release_new_app_version.yml` DEVE (MUST) expor um input booleano `executar_robo_caotico` com valor padrão `true` no `workflow_dispatch`, executando sempre a suíte padrão (`flutter test`) em um step dedicado e condicionando o step da campanha exploratória de 5 minutos (`robo_caotico_exploratorio_test.dart` com `DURACAO_CAMPANHA_CAOS_SEGUNDOS=300` e `REPORTAR_SENTRY_CAOS=true`) ao valor de `inputs.executar_robo_caotico`.
+O workflow `.github/workflows/release_new_app_version.yml` DEVE (MUST) expor um input booleano `executar_robo_caotico` com valor padrão `true` no `workflow_dispatch`, executando sempre a suíte padrão (`flutter test`) em um step dedicado e condicionando o step da campanha exploratória de 5 minutos (`robo_caotico_exploratorio_test.dart` com `DURACAO_CAMPANHA_CAOS_SEGUNDOS=300`, `REPORTAR_SENTRY_CAOS=true` e semente inicial gerada por padrão via `Random.secure()` / `/dev/urandom`) ao valor de `inputs.executar_robo_caotico`.
 
 #### Scenario: Execução padrão no lançamento de versão
 - **WHEN** o workflow `release_new_app_version.yml` é disparado mantendo `executar_robo_caotico: true`
